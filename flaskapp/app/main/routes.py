@@ -6,15 +6,83 @@ from wtforms import StringField, PasswordField, SubmitField,SelectField
 from wtforms.validators import DataRequired
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass
 from . import main 
 
+def check_access(nombre_del_servicio):
+    # Verificar si el usuario tiene acceso al servicio "Editar Usuarios"
+    servicio_crear_usuario_id=Servicio.query.filter_by(nombre=nombre_del_servicio).first().id
+    acceso=Acceso.query.filter_by(servicio_id=servicio_crear_usuario_id,nivel_id=current_user.nivel_id).first()
+    if not acceso:
+        flash('No tienes acceso a esta función', 'danger')
+        return False
+    return True
+
+"""FALTAN HTML finales"""
 
 # Ruta principal del sistema
 @main.route('/')
 @login_required
 def index():
     return render_template('index.html', user=current_user)
+
+
+
+# Ruta para ver los registros de la tabla de grupos
+@main.route('/ver_solicitudes')
+@login_required
+def ver_solicitudes():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
+    solicitudes = SolicitudNewPass.query.filter_by(status="Pendiente").all()
+    resumen=[(Usuario.query.get_or_404(solicitud.usuario_id).username,solicitud) for solicitud in solicitudes]
+
+
+    return render_template('ver_solicitudes.html', resumen=resumen)
+
+
+
+# Clase para el formulario de edición de usuarios
+class EditarUsuarioForm(FlaskForm):
+    password = PasswordField('Nueva Contraseña')
+    nivel_id = SelectField('Nivel de Acceso', coerce=int)
+    submit = SubmitField('Editar Usuario')
+
+# Ruta para acceder a la página de edición de usuarios (solo si tiene acceso al servicio)
+@main.route('/editar_usuario/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_usuario(id):
+    # Verificar si el usuario tiene acceso al servicio "Editar Usuarios"
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
+
+    usuario = Usuario.query.get_or_404(id)
+    form = EditarUsuarioForm()
+
+    if request.method == 'POST':
+        # Actualizar contraseña si se proporcionó una nueva
+        if form.password.data:
+            usuario.password = generate_password_hash(form.password.data)
+
+        # Actualizar nivel de acceso si se seleccionó uno nuevo
+        if form.nivel_id.data:
+            usuario.nivel_id = form.nivel_id.data
+
+        prevregistro= SolicitudNewPass.query.filter_by(usuario_id=usuario.id).first()
+        if prevregistro:
+            if prevregistro.status=="Pendiente":
+                prevregistro.status="Resuelta"
+        db.session.commit()
+        flash('Usuario editado con éxito', 'success')
+        return redirect(url_for('main.index'))
+
+    # Recupera la lista de niveles de acceso para el formulario
+    niveles_acceso = NivelAcceso.query.all()
+    form.nivel_id.choices = [(nivel.id, nivel.nombre) for nivel in niveles_acceso]
+    form.password.description = 'Deja este campo en blanco si no deseas cambiar la contraseña'
+
+    return render_template('editar_usuario.html', usuario=usuario, form=form)
+
 
 
 # Clase para el formulario de creación de usuarios
@@ -31,12 +99,7 @@ class CrearUsuarioForm(FlaskForm):
 def crear_usuario():
     # Verificar si el usuario tiene acceso al servicio "Crear Usuarios"
     
-    nombre_del_servicio="Crear Usuario"
-    servicio_crear_usuario_id=Servicio.query.filter_by(nombre=nombre_del_servicio).first().id
-    acceso=Acceso.query.filter_by(servicio_id=servicio_crear_usuario_id,nivel_id=current_user.nivel_id).first()
-
-    if not acceso:
-        flash('No tienes acceso a esta función', 'danger')
+    if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
 
     form = CrearUsuarioForm()
@@ -62,54 +125,13 @@ def crear_usuario():
     return render_template('crear_usuario.html', form=form)
 
 
-# Clase para el formulario de edición de usuarios
-class EditarUsuarioForm(FlaskForm):
-    password = PasswordField('Nueva Contraseña')
-    nivel_id = SelectField('Nivel de Acceso', coerce=int)
-    submit = SubmitField('Editar Usuario')
-
-
-# Ruta para acceder a la página de edición de usuarios (solo si tiene acceso al servicio)
-@main.route('/editar_usuario/<int:id>', methods=['GET', 'POST'])
-@login_required
-def editar_usuario(id):
-    # Verificar si el usuario tiene acceso al servicio "Editar Usuarios"
-    nombre_del_servicio="Editar Usuario"
-    servicio_crear_usuario_id=Servicio.query.filter_by(nombre=nombre_del_servicio).first().id
-    acceso=Acceso.query.filter_by(servicio_id=servicio_crear_usuario_id,nivel_id=current_user.nivel_id).first()
-    
-    if not acceso:
-        flash('No tienes acceso a esta función', 'danger')
-        return redirect(url_for('main.index'))
-
-    usuario = Usuario.query.get_or_404(id)
-    form = EditarUsuarioForm()
-
-    if request.method == 'POST':
-        # Actualizar contraseña si se proporcionó una nueva
-        if form.password.data:
-            usuario.password = generate_password_hash(form.password.data)
-
-        # Actualizar nivel de acceso si se seleccionó uno nuevo
-        if form.nivel_id.data:
-            usuario.nivel_id = form.nivel_id.data
-
-        db.session.commit()
-        flash('Usuario editado con éxito', 'success')
-        return redirect(url_for('main.index'))
-
-    # Recupera la lista de niveles de acceso para el formulario
-    niveles_acceso = NivelAcceso.query.all()
-    form.nivel_id.choices = [(nivel.id, nivel.nombre) for nivel in niveles_acceso]
-    form.password.description = 'Deja este campo en blanco si no deseas cambiar la contraseña'
-
-    return render_template('editar_usuario.html', usuario=usuario, form=form)
-
 
 # Ruta para ver los registros de la tabla de grupos
 @main.route('/ver_grupos')
 @login_required
 def ver_grupos():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
     grupos = Grupo.query.all()
     return render_template('ver_grupos.html', grupos=grupos)
 
@@ -118,12 +140,7 @@ def ver_grupos():
 @login_required
 def editar_grupo(id):
     # Verificar si el usuario tiene acceso a la edición de grupos
-    nombre_del_servicio="Editar Grupo"
-    servicio_crear_usuario_id=Servicio.query.filter_by(nombre=nombre_del_servicio).first().id
-    acceso=Acceso.query.filter_by(servicio_id=servicio_crear_usuario_id,nivel_id=current_user.nivel_id).first()
-
-    if not acceso:
-        flash('No tienes acceso a esta función', 'danger')
+    if not check_access("Clientes"):
         return redirect(url_for('main.index'))
 
     grupo = Grupo.query.get_or_404(id)

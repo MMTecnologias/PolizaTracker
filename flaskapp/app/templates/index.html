@@ -19,5 +19,7 @@
     <h1>Bienvenido {{ user.username }}!</h1>
     <p>Esta es la página principal del sistema.</p>
 
+    <a href="{{ url_for('auth.logout') }}">Logout</a>
+
 </body>
 </html>

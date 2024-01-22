@@ -105,4 +105,12 @@ class Usuario(db.Model, UserMixin):
     password = Column(String(520), nullable=False)
     nivel_id = Column(Integer, ForeignKey('niveles_acceso.id'), nullable=False)
 
+class SolicitudNewPass(db.Model):
+    __tablename__ = 'solicitudes_new_pass'
+    usuario_id = Column(Integer, ForeignKey('usuarios.id'), primary_key=True)
+    status = Column(Enum('Resuelta', 'Pendiente'), nullable=False, default="Pendiente")
+
+
+
+
 # Ahora debes ajustar cualquier lógica adicional que estés utilizando en tu aplicación para que funcione con estas clases de modelo. También, asegúrate de tener las importaciones necesarias en otros archivos de tu aplicación.
