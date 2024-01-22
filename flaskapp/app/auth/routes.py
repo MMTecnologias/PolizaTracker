@@ -6,14 +6,19 @@ from wtforms import StringField, PasswordField, SubmitField,SelectField
 from wtforms.validators import DataRequired
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,SolicitudNewPass
 from . import auth
 
 # Clase para el formulario de inicio de sesión
 class LoginForm(FlaskForm):
-    username = StringField('Nombre de Usuario', validators=[DataRequired()])
-    password = PasswordField('Contraseña', validators=[DataRequired()])
+    username = StringField('username', validators=[DataRequired()])
+    password = PasswordField('password', validators=[DataRequired()])
     submit = SubmitField('Iniciar Sesión')
+
+# Clase para el formulario de solicitud nueva password
+class ReqNewPassForm(FlaskForm):
+    username = StringField('username', validators=[DataRequired()])
+    submit = SubmitField('Solicitar')
 
 
 # Ruta para iniciar sesión
@@ -24,6 +29,9 @@ def login():
     if request.method == 'POST':
         # Buscar el usuario en la base de datos por nombre de usuario
         usuario = Usuario.query.filter_by(username=form.username.data).first()
+
+        #print(form.username.data)
+        #print(form.password.data)
         if usuario and check_password_hash(usuario.password, form.password.data):
             login_user(usuario)
             flash('Inicio de sesión exitoso', 'success')
@@ -33,6 +41,38 @@ def login():
 
     return render_template('login.html', form=form)
 
+# Ruta para pedir un cambio de contrasena
+@auth.route('/req_new_pass', methods=['GET', 'POST'])
+def req_new_pass():
+    form = ReqNewPassForm()
+
+    if request.method == 'POST':
+        # Buscar el usuario en la base de datos por nombre de usuario
+        usuario = Usuario.query.filter_by(username=form.username.data).first()
+        #print(form.username.data)
+        #print(form.password.data)
+        if usuario:
+            prevregistro= SolicitudNewPass.query.filter_by(usuario_id=usuario.id).first()
+            if prevregistro:
+                if prevregistro.status=="Pendiente":
+                    flash('Ya tiene una solicitud pendiente', 'success')
+                    return redirect(url_for('auth.login'))
+                prevregistro.status="Pendiente"
+                db.session.commit()
+                flash('Solicitud envidad con exito', 'success')
+                return redirect(url_for('auth.login'))
+            nuevo_registro = SolicitudNewPass(usuario_id=usuario.id)
+            db.session.add(nuevo_registro)
+            db.session.commit()
+            flash('Solicitud envidad con exito', 'success')
+            return redirect(url_for('auth.login'))
+        else:
+            flash('Nombre de usuario incorrecto', 'danger')
+
+    return render_template('forgot-password.html', form=form)
+
+
+
 # Ruta para cerrar sesión
 @auth.route('/logout')
 @login_required
@@ -41,6 +81,7 @@ def logout():
     flash('Cierre de sesión exitoso', 'success')
     return redirect(url_for('main.index'))
 
+"""FALTA HTML finales"""
 
 # Clase para el formulario de cambio de contraseña
 class CambioContrasenaForm(FlaskForm):
