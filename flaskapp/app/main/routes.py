@@ -1,13 +1,15 @@
 # app/main/routes.py
-from flask import render_template, redirect, url_for, flash, request,current_app,jsonify
+from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField,SelectField
-from wtforms.validators import DataRequired
+from wtforms import StringField, PasswordField, SubmitField,SelectField,DateField,EmailField
+from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass,Cliente
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass,Cliente,Grupo
 from . import main 
+
+#from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
 
 def check_access(nombre_del_servicio):
     # Verificar si el usuario tiene acceso al servicio "Editar Usuarios"
@@ -18,11 +20,96 @@ def check_access(nombre_del_servicio):
         return False
     return True
 
-# Ruta principal del sistema
-@main.route('/cliente')
+# Form de clientes
+class ClientRegistrationForm(FlaskForm):
+    nombre = StringField('nombre', validators=[InputRequired(), Length(max=50)])
+    apellido = StringField('apellido', validators=[InputRequired(), Length(max=50)])
+    grupo = SelectField('grupo', coerce=int, validators=[InputRequired()])
+    cliente_id = SelectField('cliente_id', coerce=int)
+    rfc = StringField('rfc', validators=[InputRequired(), Length(min=12, max=13)])
+    telefono_oficina = StringField('telefono_oficina', validators=[Length(max=10)])
+    telefono_movil = StringField('telefono_movil', validators=[Length(max=10)])
+    telefono_casa = StringField('telefono_casa', validators=[Length(max=10)])
+    correo = EmailField('correo', validators=[InputRequired(), Email(), Length(max=50)])
+    direccion_fiscal = StringField('direccion_fiscal', validators=[Length(max=125)])
+    fecha_nacimiento = DateField('fecha_nacimiento', validators=[InputRequired()],format='%Y-%m-%d')
+    sexo = SelectField('sexo', choices=[('Hombre', 'Hombre'), ('Mujer', 'Mujer'), ('Otro', 'Otro')], validators=[InputRequired()])
+    ocupacion = StringField('ocupacion', validators=[Length(max=30)])
+    giro_actividad = StringField('giro_actividad', validators=[Length(max=30)])
+    nuevo_grupo = StringField('nuevo_grupo', validators=[Length(max=30)])  # Add this field for new group input
+
+
+    
+@main.route('/cliente', methods=['GET', 'POST'])
 @login_required
 def cliente():
-    return render_template('clientes.html', user=current_user)
+    grupos=Grupo.query.all()
+    form = ClientRegistrationForm()
+    if request.method == 'POST':
+        #try:
+            #print(request.form['submit_button'])
+            #if request.form['submit_button'] == 'guardar':
+                if form.grupo.data ==None:
+                    # Handle creating a new group here
+                    nuevo_grupo = form.nuevo_grupo.data
+                    grupo_existente = Grupo.query.filter_by(grupo=nuevo_grupo).first()
+                    if grupo_existente:
+                        grupo_id=grupo_existente.id
+                    else:
+                        nuevo_grupo = Grupo(grupo=nuevo_grupo)
+                        db.session.add(nuevo_grupo)
+                        db.session.commit()
+                        grupo_id=nuevo_grupo.id
+                else:
+                    grupo_id=form.grupo.data
+                
+                if form.cliente_id.data==None:
+                    cliente_existente = Cliente.query.filter_by(rfc=form.rfc.data).first()
+                    if cliente_existente:
+                        return "Ya existe un cliente con ese RFC"
+                    else:
+                        nuevo_cliente = Cliente(
+                                nombre=form.nombre.data,
+                                apellido=form.apellido.data,
+                                grupo_id=grupo_id,
+                                rfc=form.rfc.data,
+                                tel_oficina=form.telefono_oficina.data,
+                                tel_movil=form.telefono_movil.data,
+                                tel_casa=form.telefono_casa.data,
+                                correo=form.correo.data,
+                                direccion=form.direccion_fiscal.data,
+                                fecha_nacimiento=form.fecha_nacimiento.data,
+                                sexo=form.sexo.data,
+                                ocupacion=form.ocupacion.data,
+                                actividad=form.giro_actividad.data
+                            )
+                        db.session.add(nuevo_cliente)
+                        db.session.commit()
+                else:
+                    cliente = Cliente.query.get_or_404(form.cliente_id.data)
+                    # Actualizar los atributos del cliente con los datos del formulario
+                    cliente.nombre = form.nombre.data
+                    cliente.apellido = form.apellido.data
+                    cliente.grupo_id = grupo_id
+                    cliente.rfc = form.rfc.data
+                    cliente.tel_oficina = form.telefono_oficina.data
+                    cliente.tel_movil = form.telefono_movil.data
+                    cliente.tel_casa = form.telefono_casa.data
+                    cliente.correo = form.correo.data
+                    cliente.direccion = form.direccion_fiscal.data
+                    cliente.fecha_nacimiento = form.fecha_nacimiento.data
+                    cliente.sexo = form.sexo.data
+                    cliente.ocupacion = form.ocupacion.data
+                    cliente.actividad = form.giro_actividad.data
+                    # Guardar los cambios en la base de datos
+                    db.session.commit()
+            #else:
+             #   print("Otro boton")
+        #except:
+        #    abort(404)
+
+
+    return render_template('clientes.html', user=current_user,grupos=grupos)
 
 @main.route('/get_clients')
 @login_required
@@ -39,6 +126,7 @@ def get_clients():
             'apellido': client.apellido,
             'correo': client.correo,
             'celular': client.tel_movil,
+            'id':client.id
             # Add more fields as needed
         } for client in clients.items],
         'has_prev': clients.has_prev,
@@ -48,6 +136,29 @@ def get_clients():
         'total': clients.total,
         'pages': clients.pages,
         'page': clients.page
+    })
+
+@main.route('/get_client/<int:id>')
+@login_required
+def get_client(id):
+    client = Cliente.query.get_or_404(id)
+    
+    # Return data as JSON
+    return jsonify({
+            'id': client.id,
+            'nombre': client.nombre,
+            'apellido': client.apellido,
+            'rfc': client.rfc,
+            'tel_oficina': client.tel_oficina,
+            'tel_movil': client.tel_movil,
+            'tel_casa': client.tel_casa,
+            'correo': client.correo,
+            'direccion': client.direccion,
+            'fecha_nacimiento': client.fecha_nacimiento,
+            'sexo': client.sexo,
+            'ocupacion': client.ocupacion,
+            'actividad': client.actividad,
+            'grupo_id': client.grupo_id
     })
 
 
