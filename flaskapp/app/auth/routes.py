@@ -24,14 +24,17 @@ class ReqNewPassForm(FlaskForm):
 # Ruta para iniciar sesión
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        # Si ya ha iniciado sesión, redireccionar a la página principal u otra página
+        return redirect(url_for('main.index'))
     form = LoginForm()
 
     if request.method == 'POST':
         # Buscar el usuario en la base de datos por nombre de usuario
         usuario = Usuario.query.filter_by(username=form.username.data).first()
 
-        #print(form.username.data)
-        #print(form.password.data)
+        print(form.username.data)
+        print(form.password.data)
         if usuario and check_password_hash(usuario.password, form.password.data):
             login_user(usuario)
             flash('Inicio de sesión exitoso', 'success')
@@ -39,7 +42,7 @@ def login():
         else:
             flash('Nombre de usuario o contraseña incorrectos', 'danger')
 
-    return render_template('login.html', form=form)
+    return render_template('login2.html', form=form)
 
 # Ruta para pedir un cambio de contrasena
 @auth.route('/req_new_pass', methods=['GET', 'POST'])
@@ -69,7 +72,7 @@ def req_new_pass():
         else:
             flash('Nombre de usuario incorrecto', 'danger')
 
-    return render_template('forgot-password.html', form=form)
+    return render_template('forgotpass.html', form=form)
 
 
 
@@ -85,9 +88,9 @@ def logout():
 
 # Clase para el formulario de cambio de contraseña
 class CambioContrasenaForm(FlaskForm):
-    contrasena_actual = PasswordField('Contraseña Actual', validators=[DataRequired()])
-    nueva_contrasena = PasswordField('Nueva Contraseña', validators=[DataRequired()])
-    confirmar_contrasena = PasswordField('Confirmar Nueva Contraseña', validators=[DataRequired()])
+    contrasena_actual= PasswordField('contrasena_actual', validators=[DataRequired()])
+    nueva_contrasena = PasswordField('nueva_contrasena', validators=[DataRequired()])
+    confirmar_contrasena = PasswordField('confirmPassword', validators=[DataRequired()])
     submit = SubmitField('Cambiar Contraseña')
 
 # Ruta para cambiar la contraseña

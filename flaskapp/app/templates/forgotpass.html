@@ -6,23 +6,22 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Restablecer Contraseña</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="assets/images/icon/favicon.ico">
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/font-awesome.min.css">
-    <link rel="stylesheet" href="assets/css/themify-icons.css">
-    <link rel="stylesheet" href="assets/css/metisMenu.css">
-    <link rel="stylesheet" href="assets/css/owl.carousel.min.css">
-    <link rel="stylesheet" href="assets/css/slicknav.min.css">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
     <!-- amchart css -->
-    <link rel="stylesheet" href="https://www.amcharts.com/lib/3/plugins/export/export.css" type="text/css"
-        media="all" />
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
     <!-- others css -->
-    <link rel="stylesheet" href="assets/css/typography.css">
-    <link rel="stylesheet" href="assets/css/default-css.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
     <!-- modernizr css -->
-    <script src="assets/js/vendor/modernizr-2.8.3.min.js"></script>
+    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
 </head>
 
 
@@ -30,21 +29,31 @@
 
     <div class="container">
         <div class="login-box ptb--100">
-            <form>
+            <form method="POST" >
                 <div class="login-form-head">
                     <b>
                         <h4>Restablece la Contraseña</h4>
                     </b>
                     <p>Envía la solicitud al Administrador</p>
+                    <!-- {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <h6>
+                            {% for message in messages %}
+                                <li>{{ message }}</li>
+                            {% endfor %}
+                        </h6>
+                    {% endif %}
+                    {% endwith %}-->
                 </div>
                 <div class="login-form-body">
                     <div class="form-gp">
                         <label for="exampleInputEmail1">Usuario</label>
-                        <input type="text" id="exampleInputEmail1">
+                        <input type="text" id="exampleInputEmail1" name="username" required>
                         <i class="ti-lock"></i>
+                        <!--
                         <div class="invalid-feedback">
                             Ingresa un usuario valido
-                        </div>
+                        </div>-->
                     </div>
                 </div>
                     <!-- Vertically centered modal start -->
@@ -52,7 +61,7 @@
                         <div class="card">
                                 <h4 class="header-title"></h4>
                                 <!-- Button trigger modal -->
-                                <button type="button" class="btn btn-primary btn-flat btn-lg mt-0 margin-left" data-toggle="modal"
+                                <button type="submit" class="btn btn-primary btn-flat btn-lg mt-0 margin-left" data-toggle="modal"
                                     data-target="#exampleModalCenter">Enviar</button>
                                 <!-- Modal -->
                                 <div class="modal fade" id="exampleModalCenter">
@@ -64,6 +73,15 @@
                                             </div>
                                             <div class="modal-body">
                                                 <h7>Revisa tu correo, el administrador te hará llegar una nueva contraseña</h7>
+                                                    {% with messages = get_flashed_messages() %}
+                                                    {% if messages %}
+                                                        <h7>
+                                                            {% for message in messages %}
+                                                               {{ message }}
+                                                            {% endfor %}
+                                                        </h7>
+                                                    {% endif %}
+                                                    {% endwith %}
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary"
@@ -89,19 +107,19 @@
 <!-- footer area end-->
 </div>
 
-<!-- jquery latest version -->
-<script src="assets/js/vendor/jquery-2.2.4.min.js"></script>
-<!-- bootstrap 4 js -->
-<script src="assets/js/popper.min.js"></script>
-<script src="assets/js/bootstrap.min.js"></script>
-<script src="assets/js/owl.carousel.min.js"></script>
-<script src="assets/js/metisMenu.min.js"></script>
-<script src="assets/js/jquery.slimscroll.min.js"></script>
-<script src="assets/js/jquery.slicknav.min.js"></script>
-
-<!-- others plugins -->
-<script src="assets/js/plugins.js"></script>
-<script src="assets/js/scripts.js"></script>
+     <!-- jquery latest version -->
+     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+     <!-- bootstrap 4 js -->
+     <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+ 
+     <!-- others plugins -->
+     <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
 </body>
 
 </html>
