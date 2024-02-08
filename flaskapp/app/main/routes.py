@@ -1,12 +1,12 @@
 # app/main/routes.py
-from flask import render_template, redirect, url_for, flash, request,current_app
+from flask import render_template, redirect, url_for, flash, request,current_app,jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField,SelectField
 from wtforms.validators import DataRequired
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass,Cliente
 from . import main 
 
 def check_access(nombre_del_servicio):
@@ -17,6 +17,39 @@ def check_access(nombre_del_servicio):
         flash('No tienes acceso a esta función', 'danger')
         return False
     return True
+
+# Ruta principal del sistema
+@main.route('/cliente')
+@login_required
+def cliente():
+    return render_template('clientes.html', user=current_user)
+
+@main.route('/get_clients')
+@login_required
+def get_clients():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    print("GETTING")
+    clients = Cliente.query.paginate(page=page, per_page=per_page)
+
+    # Return data as JSON
+    return jsonify({
+        'clients': [{
+            'name': client.nombre,
+            'apellido': client.apellido,
+            'correo': client.correo,
+            'celular': client.tel_movil,
+            # Add more fields as needed
+        } for client in clients.items],
+        'has_prev': clients.has_prev,
+        'has_next': clients.has_next,
+        'prev_num': clients.prev_num,
+        'next_num': clients.next_num,
+        'total': clients.total,
+        'pages': clients.pages,
+        'page': clients.page
+    })
+
 
 """FALTAN HTML finales"""
 

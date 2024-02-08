@@ -6,22 +6,23 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Clientes</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="assets/images/icon/favicon.ico">
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/font-awesome.min.css">
-    <link rel="stylesheet" href="assets/css/themify-icons.css">
-    <link rel="stylesheet" href="assets/css/metisMenu.css">
-    <link rel="stylesheet" href="assets/css/owl.carousel.min.css">
-    <link rel="stylesheet" href="assets/css/slicknav.min.css">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
     <!-- amchart css -->
-    <link rel="stylesheet" href="https://www.amcharts.com/lib/3/plugins/export/export.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
     <!-- others css -->
-    <link rel="stylesheet" href="assets/css/typography.css">
-    <link rel="stylesheet" href="assets/css/default-css.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
     <!-- modernizr css -->
-    <script src="assets/js/vendor/modernizr-2.8.3.min.js"></script>
+    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+
 </head>
 
 <body>
@@ -50,10 +51,10 @@
                     </div>
                     <div class="col-sm-6 clearfix">
                         <div class="user-profile pull-right">
-                            <h5 class="user-name dropdown-toggle" data-toggle="dropdown">Usuario<i class="fa fa-angle-down"></i></h5>
+                            <h5 class="user-name dropdown-toggle" data-toggle="dropdown">{{ current_user.username }}<i class="fa fa-angle-down"></i></h5>
                             <div class="dropdown-menu">
-                                <a class="dropdown-item" href="#">Cerrar Sesión</a>
-                                <a class="dropdown-item" href="#">Cambiar Contraseña</a>
+                                <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
+                                <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
                             </div>
                         </div>
                     </div>
@@ -219,142 +220,36 @@
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <table class="table table-striped table-hover">
+                                                            <table id="clients-table" class="table table-striped table-hover">
                                                                 <thead>
                                                                     <tr>
+                                                                        <!--
                                                                         <th>
                                                                             <span class="custom-checkbox">
                                                                                 <input type="checkbox" id="selectAll">
                                                                                 <label for="selectAll"></label>
                                                                             </span>
-                                                                        </th>
-                                                                        <th>Name</th>
-                                                                        <th>Email</th>
-                                                                        <th>Address</th>
-                                                                        <th>Phone</th>
-                                                                        <th>Actions</th>
+                                                                        </th> -->
+                                                                        <th>Nombre</th>
+                                                                        <th>Apellido</th>
+                                                                        <th>Correo</th>
+                                                                        <th>Celular</th>
+                                                                        <th>Acciones</th>
                                                                     </tr>
                                                                 </thead>
-                                                                <tbody>
-                                                                    <tr>
-                                                                        <td>
-                                                                            <span class="custom-checkbox">
-                                                                                <input type="checkbox" id="checkbox1" name="options[]"
-                                                                                    value="1">
-                                                                                <label for="checkbox1"></label>
-                                                                            </span>
-                                                                        </td>
-                                                                        <td>Thomas Hardy</td>
-                                                                        <td>thomashardy@mail.com</td>
-                                                                        <td>89 Chiaroscuro Rd, Portland, USA</td>
-                                                                        <td>(171) 555-2222</td>
-                                                                        <td>
-                                                                            <a href="#editEmployeeModal" class="edit" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Edit">&#xE254;</i></a>
-                                                                            <a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Delete">&#xE872;</i></a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>
-                                                                            <span class="custom-checkbox">
-                                                                                <input type="checkbox" id="checkbox2" name="options[]"
-                                                                                    value="1">
-                                                                                <label for="checkbox2"></label>
-                                                                            </span>
-                                                                        </td>
-                                                                        <td>Dominique Perrier</td>
-                                                                        <td>dominiqueperrier@mail.com</td>
-                                                                        <td>Obere Str. 57, Berlin, Germany</td>
-                                                                        <td>(313) 555-5735</td>
-                                                                        <td>
-                                                                            <a href="#editEmployeeModal" class="edit" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Edit">&#xE254;</i></a>
-                                                                            <a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Delete">&#xE872;</i></a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>
-                                                                            <span class="custom-checkbox">
-                                                                                <input type="checkbox" id="checkbox3" name="options[]"
-                                                                                    value="1">
-                                                                                <label for="checkbox3"></label>
-                                                                            </span>
-                                                                        </td>
-                                                                        <td>Maria Anders</td>
-                                                                        <td>mariaanders@mail.com</td>
-                                                                        <td>25, rue Lauriston, Paris, France</td>
-                                                                        <td>(503) 555-9931</td>
-                                                                        <td>
-                                                                            <a href="#editEmployeeModal" class="edit" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Edit">&#xE254;</i></a>
-                                                                            <a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Delete">&#xE872;</i></a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>
-                                                                            <span class="custom-checkbox">
-                                                                                <input type="checkbox" id="checkbox4" name="options[]"
-                                                                                    value="1">
-                                                                                <label for="checkbox4"></label>
-                                                                            </span>
-                                                                        </td>
-                                                                        <td>Fran Wilson</td>
-                                                                        <td>franwilson@mail.com</td>
-                                                                        <td>C/ Araquil, 67, Madrid, Spain</td>
-                                                                        <td>(204) 619-5731</td>
-                                                                        <td>
-                                                                            <a href="#editEmployeeModal" class="edit" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Edit">&#xE254;</i></a>
-                                                                            <a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Delete">&#xE872;</i></a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>
-                                                                            <span class="custom-checkbox">
-                                                                                <input type="checkbox" id="checkbox5" name="options[]"
-                                                                                    value="1">
-                                                                                <label for="checkbox5"></label>
-                                                                            </span>
-                                                                        </td>
-                                                                        <td>Martin Blank</td>
-                                                                        <td>martinblank@mail.com</td>
-                                                                        <td>Via Monte Bianco 34, Turin, Italy</td>
-                                                                        <td>(480) 631-2097</td>
-                                                                        <td>
-                                                                            <a href="#editEmployeeModal" class="edit" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Edit">&#xE254;</i></a>
-                                                                            <a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><i
-                                                                                    class="material-icons" data-toggle="tooltip"
-                                                                                    title="Delete">&#xE872;</i></a>
-                                                                        </td>
-                                                                    </tr>
+                                                                <tbody id="table-body">
+                                                                    <!-- Data will be populated here -->
                                                                 </tbody>
                                                             </table>
                                                             <div class="clearfix">
-                                                                <div class="hint-text">Showing <b>5</b> out of <b>25</b> entries</div>
-                                                                <ul class="pagination">
-                                                                    <li class="page-item disabled"><a href="#">Previous</a></li>
-                                                                    <li class="page-item"><a href="#" class="page-link">1</a></li>
-                                                                    <li class="page-item"><a href="#" class="page-link">2</a></li>
-                                                                    <li class="page-item active"><a href="#" class="page-link">3</a></li>
-                                                                    <li class="page-item"><a href="#" class="page-link">4</a></li>
-                                                                    <li class="page-item"><a href="#" class="page-link">5</a></li>
-                                                                    <li class="page-item"><a href="#" class="page-link">Next</a></li>
+                                                                <div class="hint-text" id="info_pages">Showing <b>5</b> out of <b>25</b> entries</div>
+                                                                <ul id="pagination" class="pagination">
+
                                                                 </ul>
                                                             </div>
+                                                            
+                    
+
                                                         </div>
                                                     </div>
                                                     <!-- Edit Modal HTML -->
@@ -470,19 +365,77 @@
     </div>
     <!-- page container area end -->
   
-    <!-- jquery latest version -->
-    <script src="assets/js/vendor/jquery-2.2.4.min.js"></script>
-    <!-- bootstrap 4 js -->
-    <script src="assets/js/popper.min.js"></script>
-    <script src="assets/js/bootstrap.min.js"></script>
-    <script src="assets/js/owl.carousel.min.js"></script>
-    <script src="assets/js/metisMenu.min.js"></script>
-    <script src="assets/js/jquery.slimscroll.min.js"></script>
-    <script src="assets/js/jquery.slicknav.min.js"></script>
+     <!-- jquery latest version -->
+     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+     <!-- bootstrap 4 js -->
+     <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+ 
+     <!-- others plugins -->
+     <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+     <script>
+        $(document).ready(function() {
+            loadClients(1, 10); 
+           });
+        
+        function loadClients(page, per_page) {
+                $.ajax({
+                    url: '/get_clients',
+                    type: 'GET',
+                    data: { page: page, per_page: per_page },
+                    success: function(response) {
+                        // Update table with fetched data
+                        $('#clients-table tbody').empty();
+                        response.clients.forEach(function(client) {
+                            $('#clients-table tbody').append(
+                                `<tr>
+                                    <!--
+                                    <td>
+                                        <span class="custom-checkbox">
+                                            <input type="checkbox"  name="options[]"
+                                                value="1">
+                                            <label for="checkbox1"></label>
+                                        </span>
+                                    </td> -->
+                                    <td>${client.name}</td>
+                                    <td>${client.apellido}</td>
+                                    <td>${client.celular}</td>
+                                    <td>${client.correo}</td>
+                                    <td>
+                                        <a href="#editEmployeeModal" class="edit" data-toggle="modal"><i
+                                                class="material-icons" data-toggle="tooltip"
+                                                title="Edit">&#xE254;</i></a>
+                                        <a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><i
+                                                class="material-icons" data-toggle="tooltip"
+                                                title="Delete">&#xE872;</i></a>
+                                    </td>
+                                </tr>`
+                            );
+                        });
 
-    <!-- others plugins -->
-    <script src="assets/js/plugins.js"></script>
-    <script src="assets/js/scripts.js"></script>
+                        
+                        $('#pagination').empty();
+                        $('#info_pages').empty();
+                        $('#info_pages').append(`Mostrando pagina <b>${response.page}</b> de <b>${response.pages}</b> `)
+                        // Update pagination controls
+                        $('#pagination').empty();
+                        if (response.has_prev) {
+                            $('#pagination').append(`<li class="page-item "><a href="#" onclick="loadClients(${response.prev_num}, ${per_page})">Atras</a></li>`);
+                        }
+                        if (response.has_next) {
+                            $('#pagination').append(`<li class="page-item "><a href="#" onclick="loadClients(${response.next_num}, ${per_page})">Siguiente</a></li>`);
+                        }
+
+                    }
+                });
+            }
+        
+    </script>
 </body>
 
 </html>

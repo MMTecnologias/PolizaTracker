@@ -36,6 +36,7 @@ class Cliente(db.Model):
     __tablename__ = 'clientes'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(50), nullable=False)
+    apellido = Column(String(50), nullable=False)
     grupo_id = Column(Integer, ForeignKey('grupos.id'), nullable=False)
     rfc = Column(String(13), nullable=False, unique=True)
     tel_oficina = Column(String(10))
