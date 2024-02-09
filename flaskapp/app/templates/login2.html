@@ -43,15 +43,7 @@
                     <div class="login-form-head" >
                         <b><h4>¡Bienvenido!</h4></b>
                         <h6 class="text-white">¿Listo para el control seguro de tus pólizas?</h6>
-                        {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            <h6>
-                                {% for message in messages %}
-                                    <li>{{ message }}</li>
-                                {% endfor %}
-                            </h6>
-                        {% endif %}
-                        {% endwith %}
+                        
                     </div>
                     
                     <div class="login-form-body">
