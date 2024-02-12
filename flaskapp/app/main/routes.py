@@ -60,6 +60,7 @@ def cliente():
                         db.session.add(nuevo_grupo)
                         db.session.commit()
                         grupo_id=nuevo_grupo.id
+                        grupos=Grupo.query.all()
                 else:
                     grupo_id=form.grupo.data
                 
