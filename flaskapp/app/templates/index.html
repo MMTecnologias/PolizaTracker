@@ -19,6 +19,14 @@
     <h1>Bienvenido {{ user.username }}!</h1>
     <p>Esta es la página principal del sistema.</p>
 
+
+    <h5 id="acceso" >{{ acceso }}<i class="fa fa-angle-down"></i></h5>
+
+    <a >Cartera</a><br>
+    <a >Polizas</a><br>
+    <a >Reporte Gerencial</a><br>
+    <a >Reporte Normal</a><br>
+
     <a href="{{ url_for('auth.logout') }}">Logout</a><br>
     <a href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar de contraseña</a><br>
     <a href="{{ url_for('main.mostrar_rutas') }}">Ver rutas</a><br>

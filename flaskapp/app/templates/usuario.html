@@ -6,29 +6,24 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Usuarios</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="assets/images/icon/favicon.ico">
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/font-awesome.min.css">
-    <link rel="stylesheet" href="assets/css/themify-icons.css">
-    <link rel="stylesheet" href="assets/css/metisMenu.css">
-    <link rel="stylesheet" href="assets/css/owl.carousel.min.css">
-    <link rel="stylesheet" href="assets/css/slicknav.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
     <!-- amchart css -->
-    <link rel="stylesheet" href="https://www.amcharts.com/lib/3/plugins/export/export.css" type="text/css"
-        media="all" />
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
     <!-- others css -->
-    <link rel="stylesheet" href="assets/css/typography.css">
-    <link rel="stylesheet" href="assets/css/default-css.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
     <!-- modernizr css -->
-    <script src="assets/js/vendor/modernizr-2.8.3.min.js"></script>
+    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
 </head>
 
 <body>
@@ -425,19 +420,19 @@
     </div>
     <!-- page container area end -->
 
-    <!-- jquery latest version -->
-    <script src="assets/js/vendor/jquery-2.2.4.min.js"></script>
-    <!-- bootstrap 4 js -->
-    <script src="assets/js/popper.min.js"></script>
-    <script src="assets/js/bootstrap.min.js"></script>
-    <script src="assets/js/owl.carousel.min.js"></script>
-    <script src="assets/js/metisMenu.min.js"></script>
-    <script src="assets/js/jquery.slimscroll.min.js"></script>
-    <script src="assets/js/jquery.slicknav.min.js"></script>
-
-    <!-- others plugins -->
-    <script src="assets/js/plugins.js"></script>
-    <script src="assets/js/scripts.js"></script>
+     <!-- jquery latest version -->
+     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+     <!-- bootstrap 4 js -->
+     <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+ 
+     <!-- others plugins -->
+     <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
 </body>
 
 </html>

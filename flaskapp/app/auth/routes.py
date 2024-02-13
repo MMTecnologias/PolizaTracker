@@ -9,12 +9,6 @@ from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso,SolicitudNewPass
 from . import auth
 
-# Clase para el formulario de inicio de sesión
-# class LoginForm(FlaskForm):
-#     username = StringField('username', validators=[DataRequired()])
-#     password = PasswordField('password', validators=[DataRequired()])
-#     submit = SubmitField('Iniciar Sesión')
-
 # Clase para el formulario de solicitud nueva password
 class ReqNewPassForm(FlaskForm):
     username = StringField('username', validators=[DataRequired()])
@@ -28,20 +22,6 @@ def login():
     if current_user.is_authenticated:
         # Si ya ha iniciado sesión, redireccionar a la página principal u otra página
         return redirect(url_for('main.index'))
-    # form = LoginForm()
-    # if request.method == 'POST':
-    #     # Buscar el usuario en la base de datos por nombre de usuario
-    #     usuario = Usuario.query.filter_by(username=form.username.data).first()
-
-    #     print(form.username.data)
-    #     print(form.password.data)
-    #     if usuario and check_password_hash(usuario.password, form.password.data):
-    #         login_user(usuario)
-    #         #flash('Inicio de sesión exitoso', 'success')
-    #         return redirect(url_for('main.index'))
-    #     else:
-    #         flash('Nombre de usuario o contraseña incorrectos', 'userpassdanger')
-
     return render_template('login2.html')#, form=form)
 
 
@@ -66,36 +46,39 @@ def login_ajax():
     return jsonify({'success': False, 'error': error_message})
 
 
-# Ruta para pedir un cambio de contrasena
-@auth.route('/req_new_pass', methods=['GET', 'POST'])
-def req_new_pass():
-    form = ReqNewPassForm()
 
-    if request.method == 'POST':
-        # Buscar el usuario en la base de datos por nombre de usuario
-        usuario = Usuario.query.filter_by(username=form.username.data).first()
-        #print(form.username.data)
-        #print(form.password.data)
-        if usuario:
-            prevregistro= SolicitudNewPass.query.filter_by(usuario_id=usuario.id).first()
-            if prevregistro:
-                if prevregistro.status=="Pendiente":
-                    #flash('Ya tiene una solicitud pendiente', 'success')
-                    return redirect(url_for('auth.login'))
-                prevregistro.status="Pendiente"
-                db.session.commit()
-                #flash('Solicitud envidad con exito', 'success')
-                return redirect(url_for('auth.login'))
-            nuevo_registro = SolicitudNewPass(usuario_id=usuario.id)
-            db.session.add(nuevo_registro)
+@auth.route('/forgotpass_ajax', methods=['POST'])
+def forgotpass_ajax():
+
+    response={'correctuser': True, "new":True ,'redirect': url_for('auth.login')}
+
+    username = request.form.get('username')
+    usuario = Usuario.query.filter_by(username=username).first()
+
+    if usuario:
+        prevregistro= SolicitudNewPass.query.filter_by(usuario_id=usuario.id).first()
+        if prevregistro:
+            if prevregistro.status=="Pendiente":
+                response["new"]=False
+                return jsonify(response)
+            prevregistro.status="Pendiente"
             db.session.commit()
-            #flash('Solicitud envidad con exito', 'success')
-            return redirect(url_for('auth.login'))
-        else:
-            a=1
-            #flash('Nombre de usuario incorrecto', 'userdanger')
+            return jsonify(response)
+        nuevo_registro = SolicitudNewPass(usuario_id=usuario.id)
+        db.session.add(nuevo_registro)
+        db.session.commit()
+        return jsonify(response)
+    else:
+        response["correctuser"]=False
+    return jsonify(response)
 
-    return render_template('forgotpass.html', form=form)
+# Ruta para pedir un cambio de contrasena
+@auth.route('/req_new_pass', methods=['GET'])#, 'POST'])
+def req_new_pass():
+    if current_user.is_authenticated:
+        # Si ya ha iniciado sesión, redireccionar a la página principal u otra página
+        return redirect(url_for('main.index'))
+    return render_template('forgotpass.html')
 
 
 
