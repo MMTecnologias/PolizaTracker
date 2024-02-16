@@ -30,16 +30,16 @@
 
 
 
-<div class="container">
-    <div class="login-box ptb--0">
+<div class="container col-lg-12">
+    <div class="login-box">
         <form>
-            <div class="login-form-head">
+            <div class="login-form-body">
                 <b>
                     <h4>Restablece la Contraseña</h4>
                 </b>
                 <p>Envía la solicitud al Administrador</p>
-            </div>
-            <div class="login-form-body">
+                <br>
+                <br>
                 <div class="form-gp">
                     <label for="exampleInputEmail1">Usuario</label>
                     <input type="text" id="InputUsuario">
@@ -48,22 +48,13 @@
                         Ingresa un usuario valido
                     </div>
                 </div>
-            </div>
-
-
-            <!-- Vertically centered modal start -->
-            <div class="col-lg-6 mt-12">
-                <div class="card col-lg-6">
-                    <h4 class="header-title"></h4>
-                    <!-- Button trigger modal -->
-                    <div class="col-6">
-                        <button id="enviarValidacion" type="button" class="btn btn-primary" data-toggle="modal"
-                            onclick="enviarValidacion()">Enviar</button>
-                    </div>
-
-                    <div class="col-6">
-                        <button class="btn text-white" type="submit">Cancelar</button>
-                    </div>
+                <!-- Button trigger modal -->
+                <div class="d-flex">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter"
+                        style=" margin: 6px; justify-content: center; text-align: center">Enviar</button>
+                    <br>
+                    <button href="login2.html" class="btn btn-primary" type="submit"
+                        style="margin: 6px; justify-content: center; text-align: center">Cancelar</button>
                 </div>
             </div>
             <!-- Modal -->
