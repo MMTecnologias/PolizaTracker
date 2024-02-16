@@ -263,10 +263,14 @@
             var password = document.getElementById('passwordAutent').value;
 
             // Verificar credenciales
-            if (usersDatabase.hasOwnProperty(usuario) && usersDatabase[usuario].contraseña===password) {
+            if (usersDatabase.hasOwnProperty(usuario)){
                 // Otras acciones después del inicio de sesión (puedes redirigir a otra página)
-                sessionStorage.setItem('nivelUsuario',usersDatabase[usuario].rol);
-                window.location.href = 'menuP.html';
+                const User = usersDatabase[usuario]; //Sustituir la base de datos
+                if(User.contraseña===password){
+                    sessionStorage.setItem('UserRol', User.rol)
+                    window.location.href = 'menuP.html';
+                }
+               
             } else {
                 // Credenciales no válidas, mostrar mensaje de error
                 document.getElementById('mensajeError').style.display = 'block';
