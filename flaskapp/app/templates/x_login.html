@@ -6,7 +6,6 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
@@ -23,7 +22,8 @@
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
     <!-- modernizr css -->
     <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
-    
+    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
 </head>
 
 <body>
@@ -34,39 +34,40 @@
         <div class="loader"></div>
     </div>
     
-    <div class="login-area login-s2">
+    <div class="login-area login-s1">
         <div class="container">
             
-            <div class="login-box ptb--70">
+            <div class="login-box 15px">
                 <!--<img src="assets/images/estasi.png" width="600" height="1400"/>-->
                 <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" width="550" height="570" />
-                <form method="POST" action="{{ url_for('auth.login') }}">
+                <form id="loginform" method="POST">
                     
-                    <div class="login-form-head">
+                    <div class="login-form-head" >
                         <b><h4>¡Bienvenido!</h4></b>
-                        <h6>¿Listo para el control seguro de tus pólizas?</h6>
-                        {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            <h6>
-                                {% for message in messages %}
-                                    <li>{{ message }}</li>
-                                {% endfor %}
-                            </h6>
-                        {% endif %}
-                        {% endwith %}
+                        <h6 class="text-white">¿Listo para el control seguro de tus pólizas?</h6>
+                        
                     </div>
+                    
                     <div class="login-form-body">
-                        <div class="form-gp">
-                            <label for="exampleInputEmail1">Usuario</label>
-                            <input type="text" id="exampleInputEmail1" name="username" required>
-                            <i class="ti-lock"></i>
+                        <div class="form-gp"  >
+                            <label for="exampleInputEmail1" name="username" required>Usuario</label>
+                            <input type="text" id="usuarioAutent" name="username" required>
+                            <i class="ti-email"></i>
                             <div class="text-danger"></div>
+                            <!--
+                            <div class="invalid-feedback">
+                                Ingresa un usuario valido
+                            </div>-->
                         </div>
                         <div class="form-gp">
                             <label for="exampleInputPassword1">Contraseña</label>
-                            <input type="password" id="exampleInputPassword1" name="password" required>
+                            <input type="password" id="passwordAutent" name="password" required>
                             <i class="ti-lock"></i>
                             <div class="text-danger"></div>
+                            <!--
+                            <div class="invalid-feedback">
+                                Ingresa un usuario valido
+                            </div>-->
                         </div>
                         <div class="row mb-4 rmber-area">
                             <div class="col-6">
@@ -75,22 +76,31 @@
 
                                 </div>
                             </div>
+                            
+                            <h6 id="mensajeError" role="alert" style="display: none; color: tomato;">Usuario o contraseña invalidos</h6>
+                            
+                            <!--<h6 id="mensajeError" role="alert" style="display: none; color: tomato;">Usuario o contraseña invalidos</h6>-->
                             <div class="col-12 text-right">
                                 <a href="{{ url_for('auth.req_new_pass') }}">¿Olvidaste la contraseña?</a>
                             </div>
                         </div>
                         <div class="submit-btn-area">
-                            <button id="form_submit" type="submit">Iniciar Sesión<i class="ti-arrow-right"></i></button>
+                            <button id="form_submit" type="submit" onclick="login()">Iniciar Sesión<i class="ti-arrow-right"></i></button>
+                            <!-- <a href="modal.html">
+                                <button id="paglog" class="badge-danger btn-sm">Iniciar Sesión</button>
+                         </a> -->
                         </div>
+                        
                         
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    <!-- login area end -->
 
     
+    <!-- login area end -->
+
      <!-- jquery latest version -->
      <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
      <!-- bootstrap 4 js -->
@@ -104,8 +114,7 @@
      <!-- others plugins -->
      <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
      <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-
-    
+     <script src="{{ url_for('static', filename='assets/controladores/login2.js') }}"></script>
 </div>
 </body>
 

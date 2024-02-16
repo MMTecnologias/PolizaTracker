@@ -60,6 +60,7 @@ def cliente():
                         db.session.add(nuevo_grupo)
                         db.session.commit()
                         grupo_id=nuevo_grupo.id
+                        grupos=Grupo.query.all()
                 else:
                     grupo_id=form.grupo.data
                 
@@ -164,11 +165,20 @@ def get_client(id):
 
 """FALTAN HTML finales"""
 
+# Ruta usuarios
+@main.route('/usuarios')
+@login_required
+def usuarios():
+    return render_template('usuario.html', user=current_user)
+
+
 # Ruta principal del sistema
 @main.route('/')
 @login_required
 def index():
-    return render_template('index.html', user=current_user)
+    acceso=NivelAcceso.query.get_or_404(current_user.nivel_id)
+
+    return render_template('index.html', user=current_user,acceso=acceso.nombre)
 
 
 

@@ -360,7 +360,7 @@
                                                                             </span>
                                                                         </th> -->
                                                                         <th>Nombre</th>
-                                                                        <th>Apellido</th>
+                                                                        <!--<th>Apellido</th>-->
                                                                         <th>Correo</th>
                                                                         <th>Celular</th>
                                                                         <th>Acciones</th>
@@ -458,8 +458,7 @@
                                             <label for="checkbox1"></label>
                                         </span>
                                     </td> -->
-                                    <td>${client.name}</td>
-                                    <td>${client.apellido}</td>
+                                    <td>${client.name} ${client.apellido}</td>
                                     <td>${client.celular}</td>
                                     <td>${client.correo}</td>
                                     <td>
@@ -540,8 +539,6 @@
                 var form = $('#cliente-form');
                 var submitValue = $(this).val();
                 
-                // Additional logic based on the submit button value if needed
-                
                 // Submit the form
                 form.submit();
             });
@@ -549,7 +546,7 @@
         }
 
         // Call the function to bind click event handlers initially
-        bindButtonClickHandlers();
+        //bindButtonClickHandlers();
 
 
 

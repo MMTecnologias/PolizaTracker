@@ -6,108 +6,55 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Restablecer Contraseña</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="assets/images/icon/favicon.ico">
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/font-awesome.min.css">
-    <link rel="stylesheet" href="assets/css/themify-icons.css">
-    <link rel="stylesheet" href="assets/css/metisMenu.css">
-    <link rel="stylesheet" href="assets/css/owl.carousel.min.css">
-    <link rel="stylesheet" href="assets/css/slicknav.min.css">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
     <!-- amchart css -->
-    <link rel="stylesheet" href="https://www.amcharts.com/lib/3/plugins/export/export.css" type="text/css"
-        media="all" />
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
     <!-- others css -->
-    <link rel="stylesheet" href="assets/css/typography.css">
-    <link rel="stylesheet" href="assets/css/default-css.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <!-- Ionicons -->
-    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
     <!-- modernizr css -->
-    <script src="assets/js/vendor/modernizr-2.8.3.min.js"></script>
+    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
 </head>
 
 
 
 
-<div class="container col-lg-12">
-    <div class="login-box">
-        <form>
-            <div class="login-form-body">
-                <b>
-                    <h4>Restablece la Contraseña</h4>
-                </b>
-                <p>Envía la solicitud al Administrador</p>
-                <br>
-                <br>
-                <div class="form-gp">
-                    <label for="exampleInputEmail1">Usuario</label>
-                    <input type="text" id="InputUsuario">
-                    <i class="ti-user"></i>
-                    <div class="invalid-feedback">
-                        Ingresa un usuario valido
-                    </div>
-                </div>
-                <!-- Button trigger modal -->
-                <div class="d-flex">
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter"
-                        style=" margin: 6px; justify-content: center; text-align: center">Enviar</button>
+    <div class="container col-lg-12">
+        <div class="login-box">
+            <form id="forgotpassform" method="POST" >
+                <div class="login-form-body">
+                    <b>
+                        <h4>Restablece la Contraseña</h4>
+                    </b>
+                    <p>Envía la solicitud al Administrador</p>
                     <br>
-                    <button href="login2.html" class="btn btn-primary" type="submit"
-                        style="margin: 6px; justify-content: center; text-align: center">Cancelar</button>
-                </div>
-            </div>
-            <!-- Modal -->
-            <!-- <div class="modal fade" id="exampleModalCenter">
-                <div class="modal-dialog modal-dialog-centered" role="document">
-                    <div class="modal-content">
-                        <br>
-                        <br>
-                        <center><img src="/assets/images/icon/check.png" height="70" width="70" /></center>
-                        <div class="modal-header">
-
-                            <b>
-                                <h3 class="modal-title">¡Solicitud Enviada!</h3><b>
-                        </div>
-                        <div class="modal-body">
-                            <h6>Revisa tu correo, el administrador te hará llegar una nueva contraseña</h6>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Aceptar</button>
-                        </div>
+                    <br>
+                    <div class="form-gp">
+                        <label for="InputUsuario">Usuario</label>
+                        <input type="text" id="InputUsuario" name="username" required>
+                        <i class="ti-lock"></i>
+                        <h6 id="mensajeError" role="alert" style="display: none; color: tomato;">Ingresa un usuario valido</h6>
                     </div>
                 </div>
-            </div> -->
-            <!-- Inicio Modal Error -->
-            <!-- <div class="modal fade" id="exampleModalCenter">
-                                    <div class="modal-dialog modal-dialog-centered" role="document">
-                                        <div class="modal-content">
-                                            <br>
-                                            <br>
-                                            <center><img src="/assets/images/icon/x.png" height="70" width="70"/></center>
-                                            <div class="modal-header">
-                                            
-                                               <b><h3 class="modal-title">¡Error!</h3><b>  
-                                            </div>
-                                            <div class="modal-body">
-                                                <h6>Hubo un problema, y no se pudo enviar tu solicitud</h6>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary"
-                                                    data-dismiss="modal">Cancelar</button>
-                                                <button type="button" class="btn btn-primary">Reintentar</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div> -->
-            <!-- Fin Modal Error -->
+                    <!-- Button trigger modal -->
+                <div class="d-flex">
+                    <button id="enviarValidacion" type="submit" class="btn btn-primary" style=" margin: 6px; justify-content: center; text-align: center">Enviar</button>
+                    <br>
+                    <a type="button" class="btn btn-primary"  href="{{ url_for('auth.login') }}" style="margin: 6px; justify-content: center; text-align: center">Cancelar</a>
 
-    </div>
-</div>
-</div>
-</div>
-</div>
-</form>
+                </div>
+            </form>
+        </div>
 
 
 
@@ -118,22 +65,20 @@
 <!-- footer area end-->
 </div>
 
-<!-- jquery latest version -->
-<script src="assets/js/vendor/jquery-2.2.4.min.js"></script>
-<!-- bootstrap 4 js -->
-<script src="assets/js/popper.min.js"></script>
-<script src="assets/js/bootstrap.min.js"></script>
-<script src="assets/js/owl.carousel.min.js"></script>
-<script src="assets/js/metisMenu.min.js"></script>
-<script src="assets/js/jquery.slimscroll.min.js"></script>
-<script src="assets/js/jquery.slicknav.min.js"></script>
-<!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<!-- others plugins -->
-<script src="assets/js/plugins.js"></script>
-<script src="assets/js/scripts.js"></script>
-<script src="assets/controladores/login2.js"></script>
+     <!-- jquery latest version -->
+     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+     <!-- bootstrap 4 js -->
+     <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+ 
+     <!-- others plugins -->
+     <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/controladores/login2.js') }}"></script>
 </body>
 
 </html>

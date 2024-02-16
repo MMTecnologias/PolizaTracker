@@ -1,73 +1,99 @@
-function validarFormulario() {
-
-    // Obtiene los valores del usuario y la contraseña
-    var usuario = document.getElementById('usuarioAutent').value;
-    var password = document.getElementById('passwordAutent').value;
-
-    // Validar los datos
-    if(usuario === 'userTest' && password === '123'){
-        alert('Inicio de sesión exitoso');
-    } else {
-        document.getElementById('').style.display = 'block';
-    }
-}
-
-//Validaciones de Modales
-function enviarValidacion(){
-    var usuarioIngresado = document.getElementById('InputUsuario').value;
-    if (usuarioIngresado.trim() === "Abi") {
-        Swal.fire({
-            title: '¡Solicitud Enviada!',
-            text: 'Revisa tu correo, el administrador te hará llegar una nueva contraseña',
-            icon: 'success',
-        });
-    } else {
-        Swal.fire({
-            title: '¡Error!',
-            text: 'Hubo un problema, y no se pudo enviar tu solicitud',
-            icon: 'error',
-        });
-    }
-}
-
-//Accesos y usuarios
-
-// Base de datos de usuarios (simulada)
-const usersDatabase = {
-    "Abi": {
-      contraseña: "1234",
-      rol: "admin"
-    },
-    "Luis": {
-      contraseña: "qwerty",
-      rol: "gerente"
-    },
-    // Agrega más usuarios si es necesario
-  };
-
-  function darAcceso(usuario, contraseña, pantallaRequerida) {
-    // Verificar si el usuario existe en la base de datos
-    if (usuario in usersDatabase) {
-      // Verificar si la contraseña coincide
-      if (usersDatabase[usuario].contraseña === contraseña) {
-        // Verificar si el usuario tiene acceso a la pantalla requerida
-        if (usersDatabase[usuario].rol === "admin" || usersDatabase[usuario].rol === pantallaRequerida) {
-          return true; // Usuario autorizado a acceder a la pantalla requerida
-        } else {
-          return false; // Usuario no tiene permiso para acceder a la pantalla requerida
-        }
-      } else {
-        return false; // Contraseña incorrecta
-      }
-    } else {
-      return false; // Usuario no encontrado
-    }
-  }
 
 
-if (darAcceso(nombreUsuario, contraseña, pantallaRequerida)) {
-  console.log("¡Usuario autorizado a acceder a la pantalla requerida!");
-} else {
-  console.log("¡Error de acceso! Usuario no autorizado o contraseña incorrecta.");
-}
+$(document).ready(function() {
+    $("#loginform").submit(function(e) {
+      //---------------^---------------
+      e.preventDefault();
+
+      // Serialize form data
+      var formData = $('#loginform').serialize();
+
+      // Send AJAX POST request
+      $.ajax({
+          type: 'POST',
+          url: 'login_ajax',  // Flask route for login
+          data: formData,
+          success: function(response) {
+              // Check response for success or error
+              if (response.success) {
+                  // Redirect user to the desired page
+                  window.location.href = response.redirect;
+              } else {
+                  // Display error message
+                  $('#mensajeError').css('display', 'block');
+              }
+          },
+          error: function(xhr, status, error) {
+              Swal.fire({
+                  title: 'Error inesperado',
+                  text: 'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
+                  icon: 'error',
+              });
+          }
+      });
+      
+      // Return false to prevent form submission
+      return false;
+  
+    });
+  });
+
+
+$(document).ready(function() {
+    $("#forgotpassform").submit(function(e) {
+      //---------------^---------------
+      e.preventDefault();
+
+      // Serialize form data
+      var formData = $('#forgotpassform').serialize();
+
+      $.ajax({
+              type: 'POST',
+              url: 'forgotpass_ajax',  // Flask route for login
+              data: formData,
+              success: function(response) {
+                  // Check response for success or error
+                  if (response.correctuser) {
+                      if(response.new){
+                          Swal.fire({
+                              title: '¡Solicitud Enviada!',
+                              text: 'Revisa tu correo, el administrador te hará llegar una nueva contraseña',
+                              icon: 'success',
+                          }).then(function() {
+                              window.location.href = response.redirect;
+                          });
+                      } else{
+                          Swal.fire({
+                              title: 'Ya tiene una solicitud Pendiente',
+                              text: 'Revisa tu correo, el administrador te hará llegar una nueva contraseña',
+                              icon: 'success',
+                          }).then(function() {
+                              window.location.href = response.redirect;
+                          });
+                      }
+                  } else {
+                      // Display error message
+                      $('#mensajeError').css('display', 'block');
+                  }
+              },
+              error: function(xhr, status, error) {
+                  Swal.fire({
+                      title: 'Error inesperado',
+                      text: 'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
+                      icon: 'error',
+                  });
+              }
+          });
+      
+      // Return false to prevent form submission
+      return false;
+  
+    });
+  });
+
+
+
+
+
+  
 
