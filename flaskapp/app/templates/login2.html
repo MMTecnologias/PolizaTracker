@@ -34,17 +34,17 @@
         <div class="loader"></div>
     </div>
     
-    <div class="login-area login-s1">
+    <div class="login-area login-s2">
         <div class="container">
             
             <div class="login-box 15px">
-                <!--<img src="assets/images/estasi.png" width="600" height="1400"/>-->
-                <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" width="550" height="570" />
+                <img src="{{ url_for('static',filename='assets/images/estasi.png') }}" width="650" height="2000"/>
+                <!--<img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" width="550" height="570" />-->
                 <form id="loginform" method="POST">
                     
                     <div class="login-form-head" >
                         <b><h4>¡Bienvenido!</h4></b>
-                        <h6 class="text-white">¿Listo para el control seguro de tus pólizas?</h6>
+                        <h6 class="text">¿Listo para el control seguro de tus pólizas?</h6>
                         
                     </div>
                     
@@ -77,7 +77,7 @@
                                 </div>
                             </div>
                             
-                            <h6 id="mensajeError" role="alert" style="display: none; color: tomato;">Usuario o contraseña invalidos</h6>
+                            <h7 id="mensajeError" role="alert" style="display: none; color: tomato; position: fixed;">Usuario o contraseña invalidos</h7>
 
                             <!--<h6 id="mensajeError" role="alert" style="display: none; color: tomato;">Usuario o contraseña invalidos</h6>-->
                             <div class="col-12 text-right">
@@ -85,7 +85,7 @@
                             </div>
                         </div>
                         <div class="submit-btn-area">
-                            <button id="form_submit" type="submit" >Iniciar Sesión<i class="ti-arrow-right"></i></button>
+                            <button id="form_submit" type="submit" class="badge-danger btn-sm">Iniciar Sesión</button>
                             <!-- <a href="modal.html">
                                 <button id="paglog" class="badge-danger btn-sm">Iniciar Sesión</button>
                          </a> -->

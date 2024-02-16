@@ -29,16 +29,16 @@
 
 
 
-    <div class="container">
-        <div class="login-box ptb--0">
+    <div class="container col-lg-12">
+        <div class="login-box">
             <form id="forgotpassform" method="POST" >
-                <div class="login-form-head">
+                <div class="login-form-body">
                     <b>
                         <h4>Restablece la Contraseña</h4>
                     </b>
                     <p>Envía la solicitud al Administrador</p>
-                </div>
-                <div class="login-form-body">
+                    <br>
+                    <br>
                     <div class="form-gp">
                         <label for="InputUsuario">Usuario</label>
                         <input type="text" id="InputUsuario" name="username" required>
@@ -46,18 +46,13 @@
                         <h6 id="mensajeError" role="alert" style="display: none; color: tomato;">Ingresa un usuario valido</h6>
                     </div>
                 </div>
-                    <!-- Vertically centered modal start -->
-                    <div class="col-lg-6 mt-12">
-                        <div class="card col-lg-6">
-                            
-                            <!-- Button trigger modal -->
-                            <div class="col-6">
-                                <button id="enviarValidacion" type="submit" class="btn btn-primary" >Enviar</button>
-                                <a type="button" class="btn text-white"  href="{{ url_for('auth.login') }}">Cancelar</a>
-                            </div>
-                        </div>
-                    </div>
-                
+                    <!-- Button trigger modal -->
+                <div class="d-flex">
+                    <button id="enviarValidacion" type="submit" class="btn btn-primary" style=" margin: 6px; justify-content: center; text-align: center">Enviar</button>
+                    <br>
+                    <a type="button" class="btn btn-primary"  href="{{ url_for('auth.login') }}" style="margin: 6px; justify-content: center; text-align: center">Cancelar</a>
+
+                </div>
             </form>
         </div>
 
