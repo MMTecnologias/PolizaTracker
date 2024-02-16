@@ -178,7 +178,7 @@ def usuarios():
 def index():
     acceso=NivelAcceso.query.get_or_404(current_user.nivel_id)
 
-    return render_template('index.html', user=current_user,acceso=acceso.nombre)
+    return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
 
 
 
