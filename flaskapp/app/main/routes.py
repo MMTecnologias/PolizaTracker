@@ -38,12 +38,11 @@ class ClientRegistrationForm(FlaskForm):
     giro_actividad = StringField('giro_actividad', validators=[Length(max=30)])
     nuevo_grupo = StringField('nuevo_grupo', validators=[Length(max=30)])  # Add this field for new group input
 
+
 @main.route('/usuario', methods=['GET', 'POST'])
 @login_required
 def usuario():
     return render_template('usuario.html', user=current_user)
-
-
 
     
 @main.route('/cliente', methods=['GET', 'POST'])
@@ -170,12 +169,6 @@ def get_client(id):
 
 
 """FALTAN HTML finales"""
-
-# Ruta usuarios
-@main.route('/usuarios')
-@login_required
-def usuarios():
-    return render_template('usuario.html', user=current_user)
 
 
 # Ruta principal del sistema
