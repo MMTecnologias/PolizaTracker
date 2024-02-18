@@ -1,15 +1,28 @@
 
-(function ($) {
+
+onload=function(){
+    var e=document.getElementById("refreshed");
+    if(e.value=="no")e.value="yes";
+    else{e.value="no";location.reload();}
+}
+
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+s
+(function($) {
     "use strict";
 
     /*================================
-    Preloader
+    Preloader yes
     ==================================*/
 
     var preloader = $('#preloader');
-    $(window).on('load', function () {
-        setTimeout(function () {
-            preloader.fadeOut('slow', function () { $(this).remove(); });
+    $(window).on('load', function() {
+        setTimeout(function() {
+            preloader.fadeOut('slow', function() { $(this).remove(); });
         }, 300)
     });
 
@@ -19,14 +32,14 @@
     if (window.innerWidth <= 1364) {
         $('.page-container').addClass('sbar_collapsed');
     }
-    $('.nav-btn').on('click', function () {
+    $('.nav-btn').on('click', function() {
         $('.page-container').toggleClass('sbar_collapsed');
     });
 
     /*================================
     Start Footer resizer
     ==================================*/
-    var e = function () {
+    var e = function() {
         var e = (window.innerHeight > 0 ? window.innerHeight : this.screen.height) - 5;
         (e -= 67) < 1 && (e = 1), e > 67 && $(".main-content").css("min-height", e + "px")
     };
@@ -59,7 +72,7 @@
     /*================================
     stickey Header
     ==================================*/
-    $(window).on('scroll', function () {
+    $(window).on('scroll', function() {
         var scroll = $(window).scrollTop(),
             mainHeader = $('#sticky-header'),
             mainHeaderHeight = mainHeader.innerHeight();
@@ -78,12 +91,12 @@
     $('[data-toggle="popover"]').popover()
 
     /*------------- Start form Validation -------------*/
-    window.addEventListener('load', function () {
+    window.addEventListener('load', function() {
         // Fetch all the forms we want to apply custom Bootstrap validation styles to
         var forms = document.getElementsByClassName('needs-validation');
         // Loop over them and prevent submission
-        var validation = Array.prototype.filter.call(forms, function (form) {
-            form.addEventListener('submit', function (event) {
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
                 if (form.checkValidity() === false) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -123,10 +136,10 @@
     /*================================
     login form
     ==================================*/
-    $('.form-gp input').on('focus', function () {
+    $('.form-gp input').on('focus', function() {
         $(this).parent('.form-gp').addClass('focused');
     });
-    $('.form-gp input').on('focusout', function () {
+    $('.form-gp input').on('focusout', function() {
         if ($(this).val().length === 0) {
             $(this).parent('.form-gp').removeClass('focused');
         }
@@ -135,7 +148,7 @@
     /*================================
     slider-area background setting
     ==================================*/
-    $('.settings-btn, .offset-close').on('click', function () {
+    $('.settings-btn, .offset-close').on('click', function() {
         $('.offset-area').toggleClass('show_hide');
         $('.settings-btn').toggleClass('active');
     });
@@ -180,7 +193,7 @@
 
     if ($('#full-view').length) {
 
-        var requestFullscreen = function (ele) {
+        var requestFullscreen = function(ele) {
             if (ele.requestFullscreen) {
                 ele.requestFullscreen();
             } else if (ele.webkitRequestFullscreen) {
@@ -194,7 +207,7 @@
             }
         };
 
-        var exitFullscreen = function () {
+        var exitFullscreen = function() {
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             } else if (document.webkitExitFullscreen) {
@@ -211,80 +224,17 @@
         var fsDocButton = document.getElementById('full-view');
         var fsExitDocButton = document.getElementById('full-view-exit');
 
-        fsDocButton.addEventListener('click', function (e) {
+        fsDocButton.addEventListener('click', function(e) {
             e.preventDefault();
             requestFullscreen(document.documentElement);
             $('body').addClass('expanded');
         });
 
-        fsExitDocButton.addEventListener('click', function (e) {
+        fsExitDocButton.addEventListener('click', function(e) {
             e.preventDefault();
             exitFullscreen();
             $('body').removeClass('expanded');
         });
     }
-
-    $("#login").modal({
-        modal: true,
-        buttons: {
-            Ok: function () {
-                $(this).modal("close");
-            }
-        }
-    });
-
-    (function () {
-        $(function () {
-
-            $('botonModal1').on('click', function () {
-                $('exampleModal').modal();
-            });
-        });
-    }());
-
-    const usersDatabase = {
-        "Abi": {
-            contraseña: "1234",
-            rol: "admin"
-        },
-        "Luis": {
-            contraseña: "qwerty",
-            rol: "gerente"
-        },
-    };
-
-    document.addEventListener('DOMContentLoaded', function () {
-        // Agregar evento de escucha al formulario
-        document.getElementById('loginform').addEventListener('submit', function (event) {
-            event.preventDefault(); // Evitar que el formulario se envíe por defecto
-
-            // Obtener valores del usuario y la contraseña
-            var usuario = document.getElementById('usuarioAutent').value;
-            var password = document.getElementById('passwordAutent').value;
-
-            // Verificar credenciales
-            if (usersDatabase.hasOwnProperty(usuario)){
-                // Otras acciones después del inicio de sesión (puedes redirigir a otra página)
-                const User = usersDatabase[usuario]; //Sustituir la base de datos
-                if(User.contraseña===password){
-                    sessionStorage.setItem('UserRol', User.rol)
-                    window.location.href = 'menuP.html';
-                }
-               
-            } else {
-                // Credenciales no válidas, mostrar mensaje de error
-                document.getElementById('mensajeError').style.display = 'block';
-                document.getElementById('mensajeError').innerText = 'Usuario o contraseña incorrectos';
-            }
-        });
-    });
-
-    const liAdmin = document.getElementById('liAdmin');
-    if (nivelUsuario === 'Administrador') {
-        liAdmin.style.display = 'block';
-    } else {
-        liAdmin.style.display = 'none';
-    }
-
 
 })(jQuery);
