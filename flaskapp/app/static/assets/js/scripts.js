@@ -11,12 +11,12 @@ window.addEventListener('pageshow', function(event) {
         window.location.reload();
     }
 });
-
+s
 (function($) {
     "use strict";
 
     /*================================
-    Preloader
+    Preloader yes
     ==================================*/
 
     var preloader = $('#preloader');
