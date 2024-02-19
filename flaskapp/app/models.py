@@ -105,6 +105,10 @@ class Usuario(db.Model, UserMixin):
     username = Column(String(10), nullable=False, unique=True)
     password = Column(String(520), nullable=False)
     nivel_id = Column(Integer, ForeignKey('niveles_acceso.id'), nullable=False)
+    nombre = Column(String(50), nullable=False)
+    apellido = Column(String(50), nullable=False)
+    correo = Column(String(50), nullable=False)
+    telefono = Column(String(10), nullable=False)
 
 class SolicitudNewPass(db.Model):
     __tablename__ = 'solicitudes_new_pass'
