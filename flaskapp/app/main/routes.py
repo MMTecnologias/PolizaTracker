@@ -165,10 +165,11 @@ def get_client(id):
 
 """Usuarios"""
 # Ruta usuarios
-@main.route('/usuario')
+@main.route('/usuario', methods=['GET'])
 @login_required
 def usuario():
-    return render_template('usuario.html', user=current_user)
+    niveles = NivelAcceso.query.all()
+    return render_template('usuario.html', user=current_user,niveles =niveles)
 
 @main.route('/get_usuarios_data', methods=['POST'])
 def get_usuarios_data():
@@ -201,6 +202,36 @@ def get_usuarios_data():
     }
 
     return jsonify(response)
+
+@main.route('/create_user', methods=['POST'])
+def create_user():
+    username = request.form.get('username')
+    # Check if the username already exists
+    existing_user = Usuario.query.filter_by(username=username).first()
+    if existing_user:
+        return jsonify({'error': True})
+    else:
+        # Create the new user
+        new_user = Usuario(
+            username=request.form.get('username'),
+            password=generate_password_hash(request.form.get('password')),
+            nombre=request.form.get('nombre'),
+            apellido=request.form.get('apellido'),
+            correo=request.form.get('email'),
+            telefono=request.form.get('cel'),
+            nivel_id=request.form.get('acceso')
+        )
+        # Save the new user to the database
+        db.session.add(new_user)
+        db.session.commit()
+
+        msg=request.form.get('email')+"\n"
+        msg+=request.form.get('nombre') + ", ¡bienvenido al equipo! \n Usa las siguientes credenciales para entrar a nuestro sistema:\n"
+        msg+=" Usuario: "+ username+"\n Contraseña: "+ request.form.get('password')
+        msg+="\n Recuerda cambiar tu contraseña"
+        return jsonify({'error': False, 
+                        'redirect': url_for('main.usuario'),
+                        'msg':msg})
 
 
 """Menu"""
