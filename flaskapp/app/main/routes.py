@@ -20,6 +20,8 @@ def check_access(nombre_del_servicio):
         return False
     return True
 
+
+"""Clientes"""
 # Form de clientes
 class ClientRegistrationForm(FlaskForm):
     nombre = StringField('nombre', validators=[InputRequired(), Length(max=50)])
@@ -37,10 +39,6 @@ class ClientRegistrationForm(FlaskForm):
     ocupacion = StringField('ocupacion', validators=[Length(max=30)])
     giro_actividad = StringField('giro_actividad', validators=[Length(max=30)])
     nuevo_grupo = StringField('nuevo_grupo', validators=[Length(max=30)])  # Add this field for new group input
-
-
-
-
     
 @main.route('/cliente', methods=['GET', 'POST'])
 @login_required
@@ -165,15 +163,47 @@ def get_client(id):
     })
 
 
-"""FALTAN HTML finales"""
-
+"""Usuarios"""
 # Ruta usuarios
 @main.route('/usuario')
 @login_required
 def usuario():
     return render_template('usuario.html', user=current_user)
 
+@main.route('/get_usuarios_data', methods=['POST'])
+def get_usuarios_data():
+    # Get parameters from DataTables AJAX request
+    draw = request.form.get('draw')
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
 
+    # Query to fetch usuarios data from the database
+    usuarios = Usuario.query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for usuario in usuarios:
+        data.append({
+            'id': usuario.id,
+            'nombre': f"{usuario.nombre} {usuario.apellido}",
+            'correo': usuario.correo,
+            'username': usuario.username,
+            'telefono': usuario.telefono,
+            # Add more fields as needed
+        })
+
+    # Prepare response
+    response = {
+        'draw': draw,
+        'recordsTotal': len(usuarios),  # Total records without filtering
+        'recordsFiltered': len(usuarios),  # Total records after filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
+"""Menu"""
 # Ruta principal del sistema
 @main.route('/')
 @login_required
@@ -183,7 +213,7 @@ def index():
     return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
 
 
-
+"""FALTAN HTML finales"""
 # Ruta para ver los registros de la tabla de grupos
 @main.route('/ver_solicitudes')
 @login_required
