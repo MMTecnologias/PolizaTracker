@@ -89,6 +89,7 @@
                                             <h4 class="header-title">Captura de Usuarios</h4>
                                         </b>
                                         <form class="needs-validation" id="userForm" action="{{ url_for('main.create_user') }}" method="POST" novalidate>
+                                            <input type="hidden" id="usuario_id" name="usuario_id" value="New">
                                             <div class="form-row">
                                                 <div class="col-md-4 mb-3">
                                                     <label for="nombre">Nombre</label>
@@ -181,8 +182,8 @@
                                                     </div>
                                                     
                                                 </div>
-                                                <button type="submit" class="btn text-white">Guardar</button>
-                                                <button type="reset" class="btn text-white">Cancelar</button>
+                                                <button id="Savebtn" type="submit" class="btn text-white">Crear</button>
+                                                <button id="Resetbtn" type="reset" class="btn text-white">Cancelar</button>
                                         </form>
                                     </div>
                                 </div>
@@ -233,7 +234,7 @@
                             <div class="container">
 
                             </div>
-
+                            <!--
                             <div id="editEmployeeModal" class="modal fade">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
@@ -341,7 +342,7 @@
                                     </div>
                                     </form>
                                 </div>
-                            </div>
+                            </div>-->
                         </div>
                         </form>
                     </div>
@@ -474,17 +475,23 @@
                 },
                 "columns": [
                     //{"data": null, "orderable": false},
-                    {"data": "nombre"},
+                    {"data": "fullname"},
                     {"data": "correo"},
                     {
                         "data": null,
-                        "render": function (data, type, row) {
-                            return '<a href="#editEmployeeModal" class="edit" data-toggle="modal"><img src="/assets/images/icon/edit.png" width="15" height="15" /><i class="material-icons" data-toggle="tooltip" title="Edit"></i></a>' +
-                                '<a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><img src="/assets/images/icon/see.png" width="20" height="20" /><i class="material-icons" data-toggle="tooltip" title="Delete"></i></a>';
+                        "render": function (data, type, row, meta) {
+                            return '<a href="#" class="edit" data-id="' + row.id + '" data-row="' + meta.row + '"><img src="/assets/images/icon/edit.png" width="15" height="15" /><i class="material-icons" data-toggle="tooltip" title="Edit"></i></a>';
+                            //'<a href="#editEmployeeModal" class="edit" data-toggle="modal"><img src="/assets/images/icon/edit.png" width="15" height="15" /><i class="material-icons" data-toggle="tooltip" title="Edit"></i></a>' +
+                                //'<a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><img src="/assets/images/icon/see.png" width="20" height="20" /><i class="material-icons" data-toggle="tooltip" title="Delete"></i></a>';
                         }
                     },
                     {"data": "telefono", "visible": false,"title": "Telefono"},
-                    {"data": "username", "visible": false,"title": "Usuario"}
+                    {"data": "username", "visible": false,"title": "Usuario"},
+                    {"data": "id", "visible": false,"title": "Id"},
+                    {"data": "nombre", "visible": false,"title": "Nombre"},
+                    {"data": "apellido", "visible": false,"title": "Apellido"},
+                    {"data": "acceso", "visible": false,"title": "Acceso"}
+
                 ],
                 "language": {
                     "decimal": "",
@@ -543,6 +550,38 @@
             $("#myTable_filter").appendTo('#Buscador');
             $('#myTable_info').appendTo('#InfoEmpaty');
             $('#myTable_paginate').appendTo('#Paginacion');
+
+            $('#myTable').on('click', '.edit', function () {
+                var row= $(this).data('row');
+                var userId = $(this).data('id');
+                var data=table.row(row).data();
+
+                $('#usuario_id').val(userId);
+                $('#nombre').val(data.nombre);
+                $('#apellido').val(data.apellido);
+                $('#email').val(data.correo);
+                $('#cel').val(data.telefono);
+                $('#username').val(data.username);
+                $('#acceso').val(data.acceso);
+
+                // Deshabilitar los campos de contraseña
+                $('#password').prop('disabled', true);
+                $('#password2').prop('disabled', true);
+                $('#acceso').prop('disabled', true);
+
+                $('#Savebtn').text('Guardar');
+            });
+
+            $('#Resetbtn').click(function() {
+                // Restablecer los valores y habilitar los campos del formulario
+                $('#userForm')[0].reset();
+                $('#userForm input').prop('disabled', false);
+                $('#userForm select').prop('disabled', false);
+                $('#usuario_id').val("New");
+                // Cambiar el texto del botón "Guardar" de nuevo a "Crear"
+                $('#Savebtn').text('Crear');
+            });
+
         });
 
     </script>

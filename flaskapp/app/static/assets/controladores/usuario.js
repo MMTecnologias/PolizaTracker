@@ -19,13 +19,13 @@ $(document).ready(function() {
                 if(response.error){
                     Swal.fire({
                         title: 'Usuario Incorrecto',
-                        text: 'Ese usuario ya existe, intente de nuevo con otro usuario',
+                        text: response.msg,
                         icon: 'error',
                     });
                 }else {
                     // Display error message if username already exists
                     Swal.fire({
-                        title: 'Usuario añadido, envia las credenciales al usuario',
+                        title: response.title,
                         html: '<pre>' + response.msg + '</pre>',
                         icon: 'success',
                     }).then(function() {

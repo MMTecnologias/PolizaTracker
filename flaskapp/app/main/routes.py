@@ -184,12 +184,17 @@ def get_usuarios_data():
     # Format data as required by DataTables
     data = []
     for usuario in usuarios:
+        name=usuario.nombre
+        lastname=usuario.apellido
         data.append({
             'id': usuario.id,
-            'nombre': f"{usuario.nombre} {usuario.apellido}",
+            'fullname': f"{name} {lastname}",
             'correo': usuario.correo,
             'username': usuario.username,
             'telefono': usuario.telefono,
+            'nombre': name,
+            'apellido': lastname,
+            'acceso': usuario.nivel_id,
             # Add more fields as needed
         })
 
@@ -203,36 +208,68 @@ def get_usuarios_data():
 
     return jsonify(response)
 
+
 @main.route('/create_user', methods=['POST'])
 def create_user():
-    username = request.form.get('username')
-    # Check if the username already exists
-    existing_user = Usuario.query.filter_by(username=username).first()
-    if existing_user:
-        return jsonify({'error': True})
+    user_id = request.form.get('usuario_id')
+
+    # Si user_id es "New", entonces es una creación de usuario
+    if user_id == "New":
+        username = request.form.get('username')
+        # Verificar si el nombre de usuario ya existe
+        existing_user = Usuario.query.filter_by(username=username).first()
+        if existing_user:
+            return jsonify({'error': True,
+                            'msg':"Ese usuario ya existe, intente de nuevo con otro usuario"})
+        else:
+            # Crear un nuevo usuario
+            new_user = Usuario(
+                username=username,
+                password=generate_password_hash(request.form.get('password')),
+                nombre=request.form.get('nombre'),
+                apellido=request.form.get('apellido'),
+                correo=request.form.get('email'),
+                telefono=request.form.get('cel'),
+                nivel_id=request.form.get('acceso')
+            )
+            # Guardar el nuevo usuario en la base de datos
+            db.session.add(new_user)
+            db.session.commit()
+
+            # Mensaje para el usuario
+            msg = f"{request.form.get('email')}\n"
+            msg += f"{request.form.get('nombre')}, ¡bienvenido al equipo!\n"
+            msg += "Usa las siguientes credenciales para entrar a nuestro sistema:\n"
+            msg += f"Usuario: {username}\n Contraseña: {request.form.get('password')}\n"
+            msg += "Recuerda cambiar tu contraseña"
+            title = "Usuario añadido, envia las credenciales al usuario"
+            return jsonify({'error': False, 'redirect': url_for('main.usuario'), 'msg': msg, 'title': title})
     else:
-        # Create the new user
-        new_user = Usuario(
-            username=request.form.get('username'),
-            password=generate_password_hash(request.form.get('password')),
-            nombre=request.form.get('nombre'),
-            apellido=request.form.get('apellido'),
-            correo=request.form.get('email'),
-            telefono=request.form.get('cel'),
-            nivel_id=request.form.get('acceso')
-        )
-        # Save the new user to the database
-        db.session.add(new_user)
-        db.session.commit()
+        # Si user_id no es "New", entonces es una edición de usuario
+        user_id = int(user_id)
+        # Obtener el usuario existente y actualizar sus datos
+        existing_user = Usuario.query.get(user_id)
+        if existing_user:
+            existing_user.username = request.form.get('username')
+            existing_user.nombre = request.form.get('nombre')
+            existing_user.apellido = request.form.get('apellido')
+            existing_user.correo = request.form.get('email')
+            existing_user.telefono = request.form.get('cel')
+            #existing_user.nivel_id = request.form.get('acceso')
+            db.session.commit()
+            title = "Cambios realizados con éxito"
+            return jsonify({'error': False, 'redirect': url_for('main.usuario'), 'msg': '', 'title': title})
+        else:
+            # Manejar el caso en el que el usuario no exista
+            return jsonify({'error': True, 'msg': 'Usuario no encontrado'})
 
-        msg=request.form.get('email')+"\n"
-        msg+=request.form.get('nombre') + ", ¡bienvenido al equipo! \n Usa las siguientes credenciales para entrar a nuestro sistema:\n"
-        msg+=" Usuario: "+ username+"\n Contraseña: "+ request.form.get('password')
-        msg+="\n Recuerda cambiar tu contraseña"
-        return jsonify({'error': False, 
-                        'redirect': url_for('main.usuario'),
-                        'msg':msg})
 
+"""Polizas"""
+# Ruta usuarios
+@main.route('/polizas', methods=['GET'])
+@login_required
+def polizas():
+    return render_template('polizas.html', user=current_user)
 
 """Menu"""
 # Ruta principal del sistema
