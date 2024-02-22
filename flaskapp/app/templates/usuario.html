@@ -227,28 +227,6 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr>
-                                                    <td>
-                                                        <span class="custom-checkbox">
-                                                            <input type="checkbox" id="checkbox1" name="options[]"
-                                                                value="1">
-                                                            <label for="checkbox1"></label>
-                                                        </span>
-                                                    </td>
-                                                    <td>Luis</td>
-                                                    <td>luis.may@gmail.com</td>
-                                                    <td>
-                                                        <a href="#editEmployeeModal" class="edit"
-                                                            data-toggle="modal"><img src="/assets/images/icon/edit.png"
-                                                                width="15" height="15" /><i class="material-icons"
-                                                                data-toggle="tooltip" title="Edit"></i></a>
-                                                        <a href="#deleteEmployeeModal" class="delete"
-                                                            data-toggle="modal"><img
-                                                                src="/assets/images/icon/see.png" width="20"
-                                                                height="20" /><i class="material-icons"
-                                                                data-toggle="tooltip" title="Delete"></i></a>
-                                                    </td>
-                                                </tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -503,10 +481,10 @@
                     {
                         "data": null,
                         "render": function (data, type, row, meta) {
-                            return '<a href="#" class="edit" data-id="' + row.id + '" data-row="' + meta.row + '"><img src="/assets/images/icon/edit.png" width="15" height="15" /><i class="material-icons" data-toggle="tooltip" title="Edit"></i></a>';
-                            //'<a href="#editEmployeeModal" class="edit" data-toggle="modal"><img src="/assets/images/icon/edit.png" width="15" height="15" /><i class="material-icons" data-toggle="tooltip" title="Edit"></i></a>' +
-                                //'<a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><img src="/assets/images/icon/see.png" width="20" height="20" /><i class="material-icons" data-toggle="tooltip" title="Delete"></i></a>';
+                            return "<a href=\"#\" class=\"edit\" data-id=\"" + row.id + "\" data-row=\"" + meta.row + "\"><img src=\"{{ url_for('static', filename='assets/images/icon/edit.png') }}\" width=\"15\" height=\"15\" /><i class=\"material-icons\" data-toggle=\"tooltip\" title=\"Edit\"></i></a>" +
+                                   "<a href=\"#\" class=\"delete\" data-id=\"" + row.id + "\" data-row=\"" + meta.row + "\"><img src=\"{{ url_for('static', filename='assets/images/icon/delete.png') }}\" width=\"20\" height=\"20\" /><i class=\"material-icons\" data-toggle=\"tooltip\" title=\"Delete\"></i></a>";
                         }
+
                     },
                     {"data": "telefono", "visible": false,"title": "Telefono"},
                     {"data": "username", "visible": false,"title": "Usuario"},
@@ -594,6 +572,63 @@
 
                 $('#Savebtn').text('Guardar');
             });
+
+            $('#myTable').on('click', '.delete', function () {
+                var row = $(this).data('row');
+                var userId = $(this).data('id');
+                var data = table.row(row).data();
+                // Restablecer los valores y habilitar los campos del formulario
+                $('#userForm')[0].reset();
+                $('#userForm input').prop('disabled', false);
+                $('#userForm select').prop('disabled', false);
+                $('#usuario_id').val("New");
+                // Cambiar el texto del botón "Guardar" de nuevo a "Crear"
+                $('#Savebtn').text('Crear');
+                // Assuming you have a confirmation modal for deleting the user
+                Swal.fire({
+                    title: 'Deseas eliminar a '+ data.nombre + " " + data.apellido,
+                    text: '¡No podrás revertir esto!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Eliminar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '/delete_user', // URL for Flask route to delete user
+                            data: { user_id: userId },
+                            success: function (response) {
+                                if (!response.error) {
+                                    // Reload the DataTable after successful deletion
+                                    table.ajax.reload();
+                                    Swal.fire({
+                                        title: response.title,
+                                        text: response.msg,
+                                        icon: 'success'
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        title: 'Error',
+                                        text: response.msg,
+                                        icon: 'error'
+                                    });
+                                }
+                            },
+                            error: function (xhr, status, error) {
+                                Swal.fire({
+                                    title: 'Error inesperado',
+                                    text: 'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
+                                    icon: 'error',
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
+
 
             $('#Resetbtn').click(function() {
                 // Restablecer los valores y habilitar los campos del formulario

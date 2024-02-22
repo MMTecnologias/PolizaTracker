@@ -179,7 +179,7 @@ def get_usuarios_data():
     length = int(request.form.get('length'))
 
     # Query to fetch usuarios data from the database
-    usuarios = Usuario.query.offset(start).limit(length).all()
+    usuarios = Usuario.query.filter_by(status='Activo').offset(start).limit(length).all()
 
     # Format data as required by DataTables
     data = []
@@ -262,6 +262,18 @@ def create_user():
         else:
             # Manejar el caso en el que el usuario no exista
             return jsonify({'error': True, 'msg': 'Usuario no encontrado'})
+
+@main.route('/delete_user', methods=['POST'])
+def delete_user():
+    user_id = request.form.get('user_id')
+    user = Usuario.query.get(user_id)
+    if user:
+        # Update the user's status to "Eliminado"
+        user.status = "Eliminado"
+        db.session.commit()
+        return jsonify({'error': False, 'title': 'Usuario eliminado', 'msg': 'El usuario ha sido eliminado con éxito.'})
+    else:
+        return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el usuario.'})
 
 
 """Polizas"""

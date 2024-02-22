@@ -109,6 +109,7 @@ class Usuario(db.Model, UserMixin):
     apellido = Column(String(50), nullable=False)
     correo = Column(String(50), nullable=False)
     telefono = Column(String(10), nullable=False)
+    status = Column(Enum('Activo', 'Eliminado'), nullable=False,default='Activo')
 
 class SolicitudNewPass(db.Model):
     __tablename__ = 'solicitudes_new_pass'
