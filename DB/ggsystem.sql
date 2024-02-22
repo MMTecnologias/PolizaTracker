@@ -411,6 +411,7 @@ CREATE TABLE `usuarios` (
 	`apellido` varchar(50) NOT NULL,
 	`correo` varchar(50) NOT NULL,
 	`telefono` char(10) NOT NULL,
+    `status` ENUM('Activo', 'Eliminado') NOT NULL default 'Activo',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   KEY `nivel_id` (`nivel_id`),
