@@ -3149,23 +3149,23 @@ text {
    background: #ea4e01;
 }
 
-.tarjeta {
+/* .tarjeta {
    margin: 0;
    justify-content: center;
    align-items: center;
    min-height: 100svb;
    font-size: 15px;
    margin-bottom: -400px;
-}
+} */
 
 .contcaja {
-   width: 290px;
+   width: 188px;
    background-color: white;
-   border-radius: 40px;
-   padding: 40px;
+   border-radius: 20px;
+   padding: 16px;
    display: flex;
    flex-direction: column;
-   text-align: center;
+   align-items: center;
    gap: 10px;
 }
 
@@ -3173,8 +3173,8 @@ text {
    display: flex;
    flex-wrap: wrap;
    justify-content: space-between;
-   gap: 5px;
-   padding: 60px;
+   gap: 12px;
+   padding: 40px;
 }
 
 /*-------------------- END Offset Sidebar ------------------- */

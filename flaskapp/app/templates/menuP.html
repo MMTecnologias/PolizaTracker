@@ -1,188 +1,293 @@
-<!doctype html>
-<html class="no-js" lang="en">
+<!DOCTYPE html>
+<html
+   class="no-js"
+   lang="en"
+>
+   <head>
+      <meta charset="utf-8" />
+      <meta
+         http-equiv="x-ua-compatible"
+         content="ie=edge"
+      />
+      <title>Menú</title>
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1"
+      />
+      <link
+         rel="shortcut icon"
+         type="image/png"
+         href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/themify-icons.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/metisMenu.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}"
+      />
+      <!-- amchart css -->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/export.css') }}"
+         type="text/css"
+         media="all"
+      />
+      <!-- others css -->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/typography.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/default-css.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/styles.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/responsive.css') }}"
+      />
+      <!-- modernizr css -->
+      <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+   </head>
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>Menú</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
-    <!-- amchart css -->
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
-    <!-- others css -->
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
-    <!-- modernizr css -->
-    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
-
-    
-</head>
-
-<body>
-    <nav>
-        <div class="page-title-area">
+   <body>
+      <nav>
+         <div class="page-title-area">
             <div class="row align-items-center">
-                <div class="col-sm-6">
-                    <div class="breadcrumbs-area clearfix">
-                        <b>
-                            <h2 class="header-title ">Póliza Tracker</h2>
-                        </b>
-                        <ul class="breadcrumbs pull-left">
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="col-sm-6 clearfix">
-                    <div class="user-profile pull-right">
-                        <h6 class="user-name dropdown-toggle" data-toggle="dropdown">{{ current_user.username }}<i
-                                class="fa fa-angle-down"></i>
-                        </h6>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
-                            <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
-                        </div>
-                    </div>
-                    <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" width="70px" height="70px" class="pull-right">
-                </div>  
+               <div class="col-sm-6">
+                  <div class="breadcrumbs-area clearfix">
+                     <b>
+                        <h2 class="header-title">Póliza Tracker</h2>
+                     </b>
+                     <ul class="breadcrumbs pull-left"></ul>
+                  </div>
+               </div>
+
+               <div class="col-sm-6 clearfix">
+                  <div class="user-profile pull-right">
+                     <h6
+                        class="user-name dropdown-toggle"
+                        data-toggle="dropdown"
+                     >
+                        {{ current_user.username }}<i
+                           class="fa fa-angle-down"
+                        ></i>
+                     </h6>
+                     <div class="dropdown-menu">
+                        <a
+                           class="dropdown-item"
+                           href="{{ url_for('auth.logout') }}"
+                           >Cerrar Sesión</a
+                        >
+                        <a
+                           class="dropdown-item"
+                           href="{{ url_for('auth.cambiar_contrasena') }}"
+                           >Cambiar Contraseña</a
+                        >
+                     </div>
+                  </div>
+                  <img
+                     src="{{ url_for('static',filename='assets/images/GGGC.png') }}"
+                     width="70px"
+                     height="70px"
+                     class="pull-right"
+                  />
+               </div>
             </div>
-        </div>
-    </nav>
+         </div>
+      </nav>
 
-    <div style="height: auto;">
-        <div>
-            <!-- <br>
-            <br>
-            <center>
-                <b><h2 style="font-size: 30px;">Póliza Tracker</h2></b>
-            </center> -->
-        </div>
-        <div class="tarjeta-container">
+      <div>
+         <div class="tarjeta-container">
+            <div
+               class="tarjeta"
+               id="documentos"
+               name="documentos"
+            >
+               <div class="contcaja">
+                  <img
+                     class="card-img-top tamañoIcaja"
+                     src="{{ url_for('static',filename='assets/images/documentos.png') }}"
+                     style="width: 90px; border-radius: 15px"
+                  />
 
-            <div class="tarjeta" id="documentos" name="documentos">
-                <div class="contcaja">
-                    <center>
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/documentos.png') }}"
-                            style="width: 90px; border-radius: 15px;">
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Documentos</b></h1>
-                </div>
-            </div>
-
-            <div class="tarjeta" id="Clientes" name="Clientes">
-                <div class="contcaja">
-                    <center>
-                        <a href="{{ url_for('main.cliente') }}">
-                            <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/clientes.png') }}"
-                            style="width: 90px;  border-radius: 15px;" >
-                          </a>
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Clientes</b></h1>
-                </div>
-            </div>
-
-            <div class="tarjeta" id="Recibos" name="Recibos">
-                <div class="contcaja">
-                    <center>
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/reportes.png') }}"
-                            style="width: 90px;  border-radius: 15px;">
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Recibos</b></h1>
-                </div>
+                  <h3 style="font-size: 20px"><b>Documentos</b></h3>
+               </div>
             </div>
 
-            <div class="tarjeta" id="Vencimientos" name="Vencimientos">
-                <div class="contcaja">
-                    <center>
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/vencimientos.png') }}"
-                            style="width: 90px;  border-radius: 15px;">
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Vencimientos</b></h1>
-                </div>
+            <a href="{{ url_for('main.cliente') }}">
+               <div
+                  class="tarjeta"
+                  id="Clientes"
+                  name="Clientes"
+               >
+                  <div class="contcaja">
+                     <img
+                        class="card-img-top tamañoIcaja"
+                        src="{{ url_for('static',filename='assets/images/clientes.png') }}"
+                        style="width: 90px; border-radius: 15px"
+                     />
+
+                     <h3 style="font-size: 20px"><b>Clientes</b></h3>
+                  </div>
+               </div>
+            </a>
+
+            <div
+               class="tarjeta"
+               id="Recibos"
+               name="Recibos"
+            >
+               <div class="contcaja">
+                  <img
+                     class="card-img-top tamañoIcaja"
+                     src="{{ url_for('static',filename='assets/images/reportes.png') }}"
+                     style="width: 90px; border-radius: 15px"
+                  />
+
+                  <h3 style="font-size: 20px"><b>Recibos</b></h3>
+               </div>
             </div>
 
-            <div class="tarjeta" id="Reportes" name="Reportes">
-                <div class="contcaja">
-                    <center>
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/reportes.png') }}"
-                            style="width: 90px;  border-radius: 15px;">
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Reportes</b></h1>
-                </div>
+            <div
+               class="tarjeta"
+               id="Vencimientos"
+               name="Vencimientos"
+            >
+               <div class="contcaja">
+                  <img
+                     class="card-img-top tamañoIcaja"
+                     src="{{ url_for('static',filename='assets/images/vencimientos.png') }}"
+                     style="width: 90px; border-radius: 15px"
+                  />
+
+                  <h3 style="font-size: 20px"><b>Vencimientos</b></h3>
+               </div>
             </div>
 
-            <div class="tarjeta" id="Utilerias" name="Utilerias">
-                <div class="contcaja">
-                    <center>
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/utilierias.png') }}"
-                            style="width: 90px;  border-radius: 15px;">
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Utilierias</b></h1>
-                </div>
+            <div
+               class="tarjeta"
+               id="Reportes"
+               name="Reportes"
+            >
+               <div class="contcaja">
+                  <img
+                     class="card-img-top tamañoIcaja"
+                     src="{{ url_for('static',filename='assets/images/reportes.png') }}"
+                     style="width: 90px; border-radius: 15px"
+                  />
+
+                  <h3 style="font-size: 20px"><b>Reportes</b></h3>
+               </div>
             </div>
 
-            <div class="tarjeta" id="acerca" name="acerca">
-                <div class="contcaja">
-                    <center>
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/acerca.png') }}"
-                            style="width: 90px; border-radius: 15px;">
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Acerca de</b></h1>
-                </div>
+            <div
+               class="tarjeta"
+               id="Utilerias"
+               name="Utilerias"
+            >
+               <div class="contcaja">
+                  <img
+                     class="card-img-top tamañoIcaja"
+                     src="{{ url_for('static',filename='assets/images/utilierias.png') }}"
+                     style="width: 90px; border-radius: 15px"
+                  />
+
+                  <h3 style="font-size: 20px"><b>Utilierias</b></h3>
+               </div>
             </div>
 
-            <div class="tarjeta" id="cardUser" name="cardUser">
-                <div class="contcaja">
-                    <center>
-                        <a href="{{ url_for('main.usuario') }}">
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/clientes.png') }}"
-                            style="width: 90px;  border-radius: 15px;">
-                        </a>
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Usuarios</b></h1>
-                </div>
+            <div
+               class="tarjeta"
+               id="acerca"
+               name="acerca"
+            >
+               <div class="contcaja">
+                  <img
+                     class="card-img-top tamañoIcaja"
+                     src="{{ url_for('static',filename='assets/images/acerca.png') }}"
+                     style="width: 90px; border-radius: 15px"
+                  />
+
+                  <h3 style="font-size: 20px"><b>Acerca de</b></h3>
+               </div>
             </div>
 
-            <div class="tarjeta" id="ReportesG" name="ReportesG">
-                <div class="contcaja">
-                    <center>
-                        <img class="card-img-top tamañoIcaja" src="{{ url_for('static',filename='assets/images/reportes.png') }}"
-                            style="width: 90px;  border-radius: 15px;">
-                    </center>
-                    <h1 style="font-size: 20px;"><b>Reportes Generales</b></h1>
-                </div>
+            <a href="{{ url_for('main.usuario') }}">
+               <div
+                  class="tarjeta"
+                  id="cardUser"
+                  name="cardUser"
+               >
+                  <div class="contcaja">
+                     <img
+                        class="card-img-top tamañoIcaja"
+                        src="{{ url_for('static',filename='assets/images/clientes.png') }}"
+                        style="width: 90px; border-radius: 15px"
+                     />
+
+                     <h3 style="font-size: 20px"><b>Usuarios</b></h3>
+                  </div>
+               </div>
+            </a>
+
+            <div
+               class="tarjeta"
+               id="ReportesG"
+               name="ReportesG"
+            >
+               <div class="contcaja">
+                  <img
+                     class="card-img-top tamañoIcaja"
+                     src="{{ url_for('static',filename='assets/images/reportes.png') }}"
+                     style="width: 90px; border-radius: 15px"
+                  />
+
+                  <h3 style="font-size: 20px"><b>Reportes Generales</b></h3>
+               </div>
             </div>
-        </div>
-    </div>
+         </div>
+      </div>
 
+      <!-- page container area end -->
 
+      <!-- jquery latest version -->
+      <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+      <!-- bootstrap 4 js -->
+      <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
 
-    <!-- page container area end -->
-
-    <!-- jquery latest version -->
-    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
-    <!-- bootstrap 4 js -->
-    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
-
-    <!-- others plugins -->
-    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-    <script type="text/javascript">
-        nivelUsuario = "{{acceso}}"
-     </script>
-    <script src="{{ url_for('static', filename='assets/controladores/menu.js') }}"></script>
-</body>
-
+      <!-- others plugins -->
+      <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+      <script type="text/javascript">
+         nivelUsuario = '{{acceso}}';
+      </script>
+      <script src="{{ url_for('static', filename='assets/controladores/menu.js') }}"></script>
+   </body>
 </html>
