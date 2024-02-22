@@ -266,6 +266,10 @@ def create_user():
 @main.route('/delete_user', methods=['POST'])
 def delete_user():
     user_id = request.form.get('user_id')
+
+    if int(current_user.id) == int(user_id):
+        return jsonify({'error': True, 'title': 'Error', 'msg': 'No puedes eliminar tu usuario.'})
+
     user = Usuario.query.get(user_id)
     if user:
         # Update the user's status to "Eliminado"
