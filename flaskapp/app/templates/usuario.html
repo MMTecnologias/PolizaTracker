@@ -116,31 +116,24 @@
                                                 <div class="col-md-4 mb-3">
                                                     <label for="password">Contraseña</label>
                                                     <div class="input-group">
-                                                        <input type="password" class="form-control" id="password"
-                                                            name="password" placeholder=""
+                                                        <input type="password" class="form-control" id="password" name="password" placeholder=""
                                                             aria-describedby="inputGroupPrepend" minlength="8" maxlength="20" required>
                                                         <div class="invalid-feedback">
-                                                            Ingresa una contraseña valida
+                                                            Ingresa una contraseña válida
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
                                                     <label for="password2">Confirmar Contraseña</label>
                                                     <div class="input-group">
-                                                        <input type="password" class="form-control"
-                                                            id="password2" name="password2"
-                                                            aria-describedby="inputGroupPrepend" minlength="8" maxlength="20" required onkeyup="validatePassword()">
-                                                            <div id="password2msg" class="invalid-feedback">
-                                                                Ingresa una contraseña valida
-                                                            </div>
-                                                        <!-- <div class="invalid-feedback-password-equal">
-                                                            La contraseña no coincide
-                                                            <h7 id="mensajeError" role="alert"
-                                                                style="display: none; color: tomato; position: fixed;">
-                                                                Usuario o contraseña invalidos</h7>
-                                                        </div> -->
+                                                        <input type="password" class="form-control" id="password2" name="password2"
+                                                            aria-describedby="inputGroupPrepend" minlength="8" maxlength="20" required>
+                                                        <div id="password2msg" class="invalid-feedback">
+                                                            Ingresa una contraseña válida
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                
                                                 <div class="col-md-4 mb-3">
                                                     <label for="username">Nombre de Usuario</label>
                                                     <div class="input-group">
@@ -235,156 +228,11 @@
                             <div class="container">
 
                             </div>
-                            <!--
-                            <div id="editEmployeeModal" class="modal fade">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form>
-                                            <div class="col-12">
-                                                <div class="card mt-5">
-                                                    <div class="card-body">
-                                                        <form class="needs-validation" novalidate="">
-                                                            <div class="form-row">
-                                                                <div class="col-md-4 mb-3">
-                                                                    <label for="validationCustomUsername">Nombre</label>
-                                                                    <div class="input-group">
-                                                                        <input type="text" class="form-control"
-                                                                            id="validationCustomUsername" placeholder=""
-                                                                            aria-describedby="inputGroupPrepend"
-                                                                            required="">
-                                                                        <div class="invalid-feedback">
-                                                                            Ingresa un nombre valido
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-md-4 mb-3">
-                                                                    <label
-                                                                        for="validationCustomUsername">Apellido</label>
-                                                                    <div class="input-group">
-                                                                        <input type="text" class="form-control"
-                                                                            id="validationCustomUsername" placeholder=""
-                                                                            aria-describedby="inputGroupPrepend"
-                                                                            required="">
-                                                                        <div class="invalid-feedback">
-                                                                            Ingresa un apellido valido
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-md-4 mb-3">
-                                                                    <label
-                                                                        for="validationCustomUsername">Contraseña</label>
-                                                                    <div class="input-group">
-                                                                        <input type="password" class="form-control"
-                                                                            id="validationCustomUsername" placeholder=""
-                                                                            aria-describedby="inputGroupPrepend"
-                                                                            required="">
-                                                                        <div class="invalid-feedback">
-                                                                            Ingresa una contraseña valida
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-md-4 mb-3">
-                                                                    <label for="validationCustomUsername">Nombre de
-                                                                        Usuario</label>
-                                                                    <div class="input-group">
-                                                                        <input type="text" class="form-control"
-                                                                            id="validationCustomUsername" placeholder=""
-                                                                            aria-describedby="inputGroupPrepend"
-                                                                            required="">
-                                                                        <div class="invalid-feedback">
-                                                                            Ingresa un usuario valido
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-md-4 mb-3">
-                                                                    <label for="validationCustom03">Correo</label>
-                                                                    <input type="email" class="form-control"
-                                                                        id="validationCustom03" placeholder=""
-                                                                        required="">
-                                                                    <div class="invalid-feedback">
-                                                                        Ingresa un correo valido
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-md-4 mb-3">
-                                                                    <label for="validationCustom04">Teléfono</label>
-                                                                    <input type="text" class="form-control"
-                                                                        id="validationCustom04" placeholder=""
-                                                                        required="">
-                                                                    <div class="invalid-feedback">
-                                                                        Ingresa un teléfono valido
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="form-row">
-
-                                                                <div class="dropdown col-md-2 mb-3">
-                                                                    <button class="btn dropdown-toggle text-white"
-                                                                        type="button" data-toggle="dropdown">
-                                                                        Nivel de Acceso
-                                                                    </button>
-                                                                    <div class="dropdown-menu">
-                                                                        <a class="dropdown-item"
-                                                                            href="#">Administrador</a>
-                                                                        <a class="dropdown-item" href="#">Gerente</a>
-                                                                        <a class="dropdown-item" href="#">Usuario</a>
-                                                                    </div>
-                                                                </div>
-
-                                                            </div>
-                                                            <button class="btn text-white"
-                                                                type="submit">Guardar</button>
-                                                            <button class="btn text-white"
-                                                                type="submit">Cancelar</button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                    </div>
-                                    </form>
-                                </div>
-                            </div>-->
-                        </div>
+                             </div>
                         </form>
                     </div>
                 </div>
             </div>
-            <!-- Delete Modal HTML -->
-            <!--<div id="deleteEmployeeModal" class="modal fade">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form>
-                            <div class="modal-header">
-                                <h4 class="modal-title">Eliminar Clientes</h4>
-                                <button type="button" class="close" data-dismiss="modal"
-                                    aria-hidden="true">&times;</button>
-                            </div>
-                            <div class="modal-body">
-                                <p>¿Estás seguro que deseas eliminar a los clientes seleccionados?</p>
-                                <p class="text-warning"><small>Al eliminar al cliente, perderás sus registros de
-                                        pólizas</small></p>
-                            </div>
-                            <div class="modal-footer">
-                                <input type="submit" class="btn btn-default" data-dismiss="modal" value="Cancelar">
-                                <input type="submit" class="btn btn-danger" value="Eliminar">
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    </div>
-    </div>
-    </div>
-    </div>
-
-    </div>
-    </div>
-    </div>
-    </div>
-    </div> -->
-    <!-- main content area end -->
             
 </div>
     <!-- page container area end -->
@@ -416,233 +264,16 @@
     <!-- others plugins -->
     <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/controladores/usuario.js') }}"></script>
-
-    <script type="text/javascript">
-        var password = document.getElementById("password");
-        var confirm_password = document.getElementById("password2");
-
-        function validatePassword() {
-            var passwordValue = password.value;
-            var confirmPasswordValue = confirm_password.value;
-
-                // Verificar si las contraseñas coinciden
-                if (passwordValue !== confirmPasswordValue) {
-                    document.getElementById("password2msg").innerHTML="Las contraseñas no coinciden";
-                    confirm_password.setCustomValidity("Las contraseñas no coinciden");
-                    return false;
-                }
-
-                // Verificar la longitud mínima de la contraseña
-                if (passwordValue.length < 8) {
-                    document.getElementById("password2msg").innerHTML="La contraseña debe tener al menos 8 caracteres";
-                    confirm_password.setCustomValidity("La contraseña debe tener al menos 8 caracteres");
-                    return false;
-                }
-
-                // Verificar al menos una mayúscula y un dígito
-                if (!/[A-Z]/.test(passwordValue) || !/\d/.test(passwordValue)) {
-                    document.getElementById("password2msg").innerHTML="La contraseña debe contener al menos una mayúscula y un dígito";
-                    confirm_password.setCustomValidity("La contraseña debe contener al menos una mayúscula y un dígito");
-                    return false;
-                }
-
-                // Si todas las verificaciones pasan, limpiar el mensaje de error
-                confirm_password.setCustomValidity('');
-                return true;
-                }
-    </script>
-
 
     <script>
-        // FUNCION PARA DAR FORMATO A LA TABLAS
-        $(function () {
-            var table =$("#myTable").DataTable({
-                "responsive": false,
-                "lengthChange": true,
-                "autoWidth": true,
-                "serverSide": true,
-                "ajax": {
-                    "url": "/get_usuarios_data",
-                    "type": "POST",
-                    "dataSrc": "data",
-                    "error": function(xhr, textStatus, errorThrown) {
-                        Swal.fire({
-                            title: 'Error inesperado',
-                            text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-                            icon: 'error'
-                        });
-                    }
-                },
-                "columns": [
-                    //{"data": null, "orderable": false},
-                    {"data": "fullname"},
-                    {"data": "correo"},
-                    {
-                        "data": null,
-                        "render": function (data, type, row, meta) {
-                            return "<a href=\"#\" class=\"edit\" data-id=\"" + row.id + "\" data-row=\"" + meta.row + "\"><img src=\"{{ url_for('static', filename='assets/images/icon/edit.png') }}\" width=\"15\" height=\"15\" /><i class=\"material-icons\" data-toggle=\"tooltip\" title=\"Edit\"></i></a>" +
-                                   "<a href=\"#\" class=\"delete\" data-id=\"" + row.id + "\" data-row=\"" + meta.row + "\"><img src=\"{{ url_for('static', filename='assets/images/icon/delete.png') }}\" width=\"20\" height=\"20\" /><i class=\"material-icons\" data-toggle=\"tooltip\" title=\"Delete\"></i></a>";
-                        }
-
-                    },
-                    {"data": "telefono", "visible": false,"title": "Telefono"},
-                    {"data": "username", "visible": false,"title": "Usuario"},
-                    {"data": "id", "visible": false,"title": "Id"},
-                    {"data": "nombre", "visible": false,"title": "Nombre"},
-                    {"data": "apellido", "visible": false,"title": "Apellido"},
-                    {"data": "acceso", "visible": false,"title": "Acceso"}
-
-                ],
-                "language": {
-                    "decimal": "",
-                    "emptyTable": "No hay datos disponibles en la tabla",
-                    "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
-                    "infoEmpty": "Mostrando 0 a 0 de 0 entradas",
-                    "infoFiltered": "(filtrado de MAX entradas totales)",
-                    "infoPostFix": "",
-                    "thousands": ",",
-                    "lengthMenu": '<span class="d-flex">Mostrar <select class="form-control form-control-sm ml-2 mr-2"> ' +
-                        '<option value="10">10</option>' +
-                        '<option value="20">20</option>' +
-                        '<option value="30">30</option>' +
-                        '<option value="-1">Todos</option></select> ' + " " +
-                        ' entradas</span>',
-                    "loadingRecords": "Cargando...",
-                    "processing": "Procesando...",
-                    "search": "Buscar:",
-                    "zeroRecords": "No se encontraron registros coincidentes",
-                    "paginate": {
-                        "first": "Primero",
-                        "last": "Último",
-                        "next": "Siguiente",
-                        "previous": "Anterior"
-                    },
-                    "aria": {
-                        "sortAscending": ": activar para ordenar la columna en orden ascendente",
-                        "sortDescending": ": activar para ordenar la columna en orden descendente"
-                    }
-                },
-                "buttons": [
-                                {
-                                    extend: 'csv',
-                                    text: 'Exportar',
-                                    exportOptions: {
-                                        columns: [0,1,3,4]// Include only columns 1 (Nombre) and 2 (Correo)
-                                    },
-                                    filename: 'usuarios_data', // Set the filename for the exported CSV file
-                                    className: 'btn btn-success', // Apply Bootstrap button styles
-                                    customize: function(csv) {
-                                        return '\uFEFF' + csv; // Add BOM character to support UTF-8 encoding
-                                    }
-                                }
-                            ]
-            });
-
-            $('#exportCSVButton').on('click', function () {
-                table.buttons().trigger();
-            });
-
-            // Move DataTable buttons container to a custom location within the wrapper
-            $('#myTable_wrapper .col-md-6:eq(0)').append($('#myTable_wrapper .dt-buttons'));
-            
-            // Move DataTable elements to custom locations
-            $('#myTable_length').appendTo('#LengthMenu');
-            $("#myTable_filter").appendTo('#Buscador');
-            $('#myTable_info').appendTo('#InfoEmpaty');
-            $('#myTable_paginate').appendTo('#Paginacion');
-
-            $('#myTable').on('click', '.edit', function () {
-                var row= $(this).data('row');
-                var userId = $(this).data('id');
-                var data=table.row(row).data();
-
-                $('#usuario_id').val(userId);
-                $('#nombre').val(data.nombre);
-                $('#apellido').val(data.apellido);
-                $('#email').val(data.correo);
-                $('#cel').val(data.telefono);
-                $('#username').val(data.username);
-                $('#acceso').val(data.acceso);
-
-                // Deshabilitar los campos de contraseña
-                $('#password').prop('disabled', true);
-                $('#password2').prop('disabled', true);
-                $('#acceso').prop('disabled', true);
-
-                $('#Savebtn').text('Guardar');
-            });
-
-            $('#myTable').on('click', '.delete', function () {
-                var row = $(this).data('row');
-                var userId = $(this).data('id');
-                var data = table.row(row).data();
-                // Restablecer los valores y habilitar los campos del formulario
-                $('#userForm')[0].reset();
-                $('#userForm input').prop('disabled', false);
-                $('#userForm select').prop('disabled', false);
-                $('#usuario_id').val("New");
-                // Cambiar el texto del botón "Guardar" de nuevo a "Crear"
-                $('#Savebtn').text('Crear');
-                // Assuming you have a confirmation modal for deleting the user
-                Swal.fire({
-                    title: 'Deseas eliminar a '+ data.nombre + " " + data.apellido,
-                    text: '¡No podrás revertir esto!',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Eliminar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            type: 'POST',
-                            url: '/delete_user', // URL for Flask route to delete user
-                            data: { user_id: userId },
-                            success: function (response) {
-                                if (!response.error) {
-                                    // Reload the DataTable after successful deletion
-                                    table.ajax.reload();
-                                    Swal.fire({
-                                        title: response.title,
-                                        text: response.msg,
-                                        icon: 'success'
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        title: 'Error',
-                                        text: response.msg,
-                                        icon: 'error'
-                                    });
-                                }
-                            },
-                            error: function (xhr, status, error) {
-                                Swal.fire({
-                                    title: 'Error inesperado',
-                                    text: 'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-                                    icon: 'error',
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-
-
-
-            $('#Resetbtn').click(function() {
-                // Restablecer los valores y habilitar los campos del formulario
-                $('#userForm')[0].reset();
-                $('#userForm input').prop('disabled', false);
-                $('#userForm select').prop('disabled', false);
-                $('#usuario_id').val("New");
-                // Cambiar el texto del botón "Guardar" de nuevo a "Crear"
-                $('#Savebtn').text('Crear');
-            });
-
-        });
-
+        var editicon = "{{ url_for('static', filename='assets/images/icon/edit.png') }}";
+        var deleteicon = "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
     </script>
+    <script src="{{ url_for('static', filename='assets/controladores/usuario.js') }}"></script>
+
+  
+
+
 
 </body>
 
