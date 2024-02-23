@@ -25,36 +25,33 @@ def check_access(nombre_del_servicio):
 
 
 """Clientes"""
-# Form de clientes
-class ClientRegistrationForm(FlaskForm):
-    nombre = StringField('nombre', validators=[InputRequired(), Length(max=50)])
-    apellido = StringField('apellido', validators=[InputRequired(), Length(max=50)])
-    grupo = SelectField('grupo', coerce=int, validators=[InputRequired()])
-    cliente_id = SelectField('cliente_id', coerce=int)
-    rfc = StringField('rfc', validators=[InputRequired(), Length(min=12, max=13)])
-    telefono_oficina = StringField('telefono_oficina', validators=[Length(max=10)])
-    telefono_movil = StringField('telefono_movil', validators=[Length(max=10)])
-    telefono_casa = StringField('telefono_casa', validators=[Length(max=10)])
-    correo = EmailField('correo', validators=[InputRequired(), Email(), Length(max=50)])
-    direccion_fiscal = StringField('direccion_fiscal', validators=[Length(max=125)])
-    fecha_nacimiento = DateField('fecha_nacimiento', validators=[InputRequired()],format='%Y-%m-%d')
-    sexo = SelectField('sexo', choices=[('Hombre', 'Hombre'), ('Mujer', 'Mujer'), ('Otro', 'Otro')], validators=[InputRequired()])
-    ocupacion = StringField('ocupacion', validators=[Length(max=30)])
-    giro_actividad = StringField('giro_actividad', validators=[Length(max=30)])
-    nuevo_grupo = StringField('nuevo_grupo', validators=[Length(max=30)])  # Add this field for new group input
-    
-@main.route('/cliente', methods=['GET', 'POST'])
+
+@main.route('/cliente', methods=['GET'])
 @login_required
 def cliente():
     grupos=Grupo.query.all()
-    form = ClientRegistrationForm()
-    if request.method == 'POST':
-        #try:
-            #print(request.form['submit_button'])
-            #if request.form['submit_button'] == 'guardar':
-                if form.grupo.data ==None:
+    return render_template('clientes.html', user=current_user,grupos=grupos)
+
+@main.route('/create_client', methods=['POST'])
+def create_client():
+    cliente_id = request.form.get('cliente_id')
+    rfc = request.form.get('rfc')
+    add_group_opt=False
+    new_group_id=0
+    new_group_name=""
+
+    # If cliente_id is "New", then it's a new client creation
+    if cliente_id == "New":
+        rfc = request.form.get('rfc')
+        # Check if a client with the given RFC already exists
+        existing_client = Cliente.query.filter_by(rfc=rfc).first()
+        if existing_client:
+            return jsonify({'error': True, 'msg': "Ya existe un cliente con ese RFC, intente de nuevo"})
+        else:
+            grupo_id=request.form.get('grupo')
+            if grupo_id =="New":
                     # Handle creating a new group here
-                    nuevo_grupo = form.nuevo_grupo.data
+                    nuevo_grupo = request.form.get('nuevo_grupo')
                     grupo_existente = Grupo.query.filter_by(grupo=nuevo_grupo).first()
                     if grupo_existente:
                         grupo_id=grupo_existente.id
@@ -63,57 +60,90 @@ def cliente():
                         db.session.add(nuevo_grupo)
                         db.session.commit()
                         grupo_id=nuevo_grupo.id
-                        grupos=Grupo.query.all()
-                else:
-                    grupo_id=form.grupo.data
-                
-                if form.cliente_id.data==None:
-                    cliente_existente = Cliente.query.filter_by(rfc=form.rfc.data).first()
-                    if cliente_existente:
-                        return "Ya existe un cliente con ese RFC"
+                        add_group_opt=True
+                        new_group_id=grupo_id
+                        new_group_name=nuevo_grupo.grupo
+
+            # Create a new client
+            new_client = Cliente(
+                nombre=request.form.get('nombre'),
+                apellido=request.form.get('apellido'),
+                grupo_id=grupo_id,
+                rfc=rfc,
+                tel_oficina=request.form.get('telefono_oficina'),
+                tel_movil=request.form.get('telefono_movil'),
+                tel_casa=request.form.get('telefono_casa'),
+                correo=request.form.get('correo'),
+                direccion=request.form.get('direccion_fiscal'),
+                fecha_nacimiento=request.form.get('fecha_nacimiento'),
+                sexo=request.form.get('sexo'),
+                ocupacion=request.form.get('ocupacion'),
+                actividad=request.form.get('giro_actividad')
+            )
+            # Save the new client to the database
+            db.session.add(new_client)
+            db.session.commit()
+
+            return jsonify({
+                'error': False,
+                'redirect': url_for('main.cliente'),
+                'msg': '',
+                'title':'Cliente registrado exitosamente',
+                'add_group_opt':add_group_opt,
+                'new_group_id':new_group_id,
+                'new_group_name':new_group_name
+            })
+    else:
+        # If cliente_id is not "New", then it's an existing client editing
+        cliente_id = int(cliente_id)
+        # Get the existing client and update its data
+        existing_client = Cliente.query.get(cliente_id)
+        if existing_client:
+            grupo_id=request.form.get('grupo')
+            if grupo_id =="New":
+                    # Handle creating a new group here
+                    nuevo_grupo = request.form.get('nuevo_grupo')
+                    grupo_existente = Grupo.query.filter_by(grupo=nuevo_grupo).first()
+                    if grupo_existente:
+                        grupo_id=grupo_existente.id
                     else:
-                        nuevo_cliente = Cliente(
-                                nombre=form.nombre.data,
-                                apellido=form.apellido.data,
-                                grupo_id=grupo_id,
-                                rfc=form.rfc.data,
-                                tel_oficina=form.telefono_oficina.data,
-                                tel_movil=form.telefono_movil.data,
-                                tel_casa=form.telefono_casa.data,
-                                correo=form.correo.data,
-                                direccion=form.direccion_fiscal.data,
-                                fecha_nacimiento=form.fecha_nacimiento.data,
-                                sexo=form.sexo.data,
-                                ocupacion=form.ocupacion.data,
-                                actividad=form.giro_actividad.data
-                            )
-                        db.session.add(nuevo_cliente)
+                        nuevo_grupo = Grupo(grupo=nuevo_grupo)
+                        db.session.add(nuevo_grupo)
                         db.session.commit()
-                else:
-                    cliente = Cliente.query.get_or_404(form.cliente_id.data)
-                    # Actualizar los atributos del cliente con los datos del formulario
-                    cliente.nombre = form.nombre.data
-                    cliente.apellido = form.apellido.data
-                    cliente.grupo_id = grupo_id
-                    cliente.rfc = form.rfc.data
-                    cliente.tel_oficina = form.telefono_oficina.data
-                    cliente.tel_movil = form.telefono_movil.data
-                    cliente.tel_casa = form.telefono_casa.data
-                    cliente.correo = form.correo.data
-                    cliente.direccion = form.direccion_fiscal.data
-                    cliente.fecha_nacimiento = form.fecha_nacimiento.data
-                    cliente.sexo = form.sexo.data
-                    cliente.ocupacion = form.ocupacion.data
-                    cliente.actividad = form.giro_actividad.data
-                    # Guardar los cambios en la base de datos
-                    db.session.commit()
-            #else:
-             #   print("Otro boton")
-        #except:
-        #    abort(404)
+                        grupo_id=nuevo_grupo.id
+                        add_group_opt=True
+                        new_group_id=grupo_id
+                        new_group_name=nuevo_grupo.grupo
 
 
-    return render_template('clientes.html', user=current_user,grupos=grupos)
+            existing_client.nombre = request.form.get('nombre')
+            existing_client.apellido = request.form.get('apellido')
+            existing_client.grupo_id = grupo_id
+            existing_client.tel_oficina = request.form.get('telefono_oficina')
+            existing_client.tel_movil = request.form.get('telefono_movil')
+            existing_client.tel_casa = request.form.get('telefono_casa')
+            existing_client.correo = request.form.get('correo')
+            existing_client.direccion = request.form.get('direccion_fiscal')
+            existing_client.fecha_nacimiento = request.form.get('fecha_nacimiento')
+            existing_client.sexo = request.form.get('sexo')
+            existing_client.ocupacion = request.form.get('ocupacion')
+            existing_client.actividad = request.form.get('giro_actividad')
+            # Save the changes to the database
+            db.session.commit()
+
+            return jsonify({
+                'error': False,
+                'redirect': url_for('main.cliente'),
+                'msg': '',
+                'title':'Cambios realizados exitosamente',
+                'add_group_opt':add_group_opt,
+                'new_group_id':new_group_id,
+                'new_group_name':new_group_name
+            })
+        else:
+            # Handle the case where the client does not exist
+            return jsonify({'error': True, 'msg': 'Cliente no encontrado'})
+
 
 @main.route('/get_clients_data', methods=['POST'])
 def get_clients_data():
@@ -192,6 +222,20 @@ def get_clients_data():
 
     return jsonify(response)
 
+@main.route('/delete_client', methods=['POST'])
+def delete_client():
+    client_id = int(request.form.get('client_id'))
+
+    client = Cliente.query.get(client_id)
+    if client:
+        # Update the user's status to "Eliminado"
+        client.status = "Eliminado"
+        db.session.commit()
+        return jsonify({'error': False, 'title': 'Cliente eliminado', 'msg': 'El cliente ha sido eliminado con éxito.'})
+    else:
+        return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el cliente.'})
+
+
 @main.route('/export_clients')
 def export_clients():
     headers = ['nombre',
@@ -245,53 +289,6 @@ def export_clients():
     response.headers.set("Content-Disposition", "attachment", filename='clientes.csv')
     return response
 
-
-@main.route('/example.csv')
-def example_csv():
-    def generate():
-        f = StringIO()
-        f.seek(0)
-        f.write(u'\uFEFF')
-        writer = csv.writer(f)
-        writer.writerow(('Header 1', 'Header 2', 'Header 3'))
-        dataset = [['1', '2', '3'],
-                    ['a', 'b', 'c'],
-                    ['£', '€', '¥'],
-                    ['壹', '貳', '參']]
-        for row in dataset:
-            writer.writerow(tuple(row))
-            yield f.getvalue()
-            f.seek(0)
-            f.truncate(0)
-
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition",
-                            "attachment",
-                            filename='example.csv')
-    return response
-
-@main.route('/get_client/<int:id>')
-@login_required
-def get_client(id):
-    client = Cliente.query.get_or_404(id)
-    
-    # Return data as JSON
-    return jsonify({
-            'id': client.id,
-            'nombre': client.nombre,
-            'apellido': client.apellido,
-            'rfc': client.rfc,
-            'tel_oficina': client.tel_oficina,
-            'tel_movil': client.tel_movil,
-            'tel_casa': client.tel_casa,
-            'correo': client.correo,
-            'direccion': client.direccion,
-            'fecha_nacimiento': client.fecha_nacimiento,
-            'sexo': client.sexo,
-            'ocupacion': client.ocupacion,
-            'actividad': client.actividad,
-            'grupo_id': client.grupo_id
-    })
 
 
 """Usuarios"""

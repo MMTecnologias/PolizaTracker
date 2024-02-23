@@ -85,7 +85,7 @@
                                 <div class="card mt-5">
                                     <div class="card-body">
                                         <b><h4 class="header-title">Captura de Clientes</h4></b>
-                                        <form id="cliente-form" method="POST" action="{{ url_for('main.cliente') }}" class="needs-validation" novalidate>
+                                        <form id="cliente-form" method="POST" action="{{ url_for('main.create_client') }}" class="needs-validation" novalidate>
                                             <input type="hidden" id="cliente_id" name="cliente_id" value="New">
                                             <div class="form-row">
                                                 <div class="col-md-4 mb-3">
@@ -199,7 +199,7 @@
                                                 </div>
                                                 <div class="col-md-4 mb-3 nuevo-grupo-input" style="display: none;">
                                                     <label for="nuevo_grupo">Nuevo Grupo</label>
-                                                    <input type="text" class="form-control" name="nuevo_grupo" id="nuevo_grupo" placeholder="" minlength="2" maxlength="30" required>
+                                                    <input type="text" class="form-control" name="nuevo_grupo" id="nuevo_grupo" placeholder="" minlength="2" maxlength="30">
                                                     <div class="invalid-feedback">
                                                         Ingresa un nuevo grupo
                                                     </div>
