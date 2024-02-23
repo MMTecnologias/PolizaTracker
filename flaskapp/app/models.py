@@ -48,6 +48,7 @@ class Cliente(db.Model):
     sexo = Column(Enum('Hombre', 'Mujer', 'Otro'), nullable=False)
     ocupacion = Column(String(30))
     actividad = Column(String(30))
+    status = Column(Enum('Activo', 'Eliminado'), nullable=False,default='Activo')
 
 class Poliza(db.Model):
     __tablename__ = 'polizas'

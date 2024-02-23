@@ -114,6 +114,7 @@ CREATE TABLE `clientes` (
   `ocupacion` varchar(30) DEFAULT NULL,
   `actividad` varchar(30) DEFAULT NULL,
   `apellido` varchar(50) NOT NULL,
+    `status` ENUM('Activo', 'Eliminado') NOT NULL default 'Activo',
   PRIMARY KEY (`id`),
   UNIQUE KEY `rfc` (`rfc`),
   KEY `grupo_id` (`grupo_id`),

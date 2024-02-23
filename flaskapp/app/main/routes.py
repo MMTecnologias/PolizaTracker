@@ -7,6 +7,7 @@ from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass,Cliente,Grupo
+from sqlalchemy import join, or_,desc
 from . import main 
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
@@ -112,32 +113,121 @@ def cliente():
 
     return render_template('clientes.html', user=current_user,grupos=grupos)
 
-@main.route('/get_clients')
-@login_required
-def get_clients():
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    print("GETTING")
-    clients = Cliente.query.paginate(page=page, per_page=per_page)
+@main.route('/get_clients_data', methods=['POST'])
+def get_clients_data():
+    # Get parameters from DataTables AJAX request
+    draw = int(request.form.get('draw'))
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    search_value = request.form.get('search[value]')
+    order_column_index = int(request.form.get('order[0][column]'))
+    order_dir = request.form.get('order[0][dir]')
 
-    # Return data as JSON
-    return jsonify({
-        'clients': [{
-            'name': client.nombre,
-            'apellido': client.apellido,
+    # Query to fetch clientes data from the database 
+    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
+
+    # Implement search functionality
+    if search_value:
+        clients_query = clients_query.filter(or_(
+            Cliente.nombre.ilike(f'%{search_value}%'),
+            Cliente.apellido.ilike(f'%{search_value}%'),
+            Cliente.correo.ilike(f'%{search_value}%'),
+            # Add more fields for searching as needed
+        ))
+
+    # Implement sorting functionality
+    order_column_name = None
+    if order_column_index == 0:
+        order_column_name = 'nombre'
+    elif order_column_index == 1:
+        order_column_name = 'correo'
+    elif order_column_index == 2:
+        order_column_name = 'tel_movil'
+
+    if order_column_name:
+        if order_dir == 'desc':
+            clients_query = clients_query.order_by(desc(order_column_name))
+        else:
+            clients_query = clients_query.order_by(order_column_name)
+
+
+
+    # Get total count of records without filtering
+    total_records = clients_query.count()
+    
+    # Apply pagination
+    clients = clients_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for client, grupo_name in clients:
+        data.append({
+            'id': client.id,
+            'nombre': client.nombre,
+            'grupo_id': client.grupo_id,
+            'grupo': grupo_name,
+            'rfc': client.rfc,
+            'tel_oficina': client.tel_oficina,
+            'tel_movil': client.tel_movil,
+            'tel_casa': client.tel_casa,
             'correo': client.correo,
-            'celular': client.tel_movil,
-            'id':client.id
+            'direccion': client.direccion,
+            'fecha_nacimiento': client.fecha_nacimiento.strftime('%Y-%m-%d'), # Format date as string
+            'sexo': client.sexo,
+            'ocupacion': client.ocupacion,
+            'actividad': client.actividad,
+            'apellido': client.apellido,
+            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+        })
+
+    # Prepare response
+    response = {
+        'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
+"""
+import io
+import csv
+from flask import make_response
+import pyexcel as pe
+
+@main.route('/export_clients', methods=['GET'])
+def export_clients():
+    # Query data from the database
+    rows = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).all()
+
+    # Prepare data for export
+    data = []
+    for cliente, grupo_name in rows:
+        data.append({
+            'id': cliente.id,
+            'nombre': cliente.nombre,
+            'grupo_name': grupo_name,
             # Add more fields as needed
-        } for client in clients.items],
-        'has_prev': clients.has_prev,
-        'has_next': clients.has_next,
-        'prev_num': clients.prev_num,
-        'next_num': clients.next_num,
-        'total': clients.total,
-        'pages': clients.pages,
-        'page': clients.page
-    })
+        })
+
+    # Convert data to a dictionary suitable for pyexcel
+    records = [{k: v for k, v in row.items()} for row in data]
+
+    # Prepare the output file
+    output = io.BytesIO()
+    sheet = pe.Sheet(records)
+    sheet.save_to_memory("csv", output)
+    output.seek(0)
+
+    # Prepare the response
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=clientes.csv'
+    response.headers["Content-type"] = "text/csv"
+
+    return response
+"""
 
 @main.route('/get_client/<int:id>')
 @login_required
@@ -177,9 +267,43 @@ def get_usuarios_data():
     draw = request.form.get('draw')
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
+    search_value = request.form.get('search[value]')
+    order_column_index = int(request.form.get('order[0][column]'))
+    order_dir = request.form.get('order[0][dir]')
+
 
     # Query to fetch usuarios data from the database
-    usuarios = Usuario.query.filter_by(status='Activo').offset(start).limit(length).all()
+    usuarios_query = Usuario.query.filter_by(status='Activo')
+
+    # Implement search functionality
+    if search_value:
+        usuarios_query = usuarios_query.filter(or_(
+            Usuario.nombre.ilike(f'%{search_value}%'),
+            Usuario.apellido.ilike(f'%{search_value}%'),
+            Usuario.correo.ilike(f'%{search_value}%')
+        ))
+
+    # Implement sorting functionality
+    order_column_name = None
+    if order_column_index == 0:
+        order_column_name = 'nombre'
+    elif order_column_index == 1:
+        order_column_name = 'correo'
+
+    if order_column_name:
+        if order_dir == 'desc':
+            usuarios_query = usuarios_query.order_by(desc(order_column_name))
+        else:
+            usuarios_query = usuarios_query.order_by(order_column_name)
+
+    # Get total count of records without filtering
+    total_records = usuarios_query.count()
+
+    # Apply pagination
+    usuarios = usuarios_query.offset(start).limit(length).all()
+
+    # Query to fetch usuarios data from the database
+    usuarios = usuarios_query.offset(start).limit(length).all()
 
     # Format data as required by DataTables
     data = []
@@ -201,8 +325,8 @@ def get_usuarios_data():
     # Prepare response
     response = {
         'draw': draw,
-        'recordsTotal': len(usuarios),  # Total records without filtering
-        'recordsFiltered': len(usuarios),  # Total records after filtering
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
         'data': data  # Data to display
     }
 

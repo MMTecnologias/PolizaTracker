@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\luism\Documents\loginapp\auth"
+VIRTUAL_ENV="C:\Users\luism\Documents\Produccion\PolizaTracker\flaskapp\auth"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

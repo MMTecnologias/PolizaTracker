@@ -153,8 +153,7 @@ $(document).ready(function() {
             "lengthMenu": '<span class="d-flex">Mostrar <select class="form-control form-control-sm ml-2 mr-2"> ' +
                 '<option value="10">10</option>' +
                 '<option value="20">20</option>' +
-                '<option value="30">30</option>' +
-                '<option value="-1">Todos</option></select> ' + " " +
+                '<option value="30">30</option>' + " " +
                 ' entradas</span>',
             "loadingRecords": "Cargando...",
             "processing": "Procesando...",
