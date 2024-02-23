@@ -19,7 +19,6 @@ def check_access(nombre_del_servicio):
     servicio_crear_usuario_id=Servicio.query.filter_by(nombre=nombre_del_servicio).first().id
     acceso=Acceso.query.filter_by(servicio_id=servicio_crear_usuario_id,nivel_id=current_user.nivel_id).first()
     if not acceso:
-        flash('No tienes acceso a esta función', 'danger')
         return False
     return True
 
@@ -29,11 +28,15 @@ def check_access(nombre_del_servicio):
 @main.route('/cliente', methods=['GET'])
 @login_required
 def cliente():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
     grupos=Grupo.query.all()
     return render_template('clientes.html', user=current_user,grupos=grupos)
 
 @main.route('/create_client', methods=['POST'])
 def create_client():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
     cliente_id = request.form.get('cliente_id')
     rfc = request.form.get('rfc')
     add_group_opt=False
@@ -144,9 +147,10 @@ def create_client():
             # Handle the case where the client does not exist
             return jsonify({'error': True, 'msg': 'Cliente no encontrado'})
 
-
 @main.route('/get_clients_data', methods=['POST'])
 def get_clients_data():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
     # Get parameters from DataTables AJAX request
     draw = int(request.form.get('draw'))
     start = int(request.form.get('start'))
@@ -224,6 +228,8 @@ def get_clients_data():
 
 @main.route('/delete_client', methods=['POST'])
 def delete_client():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
     client_id = int(request.form.get('client_id'))
 
     client = Cliente.query.get(client_id)
@@ -238,6 +244,8 @@ def delete_client():
 
 @main.route('/export_clients')
 def export_clients():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
     headers = ['nombre',
                 'apellido',
                 'rfc',
@@ -296,11 +304,15 @@ def export_clients():
 @main.route('/usuario', methods=['GET'])
 @login_required
 def usuario():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
     niveles = NivelAcceso.query.all()
     return render_template('usuario.html', user=current_user,niveles =niveles)
 
 @main.route('/get_usuarios_data', methods=['POST'])
 def get_usuarios_data():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
     # Get parameters from DataTables AJAX request
     draw = request.form.get('draw')
     start = int(request.form.get('start'))
@@ -373,6 +385,8 @@ def get_usuarios_data():
 
 @main.route('/create_user', methods=['POST'])
 def create_user():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
     user_id = request.form.get('usuario_id')
 
     # Si user_id es "New", entonces es una creación de usuario
@@ -427,6 +441,8 @@ def create_user():
 
 @main.route('/delete_user', methods=['POST'])
 def delete_user():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
     user_id = request.form.get('user_id')
 
     if int(current_user.id) == int(user_id):
@@ -443,6 +459,8 @@ def delete_user():
 
 @main.route('/export_users')
 def export_users():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
     headers = ['nombre',
                 'apellido',
                 'correo',
