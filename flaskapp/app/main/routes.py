@@ -1,5 +1,5 @@
 # app/main/routes.py
-from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort
+from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort,Flask, Response
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField,SelectField,DateField,EmailField
@@ -8,6 +8,8 @@ from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass,Cliente,Grupo
 from sqlalchemy import join, or_,desc
+import csv
+from io import StringIO
 from . import main 
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
@@ -190,44 +192,83 @@ def get_clients_data():
 
     return jsonify(response)
 
-
-"""
-import io
-import csv
-from flask import make_response
-import pyexcel as pe
-
-@main.route('/export_clients', methods=['GET'])
+@main.route('/export_clients')
 def export_clients():
-    # Query data from the database
-    rows = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).all()
+    headers = ['nombre',
+                'apellido',
+                'rfc',
+                'tel_oficina',
+                'tel_movil',
+                'tel_casa',
+                'correo',
+                'direccion',
+                'fecha_nacimiento',
+                'sexo',
+                'ocupacion',
+                'actividad',
+                'grupo',
+                'status']
+    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo)
+    clients_data = clients_query.all()
+    def generate():
+        f = StringIO()
+        f.seek(0)
+        f.write(u'\uFEFF')
+        writer = csv.writer(f)
+        writer.writerow(tuple(headers))
 
-    # Prepare data for export
-    data = []
-    for cliente, grupo_name in rows:
-        data.append({
-            'id': cliente.id,
-            'nombre': cliente.nombre,
-            'grupo_name': grupo_name,
-            # Add more fields as needed
-        })
 
-    # Convert data to a dictionary suitable for pyexcel
-    records = [{k: v for k, v in row.items()} for row in data]
+        # Write rows
+        for client, grupo_name in clients_data:
+            row = [
+                client.nombre,
+                client.apellido,
+                client.rfc,
+                client.tel_oficina,
+                client.tel_movil,
+                client.tel_casa,
+                client.correo,
+                client.direccion,
+                client.fecha_nacimiento.strftime('%Y-%m-%d'),
+                client.sexo,
+                client.ocupacion,
+                client.actividad,
+                grupo_name,
+                client.status
+            ]
+            writer.writerow(tuple(row))
+            yield f.getvalue()
+            f.seek(0)
+            f.truncate(0)
 
-    # Prepare the output file
-    output = io.BytesIO()
-    sheet = pe.Sheet(records)
-    sheet.save_to_memory("csv", output)
-    output.seek(0)
-
-    # Prepare the response
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=clientes.csv'
-    response.headers["Content-type"] = "text/csv"
-
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename='clientes.csv')
     return response
-"""
+
+
+@main.route('/example.csv')
+def example_csv():
+    def generate():
+        f = StringIO()
+        f.seek(0)
+        f.write(u'\uFEFF')
+        writer = csv.writer(f)
+        writer.writerow(('Header 1', 'Header 2', 'Header 3'))
+        dataset = [['1', '2', '3'],
+                    ['a', 'b', 'c'],
+                    ['£', '€', '¥'],
+                    ['壹', '貳', '參']]
+        for row in dataset:
+            writer.writerow(tuple(row))
+            yield f.getvalue()
+            f.seek(0)
+            f.truncate(0)
+
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition",
+                            "attachment",
+                            filename='example.csv')
+    return response
 
 @main.route('/get_client/<int:id>')
 @login_required
@@ -402,6 +443,45 @@ def delete_user():
         return jsonify({'error': False, 'title': 'Usuario eliminado', 'msg': 'El usuario ha sido eliminado con éxito.'})
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el usuario.'})
+
+@main.route('/export_users')
+def export_users():
+    headers = ['nombre',
+                'apellido',
+                'correo',
+                'telefono',
+                'usuario',
+                'acceso',
+                'status']
+    users_query = db.session.query(Usuario, NivelAcceso.nombre.label('acceso')).join(NivelAcceso)
+    users_data = users_query.all()
+    def generate():
+        f = StringIO()
+        f.seek(0)
+        f.write(u'\uFEFF')
+        writer = csv.writer(f)
+        writer.writerow(tuple(headers))
+
+
+        # Write rows
+        for user, acceso in users_data:
+            row = [
+                user.nombre,
+                user.apellido,
+                user.correo,
+                user.telefono,
+                user.username,
+                acceso,
+                user.status
+            ]
+            writer.writerow(tuple(row))
+            yield f.getvalue()
+            f.seek(0)
+            f.truncate(0)
+
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename='usuarios.csv')
+    return response
 
 
 """Polizas"""
