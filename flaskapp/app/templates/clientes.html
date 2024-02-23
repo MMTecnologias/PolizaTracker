@@ -20,14 +20,8 @@
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
-    <!-- DataTables FORMATO TABLAS-->
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
     <!-- modernizr css -->
     <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
-    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
-    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
 
 </head>
 
@@ -85,26 +79,25 @@
                                 <div class="card mt-5">
                                     <div class="card-body">
                                         <b><h4 class="header-title">Captura de Clientes</h4></b>
-                                        <form id="cliente-form" method="POST" action="{{ url_for('main.create_client') }}" class="needs-validation" novalidate>
-                                            <input type="hidden" id="cliente_id" name="cliente_id" value="New">
+                                        <form id="cliente-form" method="POST" action="{{ url_for('main.cliente') }}" class="needs-validation" novalidate>
                                             <div class="form-row">
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="nombre">Nombre Cliente</label>
-                                                    <input type="text" class="form-control" id="nombre" name="nombre" placeholder="" minlength="2" maxlength="50" required>
+                                                    <label for="validationCustom01">Nombre Cliente</label>
+                                                    <input type="text" class="form-control" id="validationCustom01" name="nombre" placeholder="" minlength="2" maxlength="50" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un nombre válido.
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="apellido">Apellido</label>
-                                                    <input type="text" class="form-control" id="apellido" name="apellido" placeholder="" minlength="2" maxlength="50" required>
+                                                    <label for="validationCustom02">Apellido</label>
+                                                    <input type="text" class="form-control" id="validationCustom02" name="apellido" placeholder="" minlength="2" maxlength="50" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un apellido válido.
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="rfc">RFC</label>
-                                                    <input type="text" class="form-control" id="rfc" name="rfc" placeholder="" minlength="12" maxlength="13" required>
+                                                    <label for="validationCustom03">RFC</label>
+                                                    <input type="text" class="form-control" id="validationCustom03" name="rfc" placeholder="" minlength="12" maxlength="13" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un RFC válido.
                                                     </div>
@@ -112,22 +105,22 @@
                                             </div>
                                             <div class="form-row">
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="telefono_oficina">Teléfonos Oficina</label>
-                                                    <input type="text" class="form-control" id="telefono_oficina" name="telefono_oficina" placeholder="" minlength="10" maxlength="10" required>
+                                                    <label for="validationCustom04">Teléfonos Oficina</label>
+                                                    <input type="text" class="form-control" id="validationCustom04" name="telefono_oficina" placeholder="" minlength="10" maxlength="10" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un teléfono válido.
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="telefono_movil">Teléfonos Móviles</label>
-                                                    <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder="" minlength="10" maxlength="10" required>
+                                                    <label for="validationCustom05">Teléfonos Móviles</label>
+                                                    <input type="text" class="form-control" id="validationCustom05" name="telefono_movil" placeholder="" minlength="10" maxlength="10" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un teléfono válido.
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="telefono_casa">Teléfonos Casa</label>
-                                                    <input type="text" class="form-control" id="telefono_casa" name="telefono_casa" placeholder="" minlength="10" maxlength="10" required>
+                                                    <label for="validationCustom06">Teléfonos Casa</label>
+                                                    <input type="text" class="form-control" id="validationCustom06" name="telefono_casa" placeholder="" minlength="10" maxlength="10" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un teléfono válido.
                                                     </div>
@@ -135,22 +128,22 @@
                                             </div>
                                             <div class="form-row">
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="correo">Correo Electrónico</label>
-                                                    <input type="email" class="form-control" id="correo" name="correo" placeholder="" minlength="5" maxlength="50" required>
+                                                    <label for="validationCustom07">Correo Electrónico</label>
+                                                    <input type="email" class="form-control" id="validationCustom07" name="correo" placeholder="" minlength="5" maxlength="50" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un correo electrónico válido.
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="direccion_fiscal">Dirección Fiscal</label>
-                                                    <input type="text" class="form-control" id="direccion_fiscal" name="direccion_fiscal" placeholder="" minlength="5" maxlength="125" required>
+                                                    <label for="validationCustom08">Dirección Fiscal</label>
+                                                    <input type="text" class="form-control" id="validationCustom08" name="direccion_fiscal" placeholder="" minlength="5" maxlength="125" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa una dirección válida.
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="fecha_nacimiento">Fecha de Nacimiento</label>
-                                                    <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento" placeholder="" required>
+                                                    <label for="validationCustom09">Fecha de Nacimiento</label>
+                                                    <input type="date" class="form-control" id="validationCustom09" name="fecha_nacimiento" placeholder="" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa una fecha válida.
                                                     </div>
@@ -158,8 +151,8 @@
                                             </div>
                                             <div class="form-row">
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="sexo">Sexo</label>
-                                                    <select class="custom-select" id="sexo" name="sexo" required>
+                                                    <label for="validationCustom10">Sexo</label>
+                                                    <select class="custom-select" id="validationCustom10" name="sexo" required>
                                                         <option value="">Selecciona...</option>
                                                         <option value="Hombre">Femenino</option>
                                                         <option value="Mujer">Masculino</option>
@@ -169,15 +162,15 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="ocupacion">Ocupación</label>
-                                                    <input type="text" class="form-control" id="ocupacion" name="ocupacion" placeholder="" minlength="2" maxlength="30" required>
+                                                    <label for="validationCustom11">Ocupación</label>
+                                                    <input type="text" class="form-control" id="validationCustom11" name="ocupacion" placeholder="" minlength="2" maxlength="30" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa una ocupación válida.
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="giro_actividad">Giro o Actividad</label>
-                                                    <input type="text" class="form-control" id="giro_actividad" name="giro_actividad" placeholder="" minlength="2" maxlength="30" required>
+                                                    <label for="validationCustom12">Giro o Actividad</label>
+                                                    <input type="text" class="form-control" id="validationCustom12" name="giro_actividad" placeholder="" minlength="2" maxlength="30" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un giro o actividad válido.
                                                     </div>
@@ -185,8 +178,8 @@
                                             </div>
                                             <div class="form-row">
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="grupo">Grupo</label>
-                                                    <select class="custom-select" id="grupo" name="grupo" required>
+                                                    <label for="validationCustom20">Grupo</label>
+                                                    <select class="custom-select" id="validationCustom20" name="grupo" required>
                                                         <option value="">Selecciona...</option>
                                                         {% for grupo in grupos %}
                                                             <option value="{{ grupo.id }}">{{ grupo.grupo }}</option>
@@ -198,58 +191,228 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 mb-3 nuevo-grupo-input" style="display: none;">
-                                                    <label for="nuevo_grupo">Nuevo Grupo</label>
-                                                    <input type="text" class="form-control" name="nuevo_grupo" id="nuevo_grupo" placeholder="" minlength="2" maxlength="30">
+                                                    <label for="nuevoGrupoInput">Nuevo Grupo</label>
+                                                    <input type="text" class="form-control" name="nuevo_grupo" id="nuevoGrupoInput" placeholder="" minlength="2" maxlength="30" required>
                                                     <div class="invalid-feedback">
                                                         Ingresa un nuevo grupo
                                                     </div>
                                                 </div>
+                                                <input type="hidden" id="cliente-id" name="cliente_id" value="New">
                                             </div>
-                                            <button id="Savebtn" type="submit" class="btn text-white">Crear</button>
-                                            <button id="Resetbtn" type="reset" class="btn text-white">Cancelar</button>
+                                            <button id="bt1" class="btn btn-primary" type="submit" name="submit_button" value="guardar">Crear</button>
+                                            <!-- <button id="bt2" class="btn btn-primary" type="submit" name="submit_button" value="imprimir">Imprimir Datos</button> -->
+                                            <!--<button id="bt3" class="btn btn-primary" type="submit" name="submit_button" value="polizas">Ver pólizas</button>-->
+                                            <!--<button id="bt4" class="btn btn-primary" type="submit" name="submit_button" value="documentos">Ver documentos</button>-->
                                         </form>
                                         
-                                   </div>
-                                </div>
-                            </div>
-                            <!-- Server side end -->
-                            <div class="col-6">
-                                <div class="card mt-5">
-                                    <div class="card-body">
-                                        <div class="table-wrapper">
-                                            <div class="table-title">
-                                                <div class="form-row">
-                                                    <div class="col-lg-6">
-                                                            <h5><b>Clientes</b></h5>
+                                        
+                                        
+                                        <!--
+                                            <form class="needs-validation" novalidate="">
+                                            <div class="form-row">
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustomUsername">Nombre Cliente</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="validationCustomUsername" placeholder="" aria-describedby="inputGroupPrepend" required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un nombre valido
+                                                        </div>
                                                     </div>
-                                                    <div class="col-lg-3">
-                                                        <a  class="btn btn-success" id="exportCSVButton">
-                                                            <i class="fas fa-file-csv"></i> <span>Exportar</span>
-                                                        </a>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustomUsername">Apellido</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="validationCustomUsername" placeholder="" aria-describedby="inputGroupPrepend" required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un apellido valido
+                                                        </div>
                                                     </div>
-                                                    <div class="col-lg-3">
-                                                        <a  href="{{ url_for('main.export_clients') }}" class="btn btn-success" id="exportallCSV">
-                                                            <i class="fas fa-file-csv"></i> <span>Exportar todo</span>
-                                                        </a>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustomUsername">RFC</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="validationCustomUsername" placeholder="" aria-describedby="inputGroupPrepend" required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un RFC valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustomUsername">Teléfonos Oficina</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="validationCustomUsername" placeholder="" aria-describedby="inputGroupPrepend" required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un teléfono valido
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <table id="myTable" class="table table-striped table-hover">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Nombre</th>
-                                                        <th>Correo</th>
-                                                        <th>Celular</th>
-                                                        <th>Acción</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                </tbody>
-                                            </table>
+                                            <div class="form-row">
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustom03">Teléfonos Móviles</label>
+                                                    <input type="text" class="form-control" id="validationCustom03" placeholder="" required="">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un teléfono valido
+                                                    </div>
+                                                </div>
+                                               
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustom04">Teléfonos Casa</label>
+                                                    <input type="text" class="form-control" id="validationCustom04" placeholder="" required="">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un teléfono valido
+                                                    </div>
+                                                </div>
+                                                <br>
+                                                <br>
+                                                <div class="dropdown col-md-4 mb-3">
+                                                    <button class="btn dropdown-toggle text-white" type="button" data-toggle="dropdown">
+                                                        Grupo
+                                                    </button>
+                                                    <div class="dropdown-menu">
+                                                        <a class="dropdown-item" href="#">Generales</a>
+                                                        <a class="dropdown-item" href="#">+</a>
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustom05">Correo Eléctronico</label>
+                                                    <input type="email" class="form-control" id="validationCustom05" placeholder="" required="">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un correo valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustom05">Dirección Fiscal</label>
+                                                    <input type="text" class="form-control" id="validationCustom06" placeholder="" required="">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa una dirección valida
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustom05">Fecha de nacimiento</label>
+                                                    <input type="date" class="form-control" id="validationCustom07" placeholder="" required="">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa una fecha valida
+                                                    </div>
+                                                </div>
+                                                <div class="dropdown col-md-4 mb-3">
+                                                    <button class="btn dropdown-toggle text-white" type="button" data-toggle="dropdown">
+                                                        Sexo
+                                                    </button>
+                                                    <div class="dropdown-menu">
+                                                        <a class="dropdown-item" href="#">Femenino</a>
+                                                        <a class="dropdown-item" href="#">Masculino</a>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustom05">Ocupación</label>
+                                                    <input type="text" class="form-control" id="validationCustom07" placeholder="" required="">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un dato valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="validationCustom05">Giro o Actividad</label>
+                                                    <input type="text" class="form-control" id="validationCustom07" placeholder="" required="">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un dato valido
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <button class="btn text-white" type="submit">Imprimir Datos</button>
+                                            <button class="btn text-white" type="submit">Ver pólizas</button>
+                                            <button class="btn text-white" type="submit">Ver documentos</button>
+                                            <button class="btn text-white" type="submit">Guardar cambios</button>
+                                        </form>
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Server side end -->
+                                                <!-- Server side end -->
+                                                <div class="col-6">
+                                                    <div class="container">
+                                                        <div class="table-wrapper">
+                                                            <div class="table-title">
+                                                                <div class="row">
+                                                                    <div class="col-lg-6 col-ml-6">
+                                                                        <b><h4>Usuarios</b></h4>
+                                                                    </div>
+                                                                    <div class="col-lg-6 col-ml-12">
+                                                                        <a id="btNuevoCliente" href="{{ url_for('main.cliente') }}" class="btn btn-success"
+                                                                        style="display: none;"><i class="material-icons">&#xE147;</i> <span>Nuevo Cliente</span></a>
+                                                                        <a href="#deleteEmployeeModal" class="btn btn-danger"
+                                                                            data-toggle="modal"><i class="material-icons">&#xE15C;</i>
+                                                                            <span>Delete</span></a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <table id="clients-table" class="table table-striped table-hover">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <!--
+                                                                        <th>
+                                                                            <span class="custom-checkbox">
+                                                                                <input type="checkbox" id="selectAll">
+                                                                                <label for="selectAll"></label>
+                                                                            </span>
+                                                                        </th> -->
+                                                                        <th>Nombre</th>
+                                                                        <!--<th>Apellido</th>-->
+                                                                        <th>Correo</th>
+                                                                        <th>Celular</th>
+                                                                        <th>Acciones</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="table-body">
+                                                                    <!-- Data will be populated here -->
+                                                                </tbody>
+                                                            </table>
+                                                            <div class="clearfix">
+                                                                <div class="hint-text" id="info_pages">Showing <b>5</b> out of <b>25</b> entries</div>
+                                                                <ul id="pagination" class="pagination">
+
+                                                                </ul>
+                                                            </div>
+                                                            
+                    
+
+                                                        </div>
+                                                    </div>
+                
+                                                    <!-- Delete Modal HTML -->
+                                                    <div id="deleteEmployeeModal" class="modal fade">
+                                                        <div class="modal-dialog">
+                                                            <div class="modal-content">
+                                                                <form>
+                                                                    <div class="modal-header">
+                                                                        <h4 class="modal-title">Delete Employee</h4>
+                                                                        <button type="button" class="close" data-dismiss="modal"
+                                                                            aria-hidden="true">&times;</button>
+                                                                    </div>
+                                                                    <div class="modal-body">
+                                                                        <p>Are you sure you want to delete these Records?</p>
+                                                                        <p class="text-warning"><small>This action cannot be undone.</small></p>
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <input type="button" class="btn btn-default" data-dismiss="modal"
+                                                                            value="Cancel">
+                                                                        <input type="submit" class="btn btn-danger" value="Delete">
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                           
                         </div>
                     </div>
                 </div>
@@ -268,34 +431,128 @@
      <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
      <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
      <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+ 
+     <!-- others plugins -->
+     <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+     <script>
+        $(document).ready(function() {
+            loadClients(1, 10); 
+           });
+        
+        function loadClients(page, per_page) {
+                $.ajax({
+                    url: '/get_clients',
+                    type: 'GET',
+                    data: { page: page, per_page: per_page },
+                    success: function(response) {
+                        // Update table with fetched data
+                        $('#clients-table tbody').empty();
+                        response.clients.forEach(function(client) {
+                            $('#clients-table tbody').append(
+                                `<tr>
+                                    <!--
+                                    <td>
+                                        <span class="custom-checkbox">
+                                            <input type="checkbox"  name="options[]"
+                                                value="1">
+                                            <label for="checkbox1"></label>
+                                        </span>
+                                    </td> -->
+                                    <td>${client.name} ${client.apellido}</td>
+                                    <td>${client.celular}</td>
+                                    <td>${client.correo}</td>
+                                    <td>
+                                        <a href="#" class="edit" onclick="loadClienteInfo(${client.id})"><i
+                                                class="material-icons" 
+                                                title="Edit">&#xE254;</i></a>
+                                        <a href="#deleteEmployeeModal" class="delete" data-toggle="modal"><i
+                                                class="material-icons" data-toggle="tooltip"
+                                                title="Delete">&#xE872;</i></a>
+                                    </td>
+                                </tr>`
+                            );
+                        });
 
-    <!-- DataTables  & Plugins FORMATO TABLAS-->
-    <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+                        
+                        $('#pagination').empty();
+                        $('#info_pages').empty();
+                        $('#info_pages').append(`Mostrando pagina <b>${response.page}</b> de <b>${response.pages}</b> `)
+                        // Update pagination controls
+                        $('#pagination').empty();
+                        $('#pagination').append(`<li class="page-item "><a href="#" onclick="loadClients(1, ${per_page})">Primera</a></li>`)
+                        if (response.has_prev) {
+                            $('#pagination').append(`<li class="page-item "><a href="#" onclick="loadClients(${response.prev_num}, ${per_page})">Atras</a></li>`);
+                        }
+                        if (response.has_next) {
+                            $('#pagination').append(`<li class="page-item "><a href="#" onclick="loadClients(${response.next_num}, ${per_page})">Siguiente</a></li>`);
+                        }
+                        $('#pagination').append(`<li class="page-item "><a href="#" onclick="loadClients(${response.pages}, ${per_page})">Ultima</a></li>`)
+                    }
+                });
+            }
+        
+        function loadClienteInfo(cliente_id) {
+            $.ajax({
+                type: 'GET',
+                url: '/get_client/' + cliente_id,
+                success: function(client) {
+                    // Populate form fields with client information
+                    $('#cliente-id').val( client.id);
+                    $('#validationCustom01').val( client.nombre);
+                    $('#validationCustom02').val( client.apellido);
+                    $('#validationCustom03').val( client.rfc);
+                    $('#validationCustom04').val( client.tel_oficina);
+                    $('#validationCustom05').val( client.tel_movil);
+                    $('#validationCustom06').val( client.tel_casa);
+                    $('#validationCustom07').val( client.correo);
+                    $('#validationCustom08').val( client.direccion);
+                    const fecha_nacimiento = new Date(client.fecha_nacimiento).toISOString().split('T')[0];
+                    $('#validationCustom09').val( fecha_nacimiento);
+                    $('#validationCustom10').val( client.sexo);
+                    $('#validationCustom11').val( client.ocupacion);
+                    $('#validationCustom12').val( client.actividad);
+                    $('#validationCustom20').val(client.grupo_id); 
+                    $('#bt1').text('Editar');
+                    $('#btNuevoCliente').show()
+                    bindButtonClickHandlers();
+                }
+            });
+        }
 
-    <!-- others plugins -->
-    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+        $(document).ready(function() {
+        $('#validationCustom20').change(function() {
+            var selectedOption = $(this).val();
+            if (selectedOption === 'New') {
+                $('.nuevo-grupo-input').show();
+                $('#nuevoGrupoInput').prop('required', true);
+            } else {
+                $('.nuevo-grupo-input').hide();
+                $('#nuevoGrupoInput').prop('required', false);
+            }
+        });
+        });
 
-    <script>
-        var editicon = "{{ url_for('static', filename='assets/images/icon/edit.png') }}";
-        var deleteicon = "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
+        // Function to bind click event handlers to buttons
+        function bindButtonClickHandlers() {
+            $('#bt1').click(function(e) {
+                e.preventDefault();
+                var form = $('#cliente-form');
+                var submitValue = $(this).val();
+                
+                // Submit the form
+                form.submit();
+            });
+            
+        }
+
+        // Call the function to bind click event handlers initially
+        //bindButtonClickHandlers();
+
+
+
+
     </script>
-    <script src="{{ url_for('static', filename='assets/controladores/clientes.js') }}"></script>
-
 </body>
 
 </html>
-
-
-

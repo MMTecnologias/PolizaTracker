@@ -33,7 +33,7 @@ def login_ajax():
 
     username = request.form.get('username')
     password = request.form.get('password')
-    usuario = Usuario.query.filter_by(username=username,status='Activo').first()
+    usuario = Usuario.query.filter_by(username=username).first()
 
     if usuario and check_password_hash(usuario.password, password):
         print("hola")
@@ -53,7 +53,7 @@ def forgotpass_ajax():
     response={'correctuser': True, "new":True ,'redirect': url_for('auth.login')}
 
     username = request.form.get('username')
-    usuario = Usuario.query.filter_by(username=username,status='Activo').first()
+    usuario = Usuario.query.filter_by(username=username).first()
 
     if usuario:
         prevregistro= SolicitudNewPass.query.filter_by(usuario_id=usuario.id).first()
