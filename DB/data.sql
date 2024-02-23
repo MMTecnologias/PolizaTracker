@@ -16,23 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `accesos`
---
-
-DROP TABLE IF EXISTS `accesos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `accesos` (
-  `servicio_id` int NOT NULL,
-  `nivel_id` int NOT NULL,
-  KEY `servicio_id` (`servicio_id`),
-  KEY `nivel_id` (`nivel_id`),
-  CONSTRAINT `accesos_ibfk_1` FOREIGN KEY (`servicio_id`) REFERENCES `servicios` (`id`),
-  CONSTRAINT `accesos_ibfk_2` FOREIGN KEY (`nivel_id`) REFERENCES `niveles_acceso` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `accesos`
 --
 
@@ -41,21 +24,6 @@ LOCK TABLES `accesos` WRITE;
 INSERT INTO `accesos` VALUES (12,1),(13,1),(6,2),(7,2),(8,2),(9,2),(10,2),(6,3),(7,3),(8,3),(9,3),(10,3),(11,3),(12,3),(13,3),(6,4),(7,4),(8,4),(9,4),(10,4),(11,4);
 /*!40000 ALTER TABLE `accesos` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `agentes`
---
-
-DROP TABLE IF EXISTS `agentes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `agentes` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(50) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `nombre` (`nombre`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `agentes`
@@ -68,21 +36,6 @@ INSERT INTO `agentes` VALUES (2,'Abby'),(1,'Memo');
 UNLOCK TABLES;
 
 --
--- Table structure for table `aseguradoras`
---
-
-DROP TABLE IF EXISTS `aseguradoras`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `aseguradoras` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `aseguradora` varchar(40) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `aseguradora` (`aseguradora`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `aseguradoras`
 --
 
@@ -91,36 +44,6 @@ LOCK TABLES `aseguradoras` WRITE;
 INSERT INTO `aseguradoras` VALUES (5,'AXA'),(2,'BBVA'),(13,'gnp'),(15,'GNPp'),(3,'INBURSA'),(1,'METLIFE');
 /*!40000 ALTER TABLE `aseguradoras` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `clientes`
---
-
-DROP TABLE IF EXISTS `clientes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `clientes` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(50) NOT NULL,
-  `grupo_id` int NOT NULL,
-  `rfc` varchar(13) NOT NULL,
-  `tel_oficina` char(10) DEFAULT NULL,
-  `tel_movil` char(10) DEFAULT NULL,
-  `tel_casa` char(10) DEFAULT NULL,
-  `correo` varchar(50) NOT NULL,
-  `direccion` varchar(125) DEFAULT NULL,
-  `fecha_nacimiento` date NOT NULL,
-  `sexo` enum('Hombre','Mujer','Otro') NOT NULL,
-  `ocupacion` varchar(30) DEFAULT NULL,
-  `actividad` varchar(30) DEFAULT NULL,
-  `apellido` varchar(50) NOT NULL,
-    `status` ENUM('Activo', 'Eliminado') NOT NULL default 'Activo',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `rfc` (`rfc`),
-  KEY `grupo_id` (`grupo_id`),
-  CONSTRAINT `clientes_ibfk_1` FOREIGN KEY (`grupo_id`) REFERENCES `grupos` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `clientes`
@@ -133,22 +56,6 @@ INSERT INTO `clientes` VALUES (1,'Luis Edit',7,'MACL99sasgwud','9932297934','993
 UNLOCK TABLES;
 
 --
--- Table structure for table `grupos`
---
-
-DROP TABLE IF EXISTS `grupos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `grupos` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `grupo` varchar(50) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `grupo` (`grupo`),
-  UNIQUE KEY `grupo_2` (`grupo`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `grupos`
 --
 
@@ -157,21 +64,6 @@ LOCK TABLES `grupos` WRITE;
 INSERT INTO `grupos` VALUES (8,''),(2,'Angelopolis A'),(7,'Eliazar'),(1,'General B'),(6,'Julio'),(4,'Luis'),(5,'Marin'),(3,'Parra');
 /*!40000 ALTER TABLE `grupos` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `niveles_acceso`
---
-
-DROP TABLE IF EXISTS `niveles_acceso`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `niveles_acceso` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(50) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `nombre` (`nombre`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `niveles_acceso`
@@ -184,49 +76,6 @@ INSERT INTO `niveles_acceso` VALUES (1,'Administrador'),(3,'Desarollador'),(4,'G
 UNLOCK TABLES;
 
 --
--- Table structure for table `polizas`
---
-
-DROP TABLE IF EXISTS `polizas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `polizas` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `cliente_id` int NOT NULL,
-  `fecha_captura` date NOT NULL,
-  `endoso` varchar(100) DEFAULT NULL,
-  `ramo_id` int NOT NULL,
-  `subramo_id` int NOT NULL,
-  `fecha_inicio` date NOT NULL,
-  `fecha_termino` date NOT NULL,
-  `moneda` enum('MXN','USD','Otro') NOT NULL,
-  `tipo_pago_id` int NOT NULL,
-  `agente_id` int NOT NULL,
-  `aseguradora_id` int NOT NULL,
-  `serie` varchar(30) NOT NULL,
-  `notas` varchar(400) DEFAULT NULL,
-  `poliza_anterior` varchar(30) DEFAULT NULL,
-  `renovacion` varchar(30) DEFAULT NULL,
-  `prima_neta` decimal(12,2) NOT NULL,
-  `prima_total` decimal(12,2) NOT NULL,
-  `status` enum('Vigente','Pendiente','Cancelada','Finalizada') NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `cliente_id` (`cliente_id`),
-  KEY `ramo_id` (`ramo_id`),
-  KEY `subramo_id` (`subramo_id`),
-  KEY `tipo_pago_id` (`tipo_pago_id`),
-  KEY `agente_id` (`agente_id`),
-  KEY `aseguradora_id` (`aseguradora_id`),
-  CONSTRAINT `polizas_ibfk_1` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`),
-  CONSTRAINT `polizas_ibfk_2` FOREIGN KEY (`ramo_id`) REFERENCES `ramos` (`id`),
-  CONSTRAINT `polizas_ibfk_3` FOREIGN KEY (`subramo_id`) REFERENCES `subramos` (`id`),
-  CONSTRAINT `polizas_ibfk_4` FOREIGN KEY (`tipo_pago_id`) REFERENCES `tipos_pagos` (`id`),
-  CONSTRAINT `polizas_ibfk_5` FOREIGN KEY (`agente_id`) REFERENCES `agentes` (`id`),
-  CONSTRAINT `polizas_ibfk_6` FOREIGN KEY (`aseguradora_id`) REFERENCES `aseguradoras` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `polizas`
 --
 
@@ -235,21 +84,6 @@ LOCK TABLES `polizas` WRITE;
 INSERT INTO `polizas` VALUES (3,1,'2023-12-26','Si',1,3,'2023-12-26','2024-12-26','MXN',1,1,3,'AB1',NULL,NULL,NULL,2639.23,3500.00,'Vigente'),(4,2,'2021-12-26','What?',2,1,'2022-03-26','2024-03-26','MXN',3,1,2,'sd2',NULL,'1939DDF23','12332',150000.00,200000.00,'Vigente'),(5,1,'2021-12-26',NULL,3,2,'2023-08-26','2024-08-26','USD',2,2,2,'ADJ4',NULL,NULL,NULL,93628.23,100000.00,'Vigente');
 /*!40000 ALTER TABLE `polizas` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `ramos`
---
-
-DROP TABLE IF EXISTS `ramos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ramos` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `ramo` varchar(30) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ramo` (`ramo`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `ramos`
@@ -262,30 +96,6 @@ INSERT INTO `ramos` VALUES (2,'Auto'),(3,'SGM'),(1,'Vida');
 UNLOCK TABLES;
 
 --
--- Table structure for table `recibos`
---
-
-DROP TABLE IF EXISTS `recibos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `recibos` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `fecha_inicio` date NOT NULL,
-  `fecha_vencimiento` date NOT NULL,
-  `poliza_id` int NOT NULL,
-  `prima_neta` decimal(12,2) NOT NULL,
-  `prima_total` decimal(12,2) NOT NULL,
-  `comision` decimal(12,2) NOT NULL,
-  `status` enum('Liquidado','Pendiente','Vencido','Cancelado') NOT NULL,
-  `fecha_pago` date DEFAULT NULL,
-  `comprobante` varchar(30) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `poliza_id` (`poliza_id`),
-  CONSTRAINT `recibos_ibfk_1` FOREIGN KEY (`poliza_id`) REFERENCES `polizas` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `recibos`
 --
 
@@ -294,21 +104,6 @@ LOCK TABLES `recibos` WRITE;
 INSERT INTO `recibos` VALUES (1,'2023-12-26','2023-01-26',3,2639.23,3500.00,200.00,'Pendiente',NULL,NULL),(2,'2022-03-26','2022-04-26',4,37500.00,50000.00,1000.00,'Liquidado','2022-04-02','AEFJ34'),(3,'2022-09-26','2022-10-26',4,37500.00,50000.00,1000.00,'Liquidado','2022-10-15','SDAA12'),(4,'2023-03-26','2023-04-26',4,37500.00,50000.00,1000.00,'Liquidado','2023-04-12','SDAF34'),(5,'2023-09-26','2023-10-26',4,37500.00,50000.00,1000.00,'Liquidado','2023-10-01','DALK45');
 /*!40000 ALTER TABLE `recibos` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `servicios`
---
-
-DROP TABLE IF EXISTS `servicios`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `servicios` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(50) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `nombre` (`nombre`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `servicios`
@@ -321,21 +116,6 @@ INSERT INTO `servicios` VALUES (13,'Admin usuarios'),(7,'Clientes'),(6,'Document
 UNLOCK TABLES;
 
 --
--- Table structure for table `solicitudes_new_pass`
---
-
-DROP TABLE IF EXISTS `solicitudes_new_pass`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `solicitudes_new_pass` (
-  `usuario_id` int NOT NULL,
-  `status` enum('Resuelta','Pendiente') NOT NULL DEFAULT 'Pendiente',
-  UNIQUE KEY `usuario_id` (`usuario_id`),
-  CONSTRAINT `solicitudes_new_pass_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `solicitudes_new_pass`
 --
 
@@ -344,21 +124,6 @@ LOCK TABLES `solicitudes_new_pass` WRITE;
 INSERT INTO `solicitudes_new_pass` VALUES (6,'Pendiente'),(7,'Pendiente'),(8,'Pendiente');
 /*!40000 ALTER TABLE `solicitudes_new_pass` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `subramos`
---
-
-DROP TABLE IF EXISTS `subramos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `subramos` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `subramo` varchar(30) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `subramo` (`subramo`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `subramos`
@@ -371,22 +136,6 @@ INSERT INTO `subramos` VALUES (2,'Familiar'),(3,'Grupal'),(1,'Individual');
 UNLOCK TABLES;
 
 --
--- Table structure for table `tipos_pagos`
---
-
-DROP TABLE IF EXISTS `tipos_pagos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `tipos_pagos` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `tipo_pago` varchar(25) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `tipo_pago` (`tipo_pago`),
-  UNIQUE KEY `tipo_pago_2` (`tipo_pago`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `tipos_pagos`
 --
 
@@ -397,36 +146,12 @@ INSERT INTO `tipos_pagos` VALUES (4,'Bimestral'),(2,'Mensual'),(3,'Semestral'),(
 UNLOCK TABLES;
 
 --
--- Table structure for table `usuarios`
---
-
-DROP TABLE IF EXISTS `usuarios`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `usuarios` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(10) NOT NULL,
-  `password` varchar(520) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `nivel_id` int NOT NULL,
-  `nombre` varchar(50) NOT NULL,
-	`apellido` varchar(50) NOT NULL,
-	`correo` varchar(50) NOT NULL,
-	`telefono` char(10) NOT NULL,
-    `status` ENUM('Activo', 'Eliminado') NOT NULL default 'Activo',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`),
-  KEY `nivel_id` (`nivel_id`),
-  CONSTRAINT `usuarios_ibfk_1` FOREIGN KEY (`nivel_id`) REFERENCES `niveles_acceso` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `usuarios`
 --
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (6,'LuisMay','scrypt:32768:8:1$T28QmqMKvw91gR6X$e71b5ab64d18cb42c9b59f56ee61a3149115e1b2e913e04695e7646af1d8c2628b960d9a4b87a2520a17429b01a3ae7634f641f6ebe904e14208766ae0a09d3b',3),(7,'Marina','scrypt:32768:8:1$7J2ENtVdyx9x7z3A$f694abd9a775b4abb330010b64d8492da30476bf49d7c96f9453c586bf9fd12fd693cc16c9b2900dc5d2407f26af9b8ddefc1bb8c9933128060af97c7a185c87',1),(8,'Memo','scrypt:32768:8:1$B5eV4VcmA9J9Kyhr$4760efc61d4e6b91175024677f9d06ce1cbcf5661426e11a37325f0154707cd1b175197c30957fe7cc0281b483d0d1706eb9a3494ac6bd804568916f3ce0edee',4);
+INSERT INTO `usuarios` VALUES (6,'LuisMay','scrypt:32768:8:1$T28QmqMKvw91gR6X$e71b5ab64d18cb42c9b59f56ee61a3149115e1b2e913e04695e7646af1d8c2628b960d9a4b87a2520a17429b01a3ae7634f641f6ebe904e14208766ae0a09d3b',3,'Luis','May','luismay@mail.com','9932297934'),(7,'Marina','scrypt:32768:8:1$7J2ENtVdyx9x7z3A$f694abd9a775b4abb330010b64d8492da30476bf49d7c96f9453c586bf9fd12fd693cc16c9b2900dc5d2407f26af9b8ddefc1bb8c9933128060af97c7a185c87',1,'Marina','Marinada','marina@mail.com','9932297931'),(8,'Memo','scrypt:32768:8:1$B5eV4VcmA9J9Kyhr$4760efc61d4e6b91175024677f9d06ce1cbcf5661426e11a37325f0154707cd1b175197c30957fe7cc0281b483d0d1706eb9a3494ac6bd804568916f3ce0edee',4,'Guillermo','Gomez','memo@mail.com','9932297932'),(9,'Jorge','scrypt:32768:8:1$Ab8uXxWb6jxsklrb$acc9d3ca1a9dbbd72e2eddd432a3f9f5ffa8b72bad209931e726169028f2e464748ee02b43274f40a9a650f6dedfbf73c53a71c63a69d5051a869ecdea003f8e',1,'Jorge','Erick','jorge@mail.com','9932297931'),(10,'Emilio','scrypt:32768:8:1$YOgHqQBmNhxP9xJM$4f6f52b2334b33ebfbbf2f68ae9212461aa2369818043cc7b42ba1bb624b6d4fecd9d818310838dab548cbea33881eb9ccf8aa3ee6959f8d4d6bc1f147d7b2b5',4,'Emilio','MArquez','emilio@mail.com','9932297931'),(11,'LuisMay1','scrypt:32768:8:1$ZhyjrZ1rZQDy7dXI$9772252543f9e085eba6ddbbf7d02495002f91007e67b9bf2af1a0971decc1bc91e01443254dfbf246cfd72164cd84a4e9f2de99c1394239c0425a6e9a946395',1,'Luis','Custodio','luismay_99@hotmail.com','9932297934'),(12,'LuisMay3','scrypt:32768:8:1$fu8BHkjLd0zPxnxa$fac455d24d86ebfd5680a2b6b39fb92d577070fae1182ef72109fdb30ab46f935a2c412fdf71a202b2875a1d55ff69dd1ef337e6202a43520561c17e2597c6f1',2,'Alberto','May Custodio','luismay_99@hotmail.com','9932297934');
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -439,4 +164,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-02-18 23:29:25
+-- Dump completed on 2024-02-19 22:30:56

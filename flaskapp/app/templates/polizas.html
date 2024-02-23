@@ -1,0 +1,477 @@
+<!doctype html>
+<html class="no-js" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Pólizas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
+    <!-- amchart css -->
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
+    <!-- others css -->
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
+    <!-- DataTables FORMATO TABLAS-->
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+    <!-- modernizr css -->
+    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
+</head>
+
+<body>
+    <!--[if lt IE 8]>
+            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+    <!-- preloader area start -->
+    <div id="preloader">
+        <div class="loader"></div>
+    </div>
+    <!-- preloader area end -->
+    <!-- page container area start -->
+    <div class="page-container">
+
+        <div class="main-content">
+
+            <!-- page title area start -->
+            <div class="page-title-area">
+                <div class="row align-items-center">
+                    <div class="col-sm-6">
+                        <div class="breadcrumbs-area clearfix">
+                            <b>
+                                <h4 class="header-title pull-left">Sistema de Control de Pólizas</h4>
+                            </b>
+                            <ul class="breadcrumbs pull-left">
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 clearfix">
+                        <div class="user-profile pull-right">
+                            <h5 class="user-name dropdown-toggle" data-toggle="dropdown">Usuario<i
+                                    class="fa fa-angle-down"></i></h5>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#">Cerrar Sesión</a>
+                                <a class="dropdown-item" href="#">Cambiar Contraseña</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- page title area end -->
+            <div class="main-content-inner">
+                <div class="row">
+                    <div class="col-lg-6 col-ml-12">
+                        <div class="row">
+
+                            <!-- button with dropdown end -->
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-ml-12">
+                        <div class="row">
+
+
+                            <!-- Server side start -->
+                            <div class="col-6 col-lg-6">
+                                <div class="card mt-2">
+                                    <div class="card-body">
+                                        <b>
+                                            <h4 class="header-title">Pólizas</h4>
+                                        </b>
+                                        <form class="needs-validation" novalidate="">
+                                            <div class="form-row">
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Movimiento</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="Movimiento"
+                                                            name="Movimiento" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un movimiento valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Fecha de Captura</label>
+                                                    <div class="input-group">
+                                                        <input type="date" class="form-control" id="FechaCaptura"
+                                                            name="FechaCaptura" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Póliza</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="Poliza"
+                                                            name="Poliza" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un dato valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Endoso</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="Endoso"
+                                                            name="Endoso" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un dato valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Inicio de Vigencia</label>
+                                                    <div class="input-group">
+                                                        <input type="date" class="form-control" id="VigenciaI"
+                                                            name="VigenciaI" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Fin de Vigencia</label>
+                                                    <div class="input-group">
+                                                        <input type="date" class="form-control" id="VigenciaF"
+                                                            name="VigenciaF" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Ramo</label>
+                                                    <select class="custom-select" id="Ramo" name="Ramo" required>
+                                                        <option value="">Selecciona...</option>
+                                                        <option value="Hombre"></option>
+                                                    </select>
+
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Subramo</label>
+                                                    <select class="custom-select" id="Subramo" name="Subramo" required>
+                                                        <option value="">Selecciona...</option>
+                                                        <option value="Hombre"></option>
+                                                    </select>
+
+                                                </div>
+
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Moneda</label>
+                                                    <select class="custom-select" id="Moneda" name="Moneda" required>
+                                                        <option value="">Selecciona...</option>
+                                                        <option value="Hombre">Nacional</option>
+                                                        <option value="Hombre">Dolares</option>
+                                                    </select>
+
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Forma de Pago</label>
+                                                    <select class="custom-select" id="Pago" name="Pago" required>
+                                                        <option value="">Selecciona...</option>
+                                                        <option value="Hombre">Semestral</option>
+                                                        <option value="Hombre">Trimestral</option>
+                                                        <option value="Hombre">Mensual</option>
+                                                    </select>   
+                                                    <div class="invalid-feedback">
+                                                        Selecciona un acceso valido
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Aseguradora</label>
+                                                    <select class="custom-select" id="Aseguradora" name="Aseguradora"
+                                                        required>
+                                                        <option value="">Selecciona...</option>
+                                                        <option value="Hombre"></option>
+                                                    </select>
+                                                    <div class="invalid-feedback">
+                                                        Selecciona un acceso valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Agente</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="Agente"
+                                                            name="Agente" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un dato valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Server side start -->
+                            <div class="col-6">
+                                <div class="card mt-2">
+                                    <div class="card-body">
+                                        <b>
+                                            <h4 class="header-title">Clientes</h4>
+                                        </b>
+                                        <form class="needs-validation" novalidate="">
+                                            <!-- <div>
+                                                <input type="text" id="search" placeholder="Buscar...">
+                                                <button>Buscar</button>
+                                            </div> -->
+                                            <!-- <br> -->
+                                            <div class="form-row">
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Nombre Cliente</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="NombreCliente"
+                                                            name="NombreCliente" placeholder=""
+                                                            aria-describedby="inputGroupPrepend" required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un nombre valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Apellido</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="Apellido"
+                                                            name="Apellido" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un apellido valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>RFC</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="RFC" name="RFC"
+                                                            aria-describedby="inputGroupPrepend" required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un RFC valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Teléfonos Móviles</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="TeléfonosMóviles"
+                                                            name="TeléfonosMóviles" aria-describedby="inputGroupPrepend"
+                                                            required="">
+                                                        <div class="invalid-feedback">
+                                                            Ingresa un teléfono valido
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Dirección Fiscal</label>
+                                                    <input type="text" class="form-control" id="DirecciónFiscal"
+                                                        name="DirecciónFiscal">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa una dirección valida
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Correo</label>
+                                                    <input type="email" class="form-control" id="Correo" name="Correo">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un correo valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Grupo</label>
+                                                    <input type="email" class="form-control" id="Grupo" name="Grupo">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un grupo valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Serie/Código</label>
+                                                    <input type="text" class="form-control" id="Serie" name="Serie">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un código valido
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Póliza anterior</label>
+                                                    <input type="text" class="form-control" id="PólizaAnterior"
+                                                        name="PólizaAnterior">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un dato valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Renovación</label>
+                                                    <input type="text" class="form-control" id="Renovación"
+                                                        name="Renovación">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un dato valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Prima meta</label>
+                                                    <input type="text" class="form-control" id="PrimaMeta"
+                                                        name="PrimaMeta">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un dato valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <label>Prima total</label>
+                                                    <input type="text" class="form-control" id="PrimaTotal"
+                                                        name="PrimaTotal">
+                                                    <div class="invalid-feedback">
+                                                        Ingresa un dato valido
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12 mb-6">
+                                                    <label for="validationCustom05">Notas</label>
+                                                    <input type="text" class="form-control" id="Notas" name="Notas">
+                                                </div>
+
+                                            </div>
+
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="col-lg-12">
+                                <div class="card mt-2">
+                                    <div class="card-body">
+                                        <input class="btn btn-primary d-grid gap-2 col-2 mx-auto" type="submit" value="Guardar Cambios" id="btnGuardar" name="btnGuardar">
+                                        <input class="btn btn-primary d-grid gap-2 col-2 mx-auto" type="submit" value="Generar recibos">
+                                        <input class="btn btn-primary d-grid gap-2 col-2 mx-auto" type="submit" value="Generar renovación">
+                                        <input class="btn btn-primary d-grid gap-2 col-2 mx-auto" type="submit" value="Generar Endoso">
+                                        <input class="btn btn-primary d-grid gap-2 col-2 mx-auto" type="submit" value="Cancelar">
+                                    </div>
+                                </div>
+                                </div>
+
+                                                      <!-- Server side start -->
+                                                      <div class="col-6">
+                                                        <div class="card mt-2 col-lg-12">
+                                                            <div class="card-body">
+                                                                <b>
+                                                                    <h4 class="header-title">Tabla de Pólizas</h4>
+                                                                </b>
+                                                                <table class="table">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th scope="col">Póliza</th>
+                                                                            <th scope="col">Forma de Pago</th>
+                                                                            <th scope="col">Aseguradora</th>
+                                                                            <th scope="col">Vigencia</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                            <!-- Agregar la información de la tabla -->
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-6">
+                                                    <div class="card mt-2">
+                                                        <div class="card-body">
+                                                            <h4 class="header-title">Información Extra de Pólizas</h4>
+                                                        </div>
+                                                    </div>
+                                                    </div>
+
+                            <div class="col-lg-12">
+                                <div class="card mt-2">
+                                    <div class="card-body">
+                                        <h4 class="header-title">Listas de Recibos</h4>
+                                        <table class="table">
+                                            <thead>
+                                              <tr>
+                                                <th scope="col">Número</th>
+                                                <th scope="col">Fecha de Recibo</th>
+                                                <th scope="col">Vencimiento</th>
+                                                <th scope="col">Prima Neta</th>
+                                                <th scope="col">Prima Total</th>
+                                                <th scope="col">Comisión</th>
+                                                <th scope="col">Pagado</th>
+                                                <th scope="col">Fecha de Pago</th>
+                                                <th scope="col">Comprobante</th>
+                                                <th scope="col">Cancelado</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                    <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="" id="CheckPagado" name="CheckPagado">
+                                                    <label class="form-check-label">
+                                                    </label>
+                                                  </div>
+                                                </td>
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                    <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="" id="CheckCancelado" name="CheckCancelado">
+                                                    <label class="form-check-label">
+                                                    </label>
+                                                  </div>
+                                                </td>
+                                                <!-- Agregar la información de la tabla -->
+                                            </tbody>
+                                          </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- main content area end -->
+
+                        </div>
+                        <!-- page container area end -->
+
+                      <!-- jquery latest version -->
+     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+     <!-- bootstrap 4 js -->
+     <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+
+    <!-- DataTables  & Plugins FORMATO TABLAS-->
+    <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+
+    <!-- others plugins -->
+    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+</body>
+
+</html>
