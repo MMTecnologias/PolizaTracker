@@ -122,6 +122,23 @@ p {
    left: 0;
 }
 
+.input {
+   width: 100%;
+}
+
+.input__icon {
+   position: absolute;
+   right: 0;
+   bottom: 12px;
+}
+
+#mensajeError {
+   opacity: 0;
+   color: var(--color-primario);
+   font-size: 0.7rem;
+   text-align: left;
+}
+
 .link-forgot-pass {
    text-decoration: none;
    text-align: right;
@@ -151,14 +168,4 @@ p {
    border: 1px solid var(--color-primario);
    background-color: transparent;
    transition: all 0.3s ease;
-}
-
-.input {
-   width: 100%;
-}
-
-.input__icon {
-   position: absolute;
-   right: 0;
-   bottom: 12px;
 }
