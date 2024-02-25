@@ -1,0 +1,155 @@
+* {
+   box-sizing: border-box;
+   margin: 0;
+   padding: 0;
+   font-family: 'Poppins', sans-serif;
+}
+
+:root {
+   --color-primario: #c94a1c;
+   --primario-complementario: #1cb3c9;
+   --gris-medio: #6c757d;
+   --color-claro: #f2f2f2;
+}
+
+body {
+   background-color: var(--color-claro);
+   height: 100vh;
+   overflow: hidden;
+}
+
+label {
+   font-size: 1rem;
+   font-weight: 200;
+   color: var(--gris-medio);
+   opacity: 0.3;
+}
+
+input {
+   border: none;
+   background-color: transparent;
+}
+
+input:focus {
+   outline: none;
+}
+
+h2 {
+   font-size: 2rem;
+   font-weight: 600;
+}
+
+.login__container {
+   width: 100vw;
+   height: 100%;
+   display: flex;
+   justify-content: start;
+}
+
+.login-img__container {
+   width: 50%;
+   overflow: hidden;
+}
+
+.login__img {
+   height: 100vh;
+   position: relative;
+   left: -50px;
+}
+
+.login__form {
+   display: flex;
+   flex-direction: column;
+   justify-content: space-evenly;
+   align-items: center;
+   margin: 100px auto;
+   padding: 50px;
+}
+
+.form__header > h2,
+p {
+   text-align: center;
+}
+
+.login__welcome {
+   color: var(--gris-medio);
+}
+
+.login__greetings {
+   font-size: 1.2rem;
+   font-weight: 700;
+   color: var(--gris-medio);
+}
+
+.form {
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+}
+
+.form__input {
+   position: relative;
+   margin: 16px 0;
+   border-bottom: 1px solid var(--gris-medio);
+}
+
+.input-label {
+   pointer-events: none;
+   transition: all 0.7s ease;
+}
+
+.input:focus + .input-label .txt-label,
+.input:valid + .input-label .txt-label,
+.input:focus + .input-label {
+   color: var(--color-primario);
+   opacity: 0.7;
+   transform: translateY(-110%);
+   transition: all 0.7s ease;
+}
+
+.txt-label {
+   position: absolute;
+   bottom: 0px;
+   left: 0;
+}
+
+.link-forgot-pass {
+   text-decoration: none;
+   text-align: right;
+   margin: 16px 0;
+   color: var(--primario-complementario);
+}
+
+.link-forgot-pass:hover {
+   text-decoration: underline;
+   transition: all 0.7s ease;
+}
+
+.form__btn-submit {
+   width: 100%;
+   padding: 16px;
+   border: 1px solid transparent;
+   border-radius: 50px;
+   background-color: var(--color-primario);
+   color: var(--color-claro);
+   font-size: 1rem;
+   font-weight: 700;
+   cursor: pointer;
+}
+
+.form__btn-submit:hover {
+   color: var(--color-primario);
+   border: 1px solid var(--color-primario);
+   background-color: transparent;
+   transition: all 0.3s ease;
+}
+
+.input {
+   width: 100%;
+}
+
+.input__icon {
+   position: absolute;
+   right: 0;
+   bottom: 12px;
+}
