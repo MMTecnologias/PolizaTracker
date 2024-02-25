@@ -22,7 +22,7 @@ label {
    font-size: 1rem;
    font-weight: 200;
    color: var(--gris-medio);
-   opacity: 0.3;
+   opacity: 0.5;
 }
 
 input {
@@ -98,11 +98,20 @@ p {
    transition: all 0.7s ease;
 }
 
+.input-label .txt-label {
+   transition: all 0.7s ease;
+}
+
+.input:hover + .input-label {
+   opacity: 1;
+}
+
 .input:focus + .input-label .txt-label,
 .input:valid + .input-label .txt-label,
 .input:focus + .input-label {
+   font-size: 0.9rem;
    color: var(--color-primario);
-   opacity: 0.7;
+   opacity: 1;
    transform: translateY(-110%);
    transition: all 0.7s ease;
 }
