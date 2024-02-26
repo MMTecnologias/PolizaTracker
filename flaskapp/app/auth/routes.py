@@ -9,13 +9,7 @@ from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso,SolicitudNewPass
 from . import auth
 
-# Clase para el formulario de solicitud nueva password
-class ReqNewPassForm(FlaskForm):
-    username = StringField('username', validators=[DataRequired()])
-    submit = SubmitField('Solicitar')
-
-
-
+"""Login"""
 # Ruta para iniciar sesión
 @auth.route('/login', methods=['GET'])#, 'POST'])
 def login():
@@ -46,7 +40,7 @@ def login_ajax():
     return jsonify({'success': False, 'error': error_message})
 
 
-
+"""Olvidaste la contra"""
 @auth.route('/forgotpass_ajax', methods=['POST'])
 def forgotpass_ajax():
 
@@ -81,7 +75,7 @@ def req_new_pass():
     return render_template('forgotpass.html')
 
 
-
+"""Logout"""
 # Ruta para cerrar sesión
 @auth.route('/logout')
 @login_required
@@ -98,6 +92,8 @@ class CambioContrasenaForm(FlaskForm):
     nueva_contrasena = PasswordField('nueva_contrasena', validators=[DataRequired()])
     confirmar_contrasena = PasswordField('confirmPassword', validators=[DataRequired()])
     submit = SubmitField('Cambiar Contraseña')
+
+
 
 # Ruta para cambiar la contraseña
 @auth.route('/cambiar_contrasena', methods=['GET', 'POST'])

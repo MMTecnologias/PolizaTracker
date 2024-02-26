@@ -43,15 +43,6 @@
                 <form method="POST" action="{{ url_for('auth.cambiar_contrasena') }}" id="CambioContrasenaForm" onsubmit="return validateSignupForm()">
                     <div class="login-form-head">
                         <b><h4>Cambio de Contraseña</h4></b>
-                        {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            <h6>
-                                {% for message in messages %}
-                                    <li>{{ message }}</li>
-                                {% endfor %}
-                            </h6>
-                        {% endif %}
-                        {% endwith %}
                     </div>
                     <div class="login-form-body">
                         <!-- Campo de contraseña -->

@@ -4,6 +4,7 @@ auth\
 config.py
 
 # Ignoramos las carpetas creadas por Python y sus paquetes virtuales
+__pycache__\
 flaskapp\app\__pycache__\
 *.egg*
 *.venv*
