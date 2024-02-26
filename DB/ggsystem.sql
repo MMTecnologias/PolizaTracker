@@ -210,6 +210,11 @@ CREATE TABLE `polizas` (
   `prima_neta` decimal(12,2) NOT NULL,
   `prima_total` decimal(12,2) NOT NULL,
   `status` enum('Vigente','Pendiente','Cancelada','Finalizada') NOT NULL,
+  `derecho_poliza` decimal(12,2) DEFAULT NULL,
+  `iva` decimal(5,4) DEFAULT 0.16,
+  `rec_pago` decimal(5,4) DEFAULT NULL,
+  `comision` decimal(5,4) DEFAULT NULL,
+  `recibos` enum('Generados','Por generar') DEFAULT 'Por generar',
   PRIMARY KEY (`id`),
   KEY `cliente_id` (`cliente_id`),
   KEY `ramo_id` (`ramo_id`),
@@ -380,6 +385,8 @@ DROP TABLE IF EXISTS `tipos_pagos`;
 CREATE TABLE `tipos_pagos` (
   `id` int NOT NULL AUTO_INCREMENT,
   `tipo_pago` varchar(25) NOT NULL,
+	`pagos_anuales` int NOT NULL DEFAULT 0,
+  `contado` enum ('Si','No') DEFAULT 'No',
   PRIMARY KEY (`id`),
   UNIQUE KEY `tipo_pago` (`tipo_pago`),
   UNIQUE KEY `tipo_pago_2` (`tipo_pago`)

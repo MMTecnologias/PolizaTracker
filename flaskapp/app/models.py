@@ -11,6 +11,8 @@ class TipoPago(db.Model):
     __tablename__ = 'tipos_pagos'
     id = Column(Integer, primary_key=True)
     tipo_pago = Column(String(25), nullable=False, unique=True)
+    pagos_anuales = Column(Integer, nullable=False, default=0)
+    contado = Column(Enum('Si', 'No'), default='No')
 
 class Aseguradora(db.Model):
     __tablename__ = 'aseguradoras'
@@ -71,6 +73,11 @@ class Poliza(db.Model):
     prima_neta = Column(DECIMAL(12, 2), nullable=False)
     prima_total = Column(DECIMAL(12, 2), nullable=False)
     status = Column(Enum('Vigente', 'Pendiente', 'Cancelada', 'Finalizada'), nullable=False)
+    derecho_poliza = Column(DECIMAL(12, 2))
+    iva = Column(DECIMAL(5, 4), default=0.16)
+    rec_pago = Column(DECIMAL(5, 4))
+    comision = Column(DECIMAL(5, 4))
+    recibos = Column(Enum('Generados', 'Por generar'), default='Por generar')
 
 class Recibo(db.Model):
     __tablename__ = 'recibos'
