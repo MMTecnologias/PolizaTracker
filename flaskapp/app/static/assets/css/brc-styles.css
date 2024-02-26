@@ -15,7 +15,7 @@
 body {
    background-color: var(--color-claro);
    height: 100vh;
-   overflow: hidden;
+   /* overflow: hidden; */
 }
 
 label {
@@ -168,4 +168,69 @@ p {
    border: 1px solid var(--color-primario);
    background-color: transparent;
    transition: all 0.3s ease;
+}
+
+/* menup */
+
+.navbar {
+   margin: 0;
+   padding: 0 0 0 32px;
+   height: 60px;
+   display: flex;
+   background-color: white;
+}
+
+.app-section {
+   margin: 0;
+   padding: 0;
+   height: 100%;
+   display: flex;
+}
+
+.name-app {
+   margin: auto 6px;
+}
+
+.logo-ggc {
+   margin: auto;
+   padding: 8px;
+   height: 100%;
+}
+
+.user-profile {
+   margin: 0;
+   height: 100%;
+}
+
+.general-card-container {
+   height: calc(100vh - 60px);
+   display: flex;
+   align-items: center;
+}
+
+.tarjeta-container {
+   width: 100vw;
+
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: space-evenly;
+}
+
+.card {
+   width: calc((100% - 64px) / 7);
+   margin: 32px;
+}
+
+.card h3 {
+   color: var(--gris-medio);
+   font-size: 1.6rem;
+   margin: auto;
+   padding: 8px 4px;
+   text-align: center;
+}
+
+.card:hover {
+   outline: 3px solid var(--color-primario);
+   transition: all 0.1s ease;
+   box-shadow: 5px 10px 32px -9px var(--gris-medio);
 }
