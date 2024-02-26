@@ -34,6 +34,7 @@ def cliente():
     return render_template('clientes.html', user=current_user,grupos=grupos)
 
 @main.route('/create_client', methods=['POST'])
+@login_required
 def create_client():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -148,6 +149,7 @@ def create_client():
             return jsonify({'error': True, 'msg': 'Cliente no encontrado'})
 
 @main.route('/get_clients_data', methods=['POST'])
+@login_required
 def get_clients_data():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -227,6 +229,7 @@ def get_clients_data():
     return jsonify(response)
 
 @main.route('/delete_client', methods=['POST'])
+@login_required
 def delete_client():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -243,6 +246,7 @@ def delete_client():
 
 
 @main.route('/export_clients')
+@login_required
 def export_clients():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -310,6 +314,7 @@ def usuario():
     return render_template('usuario.html', user=current_user,niveles =niveles)
 
 @main.route('/get_usuarios_data', methods=['POST'])
+@login_required
 def get_usuarios_data():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
@@ -382,8 +387,8 @@ def get_usuarios_data():
 
     return jsonify(response)
 
-
 @main.route('/create_user', methods=['POST'])
+@login_required
 def create_user():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
@@ -440,6 +445,7 @@ def create_user():
             return jsonify({'error': True, 'msg': 'Usuario no encontrado'})
 
 @main.route('/delete_user', methods=['POST'])
+@login_required
 def delete_user():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
@@ -458,6 +464,7 @@ def delete_user():
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el usuario.'})
 
 @main.route('/export_users')
+@login_required
 def export_users():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))

@@ -1,0 +1,191 @@
+<!doctype html>
+<html class="no-js" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Usuarios</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
+    <!-- amchart css -->
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
+    <!-- others css -->
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
+    <!-- DataTables FORMATO TABLAS-->
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
+    <!-- modernizr css -->
+    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
+</head>
+
+<body>
+    <!--[if lt IE 8]>
+            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+    <!-- preloader area start -->
+    <div id="preloader">
+        <div class="loader"></div>
+    </div>
+    <!-- preloader area end -->
+    <!-- page container area start -->
+
+    <div class="main-content">
+
+        <div class="page-title-area">
+            <div class="row align-items-center">
+                <div class="col-sm-6">
+                    <div class="breadcrumbs-area clearfix">
+                        <b>
+                            <h4 class="header-title pull-left">Sistema de Control de Pólizas</h4>
+                        </b>
+                        <ul class="breadcrumbs pull-left">
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-sm-6 clearfix">
+                    <div class="user-profile pull-right">
+                        <h5 class="user-name dropdown-toggle" data-toggle="dropdown">{{ current_user.username }}<i class="fa fa-angle-down"></i></h5>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
+                            <a class="dropdown-item" href="{{ url_for('main.index') }}">Menu Principal</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="main-content-inner">
+            <div class="card mt-5">
+                <div class="card-body">
+                    <b>
+                        <h4 class="header-title">Editar datos personales</h4>
+                    </b>
+                    <form class="needs-validation" id="userForm" action="{{ url_for('main.create_user') }}" method="POST" novalidate>
+                        <div class="form-row">
+                            <div class="col-md-4 mb-3">
+                                <label for="nombre">Nombre</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control"
+                                        id="nombre" name="nombre" placeholder=""
+                                        aria-describedby="inputGroupPrepend" required>
+                                    <div class="invalid-feedback">
+                                        Ingresa un nombre valido
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="apellido">Apellido</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control"
+                                        id="apellido" name="apellido" placeholder=""
+                                        aria-describedby="inputGroupPrepend" required>
+                                    <div class="invalid-feedback">
+                                        Ingresa un apellido valido
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="passwordold">Contraseña actual</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="passwordold" name="passwordold" placeholder=""
+                                        aria-describedby="inputGroupPrepend" minlength="8" maxlength="20" required>
+                                    <div class="invalid-feedback">
+                                        Ingresa una contraseña válida
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="password">Contraseña nueva</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" placeholder=""
+                                        aria-describedby="inputGroupPrepend" minlength="8" maxlength="20" required>
+                                    <div class="invalid-feedback">
+                                        Ingresa una contraseña válida
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="password2">Confirmar Contraseña</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password2" name="password2"
+                                        aria-describedby="inputGroupPrepend" minlength="8" maxlength="20" required>
+                                    <div id="password2msg" class="invalid-feedback">
+                                        Ingresa una contraseña válida
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="email">Correo</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                    placeholder="" required="">
+                                <div class="invalid-feedback">
+                                    Ingresa un correo valido
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="cel">Teléfono</label>
+                                <input type="text" class="form-control" id="cel" name="cel"
+                                    placeholder="" minlength="10" maxlength="10" required>
+                                <div class="invalid-feedback">
+                                    Ingresa un teléfono valido
+                                </div>
+                            </div>
+                        </div>
+                            <button id="Savebtn" type="submit" class="btn text-white">Guardar</button>
+                            <a href= "{{ url_for('main.index') }}" id="Resetbtn" type="reset" class="btn text-white">Cancelar</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    <!-- page container area end -->
+
+     <!-- jquery latest version -->
+     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+     <!-- bootstrap 4 js -->
+     <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+
+    <!-- DataTables  & Plugins FORMATO TABLAS-->
+    <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+
+    <!-- others plugins -->
+    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+
+    <script>
+        nombre = '{{current_user.nombre}}';
+        apellido = '{{current_user.apellido}}';
+        correo = '{{current_user.correo}}';
+        telefono = '{{current_user.telefono}}';
+    </script>
+    <script src="{{ url_for('static', filename='assets/controladores/edituser.js') }}"></script>
+</body>
+
+</html>

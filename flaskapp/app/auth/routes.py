@@ -30,7 +30,6 @@ def login_ajax():
     usuario = Usuario.query.filter_by(username=username,status='Activo').first()
 
     if usuario and check_password_hash(usuario.password, password):
-        print("hola")
         login_user(usuario)
         #flash('Inicio de sesión exitoso', 'success')
         return jsonify({'success': True, 'redirect': url_for('main.index')})
@@ -84,37 +83,30 @@ def logout():
     #flash('Cierre de sesión exitoso', 'success')
     return redirect(url_for('main.index'))
 
-"""FALTA HTML finales"""
-
-# Clase para el formulario de cambio de contraseña
-class CambioContrasenaForm(FlaskForm):
-    contrasena_actual= PasswordField('contrasena_actual', validators=[DataRequired()])
-    nueva_contrasena = PasswordField('nueva_contrasena', validators=[DataRequired()])
-    confirmar_contrasena = PasswordField('confirmPassword', validators=[DataRequired()])
-    submit = SubmitField('Cambiar Contraseña')
-
-
-
+"""Editar usuario/cambiar contrasena"""
 # Ruta para cambiar la contraseña
-@auth.route('/cambiar_contrasena', methods=['GET', 'POST'])
+@auth.route('/cambiar_contrasena', methods=['GET'])
 @login_required
 def cambiar_contrasena():
-    form = CambioContrasenaForm()
+    return render_template('editar_usuario_actual.html', user=current_user)
 
-    if request.method == 'POST':
-        # Verificar que la contraseña actual sea correcta
-        if check_password_hash(current_user.password, form.contrasena_actual.data):
-            # Generar el hash de la nueva contraseña y actualizar en la base de datos
-            nuevo_hash = generate_password_hash(form.nueva_contrasena.data)
-            current_user.password = nuevo_hash
-            db.session.commit()
-            #flash('Contraseña cambiada con éxito', 'success')
-            return redirect(url_for('main.index'))
-        else:
-            a=1
-            #flash('Contraseña actual incorrecta', 'danger')
+@auth.route('/edit_cuser', methods=['POST'])
+def edit_cuser():
+    oldpass=request.form.get('passwordold')
+    newpass=request.form.get('password')
+    if check_password_hash(current_user.password, oldpass):
+        existing_user = Usuario.query.get(current_user.id)
 
-    return render_template('cambiar_contrasena.html', form=form)
+        existing_user.nombre = request.form.get('nombre')
+        existing_user.apellido = request.form.get('apellido')
+        existing_user.correo = request.form.get('email')
+        existing_user.telefono = request.form.get('cel')
+        existing_user.password=generate_password_hash(newpass)
 
+        db.session.commit()
+        title = "Cambios realizados con éxito"
+        return jsonify({'error': False, 'redirect': url_for('main.index'), 'msg': '', 'title': title})
+    else:
+        return jsonify({'error': True, 'msg': 'Contraseña actual incorrecta'})
 
 
