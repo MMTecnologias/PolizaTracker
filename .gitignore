@@ -1,3 +1,35 @@
 flaskapp\auth\
 auth\
 C:\Users\luism\Documents\Produccion\PolizaTracker\flaskapp\app\__pycache__\
+config.py
+__pycache__\
+
+# Ignoramos las carpetas creadas por Python y sus paquetes virtuales
+__pycache__/
+*.egg*
+*.venv*
+
+# Excluimos archivos de compilación y depuración
+*.pyc
+*~
+
+# Archivos de configuración específicos del entorno
+local_settings.py
+
+# Directorios temporales
+thumbnails/
+
+# Logs de producción
+logs/*.log
+
+# Archivos de migraciones de SQLAlchemy
+migrations/
+
+# Archivos de pruebas unitarias
+tests/*
+
+# Archivos de documentación automática
+docs/_build/html/
+
+# Archivos de cache de Flask-Babel
+flaskbabel*.pyc
