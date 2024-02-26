@@ -1,121 +1,144 @@
-<!doctype html>
-<html class="no-js" lang="en">
-
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
+<!DOCTYPE html>
+<html
+   class="no-js"
+   lang="en"
+>
+   <head>
+      <meta charset="utf-8" />
+      <meta
+         http-equiv="x-ua-compatible"
+         content="ie=edge"
+      />
+      <title>Login</title>
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1"
+      />
+      <!-- <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
-    <!-- amchart css -->
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
-    <!-- others css -->
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}"> -->
+      <!-- amchart css -->
+      <!-- <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" /> -->
+      <!-- others css -->
+      <!-- <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
-    <!-- modernizr css -->
-    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
-    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
-    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
-</head>
+    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}"> -->
 
-<body>
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/brc-styles.css') }}"
+      />
+      <!-- modernizr css -->
+      <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+      <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+      <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
+   </head>
 
-    <div class="header">
-    <div id="preloader">
-        
-        <div class="loader"></div>
-    </div>
-    
-    <div class="login-area login-s2">
-        <div class="container">
-            
-            <div class="login-box 15px">
-                <img src="{{ url_for('static',filename='assets/images/estasi.png') }}" width="650" height="2000"/>
-                <!--<img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" width="550" height="570" />-->
-                <form id="loginform" method="POST">
-                    
-                    <div class="login-form-head" >
-                        <b><h4>¡Bienvenido!</h4></b>
-                        <h6 class="text">¿Listo para el control seguro de tus pólizas?</h6>
-                        
-                    </div>
-                    
-                    <div class="login-form-body">
-                        <div class="form-gp"  >
-                            <label for="exampleInputEmail1" name="username" required>Usuario</label>
-                            <input type="text" id="usuarioAutent" name="username" required>
-                            <i class="ti-email"></i>
-                            <div class="text-danger"></div>
-                            <!--
-                            <div class="invalid-feedback">
-                                Ingresa un usuario valido
-                            </div>-->
-                        </div>
-                        <div class="form-gp">
-                            <label for="exampleInputPassword1">Contraseña</label>
-                            <input type="password" id="passwordAutent" name="password" required>
-                            <i class="ti-lock"></i>
-                            <div class="text-danger"></div>
-                            <!--
-                            <div class="invalid-feedback">
-                                Ingresa un usuario valido
-                            </div>-->
-                        </div>
-                        <div class="row mb-4 rmber-area">
-                            <div class="col-6">
-                                <div class="custom-control custom-checkbox mr-sm-2">
-                                    <input type="checkbox" class="custom-control-input" id="customControlAutosizing">
-
-                                </div>
-                            </div>
-                            
-                            <h7 id="mensajeError" role="alert" style="display: none; color: tomato; position: fixed;">Usuario o contraseña invalidos</h7>
-
-                            <!--<h6 id="mensajeError" role="alert" style="display: none; color: tomato;">Usuario o contraseña invalidos</h6>-->
-                            <div class="col-12 text-right">
-                                <a href="{{ url_for('auth.req_new_pass') }}">¿Olvidaste la contraseña?</a>
-                            </div>
-                        </div>
-                        <div class="submit-btn-area">
-                            <button id="form_submit" type="submit" class="badge-danger btn-sm">Iniciar Sesión</button>
-                            <!-- <a href="modal.html">
-                                <button id="paglog" class="badge-danger btn-sm">Iniciar Sesión</button>
-                         </a> -->
-                        </div>
-                        
-                        
-                    </div>
-                </form>
+   <body>
+      <div class="login__container">
+         <div class="login-img__container">
+            <img
+               class="login__img"
+               src="{{ url_for('static',filename='assets/images/gg--optimized.jpg') }}"
+            />
+         </div>
+         <div class="login__form">
+            <div class="form__header">
+               <h2 class="login__welcome">¡Bienvenido!</h2>
+               <p class="login__greetings">
+                  ¿Listo para el control seguro de tus pólizas?
+               </p>
             </div>
-        </div>
-    </div>
 
-    
-    <!-- login area end -->
+            <form
+               class="form"
+               id="loginform"
+               method="POST"
+            >
+               <div class="form__input">
+                  <input
+                     class="input"
+                     type="text"
+                     id="usuarioAutent"
+                     name="username"
+                     required
+                  />
+                  <label
+                     class="input-label"
+                     for="usuarioAutent"
+                  >
+                     <span class="txt-label"> Usuario </span>
+                  </label>
+                  <img
+                     class="input__icon"
+                     src="{{ url_for('static',filename='assets/images/icon/user.png') }}"
+                     alt="user icon"
+                     width="16px"
+                  />
+               </div>
 
-     <!-- jquery latest version -->
-     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
-     <!-- bootstrap 4 js -->
-     <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
-     <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-     <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
-     <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
-     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
-     <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
- 
-     <!-- others plugins -->
-     <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
-     <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-     <script src="{{ url_for('static', filename='assets/controladores/login2.js') }}"></script>
-</div>
-</body>
+               <div class="form__input">
+                  <input
+                     class="input"
+                     type="password"
+                     id="passwordAutent"
+                     name="password"
+                     required
+                  />
+                  <label
+                     class="input-label"
+                     for="passwordAutent"
+                  >
+                     <span class="txt-label"> Contraseña </span>
+                  </label>
+                  <img
+                     class="input__icon"
+                     src="{{ url_for('static',filename='assets/images/icon/password.png') }}"
+                     alt="user icon"
+                     width="16px"
+                  />
+               </div>
 
+               <p id="mensajeError">Usuario o contraseña invalidos</p>
+
+               <a
+                  class="link-forgot-pass"
+                  href="{{ url_for('auth.req_new_pass') }}"
+                  >¿Olvidaste la contraseña?</a
+               >
+
+               <button
+                  class="form__btn-submit"
+                  id="form_submit"
+                  type="submit"
+                  class=""
+               >
+                  Iniciar Sesión
+               </button>
+            </form>
+         </div>
+
+         <!-- login area end -->
+
+         <!-- jquery latest version -->
+         <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+         <!-- bootstrap 4 js -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script> -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script> -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script> -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script> -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script> -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script> -->
+
+         <!-- others plugins -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script> -->
+         <!-- <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script> -->
+         <script src="{{ url_for('static', filename='assets/controladores/login2.js') }}"></script>
+      </div>
+   </body>
 </html>
