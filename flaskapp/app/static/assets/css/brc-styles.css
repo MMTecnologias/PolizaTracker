@@ -235,3 +235,40 @@ p {
    transition: all 0.1s ease;
    box-shadow: 5px 10px 32px -9px var(--gris-medio);
 }
+
+/* Pantalla Pólizas */
+
+.tables-container {
+   width: 100%;
+   padding: 32px;
+   display: flex;
+}
+
+.form__container {
+   margin: 32px;
+   padding: 32px;
+   background-color: white;
+   border-radius: 14px;
+}
+
+#table-polizas {
+   flex-grow: 1;
+}
+
+#table-clientes {
+   flex-grow: 3;
+}
+
+.input-sibling {
+   display: flex;
+}
+
+.input-date:nth-child(1) {
+   width: 50%;
+   margin-right: 5px;
+}
+
+.input-date:nth-child(2) {
+   width: 50%;
+   margin-left: 5px;
+}

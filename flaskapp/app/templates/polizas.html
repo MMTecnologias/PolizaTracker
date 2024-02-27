@@ -125,342 +125,357 @@
 
       <!-- Server side start -->
 
-      <div class="card-body">
-         <h4 class="header-title">Pólizas</h4>
-
-         <form
-            class="needs-validation"
-            novalidate=""
+      <div class="tables-container">
+         <div
+            class="form__container"
+            id="table-polizas"
          >
-            <div class="col-md-3 mb-3">
-               <label>Movimiento</label>
-               <div class="input-group">
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="Movimiento"
-                     name="Movimiento"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-                  <p class="invalid-feedback">Ingresa un movimiento valido</p>
-               </div>
-            </div>
+            <h4 class="header-title">Pólizas</h4>
 
-            <div class="col-md-3 mb-3">
-               <label>Fecha de Captura</label>
-               <div class="input-group">
-                  <input
-                     type="date"
-                     class="form-control"
-                     id="FechaCaptura"
-                     name="FechaCaptura"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
+            <form
+               id="form-polizas"
+               class="needs-validation"
+               novalidate=""
+            >
+               <div class="form__input">
+                  <label>Movimiento</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Movimiento"
+                        name="Movimiento"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">
+                        Ingresa un movimiento valido
+                     </p>
+                  </div>
                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Póliza</label>
-               <div class="input-group">
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="Poliza"
-                     name="Poliza"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Endoso</label>
-               <div class="input-group">
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="Endoso"
-                     name="Endoso"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Inicio de Vigencia</label>
-               <div class="input-group">
-                  <input
-                     type="date"
-                     class="form-control"
-                     id="VigenciaI"
-                     name="VigenciaI"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-               </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Fin de Vigencia</label>
-               <div class="input-group">
-                  <input
-                     type="date"
-                     class="form-control"
-                     id="VigenciaF"
-                     name="VigenciaF"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-               </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Ramo</label>
-               <select
-                  class="custom-select"
-                  id="Ramo"
-                  name="Ramo"
-                  required
-               >
-                  <option value="">Selecciona...</option>
-                  <option value="Hombre"></option>
-               </select>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Subramo</label>
-               <select
-                  class="custom-select"
-                  id="Subramo"
-                  name="Subramo"
-                  required
-               >
-                  <option value="">Selecciona...</option>
-                  <option value="Hombre"></option>
-               </select>
-            </div>
 
-            <div class="col-md-3 mb-3">
-               <label>Moneda</label>
-               <select
-                  class="custom-select"
-                  id="Moneda"
-                  name="Moneda"
-                  required
-               >
-                  <option value="">Selecciona...</option>
-                  <option value="Hombre">Nacional</option>
-                  <option value="Hombre">Dolares</option>
-               </select>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Forma de Pago</label>
-               <select
-                  class="custom-select"
-                  id="Pago"
-                  name="Pago"
-                  required
-               >
-                  <option value="">Selecciona...</option>
-                  <option value="Hombre">Semestral</option>
-                  <option value="Hombre">Trimestral</option>
-                  <option value="Hombre">Mensual</option>
-               </select>
-               <p class="invalid-feedback">Selecciona un acceso valido</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Aseguradora</label>
-               <select
-                  class="custom-select"
-                  id="Aseguradora"
-                  name="Aseguradora"
-                  required
-               >
-                  <option value="">Selecciona...</option>
-                  <option value="Hombre"></option>
-               </select>
-               <p class="invalid-feedback">Selecciona un acceso valido</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Agente</label>
-               <div class="input-group">
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="Agente"
-                     name="Agente"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
+               <div class="form__input">
+                  <label>Fecha de Captura</label>
+                  <div class="input-group">
+                     <input
+                        type="date"
+                        class="form-control"
+                        id="FechaCaptura"
+                        name="FechaCaptura"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                  </div>
                </div>
-            </div>
-         </form>
-      </div>
+               <div class="form__input">
+                  <label>Póliza</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Poliza"
+                        name="Poliza"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
+               <div class="form__input">
+                  <label>Endoso</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Endoso"
+                        name="Endoso"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
 
-      <!-- Server side start -->
+               <div class="input-sibling">
+                  <div class="form__input input-date">
+                     <label>Inicio de Vigencia</label>
+                     <div class="input-group">
+                        <input
+                           type="date"
+                           class="form-control"
+                           id="VigenciaI"
+                           name="VigenciaI"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                     </div>
+                  </div>
+                  <div class="form__input input-date">
+                     <label>Fin de Vigencia</label>
+                     <div class="input-group">
+                        <input
+                           type="date"
+                           class="form-control"
+                           id="VigenciaF"
+                           name="VigenciaF"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                     </div>
+                  </div>
+               </div>
 
-      <div class="card-body">
-         <h4 class="header-title">Clientes</h4>
+               <div class="form__input">
+                  <label>Ramo</label>
+                  <select
+                     class="custom-select"
+                     id="Ramo"
+                     name="Ramo"
+                     required
+                  >
+                     <option value="">Selecciona...</option>
+                     <option value="Hombre"></option>
+                  </select>
+               </div>
+               <div class="form__input">
+                  <label>Subramo</label>
+                  <select
+                     class="custom-select"
+                     id="Subramo"
+                     name="Subramo"
+                     required
+                  >
+                     <option value="">Selecciona...</option>
+                     <option value="Hombre"></option>
+                  </select>
+               </div>
 
-         <form
-            class="needs-validation"
-            novalidate=""
+               <div class="form__input">
+                  <label>Moneda</label>
+                  <select
+                     class="custom-select"
+                     id="Moneda"
+                     name="Moneda"
+                     required
+                  >
+                     <option value="">Selecciona...</option>
+                     <option value="Hombre">Nacional</option>
+                     <option value="Hombre">Dolares</option>
+                  </select>
+               </div>
+               <div class="form__input">
+                  <label>Forma de Pago</label>
+                  <select
+                     class="custom-select"
+                     id="Pago"
+                     name="Pago"
+                     required
+                  >
+                     <option value="">Selecciona...</option>
+                     <option value="Hombre">Semestral</option>
+                     <option value="Hombre">Trimestral</option>
+                     <option value="Hombre">Mensual</option>
+                  </select>
+                  <p class="invalid-feedback">Selecciona un acceso valido</p>
+               </div>
+               <div class="form__input">
+                  <label>Aseguradora</label>
+                  <select
+                     class="custom-select"
+                     id="Aseguradora"
+                     name="Aseguradora"
+                     required
+                  >
+                     <option value="">Selecciona...</option>
+                     <option value="Hombre"></option>
+                  </select>
+                  <p class="invalid-feedback">Selecciona un acceso valido</p>
+               </div>
+               <div class="form__input">
+                  <label>Agente</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Agente"
+                        name="Agente"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
+            </form>
+         </div>
+
+         <!-- Server side start -->
+
+         <div
+            class="form__container"
+            id="table-clientes"
          >
-            <!-- <div>
+            <h4 class="header-title">Clientes</h4>
+
+            <form
+               class="needs-validation"
+               novalidate=""
+            >
+               <!-- <div>
                                                 <input type="text" id="search" placeholder="Buscar...">
                                                 <button>Buscar</button>
                                             </div> -->
-            <!-- <br> -->
+               <!-- <br> -->
 
-            <div class="col-md-3 mb-3">
-               <label>Nombre Cliente</label>
-               <div class="input-group">
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="NombreCliente"
-                     name="NombreCliente"
-                     placeholder=""
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-                  <p class="invalid-feedback">Ingresa un nombre valido</p>
+               <div class="form__input">
+                  <label>Nombre Cliente</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="NombreCliente"
+                        name="NombreCliente"
+                        placeholder=""
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un nombre valido</p>
+                  </div>
                </div>
-            </div>
 
-            <div class="col-md-3 mb-3">
-               <label>Apellido</label>
-               <div class="input-group">
+               <div class="form__input">
+                  <label>Apellido</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Apellido"
+                        name="Apellido"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un apellido valido</p>
+                  </div>
+               </div>
+               <div class="form__input">
+                  <label>RFC</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="RFC"
+                        name="RFC"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un RFC valido</p>
+                  </div>
+               </div>
+               <div class="form__input">
+                  <label>Teléfonos Móviles</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="TeléfonosMóviles"
+                        name="TeléfonosMóviles"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un teléfono valido</p>
+                  </div>
+               </div>
+               <div class="form__input">
+                  <label>Dirección Fiscal</label>
                   <input
                      type="text"
                      class="form-control"
-                     id="Apellido"
-                     name="Apellido"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
+                     id="DirecciónFiscal"
+                     name="DirecciónFiscal"
                   />
-                  <p class="invalid-feedback">Ingresa un apellido valido</p>
+                  <p class="invalid-feedback">Ingresa una dirección valida</p>
                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>RFC</label>
-               <div class="input-group">
+               <div class="form__input">
+                  <label>Correo</label>
+                  <input
+                     type="email"
+                     class="form-control"
+                     id="Correo"
+                     name="Correo"
+                  />
+                  <p class="invalid-feedback">Ingresa un correo valido</p>
+               </div>
+               <div class="form__input">
+                  <label>Grupo</label>
+                  <input
+                     type="email"
+                     class="form-control"
+                     id="Grupo"
+                     name="Grupo"
+                  />
+                  <p class="invalid-feedback">Ingresa un grupo valido</p>
+               </div>
+               <div class="form__input">
+                  <label>Serie/Código</label>
                   <input
                      type="text"
                      class="form-control"
-                     id="RFC"
-                     name="RFC"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
+                     id="Serie"
+                     name="Serie"
                   />
-                  <p class="invalid-feedback">Ingresa un RFC valido</p>
+                  <p class="invalid-feedback">Ingresa un código valido</p>
                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Teléfonos Móviles</label>
-               <div class="input-group">
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="TeléfonosMóviles"
-                     name="TeléfonosMóviles"
-                     aria-describedby="inputGroupPrepend"
-                     required=""
-                  />
-                  <p class="invalid-feedback">Ingresa un teléfono valido</p>
-               </div>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Dirección Fiscal</label>
-               <input
-                  type="text"
-                  class="form-control"
-                  id="DirecciónFiscal"
-                  name="DirecciónFiscal"
-               />
-               <p class="invalid-feedback">Ingresa una dirección valida</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Correo</label>
-               <input
-                  type="email"
-                  class="form-control"
-                  id="Correo"
-                  name="Correo"
-               />
-               <p class="invalid-feedback">Ingresa un correo valido</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Grupo</label>
-               <input
-                  type="email"
-                  class="form-control"
-                  id="Grupo"
-                  name="Grupo"
-               />
-               <p class="invalid-feedback">Ingresa un grupo valido</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Serie/Código</label>
-               <input
-                  type="text"
-                  class="form-control"
-                  id="Serie"
-                  name="Serie"
-               />
-               <p class="invalid-feedback">Ingresa un código valido</p>
-            </div>
 
-            <div class="col-md-3 mb-3">
-               <label>Póliza anterior</label>
-               <input
-                  type="text"
-                  class="form-control"
-                  id="PólizaAnterior"
-                  name="PólizaAnterior"
-               />
-               <p class="invalid-feedback">Ingresa un dato valido</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Renovación</label>
-               <input
-                  type="text"
-                  class="form-control"
-                  id="Renovación"
-                  name="Renovación"
-               />
-               <p class="invalid-feedback">Ingresa un dato valido</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Prima meta</label>
-               <input
-                  type="text"
-                  class="form-control"
-                  id="PrimaMeta"
-                  name="PrimaMeta"
-               />
-               <p class="invalid-feedback">Ingresa un dato valido</p>
-            </div>
-            <div class="col-md-3 mb-3">
-               <label>Prima total</label>
-               <input
-                  type="text"
-                  class="form-control"
-                  id="PrimaTotal"
-                  name="PrimaTotal"
-               />
-               <p class="invalid-feedback">Ingresa un dato valido</p>
-            </div>
-            <div class="col-md-12 mb-6">
-               <label for="validationCustom05">Notas</label>
-               <input
-                  type="text"
-                  class="form-control"
-                  id="Notas"
-                  name="Notas"
-               />
-            </div>
-         </form>
+               <div class="form__input">
+                  <label>Póliza anterior</label>
+                  <input
+                     type="text"
+                     class="form-control"
+                     id="PólizaAnterior"
+                     name="PólizaAnterior"
+                  />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+               </div>
+               <div class="form__input">
+                  <label>Renovación</label>
+                  <input
+                     type="text"
+                     class="form-control"
+                     id="Renovación"
+                     name="Renovación"
+                  />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+               </div>
+               <div class="form__input">
+                  <label>Prima meta</label>
+                  <input
+                     type="text"
+                     class="form-control"
+                     id="PrimaMeta"
+                     name="PrimaMeta"
+                  />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+               </div>
+               <div class="form__input">
+                  <label>Prima total</label>
+                  <input
+                     type="text"
+                     class="form-control"
+                     id="PrimaTotal"
+                     name="PrimaTotal"
+                  />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+               </div>
+               <div class="form__input">
+                  <label for="validationCustom05">Notas</label>
+                  <input
+                     type="text"
+                     class="form-control"
+                     id="Notas"
+                     name="Notas"
+                  />
+               </div>
+            </form>
+         </div>
       </div>
 
       <div class="card-body">
@@ -511,10 +526,6 @@
                <!-- Agregar la información de la tabla -->
             </tbody>
          </table>
-      </div>
-
-      <div class="card-body">
-         <h4 class="header-title">Información Extra de Pólizas</h4>
       </div>
 
       <div class="card-body">
