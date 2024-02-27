@@ -219,6 +219,7 @@ p {
 .card {
    width: calc((100% - 64px) / 7);
    margin: 32px;
+   border: none;
 }
 
 .card h3 {

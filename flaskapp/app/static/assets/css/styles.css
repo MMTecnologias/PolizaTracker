@@ -70,7 +70,7 @@
    padding-left: 0;
 }
 
-.card {
+/* .card {
    border: none;
    border-radius: 4px;
    background-color: #fff;
@@ -80,7 +80,7 @@
 
 .card:hover {
    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.02);
-}
+} */
 
 .card-body {
    padding: 25.6px;
