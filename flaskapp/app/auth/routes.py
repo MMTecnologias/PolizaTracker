@@ -1,12 +1,12 @@
 # app/auth/routes.py
 from flask import render_template, redirect, url_for, flash, request,jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField,SelectField
-from wtforms.validators import DataRequired
+#from flask_wtf import FlaskForm
+#from wtforms import StringField, PasswordField, SubmitField,SelectField
+#from wtforms.validators import DataRequired
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,SolicitudNewPass
+from app.models import Usuario,SolicitudNewPass
 from . import auth
 
 """Login"""

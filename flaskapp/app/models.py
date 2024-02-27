@@ -88,9 +88,10 @@ class Recibo(db.Model):
     prima_neta = Column(DECIMAL(12, 2), nullable=False)
     prima_total = Column(DECIMAL(12, 2), nullable=False)
     comision = Column(DECIMAL(12, 2), nullable=False)
-    status = Column(Enum('Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False)
+    status = Column(Enum('Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
     fecha_pago = Column(Date)
     comprobante = Column(String(30))
+    no_de_recibo= Column(String(30), default="1 / 1")
 
 class Servicio(db.Model):
     __tablename__ = 'servicios'

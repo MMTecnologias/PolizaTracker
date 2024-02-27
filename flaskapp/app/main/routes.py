@@ -1,16 +1,19 @@
 # app/main/routes.py
 from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort,Flask, Response
 from flask_login import login_user, logout_user, login_required, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField,SelectField,DateField,EmailField
-from wtforms.validators import DataRequired,Email,InputRequired,Length
+#from flask_wtf import FlaskForm
+#from wtforms import StringField, PasswordField, SubmitField,SelectField,DateField,EmailField
+#from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass,Cliente,Grupo
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo
 from sqlalchemy import join, or_,desc
 import csv
 from io import StringIO
 from . import main 
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
 
@@ -521,5 +524,179 @@ def index():
     acceso=NivelAcceso.query.get_or_404(current_user.nivel_id)
 
     return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
+
+"""Recibos"""
+@main.route('/recibos', methods=['GET'])
+@login_required
+def recibos():
+    polizas=Poliza.query.all()
+    return render_template('recibos.html',polizas=polizas)
+
+# Ruta para obtener los valores de la póliza
+@app.route('/get_policy_values/<int:policy_id>', methods=['GET'])
+@login_required
+def get_policy_values(policy_id):
+    # Buscar la póliza en la base de datos por su ID
+    poliza = Poliza.query.get(policy_id)
+
+    if not poliza:
+        return jsonify({'error': True, 'msg':'Poliza no encontrada'})
+
+    # Calcular la duración de la póliza en años, considerando años bisiestos
+    start_date = poliza.fecha_inicio
+    end_date = poliza.fecha_termino
+    policy_duration = int(round((end_date - start_date).days / 365.2425))  # Duración en años, considerando años bisiestos y redondeado a entero
+
+    # Obtener el tipo de pago de la póliza
+    tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
+
+
+    # Obtener el número de pagos según el tipo de pago
+    if tipo_pago.contado=="Si":
+        num_payments = 1  
+    else:
+        num_payments = tipo_pago.pagos_anuales*policy_duration  # De lo contrario, el número de pagos es igual a los pagos mensuales
+
+    # Devolver los valores como un objeto JSON
+    return jsonify({
+        'netPremium': float(poliza.prima_neta),
+        'totalPremium': float(poliza.prima_total),
+        'numReceipts': int(num_payments),
+        'policyDuration': int(policy_duration),  # Convertir a entero
+    })
+
+def calcular_recibos():
+    # Retrieve data from the form
+    prima_total = float(request.form.get('totalPremium'))
+    prima_neta = float(request.form.get('netPremium'))
+    iva = float(request.form.get('iva'))
+    iva=prima_neta *iva / 100
+    commission = float(request.form.get('commission'))
+    commission = prima_total * commission/100
+    derecho_poliza = float(request.form.get('insurance'))
+    nopagos = int(request.form.get('receipts'))  # Assuming this is the number of payments
+
+    recargo_por_pago = prima_total - derecho_poliza - prima_neta - iva
+    # Perform calculations
+    response = {
+        'firstpay': {
+            "netPremium": "",
+            "comision": "",
+            "totalPremium": ""
+        },
+        'subspay': {
+            "netPremium": "",
+            "comision": "",
+            "totalPremium": ""
+        }
+    }
+
+    # Calculate the values for the first payment
+    total_premium = (prima_neta +iva + recargo_por_pago) / nopagos 
+    net_premium = prima_neta / nopagos
+    commission_pp = commission / nopagos
+
+    response['firstpay']['netPremium'] = net_premium
+    response['firstpay']['totalPremium'] = total_premium + derecho_poliza
+    response['firstpay']['comision'] = commission_pp
+
+    # If there are subsequent payments, calculate their values as well
+    if nopagos > 1:
+        response['subspay']['netPremium'] = net_premium
+        response['subspay']['totalPremium'] = total_premium
+        response['subspay']['comision'] = commission_pp
+
+    response['derecho_poliza']=derecho_poliza
+    response['iva']=iva/prima_neta
+    response['rec_pago']=recargo_por_pago/prima_neta
+    response['comision']=commission/prima_total
+    response['poliza_id']=request.form.get('selectPoliza')
+    response['nopagos']=nopagos
+    #print(response)
+    return response
+
+def add_months(start_date, num_months):
+    # Convertir la cadena de fecha en un objeto datetime
+   
+    start_date=str(start_date)
+    start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    
+    new_date = start_date + relativedelta(months=num_months)
+    # Devolver la nueva fecha como cadena
+    return new_date.strftime('%Y-%m-%d')
+
+@main.route('/calculate_receipts', methods=['POST'])
+@login_required
+def calculate_receipts():
+    response=calcular_recibos()
+    return jsonify(response)
+
+@main.route('/save_receipts', methods=['POST'])
+@login_required
+def save_receipts():
+    response=calcular_recibos()
+    poliza_id=response['poliza_id']
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg':'Poliza no encontrada'})
+    if poliza.recibos=="Generados":
+        return jsonify({'error': True, 'msg':'Esta poliza ya tiene recibos generados'})
+    try:
+        # Ejecuta el bucle para crear registros
+        start_date = poliza.fecha_inicio
+        end_date = poliza.fecha_termino
+        tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
+
+        if tipo_pago.contado=="Si":
+            print("done")
+            nuevo_recibo=Recibo(fecha_inicio =start_date,
+                                fecha_vencimiento =end_date,
+                                poliza_id=poliza_id,
+                                prima_neta=response['firstpay']['netPremium'],
+                                prima_total =response['firstpay']['totalPremium'],
+                                comision=response['firstpay']['comision']
+                                )
+            db.session.add(nuevo_recibo)
+        else:
+            num_months=int(12/tipo_pago.pagos_anuales)
+            fecha_inicio =start_date
+            fecha_vencimiento=add_months(fecha_inicio, num_months)
+            nopagos=response['nopagos']
+            nuevo_recibo=Recibo(fecha_inicio =fecha_inicio,
+                                fecha_vencimiento =fecha_vencimiento,
+                                poliza_id=poliza_id,
+                                prima_neta=response['firstpay']['netPremium'],
+                                prima_total =response['firstpay']['totalPremium'],
+                                comision=response['firstpay']['comision'],
+                                no_de_recibo="1 / "+str(nopagos)
+                                )
+            db.session.add(nuevo_recibo)
+            for nopay in range(2,nopagos+1):
+                fecha_inicio =fecha_vencimiento
+                fecha_vencimiento=end_date if nopay == nopagos else add_months(fecha_inicio, num_months)
+                nuevo_recibo=Recibo(fecha_inicio =fecha_inicio,
+                                fecha_vencimiento =fecha_vencimiento,
+                                poliza_id=poliza_id,
+                                prima_neta=response['subspay']['netPremium'],
+                                prima_total =response['subspay']['totalPremium'],
+                                comision=response['subspay']['comision'],
+                                no_de_recibo=  str(nopay)+" / "+str(nopagos)
+                                )
+                db.session.add(nuevo_recibo)
+
+        poliza.derecho_poliza = response['derecho_poliza']
+        poliza.iva = response['iva']
+        poliza.rec_pago = response['rec_pago']
+        poliza.comision = response['comision']
+        poliza.recibos = "Generados"
+        # Realiza el commit después de completar las inserciones
+        db.session.commit()
+
+        return jsonify({'error': False, 'msg':'Recibos generados con exito'})
+    except:
+        # Si ocurre algún error, realiza un rollback
+        db.session.rollback()
+        return jsonify({'error': True, 'msg':'Error en la creación de recibos'})
+
 
 
