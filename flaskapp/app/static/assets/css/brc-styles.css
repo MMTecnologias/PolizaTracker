@@ -251,11 +251,11 @@ p {
    border-radius: 14px;
 }
 
-#table-polizas {
+#form-polizas {
    flex-grow: 1;
 }
 
-#table-clientes {
+#table-polizas {
    flex-grow: 3;
 }
 
