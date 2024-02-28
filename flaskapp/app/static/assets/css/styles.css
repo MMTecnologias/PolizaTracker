@@ -844,7 +844,7 @@ ul.breadcrumbs {
    letter-spacing: 0;
    color: #333;
    text-transform: capitalize;
-   margin-bottom: 17px;
+   /* margin-bottom: 17px; */
 }
 
 .single-report p {
@@ -1954,14 +1954,6 @@ p.card-text {
    padding: 0.85rem 1rem;
 }
 
-label {
-   font-weight: 500;
-   color: #666;
-   display: inline-block;
-   margin-bottom: 8px;
-   margin-bottom: 0.5rem;
-}
-
 .font-14 {
    font-size: 14px;
 }
@@ -2080,10 +2072,10 @@ table tr th {
    border-bottom: none;
 }
 
-table tr th,
+/* table tr th,
 table tr td {
    border-top: 1px solid rgba(120, 130, 140, 0.13) !important;
-}
+} */
 
 table tr td [class^='ti-'] {
    cursor: pointer;
