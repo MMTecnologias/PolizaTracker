@@ -268,7 +268,6 @@ p {
 .form__input-data {
    position: relative;
    margin: 7px;
-   border-bottom: 1px solid var(--gris-medio);
 }
 
 .input-sibling {
@@ -304,4 +303,8 @@ tbody tr td {
 tbody tr:nth-child(2n + 1) {
    color: var(--color-claro);
    background-color: var(--gris-medio);
+}
+
+.form-control {
+   border-bottom: 1px solid var(--gris-medio);
 }
