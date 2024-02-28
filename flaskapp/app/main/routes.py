@@ -6,8 +6,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 #from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo
-from sqlalchemy import join, or_,desc
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente
+from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
 from . import main 
@@ -515,6 +515,145 @@ def export_users():
 @login_required
 def polizas():
     return render_template('polizas.html', user=current_user)
+
+
+@app.route('/get_polizas_data', methods=['POST'])
+@login_required
+def get_polizas_data():
+    # Get parameters from DataTables AJAX request
+    draw = int(request.form.get('draw'))
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    search_value = request.form.get('search[value]')
+    order_column_index = int(request.form.get('order[0][column]'))
+    order_dir = request.form.get('order[0][dir]')
+
+    # Query to fetch polizas data from the database 
+    """
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Ramo,Subramo,Aseguradora.aseguradora.label("aseguradora"),TipoPago,Agente) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Ramo, Poliza.ramo_id == Ramo.id) \
+    .join(Subramo, Poliza.subramo_id == Subramo.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+    .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+    .join(Agente, Poliza.agente_id == Agente.id)
+    """
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
+
+    # Implement search functionality
+    if search_value:
+        polizas_query = polizas_query.filter(or_(
+            Poliza.serie.ilike(f'%{search_value}%'),
+            Cliente.nombre.ilike(f'%{search_value}%'),
+            Aseguradora.aseguradora.ilike(f'%{search_value}%'),
+            Cliente.apellido.ilike(f'%{search_value}%')
+            # Add more fields for searching as needed
+        ))
+
+    # Implement sorting functionality
+    order_column_name = None
+    if order_column_index == 0:
+        order_column_name = 'serie'
+    elif order_column_index == 1:
+        order_column_name = 'client_name'
+    elif order_column_index == 2:
+        order_column_name = 'aseguradora'
+
+    if order_column_name:
+        if order_dir == 'desc':
+            polizas_query = polizas_query.order_by(desc(order_column_name))
+        else:
+            polizas_query = polizas_query.order_by(order_column_name)
+
+    # Get total count of records without filtering
+    total_records = polizas_query.count()
+    
+    # Apply pagination
+    polizas = polizas_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for poliza, nombre,apellido, aseguradora in polizas:
+        data.append({
+            'poliza': poliza.serie,
+            'cliente': f"{nombre} {apellido}",
+            'aseguradora': aseguradora,
+            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+            'id': poliza.id
+            # Add more fields as needed
+        })
+
+    # Prepare response
+    response = {
+        'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
+@app.route('/get_receipts_data', methods=['POST'])
+@login_required
+def get_receipts_data():
+    poliza_id = request.form.get('poliza_id')  # Assuming the poliza_id is sent via POST
+    draw = int(request.form.get('draw'))
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    
+    if poliza_id=="New":
+        response = {
+            'draw': draw,
+            'recordsTotal': 0,  # Total records without filtering
+            'recordsFiltered': 0,  # Total records after filtering
+            'data': []  # Data to display
+        }
+        return jsonify(response)
+    
+
+    # Query to fetch polizas data from the database 
+    recibos_query =Recibo.query.filter_by(poliza_id=poliza_id) 
+
+    # Get total count of records without filtering
+    total_records = recibos_query.count()
+    
+    # Apply pagination
+    recibos = recibos_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for recibo in recibos:
+        data.append({
+            'numero': recibo.no_de_recibo,
+            'fecha_recibo':recibo.fecha_inicio.strftime('%Y-%m-%d'),
+            "vencimiento" : recibo.fecha_vencimiento.strftime('%Y-%m-%d') ,
+            "prima_neta" : float(recibo.prima_neta) ,
+            "prima_total" : float(recibo.prima_total) ,
+            "comision" : float(recibo.comision) ,
+            "pagado" : True if recibo.status=='Liquidado' else False,
+            "fecha_pago" : "" if recibo.fecha_pago is None else  recibo.fecha_pago.strftime('%Y-%m-%d'),
+            "comprobante" : "" if recibo.comprobante is None else  recibo.comprobante ,
+            "cancelado" : True if recibo.status=='Cancelado' else False,
+            'id': recibo.id
+            # Add more fields as needed
+        })
+    #'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
+
+    # Prepare response
+    response = {
+        'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+    print(response)
+    return jsonify(response)
+
 
 """Menu"""
 # Ruta principal del sistema
