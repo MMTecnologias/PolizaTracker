@@ -709,12 +709,12 @@ def calcular_recibos():
     prima_total = float(request.form.get('totalPremium'))
     prima_neta = float(request.form.get('netPremium'))
     iva = float(request.form.get('iva'))
+    derecho_poliza = float(request.form.get('insurance'))*(1+iva/ 100)
     iva=prima_neta *iva / 100
     commission = float(request.form.get('commission'))
     commission = prima_total * commission/100
-    derecho_poliza = float(request.form.get('insurance'))
     nopagos = int(request.form.get('receipts'))  # Assuming this is the number of payments
-
+    print(derecho_poliza)
     recargo_por_pago = prima_total - derecho_poliza - prima_neta - iva
     # Perform calculations
     response = {
