@@ -118,11 +118,6 @@
                   href="{{ url_for('auth.cambiar_contrasena') }}"
                   >Cambiar Contraseña</a
                >
-               <a
-                  class="dropdown-item"
-                  href="{{ url_for('main.index') }}"
-                  >Menu Principal</a
-               >
             </div>
          </div>
       </nav>
@@ -131,19 +126,17 @@
       <!-- Server side start -->
 
       <div class="tables-container">
-         <div
-            class="form__container"
-            id="form-polizas"
-         >
+         <div class="form__container form_polizas">
             <h4 class="header-title">Pólizas</h4>
 
             <form
                id="form-polizas"
-               class="needs-validation"
+               class="needs-validation form-data"
                novalidate=""
-            ><input type="hidden" id="poliza_id" name="poliza_id" value="New">
-               <div class="form__input">
-                  <label>Movimiento</label>
+            >
+               <input type="hidden" id="poliza_id" name="poliza_id" value="New">
+               <div class="form__input-data">
+                  <label class="label-input-data">Movimiento</label>
                   <div class="input-group">
                      <input
                         type="text"
@@ -159,8 +152,8 @@
                   </div>
                </div>
 
-               <div class="form__input">
-                  <label>Fecha de Captura</label>
+               <div class="form__input-data">
+                  <label class="label-input-data">Fecha de Captura</label>
                   <div class="input-group">
                      <input
                         type="date"
@@ -172,8 +165,8 @@
                      />
                   </div>
                </div>
-               <div class="form__input">
-                  <label>Póliza</label>
+               <div class="form__input-data">
+                  <label class="label-input-data">Póliza</label>
                   <div class="input-group">
                      <input
                         type="text"
@@ -186,8 +179,8 @@
                      <p class="invalid-feedback">Ingresa un dato valido</p>
                   </div>
                </div>
-               <div class="form__input">
-                  <label>Endoso</label>
+               <div class="form__input-data">
+                  <label class="label-input-data">Endoso</label>
                   <div class="input-group">
                      <input
                         type="text"
@@ -202,8 +195,8 @@
                </div>
 
                <div class="input-sibling">
-                  <div class="form__input input-date">
-                     <label>Inicio de Vigencia</label>
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Inicio de Vigencia</label>
                      <div class="input-group">
                         <input
                            type="date"
@@ -215,8 +208,8 @@
                         />
                      </div>
                   </div>
-                  <div class="form__input input-date">
-                     <label>Fin de Vigencia</label>
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Fin de Vigencia</label>
                      <div class="input-group">
                         <input
                            type="date"
@@ -230,74 +223,80 @@
                   </div>
                </div>
 
-               <div class="form__input">
-                  <label>Ramo</label>
-                  <select
-                     class="custom-select"
-                     id="Ramo"
-                     name="Ramo"
-                     required
-                  >
-                     <option value="">Selecciona...</option>
-                     <option value="Hombre"></option>
-                  </select>
-               </div>
-               <div class="form__input">
-                  <label>Subramo</label>
-                  <select
-                     class="custom-select"
-                     id="Subramo"
-                     name="Subramo"
-                     required
-                  >
-                     <option value="">Selecciona...</option>
-                     <option value="Hombre"></option>
-                  </select>
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Ramo</label>
+                     <select
+                        class="custom-select"
+                        id="Ramo"
+                        name="Ramo"
+                        required
+                     >
+                        <option value="">Selecciona...</option>
+                        <option value="Hombre"></option>
+                     </select>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Subramo</label>
+                     <select
+                        class="custom-select"
+                        id="Subramo"
+                        name="Subramo"
+                        required
+                     >
+                        <option value="">Selecciona...</option>
+                        <option value="Hombre"></option>
+                     </select>
+                  </div>
                </div>
 
-               <div class="form__input">
-                  <label>Moneda</label>
-                  <select
-                     class="custom-select"
-                     id="Moneda"
-                     name="Moneda"
-                     required
-                  >
-                     <option value="">Selecciona...</option>
-                     <option value="Hombre">Nacional</option>
-                     <option value="Hombre">Dolares</option>
-                  </select>
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Moneda</label>
+                     <select
+                        class="custom-select"
+                        id="Moneda"
+                        name="Moneda"
+                        required
+                     >
+                        <option value="">Selecciona...</option>
+                        <option value="Hombre">Nacional</option>
+                        <option value="Hombre">Dolares</option>
+                     </select>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Forma de Pago</label>
+                     <select
+                        class="custom-select"
+                        id="Pago"
+                        name="Pago"
+                        required
+                     >
+                        <option value="">Selecciona...</option>
+                        <option value="Hombre">Semestral</option>
+                        <option value="Hombre">Trimestral</option>
+                        <option value="Hombre">Mensual</option>
+                     </select>
+                     <p class="invalid-feedback">Selecciona un acceso valido</p>
+                  </div>
+                  <div class="form__input-data">
+                     <label class="label-input-data input-sibling-child"
+                        >Aseguradora</label
+                     >
+                     <select
+                        class="custom-select"
+                        id="Aseguradora"
+                        name="Aseguradora"
+                        required
+                     >
+                        <option value="">Selecciona...</option>
+                        <option value="Hombre"></option>
+                     </select>
+                     <p class="invalid-feedback">Selecciona un acceso valido</p>
+                  </div>
                </div>
-               <div class="form__input">
-                  <label>Forma de Pago</label>
-                  <select
-                     class="custom-select"
-                     id="Pago"
-                     name="Pago"
-                     required
-                  >
-                     <option value="">Selecciona...</option>
-                     <option value="Hombre">Semestral</option>
-                     <option value="Hombre">Trimestral</option>
-                     <option value="Hombre">Mensual</option>
-                  </select>
-                  <p class="invalid-feedback">Selecciona un acceso valido</p>
-               </div>
-               <div class="form__input">
-                  <label>Aseguradora</label>
-                  <select
-                     class="custom-select"
-                     id="Aseguradora"
-                     name="Aseguradora"
-                     required
-                  >
-                     <option value="">Selecciona...</option>
-                     <option value="Hombre"></option>
-                  </select>
-                  <p class="invalid-feedback">Selecciona un acceso valido</p>
-               </div>
-               <div class="form__input">
-                  <label>Agente</label>
+               <div class="form__input-data">
+                  <label class="label-input-data">Agente</label>
                   <div class="input-group">
                      <input
                         type="text"
@@ -311,10 +310,37 @@
                   </div>
                </div>
             </form>
+            <div class="button-container">
+               <button
+                  class="btn"
+                  type="submit"
+                  value="Guardar Cambios"
+                  id="btnGuardar"
+                  name="btnGuardar"
+               >
+                  Guardar
+               </button>
+
+               <button
+                  class="btn"
+                  type="submit"
+                  value="Generar Endoso"
+               >
+                  Generar Endoso
+               </button>
+               <button
+                  class="btn"
+                  type="reset"
+                  value="Cancelar"
+               >
+                  Cancelar
+               </button>
+            </div>
          </div>
 
-       <div
-            class="form__container"
+         <!-- Server side start -->
+         <div
+            class="form__container table-polizas"
             id="table-polizas"
          >
             <h4 class="header-title">Tabla de Pólizas</h4>
@@ -334,36 +360,6 @@
                </tbody>
             </table>
          </div>
-      </div>
-
-      <div class="card-body">
-         <input
-            class="btn btn-primary d-grid gap-2 col-2 mx-auto"
-            type="submit"
-            value="Guardar Cambios"
-            id="btnGuardar"
-            name="btnGuardar"
-         />
-         <input
-            class="btn btn-primary d-grid gap-2 col-2 mx-auto"
-            type="submit"
-            value="Generar recibos"
-         />
-         <input
-            class="btn btn-primary d-grid gap-2 col-2 mx-auto"
-            type="submit"
-            value="Generar renovación"
-         />
-         <input
-            class="btn btn-primary d-grid gap-2 col-2 mx-auto"
-            type="submit"
-            value="Generar Endoso"
-         />
-         <input
-            class="btn btn-primary d-grid gap-2 col-2 mx-auto"
-            type="submit"
-            value="Cancelar"
-         />
       </div>
 
       <!-- Server side start -->
@@ -423,6 +419,6 @@
       <script src="{{ url_for('static', filename='assets/controladores/polizas.js') }}"></script>
       <script>
         var seeicon = "{{ url_for('static', filename='assets/images/icon/see.png') }}";
-    </script>
+      </script>
    </body>
 </html>
