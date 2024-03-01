@@ -20,7 +20,6 @@ body {
 
 label {
    font-size: 1rem;
-   font-weight: 200;
    color: var(--gris-medio);
    opacity: 0.5;
 }
@@ -245,30 +244,67 @@ p {
 }
 
 .form__container {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
    margin: 32px;
    padding: 32px;
    background-color: white;
    border-radius: 14px;
 }
 
-#form-polizas {
-   flex-grow: 1;
+.form_polizas {
+   width: 40%;
 }
 
-#table-polizas {
-   flex-grow: 3;
+.table-polizas {
+   width: 60%;
+}
+
+.form-data {
+   width: 100%;
+}
+
+.form__input-data {
+   position: relative;
+   margin: 7px;
 }
 
 .input-sibling {
    display: flex;
 }
 
-.input-date:nth-child(1) {
-   width: 50%;
-   margin-right: 5px;
+.input-sibling-child {
+   flex-grow: 1;
 }
 
-.input-date:nth-child(2) {
-   width: 50%;
-   margin-left: 5px;
+.button-container {
+   width: 100%;
+   display: flex;
+}
+
+.btn {
+   flex-grow: 1;
+   margin: 2px;
+   padding: 8px 2px;
+}
+
+.label-input-data {
+   margin-bottom: 0px; /* sobre escribe propiedad declarada por bootstrap */
+   opacity: 1;
+   color: var(--gris-medio);
+}
+
+tbody tr,
+tbody tr td {
+   height: 10px;
+}
+
+tbody tr:nth-child(2n + 1) {
+   color: var(--color-claro);
+   background-color: var(--gris-medio);
+}
+
+.form-control {
+   border-bottom: 1px solid var(--gris-medio);
 }
