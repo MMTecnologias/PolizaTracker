@@ -54,7 +54,7 @@ CREATE TABLE `agentes` (
   `nombre` varchar(50) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `nombre` (`nombre`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -63,7 +63,7 @@ CREATE TABLE `agentes` (
 
 LOCK TABLES `agentes` WRITE;
 /*!40000 ALTER TABLE `agentes` DISABLE KEYS */;
-INSERT INTO `agentes` VALUES (2,'Abby'),(1,'Memo');
+INSERT INTO `agentes` VALUES (2,'Abby'),(3,'Guillermo Garduño'),(1,'Memo');
 /*!40000 ALTER TABLE `agentes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -79,7 +79,7 @@ CREATE TABLE `aseguradoras` (
   `aseguradora` varchar(40) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `aseguradora` (`aseguradora`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -88,7 +88,7 @@ CREATE TABLE `aseguradoras` (
 
 LOCK TABLES `aseguradoras` WRITE;
 /*!40000 ALTER TABLE `aseguradoras` DISABLE KEYS */;
-INSERT INTO `aseguradoras` VALUES (5,'AXA'),(2,'BBVA'),(13,'gnp'),(15,'GNPp'),(3,'INBURSA'),(1,'METLIFE');
+INSERT INTO `aseguradoras` VALUES (5,'AXA'),(2,'BBVA'),(13,'gnp'),(15,'GNPp'),(3,'INBURSA'),(23,'Interacciones'),(1,'METLIFE');
 /*!40000 ALTER TABLE `aseguradoras` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -119,7 +119,7 @@ CREATE TABLE `clientes` (
   UNIQUE KEY `rfc` (`rfc`),
   KEY `grupo_id` (`grupo_id`),
   CONSTRAINT `clientes_ibfk_1` FOREIGN KEY (`grupo_id`) REFERENCES `grupos` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -128,7 +128,7 @@ CREATE TABLE `clientes` (
 
 LOCK TABLES `clientes` WRITE;
 /*!40000 ALTER TABLE `clientes` DISABLE KEYS */;
-INSERT INTO `clientes` VALUES (1,'Luis Edit',15,'MACL99sasgwud','9932297934','9932079325','1234567890','luismay_99@hotmail.com','Privada Tlaxcala 25','1999-05-04','Hombre','Trabajador','Office','May Custodio','Activo'),(2,'Angel Edited',5,'MAR06','9932297934','9934072546','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','1980-03-31','Mujer','Trabajador','Office','May Custodio','Activo'),(3,'Luis',1,'MAC99','9932297934','9932297934',NULL,'luis@mail.com',NULL,'1999-05-04','Hombre',NULL,NULL,'May','Activo'),(5,'María',2,'MAR123','9987654321','9987654321','','maria@example.com','','1990-07-15','Hombre','','','González','Activo'),(6,'Juan',1,'JUA456','9876543210','9876543210','','juan@example.com','','1985-03-22','Hombre','','','Martínez de OCa','Activo'),(7,'Ana',3,'ANA789','9876541230','9876541230',NULL,'ana@example.com',NULL,'1978-11-10','Hombre',NULL,NULL,'Rodríguez','Activo'),(8,'Pedro',2,'PED654','9876541320','9876541320',NULL,'pedro@example.com',NULL,'1982-09-03','Hombre',NULL,NULL,'Hernández','Activo'),(9,'Laura',1,'LAU321','9876542130','9876542130',NULL,'laura@example.com',NULL,'1995-04-27','Hombre',NULL,NULL,'Gómez','Activo'),(10,'Carlos',3,'CAR987','9876542310','9876542310',NULL,'carlos@example.com',NULL,'1999-12-30','Hombre',NULL,NULL,'Díaz','Activo'),(11,'Sofía',2,'SOF258','9876543210','9876543210',NULL,'sofia@example.com',NULL,'1991-08-20','Hombre',NULL,NULL,'López','Activo'),(12,'Alejandro',1,'ALE369','9876543012','9876543012',NULL,'alejandro@example.com',NULL,'1988-06-18','Hombre',NULL,NULL,'Pérez','Activo'),(13,'Elena',3,'ELE147','9876543201','9876543201',NULL,'elena@example.com',NULL,'1976-02-14','Hombre',NULL,NULL,'Sánchez','Activo'),(14,'Daniel',2,'DAN258','9876543120','9876543120',NULL,'daniel@example.com',NULL,'1993-10-08','Hombre',NULL,NULL,'García','Activo'),(15,'Lucía',1,'LUC456','9876543102','9876543102',NULL,'lucia@example.com',NULL,'1980-05-01','Hombre',NULL,NULL,'Fernández','Activo'),(16,'Jorge',3,'JOR987','9876543012','9876543012',NULL,'jorge@example.com',NULL,'1974-07-11','Hombre',NULL,NULL,'Torres','Activo'),(17,'Valeria',2,'VAL321','9876543021','9876543021',NULL,'valeria@example.com',NULL,'1997-11-25','Hombre',NULL,NULL,'Ruiz','Eliminado'),(18,'Miguel',1,'MIG258','9876543102','9876543102',NULL,'miguel@example.com',NULL,'1987-03-17','Hombre',NULL,NULL,'Cruz','Activo'),(19,'Paola',3,'PAO147','9876543120','9876543120',NULL,'paola@example.com',NULL,'1992-09-09','Hombre',NULL,NULL,'Ortiz','Activo'),(20,'Gabriel',2,'GAB369','9876543012','9876543012',NULL,'gabriel@example.com',NULL,'1984-12-06','Hombre',NULL,NULL,'Dominguez','Activo'),(21,'Julia',1,'JUL456','9876543201','9876543201',NULL,'julia@example.com',NULL,'1979-08-28','Hombre',NULL,NULL,'Ramírez','Activo'),(22,'Diego',3,'DIE987','9876543102','9876543102',NULL,'diego@example.com',NULL,'1996-06-23','Hombre',NULL,NULL,'Núñez','Activo'),(23,'Fernanda',2,'FER321','9876543012','9876543012',NULL,'fernanda@example.com',NULL,'1983-02-19','Hombre',NULL,NULL,'Santos','Activo'),(24,'Andrés',1,'AND258','9876543120','9876543120',NULL,'andres@example.com',NULL,'1998-04-13','Hombre',NULL,NULL,'Reyes','Activo'),(25,'Carolina',3,'CAR147','9876543201','9876543201',NULL,'carolina@example.com',NULL,'1977-10-05','Hombre',NULL,NULL,'Gutiérrez','Activo'),(26,'Martín',2,'MAR369','9876543102','9876543102',NULL,'martin@example.com',NULL,'1994-12-31','Hombre',NULL,NULL,'Vázquez','Activo'),(27,'Sara',1,'SAR456','9876543201','9876543201',NULL,'sara@example.com',NULL,'1981-07-24','Hombre',NULL,NULL,'Iglesias','Activo'),(28,'Roberto',3,'ROB987','9876543012','9876543012',NULL,'roberto@example.com',NULL,'1973-05-16','Hombre',NULL,NULL,'León','Activo'),(29,'Cristina',2,'CRI321','9876543120','9876543120',NULL,'cristina@example.com',NULL,'1990-03-11','Hombre',NULL,NULL,'Molina','Activo'),(30,'Raúl',1,'RAU258','9876543201','9876543201',NULL,'raul@example.com',NULL,'1986-09-02','Hombre',NULL,NULL,'Aguilar','Activo'),(31,'Lorena',3,'LOR147','9876543102','9876543102',NULL,'lorena@example.com',NULL,'1999-02-26','Hombre',NULL,NULL,'Jiménez','Activo'),(32,'Emilio editado',2,'EMI369','9876543012','9876543012','','emilio@example.com','','1975-04-21','Hombre','','','Castro','Activo'),(33,'Luis',15,'ADR456','9932297934','9876543201','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','1992-12-14','Hombre','Home','Office','May Custodio','Activo'),(34,'Hugo',3,'HUG987','9876543120','9876543120',NULL,'hugo@example.com',NULL,'1989-08-07','Hombre',NULL,NULL,'Flores','Activo'),(35,'Luis',3,'MACL990504712',NULL,NULL,NULL,'luismay_99@hotmail.com',NULL,'2024-02-13','Hombre','Home',NULL,'May Custodio','Eliminado'),(37,'Luis',4,'MACL990504355',NULL,NULL,NULL,'luismay_99@hotmail.com',NULL,'2024-02-20','Mujer','Home',NULL,'May Custodio','Eliminado'),(38,'Dummy',1,'DUMMY12345678',NULL,NULL,NULL,'dummy@mail.com',NULL,'2020-10-21','Otro',NULL,NULL,'Client','Eliminado'),(39,'Luis',2,'cndkdjskdjsdl','9932297934','1234567890','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','2024-02-04','Hombre','Home','Office','May Custodio','Activo'),(40,'editado',1,'MACL990453453','9932297934','9932079325','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','1999-05-04','Hombre','Trabajador','Office','May Custodio','Activo'),(41,'Luis',6,'fgmdkvldsfkdl','9932297931','9932297932','9932297933','luismay_99@hotmail.com','Privada Tlaxcala 25','2024-02-12','Hombre','Home','Office','May Custodio','Activo'),(42,'Luis',3,'MACL990504hvj','9932297934','9932297934','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','2024-02-05','Hombre','Trabajador','Office','May Custodio','Activo');
+INSERT INTO `clientes` VALUES (1,'Luis Edit',15,'MACL99sasgwud','9932297934','9932079325','1234567890','luismay_99@hotmail.com','Privada Tlaxcala 25','1999-05-04','Hombre','Trabajador','Office','May Custodio','Activo'),(2,'Angel Edited',5,'MAR06','9932297934','9934072546','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','1980-03-31','Mujer','Trabajador','Office','May Custodio','Activo'),(3,'Luis',1,'MAC99','9932297934','9932297934',NULL,'luis@mail.com',NULL,'1999-05-04','Hombre',NULL,NULL,'May','Activo'),(5,'María',2,'MAR123','9987654321','9987654321','','maria@example.com','','1990-07-15','Hombre','','','González','Activo'),(6,'Juan',1,'JUA456','9876543210','9876543210','','juan@example.com','','1985-03-22','Hombre','','','Martínez de OCa','Activo'),(7,'Ana',3,'ANA789','9876541230','9876541230',NULL,'ana@example.com',NULL,'1978-11-10','Hombre',NULL,NULL,'Rodríguez','Activo'),(8,'Pedro',2,'PED654','9876541320','9876541320',NULL,'pedro@example.com',NULL,'1982-09-03','Hombre',NULL,NULL,'Hernández','Activo'),(9,'Laura',1,'LAU321','9876542130','9876542130',NULL,'laura@example.com',NULL,'1995-04-27','Hombre',NULL,NULL,'Gómez','Activo'),(10,'Carlos',3,'CAR987','9876542310','9876542310',NULL,'carlos@example.com',NULL,'1999-12-30','Hombre',NULL,NULL,'Díaz','Activo'),(11,'Sofía',2,'SOF258','9876543210','9876543210',NULL,'sofia@example.com',NULL,'1991-08-20','Hombre',NULL,NULL,'López','Activo'),(12,'Alejandro',1,'ALE369','9876543012','9876543012',NULL,'alejandro@example.com',NULL,'1988-06-18','Hombre',NULL,NULL,'Pérez','Activo'),(13,'Elena',3,'ELE147','9876543201','9876543201',NULL,'elena@example.com',NULL,'1976-02-14','Hombre',NULL,NULL,'Sánchez','Activo'),(14,'Daniel',2,'DAN258','9876543120','9876543120',NULL,'daniel@example.com',NULL,'1993-10-08','Hombre',NULL,NULL,'García','Activo'),(15,'Lucía',1,'LUC456','9876543102','9876543102',NULL,'lucia@example.com',NULL,'1980-05-01','Hombre',NULL,NULL,'Fernández','Activo'),(16,'Jorge',3,'JOR987','9876543012','9876543012',NULL,'jorge@example.com',NULL,'1974-07-11','Hombre',NULL,NULL,'Torres','Activo'),(17,'Valeria',2,'VAL321','9876543021','9876543021',NULL,'valeria@example.com',NULL,'1997-11-25','Hombre',NULL,NULL,'Ruiz','Eliminado'),(18,'Miguel',1,'MIG258','9876543102','9876543102',NULL,'miguel@example.com',NULL,'1987-03-17','Hombre',NULL,NULL,'Cruz','Activo'),(19,'Paola',3,'PAO147','9876543120','9876543120',NULL,'paola@example.com',NULL,'1992-09-09','Hombre',NULL,NULL,'Ortiz','Activo'),(20,'Gabriel',2,'GAB369','9876543012','9876543012',NULL,'gabriel@example.com',NULL,'1984-12-06','Hombre',NULL,NULL,'Dominguez','Activo'),(21,'Julia',1,'JUL456','9876543201','9876543201',NULL,'julia@example.com',NULL,'1979-08-28','Hombre',NULL,NULL,'Ramírez','Activo'),(22,'Diego',3,'DIE987','9876543102','9876543102',NULL,'diego@example.com',NULL,'1996-06-23','Hombre',NULL,NULL,'Núñez','Activo'),(23,'Fernanda',2,'FER321','9876543012','9876543012',NULL,'fernanda@example.com',NULL,'1983-02-19','Hombre',NULL,NULL,'Santos','Activo'),(24,'Andrés',1,'AND258','9876543120','9876543120',NULL,'andres@example.com',NULL,'1998-04-13','Hombre',NULL,NULL,'Reyes','Activo'),(25,'Carolina',3,'CAR147','9876543201','9876543201',NULL,'carolina@example.com',NULL,'1977-10-05','Hombre',NULL,NULL,'Gutiérrez','Activo'),(26,'Martín',2,'MAR369','9876543102','9876543102',NULL,'martin@example.com',NULL,'1994-12-31','Hombre',NULL,NULL,'Vázquez','Activo'),(27,'Sara',1,'SAR456','9876543201','9876543201',NULL,'sara@example.com',NULL,'1981-07-24','Hombre',NULL,NULL,'Iglesias','Activo'),(28,'Roberto',3,'ROB987','9876543012','9876543012',NULL,'roberto@example.com',NULL,'1973-05-16','Hombre',NULL,NULL,'León','Activo'),(29,'Cristina',2,'CRI321','9876543120','9876543120',NULL,'cristina@example.com',NULL,'1990-03-11','Hombre',NULL,NULL,'Molina','Activo'),(30,'Raúl',1,'RAU258','9876543201','9876543201',NULL,'raul@example.com',NULL,'1986-09-02','Hombre',NULL,NULL,'Aguilar','Activo'),(31,'Lorena',3,'LOR147','9876543102','9876543102',NULL,'lorena@example.com',NULL,'1999-02-26','Hombre',NULL,NULL,'Jiménez','Activo'),(32,'Emilio editado',2,'EMI369','9876543012','9876543012','','emilio@example.com','','1975-04-21','Hombre','','','Castro','Activo'),(33,'Luis',15,'ADR456','9932297934','9876543201','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','1992-12-14','Hombre','Home','Office','May Custodio','Activo'),(34,'Hugo',3,'HUG987','9876543120','9876543120',NULL,'hugo@example.com',NULL,'1989-08-07','Hombre',NULL,NULL,'Flores','Activo'),(35,'Luis',3,'MACL990504712',NULL,NULL,NULL,'luismay_99@hotmail.com',NULL,'2024-02-13','Hombre','Home',NULL,'May Custodio','Eliminado'),(37,'Luis',4,'MACL990504355',NULL,NULL,NULL,'luismay_99@hotmail.com',NULL,'2024-02-20','Mujer','Home',NULL,'May Custodio','Eliminado'),(38,'Dummy',1,'DUMMY12345678',NULL,NULL,NULL,'dummy@mail.com',NULL,'2020-10-21','Otro',NULL,NULL,'Client','Eliminado'),(39,'Luis',2,'cndkdjskdjsdl','9932297934','1234567890','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','2024-02-04','Hombre','Home','Office','May Custodio','Activo'),(40,'editado',1,'MACL990453453','9932297934','9932079325','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','1999-05-04','Hombre','Trabajador','Office','May Custodio','Activo'),(41,'Luis',6,'fgmdkvldsfkdl','9932297931','9932297932','9932297933','luismay_99@hotmail.com','Privada Tlaxcala 25','2024-02-12','Hombre','Home','Office','May Custodio','Activo'),(42,'Luis',3,'MACL990504hvj','9932297934','9932297934','9932297934','luismay_99@hotmail.com','Privada Tlaxcala 25','2024-02-05','Hombre','Trabajador','Office','May Custodio','Activo'),(43,'Juan Antonio',16,'FOGJ480920ZX8','2222801193','2222801193','2222801193','jafg77@yahoo.com','37 poniente 127, gabriel pastor, Puebla, PUE CP 72420','1948-09-20','Mujer','Otro','Otro','Flores Galvan','Activo');
 /*!40000 ALTER TABLE `clientes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -145,7 +145,7 @@ CREATE TABLE `grupos` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `grupo` (`grupo`),
   UNIQUE KEY `grupo_2` (`grupo`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -154,7 +154,7 @@ CREATE TABLE `grupos` (
 
 LOCK TABLES `grupos` WRITE;
 /*!40000 ALTER TABLE `grupos` DISABLE KEYS */;
-INSERT INTO `grupos` VALUES (2,'Angelopolis A'),(7,'Eliazar'),(1,'General B'),(10,'Heyeeeeee'),(15,'heyhola hey'),(6,'Julio'),(4,'Luis'),(5,'Marin'),(9,'new'),(14,'nonononon'),(12,'Nooooo'),(3,'Parra'),(11,'Yei'),(13,'Yoyo');
+INSERT INTO `grupos` VALUES (2,'Angelopolis A'),(7,'Eliazar'),(16,'GENERAL'),(1,'General B'),(10,'Heyeeeeee'),(15,'heyhola hey'),(6,'Julio'),(4,'Luis'),(5,'Marin'),(9,'new'),(14,'nonononon'),(12,'Nooooo'),(3,'Parra'),(11,'Yei'),(13,'Yoyo');
 /*!40000 ALTER TABLE `grupos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -228,7 +228,7 @@ CREATE TABLE `polizas` (
   CONSTRAINT `polizas_ibfk_4` FOREIGN KEY (`tipo_pago_id`) REFERENCES `tipos_pagos` (`id`),
   CONSTRAINT `polizas_ibfk_5` FOREIGN KEY (`agente_id`) REFERENCES `agentes` (`id`),
   CONSTRAINT `polizas_ibfk_6` FOREIGN KEY (`aseguradora_id`) REFERENCES `aseguradoras` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -237,7 +237,7 @@ CREATE TABLE `polizas` (
 
 LOCK TABLES `polizas` WRITE;
 /*!40000 ALTER TABLE `polizas` DISABLE KEYS */;
-INSERT INTO `polizas` VALUES (3,1,'2023-12-26','Si',1,3,'2023-12-26','2024-12-26','MXN',1,1,3,'AB1',NULL,NULL,NULL,2639.23,3500.00,'Vigente',NULL,0.1600,NULL,NULL,NULL),(4,2,'2021-12-26','What?',2,1,'2022-03-26','2024-03-26','MXN',3,1,2,'sd2',NULL,'1939DDF23','12332',150000.00,200000.00,'Vigente',NULL,0.1600,NULL,NULL,NULL),(5,1,'2021-12-26',NULL,3,2,'2023-08-26','2024-08-26','USD',2,2,2,'ADJ4',NULL,NULL,NULL,93628.23,100000.00,'Vigente',500.00,0.1600,-0.0973,0.2000,'Generados'),(6,1,'2021-12-26',NULL,1,2,'2021-08-26','2023-08-26','MXN',4,2,3,'Luis',NULL,NULL,NULL,500.00,1000.00,'Vigente',200.00,0.1600,0.4400,0.2000,'Generados');
+INSERT INTO `polizas` VALUES (3,1,'2023-12-26','Si',1,3,'2023-12-26','2024-12-26','MXN',1,1,3,'AB1',NULL,NULL,NULL,2639.23,3500.00,'Vigente',10.00,0.1000,0.2224,0.1000,'Generados'),(4,2,'2021-12-26','What?',2,1,'2022-03-26','2024-03-26','MXN',3,1,2,'sd2',NULL,'1939DDF23','12332',150000.00,200000.00,'Vigente',NULL,0.1600,NULL,NULL,NULL),(5,1,'2021-12-26',NULL,3,2,'2023-08-26','2024-08-26','USD',2,2,2,'ADJ4',NULL,NULL,NULL,93628.23,100000.00,'Vigente',500.00,0.1600,-0.0973,0.2000,'Generados'),(6,1,'2021-12-26',NULL,1,2,'2021-08-26','2023-08-26','MXN',4,2,3,'Luis',NULL,NULL,NULL,500.00,1000.00,'Vigente',200.00,0.1600,0.4400,0.2000,'Generados'),(7,1,'2021-12-26',NULL,1,2,'2021-08-26','2022-08-26','MXN',3,1,2,'MArina',NULL,NULL,NULL,500.00,1000.00,'Vigente',200.00,0.1600,0.4400,0.2500,'Generados'),(8,43,'2024-03-01',NULL,4,4,'2023-09-27','2024-09-27','MXN',3,3,23,'2333211','BANORTE** deducibel 70,000 coaseguro 10%','2333212',NULL,93231.35,116693.95,'Vigente',986.00,0.1600,0.0811,0.0000,'Generados');
 /*!40000 ALTER TABLE `polizas` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -253,7 +253,7 @@ CREATE TABLE `ramos` (
   `ramo` varchar(30) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `ramo` (`ramo`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -262,7 +262,7 @@ CREATE TABLE `ramos` (
 
 LOCK TABLES `ramos` WRITE;
 /*!40000 ALTER TABLE `ramos` DISABLE KEYS */;
-INSERT INTO `ramos` VALUES (2,'Auto'),(3,'SGM'),(1,'Vida');
+INSERT INTO `ramos` VALUES (2,'Auto'),(4,'Gastos Medicos'),(3,'SGM'),(1,'Vida');
 /*!40000 ALTER TABLE `ramos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -288,7 +288,7 @@ CREATE TABLE `recibos` (
   PRIMARY KEY (`id`),
   KEY `poliza_id` (`poliza_id`),
   CONSTRAINT `recibos_ibfk_1` FOREIGN KEY (`poliza_id`) REFERENCES `polizas` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -297,7 +297,7 @@ CREATE TABLE `recibos` (
 
 LOCK TABLES `recibos` WRITE;
 /*!40000 ALTER TABLE `recibos` DISABLE KEYS */;
-INSERT INTO `recibos` VALUES (1,'2023-12-26','2023-01-26',3,2639.23,3500.00,200.00,'Pendiente',NULL,NULL,'1 / 1'),(2,'2022-03-26','2022-04-26',4,37500.00,50000.00,1000.00,'Liquidado','2022-04-02','AEFJ34','1 / 1'),(3,'2022-09-26','2022-10-26',4,37500.00,50000.00,1000.00,'Liquidado','2022-10-15','SDAA12','1 / 1'),(4,'2023-03-26','2023-04-26',4,37500.00,50000.00,1000.00,'Liquidado','2023-04-12','SDAF34','1 / 1'),(5,'2023-09-26','2023-10-26',4,37500.00,50000.00,1000.00,'Liquidado','2023-10-01','DALK45','1 / 1'),(6,'2021-08-26','2022-02-26',6,125.00,400.00,50.00,'Pendiente',NULL,NULL,'1 / 4'),(7,'2022-02-26','2022-08-26',6,125.00,200.00,50.00,'Pendiente',NULL,NULL,'2 / 4'),(8,'2022-08-26','2023-02-26',6,125.00,200.00,50.00,'Pendiente',NULL,NULL,'3 / 4'),(9,'2023-02-26','2023-08-26',6,125.00,200.00,50.00,'Pendiente',NULL,NULL,'4 / 4'),(10,'2023-08-26','2023-09-26',5,7802.35,8791.67,1666.67,'Pendiente',NULL,NULL,'1 / 12'),(11,'2023-09-26','2023-10-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'2 / 12'),(12,'2023-10-26','2023-11-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'3 / 12'),(13,'2023-11-26','2023-12-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'4 / 12'),(14,'2023-12-26','2024-01-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'5 / 12'),(15,'2024-01-26','2024-02-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'6 / 12'),(16,'2024-02-26','2024-03-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'7 / 12'),(17,'2024-03-26','2024-04-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'8 / 12'),(18,'2024-04-26','2024-05-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'9 / 12'),(19,'2024-05-26','2024-06-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'10 / 12'),(20,'2024-06-26','2024-07-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'11 / 12'),(21,'2024-07-26','2024-08-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'12 / 12');
+INSERT INTO `recibos` VALUES (1,'2023-12-26','2023-01-26',3,2639.23,3500.00,200.00,'Pendiente',NULL,NULL,'1 / 1'),(2,'2022-03-26','2022-04-26',4,37500.00,50000.00,1000.00,'Liquidado','2022-04-02','AEFJ34','1 / 1'),(3,'2022-09-26','2022-10-26',4,37500.00,50000.00,1000.00,'Liquidado','2022-10-15','SDAA12','1 / 1'),(4,'2023-03-26','2023-04-26',4,37500.00,50000.00,1000.00,'Liquidado','2023-04-12','SDAF34','1 / 1'),(5,'2023-09-26','2023-10-26',4,37500.00,50000.00,1000.00,'Liquidado','2023-10-01','DALK45','1 / 1'),(6,'2021-08-26','2022-02-26',6,125.00,400.00,50.00,'Pendiente',NULL,NULL,'1 / 4'),(7,'2022-02-26','2022-08-26',6,125.00,200.00,50.00,'Pendiente',NULL,NULL,'2 / 4'),(8,'2022-08-26','2023-02-26',6,125.00,200.00,50.00,'Pendiente',NULL,NULL,'3 / 4'),(9,'2023-02-26','2023-08-26',6,125.00,200.00,50.00,'Pendiente',NULL,NULL,'4 / 4'),(10,'2023-08-26','2023-09-26',5,7802.35,8791.67,1666.67,'Pendiente',NULL,NULL,'1 / 12'),(11,'2023-09-26','2023-10-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'2 / 12'),(12,'2023-10-26','2023-11-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'3 / 12'),(13,'2023-11-26','2023-12-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'4 / 12'),(14,'2023-12-26','2024-01-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'5 / 12'),(15,'2024-01-26','2024-02-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'6 / 12'),(16,'2024-02-26','2024-03-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'7 / 12'),(17,'2024-03-26','2024-04-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'8 / 12'),(18,'2024-04-26','2024-05-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'9 / 12'),(19,'2024-05-26','2024-06-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'10 / 12'),(20,'2024-06-26','2024-07-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'11 / 12'),(21,'2024-07-26','2024-08-26',5,7802.35,8291.67,1666.67,'Pendiente',NULL,NULL,'12 / 12'),(22,'2023-12-26','2024-12-26',3,2639.23,3500.00,350.00,'Pendiente',NULL,NULL,'1 / 1'),(23,'2021-08-26','2021-11-26',7,125.00,400.00,62.50,'Pendiente',NULL,NULL,'1 / 4'),(24,'2021-11-26','2022-02-26',7,125.00,200.00,62.50,'Pendiente',NULL,NULL,'2 / 4'),(25,'2022-02-26','2022-05-26',7,125.00,200.00,62.50,'Pendiente',NULL,NULL,'3 / 4'),(26,'2022-05-26','2022-08-26',7,125.00,200.00,62.50,'Pendiente',NULL,NULL,'4 / 4'),(31,'2023-09-27','2023-12-27',8,23307.84,29912.99,0.00,'Pendiente',NULL,NULL,'1 / 4'),(32,'2023-12-27','2024-03-27',8,23307.84,28926.99,0.00,'Pendiente',NULL,NULL,'2 / 4'),(33,'2024-03-27','2024-06-27',8,23307.84,28926.99,0.00,'Pendiente',NULL,NULL,'3 / 4'),(34,'2024-06-27','2024-09-27',8,23307.84,28926.99,0.00,'Pendiente',NULL,NULL,'4 / 4');
 /*!40000 ALTER TABLE `recibos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -363,7 +363,7 @@ CREATE TABLE `subramos` (
   `subramo` varchar(30) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `subramo` (`subramo`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -372,7 +372,7 @@ CREATE TABLE `subramos` (
 
 LOCK TABLES `subramos` WRITE;
 /*!40000 ALTER TABLE `subramos` DISABLE KEYS */;
-INSERT INTO `subramos` VALUES (2,'Familiar'),(3,'Grupal'),(1,'Individual');
+INSERT INTO `subramos` VALUES (2,'Familiar'),(3,'Grupal'),(4,'IND/FAM'),(1,'Individual');
 /*!40000 ALTER TABLE `subramos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -447,4 +447,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-02-27 12:46:53
+-- Dump completed on 2024-03-01 13:41:43
