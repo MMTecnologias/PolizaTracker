@@ -1,7 +1,8 @@
 flaskapp\auth\
 auth\
-config.py
-__pycache__\
+/__pycache__/
+/instance/
+/config.py
 
 # Ignoramos las carpetas creadas por Python y sus paquetes virtuales
 __pycache__/
