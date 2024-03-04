@@ -187,6 +187,7 @@ p {
 }
 
 .name-app {
+   color: var(--gris-medio);
    margin: auto 6px;
 }
 
