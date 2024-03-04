@@ -33,3 +33,7 @@ docs/_build/html/
 
 # Archivos de cache de Flask-Babel
 flaskbabel*.pyc
+
+env/
+env
+
