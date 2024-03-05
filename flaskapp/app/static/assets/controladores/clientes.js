@@ -1,3 +1,4 @@
+import { datatableConfig } from './datatable-config.js';
 
 $(document).ready(function() {
     
@@ -5,10 +6,10 @@ $(document).ready(function() {
     $('#grupo').change(function() {
         var selectedOption = $(this).val();
         if (selectedOption === 'New') {
-            $('.nuevo-grupo-input').show(); // Corrected class name
+            $('#nuevo_grupo_div').show(); // Corrected class name
             $('#nuevo_grupo').prop('required', true);
         } else {
-            $('.nuevo-grupo-input').hide(); // Corrected class name
+            $('#nuevo_grupo_div').hide(); // Corrected class name
             $('#nuevo_grupo').prop('required', false);
         }
     });
@@ -30,15 +31,14 @@ $(document).ready(function() {
             var table = $('#myTable').DataTable();
             table.ajax.reload();
         }
+        $('#nuevo_grupo_div').hide(); // Corrected class name
     }
 
 
     // Configuracion de Tabla de clientes
+    
     var table = $("#myTable").DataTable({
-        "responsive": false,
-        "lengthChange": true,
-        "autoWidth": true,
-        "serverSide": true,
+        ...datatableConfig,
         "ajax": {
             "url": "/get_clients_data",
             "type": "POST",
@@ -77,53 +77,6 @@ $(document).ready(function() {
             {"data": "actividad", "visible": false, "title": "Actividad"}
             //{"data": "status", "visible": false, "title": "Status"}
         ],
-        "language": {
-            "decimal": "",
-            "emptyTable": "No hay datos disponibles en la tabla",
-            "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
-            "infoEmpty": "Mostrando 0 a 0 de 0 entradas",
-            "infoFiltered": "(filtrado de MAX entradas totales)",
-            "infoPostFix": "",
-            "thousands": ",",
-            "lengthMenu": '<span class="d-flex">Mostrar <select class="form-control form-control-sm ml-2 mr-2"> ' +
-                '<option value="10">10</option>' +
-                '<option value="20">20</option>' +
-                '<option value="30">30</option>' + " " +
-                ' entradas</span>',
-            "loadingRecords": "Cargando...",
-            "processing": "Procesando...",
-            "search": "Buscar:",
-            "zeroRecords": "No se encontraron registros coincidentes",
-            "paginate": {
-                "first": "Primero",
-                "last": "Último",
-                "next": "Siguiente",
-                "previous": "Anterior"
-            },
-            "aria": {
-                "sortAscending": ": activar para ordenar la columna en orden ascendente",
-                "sortDescending": ": activar para ordenar la columna en orden descendente"
-            }
-        },
-        "buttons": [
-            {
-                
-                extend: 'csv',
-                text: 'Exportar',
-                exportOptions: {
-                    columns: [0, 1, 2, 8,9,10,11,12,13,14,15,16]
-                },
-                filename: 'usuarios_data',
-                className: 'btn btn-success',
-                customize: function(csv) {
-                    return '\uFEFF' + csv;
-                }
-            }
-        ]
-    });
-    //Asignar funcionalidad de exportar al boton
-    $('#exportCSVButton').on('click', function() {
-        table.buttons().trigger();
     });
 
     $('#myTable_wrapper .col-md-6:eq(0)').append($('#myTable_wrapper .dt-buttons'));
@@ -213,6 +166,7 @@ $(document).ready(function() {
         $('#rfc').prop('disabled', true);
 
         $('#Savebtn').text('Guardar');
+        $('#nuevo_grupo_div').hide(); // Corrected class name
     });
 
     //Funcion con AJAX para eliminacion de usuarios
