@@ -187,6 +187,7 @@ p {
 }
 
 .name-app {
+   color: var(--gris-medio);
    margin: auto 6px;
 }
 
@@ -307,4 +308,37 @@ tbody tr:nth-child(2n + 1) {
 
 .form-control {
    border-bottom: 1px solid var(--gris-medio);
+}
+
+/* Estilos tablas clientes */
+
+.header-table {
+   width: 100%;
+   margin: 0;
+   padding: 0;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+}
+
+.table-options {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+}
+
+.link-option {
+   margin: 0 8px 0 0;
+}
+
+#myTable_wrapper {
+   width: 100%;
+}
+#myTable {
+   width: 100%;
+}
+
+a .edit,
+a .delete {
+   color: var(--color-primario);
 }

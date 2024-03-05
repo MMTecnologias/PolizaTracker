@@ -92,13 +92,16 @@
 
    <body>
       <nav class="navbar">
-         <div class="app-section">
+         <a
+            class="app-section"
+            href="{{ url_for('main.index') }}"
+         >
             <h2 class="name-app">Póliza Tracker</h2>
             <img
                src="{{ url_for('static',filename='assets/images/GGGC.png') }}"
                class="logo-ggc"
             />
-         </div>
+         </a>
 
          <div class="user-profile pull-right">
             <h6
@@ -278,24 +281,81 @@
                      </select>
                      <p class="invalid-feedback">Selecciona un acceso valido</p>
                   </div>
-                  <div class="form__input-data">
-                     <label class="label-input-data input-sibling-child"
-                        >Aseguradora</label
-                     >
-                     <select
-                        class="custom-select"
-                        id="Aseguradora"
-                        name="Aseguradora"
-                        required
-                     >
-                        <option value="">Selecciona...</option>
-                        <option value="Hombre"></option>
-                     </select>
-                     <p class="invalid-feedback">Selecciona un acceso valido</p>
+               </div>
+
+               <div class="form__input-data">
+                  <label class="label-input-data input-sibling-child">
+                     Aseguradora
+                  </label>
+                  <select
+                     class="custom-select"
+                     id="Aseguradora"
+                     name="Aseguradora"
+                     required
+                  >
+                     <option value="">Selecciona...</option>
+                     <option value="Hombre"></option>
+                  </select>
+                  <p class="invalid-feedback">Selecciona un acceso valido</p>
+               </div>
+
+               <div class="form__input-data">
+                  <label class="label-input-data">Buscar cliente</label>
+                  <div class="input-group">
+                     <input
+                        type="search"
+                        class="form-control rounded"
+                        id="buscar-cliente"
+                        aria-label="Search"
+                        aria-describedby="search-addon"
+                     />
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
                   </div>
                </div>
                <div class="form__input-data">
                   <label class="label-input-data">Agente</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Agente"
+                        name="Agente"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
+               <div class="form__input-data">
+                  <label class="label-input-data">Prima Neta</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Agente"
+                        name="Agente"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
+               <div class="form__input-data">
+                  <label class="label-input-data">Prima Total</label>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="Agente"
+                        name="Agente"
+                        aria-describedby="inputGroupPrepend"
+                        required=""
+                     />
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
+               <div class="form__input-data">
+                  <label class="label-input-data">Notas</label>
                   <div class="input-group">
                      <input
                         type="text"
