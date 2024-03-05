@@ -2843,6 +2843,7 @@ table.dataTable thead td {
 }
 
 .btn {
+   color: var(--white);
    background-color: #ea4e01;
    border: 0;
 }
@@ -3154,3 +3155,4 @@ text {
 } */
 
 /*-------------------- END Offset Sidebar ------------------- */
+
