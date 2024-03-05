@@ -66,10 +66,22 @@ $(document).ready(function() {
             { "data": "prima_neta" },
             { "data": "prima_total" },
             { "data": "comision" },
-            { "data": "pagado" },
+            { 
+                "data": "pagado",
+                "render": function(data, type, row) {
+                    // Render a checkbox based on the value of 'pagado'
+                    return data ? '<input type="checkbox" checked disabled>' : '<input type="checkbox" disabled>';
+                }
+            },
             { "data": "fecha_pago" },
             { "data": "comprobante" },
-            { "data": "cancelado" }
+            { 
+                "data": "cancelado",
+                "render": function(data, type, row) {
+                    // Render a checkbox based on the value of 'pagado'
+                    return data ? '<input type="checkbox" checked disabled>' : '<input type="checkbox" disabled>';
+                }
+            }
         ]
     });
     
