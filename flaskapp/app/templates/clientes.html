@@ -144,7 +144,7 @@
 
                <div class="form__input-data">
                   <label
-                     for="cliente"
+                     for="nombre"
                      class="label-input-data"
                   >
                      Nombre Cliente
@@ -266,7 +266,7 @@
                   </div>
                </div>
                <div class="form__input-data">
-                  <label class="label-input-data">Correo Electrónico</label>
+                  <label class="label-input-data" for="correo">Correo Electrónico</label>
                   <div class="input-group">
                      <input
                         type="email"
@@ -406,8 +406,9 @@
                   <p class="invalid-feedback">Selecciona un grupo válido.</p>
                </div>
                <div
-                  class="form__input-data"
+                  class="form__input-data" 
                   style="display: none"
+                  id="nuevo_grupo_div"
                >
                   <label
                      for="nuevo_grupo"
@@ -454,14 +455,6 @@
 
                <div class="table-options">
                   <!-- Revisar HREF -->
-                  <a
-                     href="{{ url_for('main.export_clients') }}"
-                     class="link-forgot-pass link-option"
-                     id="exportCSVButton"
-                  >
-                     Exportar
-                  </a>
-
                   <a
                      href="{{ url_for('main.export_clients') }}"
                      class="link-forgot-pass link-option"
@@ -526,6 +519,7 @@
          var deleteicon =
             "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
       </script>
-      <script src="{{ url_for('static', filename='assets/controladores/clientes.js') }}"></script>
+      <script type="module" src="{{ url_for('static', filename='assets/controladores/clientes.js') }}"></script>
    </body>
 </html>
+

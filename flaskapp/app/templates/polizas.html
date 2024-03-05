@@ -137,6 +137,7 @@
                class="needs-validation form-data"
                novalidate=""
             >
+               <input type="hidden" id="poliza_id" name="poliza_id" value="New">
                <div class="form__input-data">
                   <label class="label-input-data">Movimiento</label>
                   <div class="input-group">
@@ -306,6 +307,7 @@
                         type="search"
                         class="form-control rounded"
                         id="buscar-cliente"
+                        name="buscar-cliente"
                         aria-label="Search"
                         aria-describedby="search-addon"
                      />
@@ -313,13 +315,13 @@
                   </div>
                </div>
                <div class="form__input-data">
-                  <label class="label-input-data">Agente</label>
+                  <label class="label-input-data" for="agente">Agente</label>
                   <div class="input-group">
                      <input
                         type="text"
                         class="form-control"
-                        id="Agente"
-                        name="Agente"
+                        id="agente"
+                        name="agente"
                         aria-describedby="inputGroupPrepend"
                         required=""
                      />
@@ -327,13 +329,13 @@
                   </div>
                </div>
                <div class="form__input-data">
-                  <label class="label-input-data">Prima Neta</label>
+                  <label class="label-input-data" for="prima_neta">Prima Neta</label>
                   <div class="input-group">
                      <input
                         type="text"
                         class="form-control"
-                        id="Agente"
-                        name="Agente"
+                        id="prima_neta"
+                        name="prima_neta"
                         aria-describedby="inputGroupPrepend"
                         required=""
                      />
@@ -341,13 +343,13 @@
                   </div>
                </div>
                <div class="form__input-data">
-                  <label class="label-input-data">Prima Total</label>
+                  <label class="label-input-data" for="prima_total">Prima Total</label>
                   <div class="input-group">
                      <input
                         type="text"
                         class="form-control"
-                        id="Agente"
-                        name="Agente"
+                        id="prima_total"
+                        name="prima_total"
                         aria-describedby="inputGroupPrepend"
                         required=""
                      />
@@ -355,13 +357,13 @@
                   </div>
                </div>
                <div class="form__input-data">
-                  <label class="label-input-data">Notas</label>
+                  <label class="label-input-data" for="notas">Notas</label>
                   <div class="input-group">
                      <input
                         type="text"
                         class="form-control"
-                        id="Agente"
-                        name="Agente"
+                        id="notas"
+                        name="notas"
                         aria-describedby="inputGroupPrepend"
                         required=""
                      />
@@ -398,216 +400,23 @@
          </div>
 
          <!-- Server side start -->
-
-         <!-- <div
-            class="form__container"
-            id="table-clientes"
-         >
-            <h4 class="header-title">Clientes</h4>
-
-            <form
-               class="needs-validation"
-               novalidate=""
-            >
-              
-
-               <div class="form__input-data">
-                  <label>Nombre Cliente</label>
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="NombreCliente"
-                        name="NombreCliente"
-                        placeholder=""
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un nombre valido</p>
-                  </div>
-               </div>
-
-               <div class="form__input-data">
-                  <label>Apellido</label>
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="Apellido"
-                        name="Apellido"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un apellido valido</p>
-                  </div>
-               </div>
-               <div class="form__input-data">
-                  <label>RFC</label>
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="RFC"
-                        name="RFC"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un RFC valido</p>
-                  </div>
-               </div>
-               <div class="form__input-data">
-                  <label>Teléfonos Móviles</label>
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="TeléfonosMóviles"
-                        name="TeléfonosMóviles"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un teléfono valido</p>
-                  </div>
-               </div>
-               <div class="form__input-data">
-                  <label>Dirección Fiscal</label>
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="DirecciónFiscal"
-                     name="DirecciónFiscal"
-                  />
-                  <p class="invalid-feedback">Ingresa una dirección valida</p>
-               </div>
-               <div class="form__input-data">
-                  <label>Correo</label>
-                  <input
-                     type="email"
-                     class="form-control"
-                     id="Correo"
-                     name="Correo"
-                  />
-                  <p class="invalid-feedback">Ingresa un correo valido</p>
-               </div>
-               <div class="form__input-data">
-                  <label>Grupo</label>
-                  <input
-                     type="email"
-                     class="form-control"
-                     id="Grupo"
-                     name="Grupo"
-                  />
-                  <p class="invalid-feedback">Ingresa un grupo valido</p>
-               </div>
-               <div class="form__input-data">
-                  <label>Serie/Código</label>
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="Serie"
-                     name="Serie"
-                  />
-                  <p class="invalid-feedback">Ingresa un código valido</p>
-               </div>
-
-               <div class="form__input-data">
-                  <label>Póliza anterior</label>
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="PólizaAnterior"
-                     name="PólizaAnterior"
-                  />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data">
-                  <label>Renovación</label>
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="Renovación"
-                     name="Renovación"
-                  />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data">
-                  <label>Prima meta</label>
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="PrimaMeta"
-                     name="PrimaMeta"
-                  />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data">
-                  <label>Prima total</label>
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="PrimaTotal"
-                     name="PrimaTotal"
-                  />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data">
-                  <label for="validationCustom05">Notas</label>
-                  <input
-                     type="text"
-                     class="form-control"
-                     id="Notas"
-                     name="Notas"
-                  />
-               </div>
-            </form>
-         </div> -->
          <div
             class="form__container table-polizas"
             id="table-polizas"
          >
             <h4 class="header-title">Tabla de Pólizas</h4>
 
-            <table class="table">
+            <table class="table" id="polizasTable">
                <thead>
                   <tr>
                      <th scope="col">Póliza</th>
-                     <th scope="col">Forma de Pago</th>
+                     <th scope="col">Cliente</th>
                      <th scope="col">Aseguradora</th>
                      <th scope="col">Vigencia</th>
+                     <th scope="col"></th>
                   </tr>
                </thead>
                <tbody>
-                  <!-- Inicio de datos ficticios -->
-                  <!-- <tr>
-                     <td>1231212</td>
-                     <td>efectivo</td>
-                     <td>1231212</td>
-                     <td>1231212</td>
-                  </tr>
-                  <tr>
-                     <td>1231212</td>
-                     <td>efectivo</td>
-                     <td>1231212</td>
-                     <td>1231212</td>
-                  </tr>
-                  <tr>
-                     <td>1231212</td>
-                     <td>efectivo</td>
-                     <td>1231212</td>
-                     <td>1231212</td>
-                  </tr>
-                  <tr>
-                     <td>1231212</td>
-                     <td>efectivo</td>
-                     <td>1231212</td>
-                     <td>1231212</td>
-                  </tr>
-                  <tr>
-                     <td>1231212</td>
-                     <td>efectivo</td>
-                     <td>1231212</td>
-                     <td>1231212</td>
-                  </tr> -->
                   <!-- Agregar la información de la tabla -->
                </tbody>
             </table>
@@ -618,7 +427,7 @@
 
       <div class="card-body">
          <h4 class="header-title">Listas de Recibos</h4>
-         <table class="table">
+         <table class="table" id="recibosTable">
             <thead>
                <tr>
                   <th scope="col">Número</th>
@@ -634,38 +443,6 @@
                </tr>
             </thead>
             <tbody>
-               <td></td>
-               <td></td>
-               <td></td>
-               <td></td>
-               <td></td>
-               <td></td>
-               <td>
-                  <div class="form-check">
-                     <input
-                        class="form-check-input"
-                        type="checkbox"
-                        value=""
-                        id="CheckPagado"
-                        name="CheckPagado"
-                     />
-                     <label class="form-check-label"> </label>
-                  </div>
-               </td>
-               <td></td>
-               <td></td>
-               <td>
-                  <div class="form-check">
-                     <input
-                        class="form-check-input"
-                        type="checkbox"
-                        value=""
-                        id="CheckCancelado"
-                        name="CheckCancelado"
-                     />
-                     <label class="form-check-label"> </label>
-                  </div>
-               </td>
                <!-- Agregar la información de la tabla -->
             </tbody>
          </table>
@@ -700,5 +477,9 @@
       <!-- others plugins -->
       <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
       <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+      <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}"></script>
+      <script>
+        var seeicon = "{{ url_for('static', filename='assets/images/icon/see.png') }}";
+      </script>
    </body>
 </html>
