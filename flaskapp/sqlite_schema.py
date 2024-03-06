@@ -1,40 +1,47 @@
-from flask_login import UserMixin
-from sqlalchemy import Column, Integer, String, Date, Enum, DECIMAL, ForeignKey
-from app import db
+from sqlalchemy import create_engine, Column, Integer, String, Date, Enum, DECIMAL, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
-class Grupo(db.Model):
+# Define SQLite database connection
+sqlite_url = "sqlite:///app.db"
+sqlite_engine = create_engine(sqlite_url)
+
+Base = declarative_base()
+
+# Define SQLAlchemy models compatible with SQLite
+class Grupo(Base):
     __tablename__ = 'grupos'
     id = Column(Integer, primary_key=True)
     grupo = Column(String(50), nullable=False, unique=True)
 
-class TipoPago(db.Model):
+class TipoPago(Base):
     __tablename__ = 'tipos_pagos'
     id = Column(Integer, primary_key=True)
     tipo_pago = Column(String(25), nullable=False, unique=True)
     pagos_anuales = Column(Integer, nullable=False, default=0)
-    contado = Column(Enum('Si', 'No'), default='No')
+    contado = Column(String(3), default='No')  # SQLite does not support ENUM
 
-class Aseguradora(db.Model):
+class Aseguradora(Base):
     __tablename__ = 'aseguradoras'
     id = Column(Integer, primary_key=True)
     aseguradora = Column(String(40), nullable=False, unique=True)
 
-class Ramo(db.Model):
+class Ramo(Base):
     __tablename__ = 'ramos'
     id = Column(Integer, primary_key=True)
     ramo = Column(String(30), nullable=False, unique=True)
 
-class Subramo(db.Model):
+class Subramo(Base):
     __tablename__ = 'subramos'
     id = Column(Integer, primary_key=True)
     subramo = Column(String(30), nullable=False, unique=True)
 
-class Agente(db.Model):
+class Agente(Base):
     __tablename__ = 'agentes'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(50), nullable=False, unique=True)
 
-class Cliente(db.Model):
+class Cliente(Base):
     __tablename__ = 'clientes'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(50), nullable=False)
@@ -47,12 +54,12 @@ class Cliente(db.Model):
     correo = Column(String(50), nullable=False)
     direccion = Column(String(125))
     fecha_nacimiento = Column(Date, nullable=False)
-    sexo = Column(Enum('Hombre', 'Mujer', 'Otro'), nullable=False)
+    sexo = Column(String(10), nullable=False)  # SQLite does not support ENUM
     ocupacion = Column(String(30))
     actividad = Column(String(30))
-    status = Column(Enum('Activo', 'Eliminado'), nullable=False,default='Activo')
+    status = Column(String(10), nullable=False, default='Activo')  # SQLite does not support ENUM
 
-class Poliza(db.Model):
+class Poliza(Base):
     __tablename__ = 'polizas'
     id = Column(Integer, primary_key=True)
     cliente_id = Column(Integer, ForeignKey('clientes.id'), nullable=False)
@@ -62,7 +69,7 @@ class Poliza(db.Model):
     subramo_id = Column(Integer, ForeignKey('subramos.id'), nullable=False)
     fecha_inicio = Column(Date, nullable=False)
     fecha_termino = Column(Date, nullable=False)
-    moneda = Column(Enum('MXN', 'USD', 'Otro'), nullable=False)
+    moneda = Column(String(10), nullable=False)  # SQLite does not support ENUM
     tipo_pago_id = Column(Integer, ForeignKey('tipos_pagos.id'), nullable=False)
     agente_id = Column(Integer, ForeignKey('agentes.id'), nullable=False)
     aseguradora_id = Column(Integer, ForeignKey('aseguradoras.id'), nullable=False)
@@ -72,14 +79,14 @@ class Poliza(db.Model):
     renovacion = Column(String(30))
     prima_neta = Column(DECIMAL(12, 2), nullable=False)
     prima_total = Column(DECIMAL(12, 2), nullable=False)
-    status = Column(Enum('Vigente', 'Pendiente', 'Cancelada', 'Finalizada'), nullable=False)
+    status = Column(String(20), nullable=False)  # SQLite does not support ENUM
     derecho_poliza = Column(DECIMAL(12, 2))
     iva = Column(DECIMAL(5, 4), default=0.16)
     rec_pago = Column(DECIMAL(5, 4))
     comision = Column(DECIMAL(5, 4))
-    recibos = Column(Enum('Generados', 'Por generar'), default='Por generar')
+    recibos = Column(String(20), default='Por generar')  # SQLite does not support ENUM
 
-class Recibo(db.Model):
+class Recibo(Base):
     __tablename__ = 'recibos'
     id = Column(Integer, primary_key=True)
     fecha_inicio = Column(Date, nullable=False)
@@ -88,27 +95,27 @@ class Recibo(db.Model):
     prima_neta = Column(DECIMAL(12, 2), nullable=False)
     prima_total = Column(DECIMAL(12, 2), nullable=False)
     comision = Column(DECIMAL(12, 2), nullable=False)
-    status = Column(Enum('Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
+    status = Column(String(20), nullable=False)  # SQLite does not support ENUM
     fecha_pago = Column(Date)
     comprobante = Column(String(30))
-    no_de_recibo= Column(String(30), default="1 / 1")
+    no_de_recibo = Column(String(30), default="1 / 1")
 
-class Servicio(db.Model):
+class Servicio(Base):
     __tablename__ = 'servicios'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(50), nullable=False)
 
-class NivelAcceso(db.Model):
+class NivelAcceso(Base):
     __tablename__ = 'niveles_acceso'
     id = Column(Integer, primary_key=True)
     nombre = Column(String(50), nullable=False, unique=True)
 
-class Acceso(db.Model):
+class Acceso(Base):
     __tablename__ = 'accesos'
     servicio_id = Column(Integer, ForeignKey('servicios.id'), nullable=False, primary_key=True)
     nivel_id = Column(Integer, ForeignKey('niveles_acceso.id'), nullable=False, primary_key=True)
 
-class Usuario(db.Model, UserMixin):
+class Usuario(Base):
     __tablename__ = 'usuarios'
     id = Column(Integer, primary_key=True)
     username = Column(String(10), nullable=False, unique=True)
@@ -118,14 +125,12 @@ class Usuario(db.Model, UserMixin):
     apellido = Column(String(50), nullable=False)
     correo = Column(String(50), nullable=False)
     telefono = Column(String(10), nullable=False)
-    status = Column(Enum('Activo', 'Eliminado'), nullable=False,default='Activo')
+    status = Column(String(10), nullable=False, default='Activo')  # SQLite does not support ENUM
 
-class SolicitudNewPass(db.Model):
+class SolicitudNewPass(Base):
     __tablename__ = 'solicitudes_new_pass'
     usuario_id = Column(Integer, ForeignKey('usuarios.id'), primary_key=True)
-    status = Column(Enum('Resuelta', 'Pendiente'), nullable=False, default="Pendiente")
+    status = Column(String(20), nullable=False, default="Pendiente")  # SQLite does not support ENUM
 
-
-
-
-# Ahora debes ajustar cualquier lógica adicional que estés utilizando en tu aplicación para que funcione con estas clases de modelo. También, asegúrate de tener las importaciones necesarias en otros archivos de tu aplicación.
+# Create tables in SQLite database
+Base.metadata.create_all(sqlite_engine)

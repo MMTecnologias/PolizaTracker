@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Pólizas</title>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .result {
+            margin-top: 30px;
+        }
+        .result table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .result th, .result td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Calculadora de Pólizas</h2>
+        <form id="insuranceForm">
+            <label for="selectPoliza">Selecciona una póliza:</label>
+            <select id="selectPoliza" name="selectPoliza" class="custom-select" required>
+                <option value="">Selecciona...</option>
+                {% for poliza in polizas %}
+                    <option value="{{ poliza.id }}">{{ poliza.serie }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-group">
+                <label>Prima Neta:</label>
+                <input type="text" id="netPremium" name="netPremium"  readonly>
+            </div>
+            <div class="form-group">
+                <label>Prima Total:</label>
+                <input type="text" id="totalPremium" name="totalPremium"  readonly>
+            </div>
+            <div class="form-group">
+                <label>Número de Recibos:</label>
+                <input type="text" id="receipts" name="receipts"  readonly>
+            </div>
+            <div class="form-group">
+                <label>Duracion de la poliza:</label>
+                <input type="text" id="duration" name="duration"  readonly>
+            </div>
+            <div class="form-group">
+                <label for="insurance">Derecho de póliza:</label>
+                <input type="number" id="insurance" name="insurance" required>
+            </div>
+            <div class="form-group">
+                <label for="iva">Porcentaje de IVA:</label>
+                <input type="number" id="iva" name="iva" required>
+            </div>
+            <div class="form-group">
+                <label for="commission">Porcentaje de comisión:</label>
+                <input type="number" id="commission" name="commission" required>
+            </div>
+            <button type="submit">Calcular</button>
+            <button id="saveButton" type="button">Guardar</button>
+        </form>
+        
+        <div class="result">
+            <h3>Resultados del Cálculo</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Primer Pago</th>
+                        <th>Pagos Subsecuentes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Prima Neta</td>
+                        <td><span id="netPremiumFirstPayment"></span></td>
+                        <td><span id="netPremiumSubsequentPayments"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Prima Total</td>
+                        <td><span id="totalPremiumFirstPayment"></span></td>
+                        <td><span id="totalPremiumSubsequentPayments"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Comisión</td>
+                        <td><span id="commissionFirstPayment"></span></td>
+                        <td><span id="commissionSubsequentPayments"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- jquery latest version -->
+    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+    <script>
+
+        // Función para obtener y llenar los valores de la póliza seleccionada
+        function fillPolizaValues(policyId) {
+            $.ajax({
+                url: '/get_policy_values/' + policyId,
+                method: 'GET',
+                success: function(data) {
+                    // Llenar los hidden inputs con los valores obtenidos
+                    $('#netPremium').val(data.netPremium);
+                    $('#totalPremium').val(data.totalPremium);
+                    $('#receipts').val(data.numReceipts);
+                    $('#duration').val(data.policyDuration);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error al obtener los valores de la póliza:', error);
+                }
+            });
+        }
+
+        // Cuando se cambia la selección del dropdown, llenar los hidden inputs con los valores de la póliza seleccionada
+        $('#selectPoliza').change(function() {
+            var selectedPolicyId = $(this).val();
+            fillPolizaValues(selectedPolicyId);
+        });
+
+
+        $(document).ready(function() {
+            // Function to fill the results table with calculated values
+            function fillResultsTable(data) {
+                // Fill values for the first payment
+                $('#netPremiumFirstPayment').text(data.firstpay.netPremium.toFixed(2));
+                $('#totalPremiumFirstPayment').text(data.firstpay.totalPremium.toFixed(2));
+                $('#commissionFirstPayment').text(data.firstpay.comision.toFixed(2));
+
+                // Fill values for subsequent payments
+                $('#netPremiumSubsequentPayments').text(data.subspay.netPremium.toFixed(2));
+                $('#totalPremiumSubsequentPayments').text(data.subspay.totalPremium.toFixed(2));
+                $('#commissionSubsequentPayments').text(data.subspay.comision.toFixed(2));
+            }
+
+            // Prevent form submission when the button is clicked
+            $('#insuranceForm').submit(function(event) {
+                event.preventDefault();
+
+                // Serialize form data
+                var formData = $(this).serialize();
+
+                // Perform AJAX request
+                $.ajax({
+                    url: '/calculate_receipts',
+                    method: 'POST',
+                    data: formData,
+                    success: function(data) {
+                        // Fill the results table with the calculated values
+                        fillResultsTable(data);
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle errors
+                        console.error(xhr.responseText);
+                    }
+                });
+            });
+
+              // Event listener for the "Guardar" button click
+            $('#saveButton').click(function() {
+                // Perform AJAX request to save the receipts
+
+                if (!$('#insuranceForm')[0].checkValidity()) {
+                    $('#insuranceForm').addClass('was-validated');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/save_receipts',
+                    method: 'POST',
+                    data: $('#insuranceForm').serialize(), // Serialize form data
+                    success: function(response) {
+                        // Handle success
+                        console.log(response);
+                        // Optionally, display a success message or perform any other actions
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle errors
+                        console.error(xhr.responseText);
+                        // Optionally, display an error message or perform any other actions
+                    }
+                });
+            });
+
+
+        
+        
+        });
+
+    </script>
+
+
+
+  
+
+</body>
+</html>

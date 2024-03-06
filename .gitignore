@@ -1,11 +1,11 @@
 flaskapp\auth\
 auth\
-/__pycache__/
-/instance/
-/config.py
+
+config.py
 
 # Ignoramos las carpetas creadas por Python y sus paquetes virtuales
-__pycache__/
+__pycache__\
+flaskapp\app\__pycache__\
 *.egg*
 *.venv*
 
@@ -14,7 +14,7 @@ __pycache__/
 *~
 
 # Archivos de configuración específicos del entorno
-local_settings.py
+flaskapp\app\config.py
 
 # Directorios temporales
 thumbnails/
@@ -37,6 +37,5 @@ flaskbabel*.pyc
 env/
 env
 
-temp
-temp.*
-./DB/temp.*
+
+flaskapp/app/config.py

@@ -1,16 +1,19 @@
 # app/main/routes.py
 from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort,Flask, Response
 from flask_login import login_user, logout_user, login_required, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField,SelectField,DateField,EmailField
-from wtforms.validators import DataRequired,Email,InputRequired,Length
+#from flask_wtf import FlaskForm
+#from wtforms import StringField, PasswordField, SubmitField,SelectField,DateField,EmailField
+#from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,SolicitudNewPass,Cliente,Grupo
-from sqlalchemy import join, or_,desc
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente
+from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
 from . import main 
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
 
@@ -34,6 +37,7 @@ def cliente():
     return render_template('clientes.html', user=current_user,grupos=grupos)
 
 @main.route('/create_client', methods=['POST'])
+@login_required
 def create_client():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -148,6 +152,7 @@ def create_client():
             return jsonify({'error': True, 'msg': 'Cliente no encontrado'})
 
 @main.route('/get_clients_data', methods=['POST'])
+@login_required
 def get_clients_data():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -227,6 +232,7 @@ def get_clients_data():
     return jsonify(response)
 
 @main.route('/delete_client', methods=['POST'])
+@login_required
 def delete_client():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -243,6 +249,7 @@ def delete_client():
 
 
 @main.route('/export_clients')
+@login_required
 def export_clients():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
@@ -310,6 +317,7 @@ def usuario():
     return render_template('usuario.html', user=current_user,niveles =niveles)
 
 @main.route('/get_usuarios_data', methods=['POST'])
+@login_required
 def get_usuarios_data():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
@@ -382,8 +390,8 @@ def get_usuarios_data():
 
     return jsonify(response)
 
-
 @main.route('/create_user', methods=['POST'])
+@login_required
 def create_user():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
@@ -440,6 +448,7 @@ def create_user():
             return jsonify({'error': True, 'msg': 'Usuario no encontrado'})
 
 @main.route('/delete_user', methods=['POST'])
+@login_required
 def delete_user():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
@@ -458,6 +467,7 @@ def delete_user():
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el usuario.'})
 
 @main.route('/export_users')
+@login_required
 def export_users():
     if not check_access("Admin usuarios"):
         return redirect(url_for('main.index'))
@@ -504,7 +514,173 @@ def export_users():
 @main.route('/polizas', methods=['GET'])
 @login_required
 def polizas():
-    return render_template('polizas.html', user=current_user)
+    ramos=Ramo.query.all()
+    subramos=Subramo.query.all()
+    pagos=TipoPago.query.all()
+    aseguradoras=Aseguradora.query.all()
+    agentes=Agente.query.all()
+    return render_template('polizas.html', user=current_user,ramos=ramos,subramos=subramos,pagos=pagos,aseguradoras=aseguradoras,agentes=agentes)
+
+
+@app.route('/get_polizas_data', methods=['POST'])
+@login_required
+def get_polizas_data():
+    # Get parameters from DataTables AJAX request
+    draw = int(request.form.get('draw'))
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    search_value = request.form.get('search[value]')
+    order_column_index = int(request.form.get('order[0][column]'))
+    order_dir = request.form.get('order[0][dir]')
+
+    # Query to fetch polizas data from the database 
+    """
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Ramo,Subramo,Aseguradora.aseguradora.label("aseguradora"),TipoPago,Agente) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Ramo, Poliza.ramo_id == Ramo.id) \
+    .join(Subramo, Poliza.subramo_id == Subramo.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+    .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+    .join(Agente, Poliza.agente_id == Agente.id)
+    """
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
+
+    # Implement search functionality
+    if search_value:
+        polizas_query = polizas_query.filter(or_(
+            Poliza.serie.ilike(f'%{search_value}%'),
+            Cliente.nombre.ilike(f'%{search_value}%'),
+            Aseguradora.aseguradora.ilike(f'%{search_value}%'),
+            Cliente.apellido.ilike(f'%{search_value}%')
+            # Add more fields for searching as needed
+        ))
+
+    # Implement sorting functionality
+    order_column_name = None
+    if order_column_index == 0:
+        order_column_name = 'serie'
+    elif order_column_index == 1:
+        order_column_name = 'client_name'
+    elif order_column_index == 2:
+        order_column_name = 'aseguradora'
+
+    if order_column_name:
+        if order_dir == 'desc':
+            polizas_query = polizas_query.order_by(desc(order_column_name))
+        else:
+            polizas_query = polizas_query.order_by(order_column_name)
+
+    # Get total count of records without filtering
+    total_records = polizas_query.count()
+    
+    # Apply pagination
+    polizas = polizas_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for poliza, nombre,apellido, aseguradora in polizas:
+        data.append({
+            'poliza': poliza.serie,
+            'cliente': f"{nombre} {apellido}",
+            'aseguradora': aseguradora,
+            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+            'id': poliza.id
+            # Add more fields as needed
+        })
+
+    # Prepare response
+    response = {
+        'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
+@app.route('/get_receipts_data', methods=['POST'])
+@login_required
+def get_receipts_data():
+    poliza_id = request.form.get('poliza_id')  # Assuming the poliza_id is sent via POST
+    draw = int(request.form.get('draw'))
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    
+    if poliza_id=="New":
+        response = {
+            'draw': draw,
+            'recordsTotal': 0,  # Total records without filtering
+            'recordsFiltered': 0,  # Total records after filtering
+            'data': []  # Data to display
+        }
+        return jsonify(response)
+    
+
+    # Query to fetch polizas data from the database 
+    recibos_query =Recibo.query.filter_by(poliza_id=poliza_id) 
+
+    # Get total count of records without filtering
+    total_records = recibos_query.count()
+    
+    # Apply pagination
+    recibos = recibos_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for recibo in recibos:
+        data.append({
+            'numero': recibo.no_de_recibo,
+            'fecha_recibo':recibo.fecha_inicio.strftime('%Y-%m-%d'),
+            "vencimiento" : recibo.fecha_vencimiento.strftime('%Y-%m-%d') ,
+            "prima_neta" : float(recibo.prima_neta) ,
+            "prima_total" : float(recibo.prima_total) ,
+            "comision" : float(recibo.comision) ,
+            "pagado" : True if recibo.status=='Liquidado' else False,
+            "fecha_pago" : "" if recibo.fecha_pago is None else  recibo.fecha_pago.strftime('%Y-%m-%d'),
+            "comprobante" : "" if recibo.comprobante is None else  recibo.comprobante ,
+            "cancelado" : True if recibo.status=='Cancelado' else False,
+            'id': recibo.id
+            # Add more fields as needed
+        })
+    #'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
+
+    # Prepare response
+    response = {
+        'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+    print(response)
+    return jsonify(response)
+
+@main.route('/search_clients', methods=['POST'])
+@login_required
+def search_clients():
+    if not check_access("Clientes"):
+        return jsonify({'options': []})  # Return empty options if access is not permitted
+
+    # Get search query from request data
+    search_query = request.form.get('query')
+    clients_query = db.session.query(Cliente.id, Cliente.nombre, Cliente.apellido) \
+                            .filter(Cliente.status == 'Activo') \
+                            .filter(or_(
+                                func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(f'%{search_query}%')
+                            )) \
+                            .order_by(desc(Cliente.id)) \
+                            .limit(20)
+
+    # Fetch client options
+    options = [{'id': client.id, 'name': f"{client.nombre} {client.apellido}"} for client in clients_query]
+
+    return jsonify({'options': options})
+
+
 
 """Menu"""
 # Ruta principal del sistema
@@ -515,159 +691,178 @@ def index():
 
     return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
 
-
-"""FALTAN HTML finales"""
-# Ruta para ver los registros de la tabla de grupos
-@main.route('/ver_solicitudes')
+"""Recibos"""
+@main.route('/recibos', methods=['GET'])
 @login_required
-def ver_solicitudes():
-    if not check_access("Admin usuarios"):
-        return redirect(url_for('main.index'))
-    solicitudes = SolicitudNewPass.query.filter_by(status="Pendiente").all()
-    resumen=[(Usuario.query.get_or_404(solicitud.usuario_id).username,solicitud) for solicitud in solicitudes]
+def recibos():
+    polizas=Poliza.query.all()
+    return render_template('recibos.html',polizas=polizas)
 
-
-    return render_template('ver_solicitudes.html', resumen=resumen)
-
-
-
-# Clase para el formulario de edición de usuarios
-class EditarUsuarioForm(FlaskForm):
-    password = PasswordField('Nueva Contraseña')
-    nivel_id = SelectField('Nivel de Acceso', coerce=int)
-    submit = SubmitField('Editar Usuario')
-
-# Ruta para acceder a la página de edición de usuarios (solo si tiene acceso al servicio)
-@main.route('/editar_usuario/<int:id>', methods=['GET', 'POST'])
+# Ruta para obtener los valores de la póliza
+@app.route('/get_policy_values/<int:policy_id>', methods=['GET'])
 @login_required
-def editar_usuario(id):
-    # Verificar si el usuario tiene acceso al servicio "Editar Usuarios"
-    if not check_access("Admin usuarios"):
-        return redirect(url_for('main.index'))
+def get_policy_values(policy_id):
+    # Buscar la póliza en la base de datos por su ID
+    poliza = Poliza.query.get(policy_id)
 
-    usuario = Usuario.query.get_or_404(id)
-    form = EditarUsuarioForm()
+    if not poliza:
+        return jsonify({'error': True, 'msg':'Poliza no encontrada'})
 
-    if request.method == 'POST':
-        # Actualizar contraseña si se proporcionó una nueva
-        if form.password.data:
-            usuario.password = generate_password_hash(form.password.data)
+    # Calcular la duración de la póliza en años, considerando años bisiestos
+    start_date = poliza.fecha_inicio
+    end_date = poliza.fecha_termino
+    policy_duration = int(round((end_date - start_date).days / 365.2425))  # Duración en años, considerando años bisiestos y redondeado a entero
 
-        # Actualizar nivel de acceso si se seleccionó uno nuevo
-        if form.nivel_id.data:
-            usuario.nivel_id = form.nivel_id.data
-
-        prevregistro= SolicitudNewPass.query.filter_by(usuario_id=usuario.id).first()
-        if prevregistro:
-            if prevregistro.status=="Pendiente":
-                prevregistro.status="Resuelta"
-        db.session.commit()
-        flash('Usuario editado con éxito', 'success')
-        return redirect(url_for('main.index'))
-
-    # Recupera la lista de niveles de acceso para el formulario
-    niveles_acceso = NivelAcceso.query.all()
-    form.nivel_id.choices = [(nivel.id, nivel.nombre) for nivel in niveles_acceso]
-    form.password.description = 'Deja este campo en blanco si no deseas cambiar la contraseña'
-
-    return render_template('editar_usuario.html', usuario=usuario, form=form)
+    # Obtener el tipo de pago de la póliza
+    tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
 
 
+    # Obtener el número de pagos según el tipo de pago
+    if tipo_pago.contado=="Si":
+        num_payments = 1  
+    else:
+        num_payments = tipo_pago.pagos_anuales*policy_duration  # De lo contrario, el número de pagos es igual a los pagos mensuales
 
-# Clase para el formulario de creación de usuarios
-class CrearUsuarioForm(FlaskForm):
-    username = StringField('Nombre de Usuario', validators=[DataRequired()])
-    password = PasswordField('Contraseña', validators=[DataRequired()])
-    nivel_id = SelectField('Nivel de Acceso', coerce=int, validators=[DataRequired()])
-    submit = SubmitField('Crear Usuario')
+    # Devolver los valores como un objeto JSON
+    return jsonify({
+        'netPremium': float(poliza.prima_neta),
+        'totalPremium': float(poliza.prima_total),
+        'numReceipts': int(num_payments),
+        'policyDuration': int(policy_duration),  # Convertir a entero
+    })
 
+def calcular_recibos():
+    # Retrieve data from the form
+    prima_total = float(request.form.get('totalPremium'))
+    prima_neta = float(request.form.get('netPremium'))
+    iva = float(request.form.get('iva'))
+    derecho_poliza = float(request.form.get('insurance'))*(1+iva/ 100)
+    iva=prima_neta *iva / 100
+    commission = float(request.form.get('commission'))
+    commission = prima_total * commission/100
+    nopagos = int(request.form.get('receipts'))  # Assuming this is the number of payments
+    print(derecho_poliza)
+    recargo_por_pago = prima_total - derecho_poliza - prima_neta - iva
+    # Perform calculations
+    response = {
+        'firstpay': {
+            "netPremium": "",
+            "comision": "",
+            "totalPremium": ""
+        },
+        'subspay': {
+            "netPremium": "",
+            "comision": "",
+            "totalPremium": ""
+        }
+    }
 
-# Ruta para acceder a la página de creación de usuarios (solo si tiene acceso al servicio)
-@main.route('/crear_usuario', methods=['GET', 'POST'])
-@login_required
-def crear_usuario():
-    # Verificar si el usuario tiene acceso al servicio "Crear Usuarios"
+    # Calculate the values for the first payment
+    total_premium = (prima_neta +iva + recargo_por_pago) / nopagos 
+    net_premium = prima_neta / nopagos
+    commission_pp = commission / nopagos
+
+    response['firstpay']['netPremium'] = net_premium
+    response['firstpay']['totalPremium'] = total_premium + derecho_poliza
+    response['firstpay']['comision'] = commission_pp
+
+    # If there are subsequent payments, calculate their values as well
+    if nopagos > 1:
+        response['subspay']['netPremium'] = net_premium
+        response['subspay']['totalPremium'] = total_premium
+        response['subspay']['comision'] = commission_pp
+
+    response['derecho_poliza']=derecho_poliza
+    response['iva']=iva/prima_neta
+    response['rec_pago']=recargo_por_pago/prima_neta
+    response['comision']=commission/prima_total
+    response['poliza_id']=request.form.get('selectPoliza')
+    response['nopagos']=nopagos
+    #print(response)
+    return response
+
+def add_months(start_date, num_months):
+    # Convertir la cadena de fecha en un objeto datetime
+   
+    start_date=str(start_date)
+    start_date = datetime.strptime(start_date, '%Y-%m-%d')
     
-    if not check_access("Admin usuarios"):
-        return redirect(url_for('main.index'))
+    new_date = start_date + relativedelta(months=num_months)
+    # Devolver la nueva fecha como cadena
+    return new_date.strftime('%Y-%m-%d')
 
-    form = CrearUsuarioForm()
-
-    if request.method == 'POST':
-        # Verifica si el nombre de usuario ya existe
-        usuario_existente = Usuario.query.filter_by(username=form.username.data).first()
-        if usuario_existente:
-            flash('El nombre de usuario ya existe', 'danger')
-        else:
-            # Crea un nuevo usuario
-            #print(generate_password_hash(form.password.data))
-            nuevo_usuario = Usuario(username=form.username.data, password=generate_password_hash(form.password.data), nivel_id=form.nivel_id.data)
-            db.session.add(nuevo_usuario)
-            db.session.commit()
-            flash('Usuario creado con éxito', 'success')
-            return redirect(url_for('main.index'))
-
-    # Recupera la lista de niveles de acceso para el formulario
-    niveles_acceso = NivelAcceso.query.all()
-    form.nivel_id.choices = [(nivel.id, nivel.nombre) for nivel in niveles_acceso]
-
-    return render_template('crear_usuario.html', form=form)
-
-
-
-# Ruta para ver los registros de la tabla de grupos
-@main.route('/ver_grupos')
+@main.route('/calculate_receipts', methods=['POST'])
 @login_required
-def ver_grupos():
-    if not check_access("Clientes"):
-        return redirect(url_for('main.index'))
-    grupos = Grupo.query.all()
-    return render_template('ver_grupos.html', grupos=grupos)
+def calculate_receipts():
+    response=calcular_recibos()
+    return jsonify(response)
 
-# Ruta para editar un registro en la tabla de grupos
-@main.route('/editar_grupo/<int:id>', methods=['GET', 'POST'])
+@main.route('/save_receipts', methods=['POST'])
 @login_required
-def editar_grupo(id):
-    # Verificar si el usuario tiene acceso a la edición de grupos
-    if not check_access("Clientes"):
-        return redirect(url_for('main.index'))
+def save_receipts():
+    response=calcular_recibos()
+    poliza_id=response['poliza_id']
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg':'Poliza no encontrada'})
+    if poliza.recibos=="Generados":
+        return jsonify({'error': True, 'msg':'Esta poliza ya tiene recibos generados'})
+    try:
+        # Ejecuta el bucle para crear registros
+        start_date = poliza.fecha_inicio
+        end_date = poliza.fecha_termino
+        tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
 
-    grupo = Grupo.query.get_or_404(id)
-
-    if request.method == 'POST':
-        nuevo_nombre = request.form['nombre']
-
-        # Verificar si ya existe un grupo con el nuevo nombre
-        grupo_existente = Grupo.query.filter_by(grupo=nuevo_nombre).first()
-        if grupo_existente:
-            flash('Ya existe un grupo con ese nombre', 'danger')
+        if tipo_pago.contado=="Si":
+            print("done")
+            nuevo_recibo=Recibo(fecha_inicio =start_date,
+                                fecha_vencimiento =end_date,
+                                poliza_id=poliza_id,
+                                prima_neta=response['firstpay']['netPremium'],
+                                prima_total =response['firstpay']['totalPremium'],
+                                comision=response['firstpay']['comision']
+                                )
+            db.session.add(nuevo_recibo)
         else:
-            grupo.grupo = nuevo_nombre
-            db.session.commit()
-            flash('Grupo editado con éxito', 'success')
-            return redirect(url_for('main.ver_grupos'))
+            num_months=int(12/tipo_pago.pagos_anuales)
+            fecha_inicio =start_date
+            fecha_vencimiento=add_months(fecha_inicio, num_months)
+            nopagos=response['nopagos']
+            nuevo_recibo=Recibo(fecha_inicio =fecha_inicio,
+                                fecha_vencimiento =fecha_vencimiento,
+                                poliza_id=poliza_id,
+                                prima_neta=response['firstpay']['netPremium'],
+                                prima_total =response['firstpay']['totalPremium'],
+                                comision=response['firstpay']['comision'],
+                                no_de_recibo="1 / "+str(nopagos)
+                                )
+            db.session.add(nuevo_recibo)
+            for nopay in range(2,nopagos+1):
+                fecha_inicio =fecha_vencimiento
+                fecha_vencimiento=end_date if nopay == nopagos else add_months(fecha_inicio, num_months)
+                nuevo_recibo=Recibo(fecha_inicio =fecha_inicio,
+                                fecha_vencimiento =fecha_vencimiento,
+                                poliza_id=poliza_id,
+                                prima_neta=response['subspay']['netPremium'],
+                                prima_total =response['subspay']['totalPremium'],
+                                comision=response['subspay']['comision'],
+                                no_de_recibo=  str(nopay)+" / "+str(nopagos)
+                                )
+                db.session.add(nuevo_recibo)
 
-    return render_template('editar_grupo.html', grupo=grupo)
+        poliza.derecho_poliza = response['derecho_poliza']
+        poliza.iva = response['iva']
+        poliza.rec_pago = response['rec_pago']
+        poliza.comision = response['comision']
+        poliza.recibos = "Generados"
+        # Realiza el commit después de completar las inserciones
+        db.session.commit()
 
-""""
-#Buscar en poliza
-@main.route('/<tabla>/<columna>/<valor>')
-def polizas_json(tabla,columna, valor):
-    clase = globals()[tabla]
+        return jsonify({'error': False, 'msg':'Recibos generados con exito'})
+    except:
+        # Si ocurre algún error, realiza un rollback
+        db.session.rollback()
+        return jsonify({'error': True, 'msg':'Error en la creación de recibos'})
 
-    query = clase.query.filter(getattr(clase, columna).like(f"%{valor}%")).all()
-
-    resultados = 1
-    return 1
-"""
-
-
-#Mostrar todas las rutas
-@main.route('/rutas')
-def mostrar_rutas():
-    rutas = []
-    for rule in current_app.url_map.iter_rules():
-        rutas.append(str(rule))
-    return render_template('mostrar_rutas.html', rutas=rutas)
 
 
