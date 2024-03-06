@@ -37,3 +37,6 @@ flaskbabel*.pyc
 env/
 env
 
+temp
+temp.*
+./DB/temp.*
