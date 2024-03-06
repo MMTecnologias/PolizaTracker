@@ -3,6 +3,138 @@ import { datatableConfig_plane } from './datatable-config.js';
 
 $(document).ready(function() {
 
+    // funcion para mostrar nuevo ramo/subramo
+    function cambioramosubramo(ramo,subramo) {
+        if(ramo=='New' || subramo=='New'){
+            $('#nuevo_ramo_subramo_div').show();
+            if(ramo=='New'){
+                $('#nuevo_ramo_div').show();
+                $('#nuevo_ramo').prop('required', true);
+            } else{
+                $('#nuevo_ramo_div').hide();
+                $('#nuevo_ramo').prop('required', false);
+            }
+            if(subramo=='New'){
+                $('#nuevo_subramo_div').show();
+                $('#nuevo_subramo').prop('required', true);
+            } else{
+                $('#nuevo_subramo_div').hide();
+                $('#nuevo_subramo').prop('required', false);
+            }
+        } else{
+            $('#nuevo_ramo_subramo_div').hide(); // Corrected class name
+            $('#nuevo_ramo_div').hide();
+            $('#nuevo_subramo_div').hide();
+            $('#nuevo_ramo').prop('required', false);
+            $('#nuevo_subramo').prop('required', false);
+        }
+    }
+    $('#ramo').change(function() {
+        var ramoopt = $('#ramo').val();
+        var subramoopt = $('#subramo').val();
+        cambioramosubramo(ramoopt,subramoopt)
+    });
+    $('#subramo').change(function() {
+        var ramoopt = $('#ramo').val();
+        var subramoopt = $('#subramo').val();
+        cambioramosubramo(ramoopt,subramoopt)
+    });
+
+    // funcion para mostrar nueva aseguradora
+    $('#Aseguradora').change(function() {
+        var opt = $('#Aseguradora').val();
+        if (opt=="New"){
+            $('#nuevo_aseguradora_div').show();
+            $('#nuevo_aseguradora').prop('required', true);
+        } else{
+            $('#nuevo_aseguradora_div').hide();
+            $('#nuevo_aseguradora').prop('required', false);
+        }
+    });
+
+    // funcion para mostrar nueva aseguradora
+    $('#agente').change(function() {
+        var opt = $('#agente').val();
+        if (opt=="New"){
+            $('#nuevo_agente_div').show();
+            $('#nuevo_agente').prop('required', true);
+        } else{
+            $('#nuevo_agente_div').hide();
+            $('#nuevo_agente').prop('required', false);
+        }
+    });
+
+
+    // funcion para buscar clientes
+    function fetchClientOptions(inputValue) {
+        $.ajax({
+            url: '/search_clients', // Your server route to fetch client options
+            method: 'POST',
+            dataType: 'json',
+            data: { query: inputValue }, // Send the input value as data
+            success: function(response) {
+                var options = response.options;
+                var dropdownMenu = $('#client-options');
+                dropdownMenu.empty(); // Clear existing options
+                if (options.length === 0) {
+                    dropdownMenu.append('<a class="dropdown-item no-results" href="#">No results found</a>');
+                } else {
+                    options.forEach(function(option) {
+                        dropdownMenu.append('<a class="dropdown-item" href="#" data-id="' + option.id + '">' + option.name + '</a>');
+                    });
+                }
+                dropdownMenu.show(); // Show the dropdown
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                Swal.fire({
+                    title: 'Error inesperado',
+                    text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+                    icon: 'error'
+                });
+            }
+        });
+    }
+    //variables para guardar cliente seleccionado
+    var selectedName =""
+    var selectedId =""
+    // Buscar cliente si cambia el input
+    $('#buscar-cliente').on('keyup', function() {
+        var inputValue = $(this).val(); // Get the input value
+        if (inputValue.length >= 3) { // Minimum characters to trigger search
+            fetchClientOptions(inputValue); // Fetch options based on input value
+        } else {
+            $('#client-options').hide();
+            $('#buscar-cliente')[0].setCustomValidity("");
+        }
+    });
+    
+    // Seleccionar cliente de la lista
+    $('#client-options').on('click', '.dropdown-item', function(event) {
+        event.preventDefault(); // Prevent the default behavior of the click event
+        if ($(this).hasClass('no-results')) {
+            return; // Do nothing if it's a no results item
+        }
+        selectedId = $(this).data('id');
+        selectedName = $(this).text();
+        $('#buscar-cliente').val(selectedName);
+        $('#selected-client-id').val(selectedId); // Store selected client ID
+        $('#client-options').hide();
+        $('#buscar-cliente')[0].setCustomValidity("");
+    });
+    
+    // Enviar el form solo si se selecciono un clientes
+    $('#form-polizas').on('submit', function(event) {
+        var inputValue = $('#buscar-cliente').val();
+        if ($('#client-options').is(':visible') || selectedName != inputValue || inputValue.length < 3) {
+            event.preventDefault(); // Prevent form submission if input value is not in dropdown
+            $('#buscar-cliente')[0].setCustomValidity("Ingresa un dato valido"); // Set custom validation message
+        } else {
+            $('#buscar-cliente')[0].setCustomValidity(""); // Reset custom validation message if input is valid
+        }
+    });
+    
+
+
     // Configuracion de Tabla de polizas
     var table = $("#polizasTable").DataTable({
         ...datatableConfig,

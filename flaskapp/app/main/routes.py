@@ -514,7 +514,12 @@ def export_users():
 @main.route('/polizas', methods=['GET'])
 @login_required
 def polizas():
-    return render_template('polizas.html', user=current_user)
+    ramos=Ramo.query.all()
+    subramos=Subramo.query.all()
+    pagos=TipoPago.query.all()
+    aseguradoras=Aseguradora.query.all()
+    agentes=Agente.query.all()
+    return render_template('polizas.html', user=current_user,ramos=ramos,subramos=subramos,pagos=pagos,aseguradoras=aseguradoras,agentes=agentes)
 
 
 @app.route('/get_polizas_data', methods=['POST'])
@@ -653,6 +658,28 @@ def get_receipts_data():
     }
     print(response)
     return jsonify(response)
+
+@main.route('/search_clients', methods=['POST'])
+@login_required
+def search_clients():
+    if not check_access("Clientes"):
+        return jsonify({'options': []})  # Return empty options if access is not permitted
+
+    # Get search query from request data
+    search_query = request.form.get('query')
+    clients_query = db.session.query(Cliente.id, Cliente.nombre, Cliente.apellido) \
+                            .filter(Cliente.status == 'Activo') \
+                            .filter(or_(
+                                func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(f'%{search_query}%')
+                            )) \
+                            .order_by(desc(Cliente.id)) \
+                            .limit(20)
+
+    # Fetch client options
+    options = [{'id': client.id, 'name': f"{client.nombre} {client.apellido}"} for client in clients_query]
+
+    return jsonify({'options': options})
+
 
 
 """Menu"""
