@@ -1,8 +1,6 @@
 <!DOCTYPE html>
-<html
-   class="no-js"
-   lang="en"
->
+<!DOCTYPE html>
+<html lang="en">
    <head>
       <meta charset="utf-8" />
       <meta
@@ -603,6 +601,20 @@
       <script>
          var seeicon =
             "{{ url_for('static', filename='assets/images/icon/see.png') }}";
+      </script>
+
+      <button onclick="fetch_test();">click</button>
+      <label id="demo"></label>
+
+      <script>
+         function fetch_test() {
+            fetch('/fetch_test')
+               .then((response) => response.json())
+               .then(function (data) {
+                  console.log(data);
+                  document.getElementById('demo').innerHTML = data[0]['nombre'];
+               });
+         }
       </script>
    </body>
 </html>

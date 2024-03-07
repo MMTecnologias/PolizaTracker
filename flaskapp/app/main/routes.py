@@ -229,7 +229,9 @@ def get_clients_data():
         'data': data  # Data to display
     }
 
-    return jsonify(response)
+    # jsonResp = {'jack': 4098, 'sape': 4139}
+
+    
 
 @main.route('/delete_client', methods=['POST'])
 @login_required
@@ -866,3 +868,10 @@ def save_receipts():
 
 
 
+@main.route('/fetch_test', methods=['GET'])
+def fetchtest():
+    return jsonify ([
+                        {"nombre":"baruc", "edad":27, "genero": "masculino"},
+                        {"nombre":"sherley", "edad":27, "genero": "femenino"}
+                     
+                     ])
