@@ -608,11 +608,11 @@
 
       <script>
          function fetch_test() {
-            fetch('/fetch_test')
+            fetch('/get_usuarios_data2')
                .then((response) => response.json())
                .then(function (data) {
                   console.log(data);
-                  document.getElementById('demo').innerHTML = data[0]['nombre'];
+                  document.getElementById('demo').innerHTML = data[0];
                });
          }
       </script>

@@ -875,3 +875,53 @@ def fetchtest():
                         {"nombre":"sherley", "edad":27, "genero": "femenino"}
                      
                      ])
+
+
+@main.route('/get_usuarios_data2', methods=['GET'])
+@login_required
+def get_usuarios_data2():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
+    # Get parameters from DataTables AJAX request
+
+
+    usuarios_query = Usuario.query.filter_by(status='Activo')
+
+
+    # Get total count of records without filtering
+    total_records = usuarios_query.count()
+
+
+    # Apply pagination
+    usuarios = usuarios_query.all()
+
+
+    # Query to fetch usuarios data from the database
+    usuarios = usuarios_query.all()
+
+
+    # Format data as required by DataTables
+    data = []
+    for usuario in usuarios:
+        name=usuario.nombre
+        lastname=usuario.apellido
+        data.append({
+            'id': usuario.id,
+            'fullname': f"{name} {lastname}",
+            'correo': usuario.correo,
+            'username': usuario.username,
+            'telefono': usuario.telefono,
+            'nombre': name,
+            'apellido': lastname,
+            'acceso': usuario.nivel_id,
+            # Add more fields as needed
+        })
+
+
+    # Prepare response
+    response = {
+        'data': data  # Data to display
+    }
+
+
+    return jsonify(response)
