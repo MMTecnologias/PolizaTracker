@@ -924,4 +924,4 @@ def get_usuarios_data2():
     }
 
 
-    return jsonify(response)
+    return jsonify(data)

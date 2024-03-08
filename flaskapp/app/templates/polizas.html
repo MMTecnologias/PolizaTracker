@@ -608,11 +608,18 @@
 
       <script>
          function fetch_test() {
+            document.getElementById('demo').innerHTML = 'hola';
             fetch('/get_usuarios_data2')
                .then((response) => response.json())
                .then(function (data) {
                   console.log(data);
-                  document.getElementById('demo').innerHTML = data[0];
+                  for (var i = 0; i < data.length; i++) {
+                     document.getElementById('demo').innerHTML +=
+                        data[i]['apellido'];
+                     6;
+                  }
+                  // console.log(data);
+                  // document.getElementById('demo').innerHTML = data[0];
                });
          }
       </script>
