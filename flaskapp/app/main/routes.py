@@ -925,3 +925,34 @@ def get_usuarios_data2():
 
 
     return jsonify(data)
+
+# test table polizas
+
+@main.route('/get_polizas_data2', methods=['GET'])
+@login_required
+def get_polizas_data2():
+    # if not check_access("Admin usuarios"):
+    #     return redirect(url_for('main.index'))
+    
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+
+    polizas = polizas_query.all()
+
+
+    # Format data as required by DataTables
+    data = []
+    for poliza, nombre,apellido, aseguradora in polizas:
+        data.append({
+            'poliza': poliza.serie,
+            'cliente': f"{nombre} {apellido}",
+            'aseguradora': aseguradora,
+            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+            'id': poliza.id
+            # Add more fields as needed
+        })
+
+
+    return jsonify(data)

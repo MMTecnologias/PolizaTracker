@@ -517,20 +517,21 @@
          >
             <h4 class="header-title">Tabla de Pólizas</h4>
 
-            <table
+            <!-- <table
                class="table"
                id="polizasTable"
-            >
+            > -->
+            <table class="table">
                <thead>
                   <tr>
                      <th scope="col">Póliza</th>
                      <th scope="col">Cliente</th>
                      <th scope="col">Aseguradora</th>
                      <th scope="col">Vigencia</th>
-                     <th scope="col"></th>
+                     <!-- <th scope="col"></th> -->
                   </tr>
                </thead>
-               <tbody>
+               <tbody id="demo">
                   <!-- Agregar la información de la tabla -->
                </tbody>
             </table>
@@ -604,22 +605,50 @@
       </script>
 
       <button onclick="fetch_test();">click</button>
-      <label id="demo"></label>
+
+      <div class="card-body">
+         <h4 class="header-title">Listas de Recibos</h4>
+         <table
+            class="table"
+            id="recibosTable"
+         >
+            <thead>
+               <tr>
+                  <th scope="col">Número</th>
+                  <th scope="col">Fecha de Recibo</th>
+                  <th scope="col">Vencimiento</th>
+                  <th scope="col">Prima Neta</th>
+                  <th scope="col">Prima Total</th>
+                  <th scope="col">Comisión</th>
+                  <th scope="col">Pagado</th>
+                  <th scope="col">Fecha de Pago</th>
+                  <th scope="col">Comprobante</th>
+                  <th scope="col">Cancelado</th>
+               </tr>
+            </thead>
+            <tbody>
+               <!-- Agregar la información de la tabla -->
+            </tbody>
+         </table>
+      </div>
+      <!-- <table id="demo"></table> -->
 
       <script>
          function fetch_test() {
-            document.getElementById('demo').innerHTML = 'hola';
-            fetch('/get_usuarios_data2')
+            document.getElementById('demo').innerHTML = '';
+            // fetch('/get_usuarios_data2')
+            fetch('/get_polizas_data2')
                .then((response) => response.json())
                .then(function (data) {
                   console.log(data);
                   for (var i = 0; i < data.length; i++) {
-                     document.getElementById('demo').innerHTML +=
-                        data[i]['apellido'];
-                     6;
+                     document.getElementById('demo').innerHTML += `<tr>
+                        <td>${data[i]['poliza']}</td>
+                        <td>${data[i]['cliente']}</td>
+                        <td>${data[i]['aseguradora']}</td>
+                        <td>${data[i]['vigencia']}</td>
+                        </tr>`;
                   }
-                  // console.log(data);
-                  // document.getElementById('demo').innerHTML = data[0];
                });
          }
       </script>
