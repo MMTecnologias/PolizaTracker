@@ -193,10 +193,8 @@ $(document).ready(function () {
       $('#rfc').prop('disabled', true);
 
       $('#Savebtn').text('Guardar');
+      $('#nuevo_grupo_div').hide(); // Corrected class name
    });
-        $('#Savebtn').text('Guardar');
-        $('#nuevo_grupo_div').hide(); // Corrected class name
-    });
 
    //Funcion con AJAX para eliminacion de usuarios
    $('#myTable').on('click', '.delete', function () {
