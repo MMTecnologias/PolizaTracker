@@ -177,6 +177,10 @@ p {
    height: 60px;
    display: flex;
    background-color: white;
+   position: sticky;
+   top: 0;
+   z-index: 1000;
+   box-shadow: 5px 2px 14px -9px var(--gris-medio);
 }
 
 .app-section {
@@ -260,6 +264,11 @@ p {
 
 .table-polizas {
    width: 60%;
+}
+
+.label-option {
+   display: flex;
+   justify-content: space-between;
 }
 
 .form-data {

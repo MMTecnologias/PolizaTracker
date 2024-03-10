@@ -172,32 +172,48 @@
                      />
                   </div>
                </div>-->
-               <div class="form__input-data">
-                  <label class="label-input-data">Póliza</label>
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="Poliza"
-                        name="Poliza"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Póliza</label>
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="Poliza"
+                           name="Poliza"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
                   </div>
-               </div>
-               <div class="form__input-data">
-                  <label class="label-input-data">Endoso</label>
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="Endoso"
-                        name="Endoso"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Endoso</label>
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="Endoso"
+                           name="Endoso"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">No. Serie</label>
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="serie"
+                           name="serie"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
                   </div>
                </div>
 
@@ -372,7 +388,21 @@
                </div>
 
                <div class="form__input-data">
-                  <label class="label-input-data">Buscar cliente</label>
+                  <div class="label-option">
+                     <label class="label-input-data">Buscar cliente</label>
+                     <a
+                        href="{{ url_for('main.cliente') }}"
+                        class="search-icon"
+                     >
+                        <img
+                           src="{{
+                        url_for('static',filename='assets/images/icon/mas.png')
+                        }}"
+                           class="search-icon"
+                           width="15"
+                        />
+                     </a>
+                  </div>
                   <div class="input-group">
                      <input
                         type="text"
@@ -384,11 +414,48 @@
                         autocomplete="off"
                         required=""
                      />
+
                      <!-- Dropdown menu for displaying options -->
                      <div
                         class="dropdown-menu"
                         id="client-options"
                      ></div>
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label class="label-input-data">Vendedor</label>
+                     <!-- REVISAR DE DONDE SE TRAERÁN LOS DATOS -->
+                     <select
+                        class="custom-select"
+                        id="vendedor"
+                        name="vendedor"
+                        required
+                     >
+                        <option value="">Selecciona...</option>
+                        {% for agente in agentes %}
+                        <option value="{{ agente.id }}">
+                           {{ agente.nombre }}
+                        </option>
+                        {% endfor %}
+                        <option value="New">Nuevo Vendedor</option>
+                     </select>
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+                  <div
+                     class="form__input-data input-sibling-child"
+                     style="display: none"
+                     id="nuevo_vendedor_div"
+                  >
+                     <label class="label-input-data">Nuevo Vendedor</label>
+                     <input
+                        type="text"
+                        class="form-control"
+                        id="nuevo_vendedor"
+                        name="nuevo_vendedor"
+                        aria-describedby="inputGroupPrepend"
+                     />
                      <p class="invalid-feedback">Ingresa un dato valido</p>
                   </div>
                </div>
@@ -427,40 +494,78 @@
                      <p class="invalid-feedback">Ingresa un dato valido</p>
                   </div>
                </div>
-               <div class="form__input-data">
-                  <label
-                     class="label-input-data"
-                     for="prima_neta"
-                     >Prima Neta</label
-                  >
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="prima_neta"
-                        name="prima_neta"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        class="label-input-data"
+                        for="polizaAnterior"
+                        >Póliza Anterior</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="polizaAnterior"
+                           name="polizaAnterior"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
                   </div>
-               </div>
-               <div class="form__input-data">
-                  <label
-                     class="label-input-data"
-                     for="prima_total"
-                     >Prima Total</label
-                  >
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="prima_total"
-                        name="prima_total"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        class="label-input-data"
+                        for="renovacion"
+                        >Renovación</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="renovacion"
+                           name="renovacion"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        class="label-input-data"
+                        for="prima_neta"
+                        >Prima Neta</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="prima_neta"
+                           name="prima_neta"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        class="label-input-data"
+                        for="prima_total"
+                        >Prima Total</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="prima_total"
+                           name="prima_total"
+                           aria-describedby="inputGroupPrepend"
+                           required=""
+                        />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
                   </div>
                </div>
                <div class="form__input-data">
@@ -470,14 +575,13 @@
                      >Notas</label
                   >
                   <div class="input-group">
-                     <input
-                        type="text"
+                     <textarea
+                        form="form-polizas"
                         class="form-control"
                         id="notas"
                         name="notas"
-                        aria-describedby="inputGroupPrepend"
-                        required=""
-                     />
+                        placeholder="Insertar notas"
+                     ></textarea>
                      <p class="invalid-feedback">Ingresa un dato valido</p>
                   </div>
                </div>
