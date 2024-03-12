@@ -87,7 +87,7 @@ $(document).ready(function () {
             dropdownMenu.empty(); // Clear existing options
             if (options.length === 0) {
                dropdownMenu.append(
-                  '<a class="dropdown-item no-results" href="#">Agregar usuario</a>'
+                  '<p class="dropdown-item no-results" href="#">No hay coincidencias</p>'
                );
             } else {
                options.forEach(function (option) {

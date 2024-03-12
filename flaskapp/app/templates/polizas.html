@@ -127,7 +127,7 @@
       <!-- Server side start -->
 
       <div class="tables-container">
-         <div class="form__container form_polizas">
+         <div class="form__container">
             <h4 class="header-title">Pólizas</h4>
 
             <form
@@ -172,6 +172,44 @@
                      />
                   </div>
                </div>-->
+
+               <div class="form__input-data">
+                  <div class="label-option">
+                     <label class="label-input-data">Buscar cliente</label>
+                     <a
+                        href="{{ url_for('main.cliente') }}"
+                        class="search-icon"
+                     >
+                        <img
+                           src="{{
+                        url_for('static',filename='assets/images/icon/mas.png')
+                        }}"
+                           class="search-icon"
+                           width="15"
+                        />
+                     </a>
+                  </div>
+                  <div class="input-group">
+                     <input
+                        type="text"
+                        class="form-control rounded"
+                        id="buscar-cliente"
+                        name="buscar-cliente"
+                        aria-label="Search"
+                        aria-describedby="search-addon"
+                        autocomplete="off"
+                        required=""
+                     />
+
+                     <!-- Dropdown menu for displaying options -->
+                     <div
+                        class="dropdown-menu"
+                        id="client-options"
+                     ></div>
+                     <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+               </div>
+
                <div class="input-sibling">
                   <div class="form__input-data input-sibling-child">
                      <label class="label-input-data">Póliza</label>
@@ -187,7 +225,7 @@
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
                   </div>
-                  <div class="form__input-data input-sibling-child">
+                  <!-- <div class="form__input-data input-sibling-child">
                      <label class="label-input-data">Endoso</label>
                      <div class="input-group">
                         <input
@@ -200,7 +238,7 @@
                         />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
-                  </div>
+                  </div> -->
                   <div class="form__input-data input-sibling-child">
                      <label class="label-input-data">No. Serie</label>
                      <div class="input-group">
@@ -387,43 +425,6 @@
                   </div>
                </div>
 
-               <div class="form__input-data">
-                  <div class="label-option">
-                     <label class="label-input-data">Buscar cliente</label>
-                     <a
-                        href="{{ url_for('main.cliente') }}"
-                        class="search-icon"
-                     >
-                        <img
-                           src="{{
-                        url_for('static',filename='assets/images/icon/mas.png')
-                        }}"
-                           class="search-icon"
-                           width="15"
-                        />
-                     </a>
-                  </div>
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control rounded"
-                        id="buscar-cliente"
-                        name="buscar-cliente"
-                        name="buscar-cliente"
-                        aria-label="Search"
-                        aria-describedby="search-addon"
-                        autocomplete="off"
-                        required=""
-                     />
-
-                     <!-- Dropdown menu for displaying options -->
-                     <div
-                        class="dropdown-menu"
-                        id="client-options"
-                     ></div>
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
-                  </div>
-               </div>
                <div class="input-sibling">
                   <div class="form__input-data input-sibling-child">
                      <label class="label-input-data">Vendedor</label>
@@ -575,7 +576,7 @@
                      for="notas"
                      >Notas</label
                   >
-                  <div class="input-group">
+                  <div class="">
                      <textarea
                         form="form-polizas"
                         class="form-control"
@@ -616,37 +617,65 @@
          </div>
 
          <!-- Server side start -->
-         <div
-            class="form__container table-polizas"
-            id="table-polizas"
-         >
-            <h4 class="header-title">Tabla de Pólizas</h4>
+         <div class="tables-sibling">
+            <div
+               class="table-polizas"
+               id="table-polizas"
+            >
+               <h4 class="header-title">Tabla de Pólizas</h4>
 
-            <!-- <table
-               class="table"
-               id="polizasTable"
-            > -->
-            <table class="table">
-               <thead>
-                  <tr>
-                     <th scope="col">Póliza</th>
-                     <th scope="col">Cliente</th>
-                     <th scope="col">Cliente</th>
-                     <th scope="col">Aseguradora</th>
-                     <th scope="col">Vigencia</th>
-                     <!-- <th scope="col"></th> -->
-                  </tr>
-               </thead>
-               <tbody id="demo">
-                  <!-- Agregar la información de la tabla -->
-               </tbody>
-            </table>
+               <!-- <table
+                  class="table"
+                  id="polizasTable"
+               > -->
+               <table class="table">
+                  <thead>
+                     <tr>
+                        <th scope="col">Póliza</th>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">Aseguradora</th>
+                        <th scope="col">Vigencia</th>
+                        <!-- <th scope="col">Vigencia</th> -->
+                        <!-- <th scope="col"></th> -->
+                     </tr>
+                  </thead>
+                  <tbody id="demo">
+                     <!-- Agregar la información de la tabla -->
+                  </tbody>
+               </table>
+            </div>
+
+            <div class="card-body">
+               <h4 class="header-title">Listas de Recibos</h4>
+               <table
+                  class="table"
+                  id="recibosTable"
+               >
+                  <thead>
+                     <tr>
+                        <th scope="col">Número</th>
+                        <th scope="col">Fecha de Recibo</th>
+                        <th scope="col">Vencimiento</th>
+                        <th scope="col">Prima Neta</th>
+                        <th scope="col">Prima Total</th>
+                        <th scope="col">Comisión</th>
+                        <th scope="col">Pagado</th>
+                        <th scope="col">Fecha de Pago</th>
+                        <th scope="col">Comprobante</th>
+                        <th scope="col">Cancelado</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     <!-- Agregar la información de la tabla -->
+                  </tbody>
+               </table>
+            </div>
          </div>
       </div>
 
       <!-- Server side start -->
 
-      <div class="card-body">
+      <!-- <div class="card-body">
          <h4 class="header-title">Listas de Recibos</h4>
          <table
             class="table"
@@ -667,10 +696,10 @@
                </tr>
             </thead>
             <tbody>
-               <!-- Agregar la información de la tabla -->
+               
             </tbody>
          </table>
-      </div>
+      </div> -->
 
       <!-- main content area end -->
 
@@ -710,9 +739,9 @@
             "{{ url_for('static', filename='assets/images/icon/see.png') }}";
       </script>
 
-      <button onclick="fetch_test();">click</button>
+      <!-- <button onclick="fetch_test();">click</button> -->
 
-      <div class="card-body">
+      <!-- <div class="card-body">
          <h4 class="header-title">Listas de Recibos</h4>
          <table
             class="table"
@@ -733,10 +762,10 @@
                </tr>
             </thead>
             <tbody>
-               <!-- Agregar la información de la tabla -->
+                Agregar la información de la tabla
             </tbody>
          </table>
-      </div>
+      </div> -->
       <!-- <table id="demo"></table> -->
 
       <script>
@@ -757,6 +786,8 @@
                   }
                });
          }
+
+         fetch_test();
       </script>
    </body>
 </html>
