@@ -1,6 +1,61 @@
 import { datatableConfig } from './datatable-config.js';
 import { datatableConfig_plane } from './datatable-config.js';
 
+function fetch_test() {
+   document.getElementById('demo').innerHTML = '';
+   // fetch('/get_usuarios_data2')
+   fetch('/get_polizas_data2')
+      .then((response) => response.json())
+      .then(function (data) {
+         for (var i = 0; i < data.length; i++) {
+            document.getElementById('demo').innerHTML += `<tr>
+                        <td>${data[i]['poliza']}</td>
+                        <td>${data[i]['cliente']}</td>
+                        <td>${data[i]['subramo']}</td>
+                        <td>${data[i]['fechaInicio']}</td>
+                        <td>${data[i]['fechaFin']}</td>
+                        <td>${data[i]['primaNeta']}</td>
+                        <td>${data[i]['primaTotal']}</td>
+                        <td>${data[i]['aseguradora']}</td>
+                        <td>${data[i]['tipoPago']}</td>
+                        </tr>`;
+         }
+      });
+}
+
+fetch_test();
+
+function buscarPoliza() {
+   const inputPoliza = document.getElementById('Poliza');
+   fetch('/get_polizas_data2')
+      .then((response) => response.json())
+      .then(function (data) {
+         inputPoliza.addEventListener('input', (event) => {
+            console.log(event.target.value);
+            let coincidencias = data.filter((objeto) => {
+               let idString = objeto.poliza.toString();
+               let ultimosTresDigitos = idString.substring(idString.length - 3);
+               return ultimosTresDigitos.includes(event.target.value);
+            });
+            document.getElementById('demo').innerHTML = '';
+            document.getElementById('demo').innerHTML += `<tr>
+                        <td>${coincidencias[0]['poliza']}</td>
+                        <td>${coincidencias[0]['cliente']}</td>
+                        <td>${coincidencias[0]['subramo']}</td>
+                        <td>${coincidencias[0]['fechaInicio']}</td>
+                        <td>${coincidencias[0]['fechaFin']}</td>
+                        <td>${coincidencias[0]['primaNeta']}</td>
+                        <td>${coincidencias[0]['primaTotal']}</td>
+                        <td>${coincidencias[0]['aseguradora']}</td>
+                        <td>${coincidencias[0]['tipoPago']}</td>
+                        </tr>`;
+            return console.log(coincidencias);
+         });
+      });
+}
+
+buscarPoliza();
+
 $(document).ready(function () {
    // funcion para mostrar nuevo ramo/subramo
    function cambioramosubramo(ramo, subramo) {

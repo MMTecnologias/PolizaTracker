@@ -934,23 +934,34 @@ def get_polizas_data2():
     # if not check_access("Admin usuarios"):
     #     return redirect(url_for('main.index'))
     
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora"),Ramo.ramo.label("id"), Subramo.subramo.label("id"), TipoPago.tipo_pago.label("id")) \
     .select_from(Poliza) \
     .join(Cliente, Poliza.cliente_id == Cliente.id) \
-    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+    .join(Ramo, Poliza.ramo_id == Ramo.id)  \
+    .join(Subramo, Poliza.subramo_id == Subramo.id)  \
+    .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
 
     polizas = polizas_query.all()
 
 
     # Format data as required by DataTables
     data = []
-    for poliza, nombre,apellido, aseguradora in polizas:
+    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
         data.append({
             'poliza': poliza.serie,
             'cliente': f"{nombre} {apellido}",
             'aseguradora': aseguradora,
             'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'id': poliza.id
+            'id': poliza.id,
+            'ramo': f"{ramo}",
+            'subramo': f"{subramo}",
+            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
+            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'primaNeta': poliza.prima_neta,
+            'primaTotal': poliza.prima_total,
+            'tipoPago': f"{tipo_pago}"
+
             # Add more fields as needed
         })
 
