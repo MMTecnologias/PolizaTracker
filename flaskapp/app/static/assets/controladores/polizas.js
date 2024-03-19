@@ -1,6 +1,8 @@
 import { datatableConfig } from './datatable-config.js';
 import { datatableConfig_plane } from './datatable-config.js';
 
+const serie = document.getElementById('serie');
+
 function fetch_test() {
    document.getElementById('demo').innerHTML = '';
    // fetch('/get_usuarios_data2')
@@ -8,18 +10,32 @@ function fetch_test() {
       .then((response) => response.json())
       .then(function (data) {
          for (var i = 0; i < data.length; i++) {
-            document.getElementById('demo').innerHTML += `<tr>
-                        <td>${data[i]['poliza']}</td>
-                        <td>${data[i]['cliente']}</td>
-                        <td>${data[i]['subramo']}</td>
-                        <td>${data[i]['fechaInicio']}</td>
-                        <td>${data[i]['fechaFin']}</td>
-                        <td>${data[i]['primaNeta']}</td>
-                        <td>${data[i]['primaTotal']}</td>
-                        <td>${data[i]['aseguradora']}</td>
-                        <td>${data[i]['tipoPago']}</td>
-                        </tr>`;
+            document.getElementById('demo').innerHTML += `
+            
+               <tr  class="tableOption">
+                 
+                     <td id=${data[i]['poliza']}><p class="td-clickable">${data[i]['poliza']}</p></td>
+                     <td>${data[i]['cliente']}</td>
+                     <td>${data[i]['subramo']}</td>
+                     <td>${data[i]['fechaInicio']}</td>
+                     <td>${data[i]['fechaFin']}</td>
+                     <td>${data[i]['primaNeta']}</td>
+                     <td>${data[i]['primaTotal']}</td>
+                     <td>${data[i]['aseguradora']}</td>
+                     <td>${data[i]['tipoPago']}</td>
+                  
+               </tr>
+               
+            `;
          }
+         const polizasTable = document.querySelectorAll('.td-clickable');
+         console.log(polizasTable);
+         polizasTable.forEach((poliza) => {
+            poliza.addEventListener('click', (event) => {
+               console.log(event.target.innerText);
+               rellenarFormulario(event.target.innerText);
+            });
+         });
       });
 }
 
@@ -35,26 +51,56 @@ function buscarPoliza() {
             let coincidencias = data.filter((objeto) => {
                let idString = objeto.poliza.toString();
                let ultimosTresDigitos = idString.substring(idString.length - 3);
+
                return ultimosTresDigitos.includes(event.target.value);
             });
             document.getElementById('demo').innerHTML = '';
-            document.getElementById('demo').innerHTML += `<tr>
-                        <td>${coincidencias[0]['poliza']}</td>
-                        <td>${coincidencias[0]['cliente']}</td>
-                        <td>${coincidencias[0]['subramo']}</td>
-                        <td>${coincidencias[0]['fechaInicio']}</td>
-                        <td>${coincidencias[0]['fechaFin']}</td>
-                        <td>${coincidencias[0]['primaNeta']}</td>
-                        <td>${coincidencias[0]['primaTotal']}</td>
-                        <td>${coincidencias[0]['aseguradora']}</td>
-                        <td>${coincidencias[0]['tipoPago']}</td>
-                        </tr>`;
+            console.log(typeof coincidencias);
+            console.log(coincidencias);
+            for (var i = 0; i < coincidencias.length; i++) {
+               console.log(coincidencias);
+               document.getElementById('demo').innerHTML += `
+               <p class="td-clickable">${coincidencias[i]['poliza']}</p>
+               <tr class='tableOption'>
+                  <td>${coincidencias[i]['cliente']}</td>
+                  <td>${coincidencias[i]['subramo']}</td>
+                  <td>${coincidencias[i]['fechaInicio']}</td>
+                  <td>${coincidencias[i]['fechaFin']}</td>
+                  <td>${coincidencias[i]['primaNeta']}</td>
+                  <td>${coincidencias[i]['primaTotal']}</td>
+                  <td>${coincidencias[i]['aseguradora']}</td>
+                  <td>${coincidencias[i]['tipoPago']}</td>
+               </tr>;
+               
+               `;
+            }
+            console.log(document.querySelectorAll('.td-clickable'));
             return console.log(coincidencias);
          });
       });
 }
 
 buscarPoliza();
+
+function rellenarFormulario(poliza) {
+   fetch('/get_polizas_data2')
+      .then((response) => response.json())
+      .then(function (data) {
+         let coincidencia = data.find((objeto) => {
+            return objeto.poliza == poliza;
+         });
+         console.log(coincidencia);
+         document.getElementById('buscar-cliente').value = coincidencia.cliente;
+         document.getElementById('Poliza').value = coincidencia.poliza;
+         document.getElementById('serie').value = coincidencia.serie;
+         document.getElementById('ramo').value = coincidencia.ramo;
+         document.getElementById('subramo').value = coincidencia.subramo;
+         document.getElementById('VigenciaI').value = coincidencia.fechaInicio;
+         document.getElementById('VigenciaF').value = coincidencia.fechaFin;
+         document.getElementById('Aseguradora').value =
+            coincidencia.aseguradora;
+      });
+}
 
 $(document).ready(function () {
    // funcion para mostrar nuevo ramo/subramo

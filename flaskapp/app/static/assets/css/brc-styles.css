@@ -19,7 +19,7 @@ body {
 }
 
 label {
-   font-size: 1rem;
+   font-size: 0.7rem;
    color: var(--gris-medio);
    opacity: 0.5;
 }
@@ -368,4 +368,9 @@ tbody tr:nth-child(2n + 1) {
 a .edit,
 a .delete {
    color: var(--color-primario);
+}
+
+.td-clickable {
+   color: var(--color-primario);
+   cursor: pointer;
 }
