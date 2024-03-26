@@ -228,7 +228,7 @@ def get_clients_data():
         'recordsFiltered': total_records,  # Total records after filtering
         'data': data  # Data to display
     }
-
+    return response
     # jsonResp = {'jack': 4098, 'sape': 4139}
 
     
@@ -967,3 +967,49 @@ def get_polizas_data2():
 
 
     return jsonify(data)
+
+
+@main.route('/get_clients_data2', methods=['POST'])
+@login_required
+def get_clients_data2():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
+    
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+
+    # Query to fetch clientes data from the database 
+    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
+    
+    # Get total count of records without filtering
+    total_records = clients_query.count()
+    
+    # Apply pagination
+    clients = clients_query.offset(start).limit(length).all()
+
+
+    # Format data as required by DataTables
+    data = []
+    for client, grupo_name in clients:
+        data.append({
+            'id': client.id,
+            'nombre': client.nombre,
+            'grupo_id': client.grupo_id,
+            'grupo': grupo_name,
+            'rfc': client.rfc,
+            'tel_oficina': client.tel_oficina,
+            'tel_movil': client.tel_movil,
+            'tel_casa': client.tel_casa,
+            'correo': client.correo,
+            'direccion': client.direccion,
+            'fecha_nacimiento': client.fecha_nacimiento.strftime('%Y-%m-%d'), # Format date as string
+            'sexo': client.sexo,
+            'ocupacion': client.ocupacion,
+            'actividad': client.actividad,
+            'apellido': client.apellido,
+            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+        })
+
+    return jsonify(total_records, data)
+
+    # jsonResp = {'jack': 4098, 'sape': 4139}

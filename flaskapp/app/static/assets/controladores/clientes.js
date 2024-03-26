@@ -1,5 +1,48 @@
 import { datatableConfig } from './datatable-config.js';
 
+function fetch_test() {
+   document.getElementById('demo').innerHTML = '';
+   // fetch('/get_usuarios_data2')
+   fetch('/get_clients_data2', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: 0,
+         length: 10
+      })
+   })
+      .then((response) => response.json())
+      .then(function (data) {
+         for (var i = 0; i < data[1].length; i++) {
+            document.getElementById('demo').innerHTML += `
+            
+               <tr  class="tableOption">
+                 
+                     
+                     <td>${data[1][i]['fullname']}</td>
+                     <td>${data[1][i]['correo']}</td>
+                     <td>${data[1][i]['tel_movil']}</td>
+                  
+               </tr>
+               
+            `;
+         }
+         const polizasTable = document.querySelectorAll('.td-clickable');
+         console.log(polizasTable);
+         polizasTable.forEach((poliza) => {
+            poliza.addEventListener('click', (event) => {
+               console.log(event.target.innerText);
+               rellenarFormulario(event.target.innerText);
+            });
+         });
+         console.log(data);
+      });
+}
+
+fetch_test();
+
 $(document).ready(function () {
    //Funcion para mostrar nuevo grupo input
    $('#grupo').change(function () {
