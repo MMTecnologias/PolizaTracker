@@ -107,6 +107,7 @@
                <p id="mensajeError">Usuario o contraseña invalidos</p>
 
                <a
+                  id="forgotPass"
                   class="link-forgot-pass"
                   href="{{ url_for('auth.req_new_pass') }}"
                   >¿Olvidaste la contraseña?</a
@@ -141,4 +142,63 @@
          <script src="{{ url_for('static', filename='assets/controladores/login2.js') }}"></script>
       </div>
    </body>
+   <!-- MODAL -->
+   <div class="container__modal">
+      <div class="form__modal">
+         <form
+            class="form"
+            id="forgotpassform"
+            method="POST"
+         >
+            <h4>Restablece la Contraseña</h4>
+            <p>Envía la solicitud al Administrador</p>
+            <div class="form__input">
+               <input
+                  class="input"
+                  type="text"
+                  id="InputUsuario"
+                  name="username"
+                  required
+               />
+               <label
+                  class="input-label"
+                  for="InputUsuario"
+               >
+                  <span class="txt-label"> Usuario </span>
+               </label>
+               <img
+                  class="input__icon"
+                  src="{{ url_for('static',filename='assets/images/icon/user.png') }}"
+                  alt="user icon"
+                  width="16px"
+               />
+               <p
+                  id="mensajeError"
+                  role="alert"
+                  style="display: none; color: tomato"
+               >
+                  Ingresa un usuario valido
+               </p>
+            </div>
+            <!-- Button trigger modal -->
+            <div class="d-flex">
+               <button
+                  id="enviarValidacion"
+                  type="submit"
+                  class="form__btn-submit"
+               >
+                  Enviar
+               </button>
+
+               <a
+                  id="cancelarModal"
+                  type="button"
+                  class="link-forgot-pass"
+                  href="{{ url_for('auth.login') }}"
+                  >Cancelar</a
+               >
+            </div>
+         </form>
+      </div>
+   </div>
 </html>

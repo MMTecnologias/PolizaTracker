@@ -374,3 +374,49 @@ a .delete {
    color: var(--color-primario);
    cursor: pointer;
 }
+
+.container__modal {
+   width: 80vw;
+   height: 80vh;
+   margin: auto auto;
+   position: absolute;
+   top: 100px;
+   left: 10%;
+   background-color: rgba(255, 255, 255, 0.3);
+   backdrop-filter: blur(7px);
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   opacity: 0;
+   pointer-events: none;
+   transition: all 0.5s ease;
+}
+
+.modal-active {
+   width: 100vw;
+   height: 100vh;
+   top: 0;
+   left: 0;
+   opacity: 1;
+   pointer-events: all;
+   transition: all 0.5s ease;
+}
+
+.form__modal {
+   width: 30%;
+   height: 25%;
+   display: flex;
+   flex-direction: column;
+   justify-content: space-evenly;
+   align-items: center;
+   margin: auto auto;
+   padding: 50px;
+   background-color: white;
+   border-radius: 14px;
+}
+
+.form__modal .form__btn-submit {
+   width: fit-content;
+   height: fit-content;
+   padding: 4px 24px;
+}

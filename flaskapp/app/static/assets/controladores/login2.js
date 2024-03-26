@@ -89,3 +89,21 @@ $(document).ready(function () {
       return false;
    });
 });
+
+// abrir modal
+$(document).ready(function () {
+   const btnCancelar = document.querySelector('#forgotPass');
+   btnCancelar.addEventListener('click', function (e) {
+      e.preventDefault();
+      $('.container__modal').addClass('modal-active');
+   });
+});
+
+// cerrar modal
+$(document).ready(function () {
+   const btnCancelar = document.querySelector('#cancelarModal');
+   btnCancelar.addEventListener('click', function (e) {
+      e.preventDefault();
+      $('.container__modal').removeClass('modal-active');
+   });
+});
