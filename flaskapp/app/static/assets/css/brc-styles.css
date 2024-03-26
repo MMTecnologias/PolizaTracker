@@ -420,3 +420,10 @@ a .delete {
    height: fit-content;
    padding: 4px 24px;
 }
+
+.infoAdicional {
+   font-size: 0.4 rem;
+   font-weight: 400;
+   text-align: left;
+   margin-bottom: 16pxalinea;
+}
