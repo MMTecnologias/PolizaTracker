@@ -1,5 +1,7 @@
 import { datatableConfig } from './datatable-config.js';
 
+let currentIndex = 0;
+
 function pintarTabla(index) {
    //Reiniciamos la tabla al ejecutar la función
    document.querySelector('#demo').innerHTML = '';
@@ -56,11 +58,21 @@ function pintarTabla(index) {
 
          btnDelete.forEach((btn) => {
             btn.addEventListener('click', (event) => {
-               //insertar función eliminar
                console.log(event.target.id.split('_')[1]);
-               deleteCliente(event.target.id.split('_')[1]);
+               //función eliminar
+               deleteClient(event.target.id.split('_')[1]);
             });
          });
+
+         //Editar cliente desde la tabla
+         // const btnEdit = document.querySelectorAll('.btn__icon_edit');
+
+         // btnEdit.forEach((btn) => {
+         //    btn.addEventListener('click', (event) => {
+         //       console.log(event.target.id.split('_')[1]);
+         //       editClient(event.target.id.split('_')[1]);
+         //    });
+         // });
 
          // document
          //    .querySelectorAll('.paginationList__index')
@@ -72,7 +84,8 @@ function pintarTabla(index) {
 
 pintarTabla();
 
-function deleteCliente(id) {
+//Función para eliminar cliente
+function deleteClient(id) {
    //insertar función eliminar
 
    fetch('/delete_client', {
@@ -83,8 +96,33 @@ function deleteCliente(id) {
       body: new URLSearchParams({
          client_id: id
       })
-   }).then(console.log('cliente eliminado'));
+   })
+      .then(console.log('cliente eliminado'))
+      .then(
+         setTimeout(() => {
+            pintarTabla(currentIndex);
+         }, 500)
+      );
 }
+
+//Función para editar cliente
+// function editClient(id) {
+//    //insertar función eliminar
+
+//    fetch('/create_client', {
+//       method: 'POST',
+//       headers: {
+//          'Content-Type': 'application/x-www-form-urlencoded'
+//       },
+//       body: new URLSearchParams({
+//          search[value]: id
+//       })
+//    })
+//       .then((response) => response.json())
+//       .then((data) => {
+//          console.log(data);
+//       });
+// }
 
 function pintarPaginacion() {
    fetch('/get_clients_data2', {
@@ -132,6 +170,8 @@ function updateActiveIndex() {
       document
          .getElementById(e.target.id)
          .classList.add('paginationList__index--active');
+      currentIndex = e.target.id;
+      console.log(`el indece actual es ${e.target.id}`);
       pintarTabla(e.target.id);
    });
 }
