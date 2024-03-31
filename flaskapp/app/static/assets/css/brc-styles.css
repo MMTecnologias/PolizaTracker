@@ -254,7 +254,7 @@ p {
 
 .form__container {
    width: 30%;
-   height: 85vh;
+   height: 100%;
    display: flex;
    flex-direction: column;
    align-items: center;
@@ -262,18 +262,20 @@ p {
    padding: 32px;
    background-color: white;
    border-radius: 14px;
+   box-shadow: 5px 2px 14px -9px var(--gris-medio);
 }
 
 .tables-sibling {
    width: 70%;
    display: flex;
    flex-direction: column;
-   height: 85vh;
    align-items: center;
+   justify-content: space-between;
    margin: 32px;
    padding: 32px;
    background-color: white;
    border-radius: 14px;
+   box-shadow: 5px 2px 14px -9px var(--gris-medio);
 }
 
 .table-polizas {
