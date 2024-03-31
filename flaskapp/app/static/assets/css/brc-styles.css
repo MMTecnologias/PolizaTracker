@@ -465,3 +465,17 @@ a .delete {
    overflow: hidden;
    height: 100vh;
 }
+
+.btn_table_options {
+   display: flex;
+   width: fit-content;
+}
+
+.btn_icon {
+   vertical-align: middle;
+}
+
+.noClickable {
+   pointer-events: none;
+   cursor: not-allowed;
+}
