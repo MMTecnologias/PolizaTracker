@@ -427,3 +427,39 @@ a .delete {
    text-align: left;
    margin-bottom: 16pxalinea;
 }
+
+.paginationList {
+   justify-self: end;
+   width: fit-content;
+   display: flex;
+   justify-content: start;
+   align-items: center;
+   margin: 0;
+}
+
+.paginationList__index {
+   cursor: pointer;
+   margin: 0;
+   padding: 4px 12px;
+}
+
+.paginationList__index:hover {
+   color: var(--color-claro);
+   background-color: var(--color-primario);
+}
+
+.paginationList__index--active {
+   font-weight: bold;
+   color: var(--color-primario);
+}
+
+.paginationList__index--active:hover {
+   outline: var(--color-primario);
+   color: var(--color-primario);
+   background-color: var(--color-claro);
+}
+
+.noScroll {
+   overflow: hidden;
+   height: 100vh;
+}

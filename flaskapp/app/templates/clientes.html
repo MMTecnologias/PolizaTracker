@@ -91,7 +91,7 @@
       />
    </head>
 
-   <body>
+   <body class="noScroll">
       <nav class="navbar">
          <a
             class="app-section"
@@ -267,7 +267,11 @@
                   </div>
                </div>
                <div class="form__input-data">
-                  <label class="label-input-data" for="correo">Correo Electrónico</label>
+                  <label
+                     class="label-input-data"
+                     for="correo"
+                     >Correo Electrónico</label
+                  >
                   <div class="input-group">
                      <input
                         type="email"
@@ -407,7 +411,7 @@
                   <p class="invalid-feedback">Selecciona un grupo válido.</p>
                </div>
                <div
-                  class="form__input-data" 
+                  class="form__input-data"
                   style="display: none"
                   id="nuevo_grupo_div"
                >
@@ -450,39 +454,14 @@
 
          <!-- Server side end -->
 
-         <div class="form__container table-polizas">
-            <div class="header-table">
-               <h4 class="header-title">Clientes</h4>
-
-               <div class="table-options">
-                  <!-- Revisar HREF -->
-                  <a
-                     href="{{ url_for('main.export_clients') }}"
-                     class="link-forgot-pass link-option"
-                     id="exportallCSV"
-                  >
-                     Exportar todo
-                  </a>
-               </div>
-            </div>
-
-            <table
-               id="myTable"
-               class="table"
+         <div class="tables-sibling">
+            <div
+               class="table-polizas"
+               id="table-polizas"
             >
-               <thead>
-                  <tr>
-                     <th>Nombre</th>
-                     <th>Correo</th>
-                     <th>Celular</th>
-                     <th>Acción</th>
-                  </tr>
-               </thead>
-               <tbody></tbody>
-            </table>
-         </div>
+               <h4 class="header-title">Tabla de Pólizas</h4>
 
-         <table class="table">
+               <table class="table">
                   <thead>
                      <tr>
                         <th scope="col">Nombre</th>
@@ -498,6 +477,11 @@
                   </tbody>
                </table>
             </div>
+            <ul
+               id="indexList"
+               class="paginationList"
+            ></ul>
+         </div>
 
          <!-- main content area end -->
       </div>
@@ -553,7 +537,9 @@
          var deleteicon =
             "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
       </script>
-      <script type="module" src="{{ url_for('static', filename='assets/controladores/clientes.js') }}"></script>
+      <script
+         type="module"
+         src="{{ url_for('static', filename='assets/controladores/clientes.js') }}"
+      ></script>
    </body>
 </html>
-

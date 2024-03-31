@@ -1,22 +1,22 @@
 import { datatableConfig } from './datatable-config.js';
 
-function fetch_test() {
-   document.getElementById('demo').innerHTML = '';
-   // fetch('/get_usuarios_data2')
+function pintarTabla(index) {
+   //Reiniciamos la tabla al ejecutar la función
+   document.querySelector('#demo').innerHTML = '';
    fetch('/get_clients_data2', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-         start: 0,
+         start: `${index === undefined ? 0 : index * 10}`,
          length: 10
       })
    })
       .then((response) => response.json())
       .then(function (data) {
          for (var i = 0; i < data[1].length; i++) {
-            document.getElementById('demo').innerHTML += `
+            document.querySelector('#demo').innerHTML += `
             
                <tr  class="tableOption">
                  
@@ -29,19 +29,67 @@ function fetch_test() {
                
             `;
          }
-         const polizasTable = document.querySelectorAll('.td-clickable');
-         console.log(polizasTable);
-         polizasTable.forEach((poliza) => {
-            poliza.addEventListener('click', (event) => {
-               console.log(event.target.innerText);
-               rellenarFormulario(event.target.innerText);
-            });
-         });
-         console.log(data);
+         // document
+         //    .querySelectorAll('.paginationList__index')
+         //    .addEventListener('click', function () {
+         //       console.log('click');
+         //    });
       });
 }
 
-fetch_test();
+pintarTabla();
+
+function pintarPaginacion() {
+   fetch('/get_clients_data2', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: 0,
+         length: 1
+      })
+   })
+      .then((response) => response.json())
+      .then(function (data) {
+         console.log(
+            `el total de datos en la tabla clientes es de ${
+               data[0]
+            } y podemos pintar ${Math.round(data[0] / 10)} páginas `
+         );
+
+         for (let i = 0; i < Math.round(data[0] / 10); i++) {
+            document.querySelector('#indexList').innerHTML += `
+            
+               <li
+            class='paginationList__index ${
+               i === 0 ? 'paginationList__index--active' : ''
+            }'
+            id='${i}'
+      
+         >
+            ${i + 1}
+         </li>
+               
+            `;
+         }
+      });
+}
+
+pintarPaginacion();
+
+function updateActiveIndex() {
+   const indexList = document.querySelector('#indexList');
+   indexList.addEventListener('click', function (e) {
+      $('.paginationList__index').removeClass('paginationList__index--active');
+      document
+         .getElementById(e.target.id)
+         .classList.add('paginationList__index--active');
+      pintarTabla(e.target.id);
+   });
+}
+
+updateActiveIndex();
 
 $(document).ready(function () {
    //Funcion para mostrar nuevo grupo input
