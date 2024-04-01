@@ -36,7 +36,7 @@ function pintarTabla(index) {
                               </a>
                            </li>
                            <li>
-                              <a href="#" class="btn__icon_edit">
+                              <a href="#" class="btn__icon_edit" id="btnEdit_${data[1][i].id}">
                                  <svg class="noClickable" xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg> 
                               </a>
                            </li>
@@ -65,20 +65,18 @@ function pintarTabla(index) {
          });
 
          //Editar cliente desde la tabla
-         // const btnEdit = document.querySelectorAll('.btn__icon_edit');
+         const btnEdit = document.querySelectorAll('.btn__icon_edit');
 
-         // btnEdit.forEach((btn) => {
-         //    btn.addEventListener('click', (event) => {
-         //       console.log(event.target.id.split('_')[1]);
-         //       editClient(event.target.id.split('_')[1]);
-         //    });
-         // });
-
-         // document
-         //    .querySelectorAll('.paginationList__index')
-         //    .addEventListener('click', function () {
-         //       console.log('click');
-         //    });
+         btnEdit.forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+               console.log(
+                  `se ha realizado la consulta, id enviado: ${
+                     event.target.id.split('_')[1]
+                  }`
+               );
+               editClient(event.target.id.split('_')[1]);
+            });
+         });
       });
 }
 
@@ -106,23 +104,48 @@ function deleteClient(id) {
 }
 
 //Función para editar cliente
-// function editClient(id) {
-//    //insertar función eliminar
+function editClient(id) {
+   //insertar función eliminar
 
-//    fetch('/create_client', {
-//       method: 'POST',
-//       headers: {
-//          'Content-Type': 'application/x-www-form-urlencoded'
-//       },
-//       body: new URLSearchParams({
-//          search[value]: id
-//       })
-//    })
-//       .then((response) => response.json())
-//       .then((data) => {
-//          console.log(data);
-//       });
-// }
+   fetch('/get_clients_filtered', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         search_value: id
+      })
+   })
+      .then((response) => response.json())
+      .then((data) => {
+         console.log(data[0]);
+         document.querySelector('#nombre').value = data[0].nombre;
+         document.querySelector('#apellido').value = data[0].apellido;
+         document.querySelector('#rfc').value = data[0].rfc;
+         document.querySelector('#telefono_oficina').value =
+            data[0].tel_oficina;
+         document.querySelector('#telefono_movil').value = data[0].tel_movil;
+         document.querySelector('#telefono_casa').value = data[0].tel_casa;
+         document.querySelector('#correo').value = data[0].correo;
+         document.querySelector('#direccion_fiscal').value = data[0].direccion;
+         document.querySelector('#fecha_nacimiento').value =
+            data[0].fecha_nacimiento;
+         document.querySelector(
+            '#sexo'
+         ).innerHTML = `<option value='${data[0].sexo}'>
+         ${data[0].sexo}
+
+         </option>`;
+         document.querySelector('#ocupacion').value = data[0].ocupacion;
+         document.querySelector('#giro_actividad').value = data[0].actividad;
+         document.querySelector(
+            '#grupo'
+         ).innerHTML = `<option value='${data[0].grupo}'>
+         ${data[0].grupo}
+
+         </option>`;
+      });
+}
 
 function pintarPaginacion() {
    fetch('/get_clients_data2', {

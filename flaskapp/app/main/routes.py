@@ -928,46 +928,6 @@ def get_usuarios_data2():
 
 # test table polizas
 
-@main.route('/get_polizas_data2', methods=['GET'])
-@login_required
-def get_polizas_data2():
-    # if not check_access("Admin usuarios"):
-    #     return redirect(url_for('main.index'))
-    
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora"),Ramo.ramo.label("id"), Subramo.subramo.label("id"), TipoPago.tipo_pago.label("id")) \
-    .select_from(Poliza) \
-    .join(Cliente, Poliza.cliente_id == Cliente.id) \
-    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-    .join(Ramo, Poliza.ramo_id == Ramo.id)  \
-    .join(Subramo, Poliza.subramo_id == Subramo.id)  \
-    .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
-
-    polizas = polizas_query.all()
-
-
-    # Format data as required by DataTables
-    data = []
-    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
-        data.append({
-            'poliza': poliza.serie,
-            'cliente': f"{nombre} {apellido}",
-            'aseguradora': aseguradora,
-            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'id': poliza.id,
-            'ramo': f"{ramo}",
-            'subramo': f"{subramo}",
-            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
-            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
-            'primaNeta': poliza.prima_neta,
-            'primaTotal': poliza.prima_total,
-            'tipoPago': f"{tipo_pago}"
-
-            # Add more fields as needed
-        })
-
-
-    return jsonify(data)
-
 
 @main.route('/get_clients_data2', methods=['POST'])
 @login_required
@@ -1013,3 +973,47 @@ def get_clients_data2():
     return jsonify(total_records, data)
 
     # jsonResp = {'jack': 4098, 'sape': 4139}
+
+
+@main.route('/get_clients_filtered', methods=['POST'])
+@login_required
+def get_clients_filtered():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
+    # Get parameters from DataTables AJAX request
+    search_value = request.form.get('search_value')
+
+    # Query to fetch clientes data from the database 
+    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
+
+    # Implement search functionality
+    if search_value:
+        clients_query = clients_query.filter(or_(
+            Cliente.id.ilike(f'%{search_value}%'),
+            # Add more fields for searching as needed
+        ))
+
+    clients = clients_query
+    # Format data as required by DataTables
+    data = []
+    for client, grupo_name in clients:
+        data.append({
+            'id': client.id,
+            'nombre': client.nombre,
+            'grupo_id': client.grupo_id,
+            'grupo': grupo_name,
+            'rfc': client.rfc,
+            'tel_oficina': client.tel_oficina,
+            'tel_movil': client.tel_movil,
+            'tel_casa': client.tel_casa,
+            'correo': client.correo,
+            'direccion': client.direccion,
+            'fecha_nacimiento': client.fecha_nacimiento.strftime('%Y-%m-%d'), # Format date as string
+            'sexo': client.sexo,
+            'ocupacion': client.ocupacion,
+            'actividad': client.actividad,
+            'apellido': client.apellido,
+            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+        })
+
+    return jsonify(data)
