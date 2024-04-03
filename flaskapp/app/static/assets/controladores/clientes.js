@@ -78,9 +78,19 @@ function pintarTabla(index) {
             });
          });
       });
+
+   verGrupos();
 }
 
 pintarTabla();
+
+function verGrupos() {
+   fetch('/grupo')
+      .then((response) => response.json())
+      .then((data) => {
+         console.log(data);
+      });
+}
 
 //Función para eliminar cliente
 function deleteClient(id) {
@@ -119,6 +129,7 @@ function editClient(id) {
       .then((response) => response.json())
       .then((data) => {
          console.log(data[0]);
+         document.querySelector('#cliente_id').value = data[0].id;
          document.querySelector('#nombre').value = data[0].nombre;
          document.querySelector('#apellido').value = data[0].apellido;
          document.querySelector('#rfc').value = data[0].rfc;
@@ -134,16 +145,27 @@ function editClient(id) {
             '#sexo'
          ).innerHTML = `<option value='${data[0].sexo}'>
          ${data[0].sexo}
+         </option>
+         <option value="Femenino">Femenino</option>
+         <option value="Masculino">Masculino</option>
 
-         </option>`;
+         `;
          document.querySelector('#ocupacion').value = data[0].ocupacion;
          document.querySelector('#giro_actividad').value = data[0].actividad;
-         document.querySelector(
-            '#grupo'
-         ).innerHTML = `<option value='${data[0].grupo}'>
-         ${data[0].grupo}
-
-         </option>`;
+         document.querySelector('#grupo').innerHTML = `<option value='${
+            data[0].grupo_id
+         }'> ${data[0].grupo}</option>
+         <!-- pintar todas las opciones -->
+         ${fetch('/grupo')
+            .then((response) => response.json())
+            .then((data) => {
+               data.forEach((grupo) => {
+                  document.querySelector('#grupo').innerHTML += `
+               <option value='${grupo.id}'>${grupo.nombre}</option>
+               `;
+               });
+            })}
+         `;
       });
 }
 

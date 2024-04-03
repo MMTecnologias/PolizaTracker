@@ -36,6 +36,21 @@ def cliente():
     grupos=Grupo.query.all()
     return render_template('clientes.html', user=current_user,grupos=grupos)
 
+@main.route('/grupo', methods=['GET'])
+@login_required
+def grupo():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
+    grupos= db.session.query(Grupo).all()
+
+    data = []
+    for grupo in grupos:
+        data.append({
+            'id': grupo.id,
+            'nombre': grupo.grupo,
+        })
+    return jsonify(data)
+
 @main.route('/create_client', methods=['POST'])
 @login_required
 def create_client():
@@ -946,6 +961,7 @@ def get_clients_data2():
     
     # Apply pagination
     clients = clients_query.offset(start).limit(length).all()
+
 
 
     # Format data as required by DataTables
