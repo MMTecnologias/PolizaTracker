@@ -1,6 +1,12 @@
 import { datatableConfig } from './datatable-config.js';
 
+let clientsPerPage = 10;
+
 let currentIndex = 0;
+
+function currentIndexToShow(currentIndex) {
+   return currentIndex + 1;
+}
 
 function pintarTabla(index) {
    //Reiniciamos la tabla al ejecutar la función
@@ -11,8 +17,8 @@ function pintarTabla(index) {
          'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-         start: `${index === undefined ? 0 : index * 10}`,
-         length: 10
+         start: `${index === undefined ? 0 : index * clientsPerPage}`,
+         length: clientsPerPage
       })
    })
       .then((response) => response.json())
@@ -185,43 +191,50 @@ function pintarPaginacion() {
          console.log(
             `el total de datos en la tabla clientes es de ${
                data[0]
-            } y podemos pintar ${Math.ceil(data[0] / 10)} páginas `
+            } y podemos pintar ${Math.ceil(
+               data[0] / clientsPerPage
+            )} páginas \n pagina actual: ${currentIndexToShow(currentIndex)}`
          );
 
-         for (let i = 0; i < Math.ceil(data[0] / 10); i++) {
-            document.querySelector('#indexList').innerHTML += `
-            
-               <li
-            class='paginationList__index ${
-               i === 0 ? 'paginationList__index--active' : ''
-            }'
-            id='${i}'
-      
-         >
-            ${i + 1}
-         </li>
-               
-            `;
+         document.querySelector(
+            '#current-index'
+         ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
+
+         if (currentIndex == 0) {
+            document.querySelector('#prev-index').classList.add('noClickable');
+         } else {
+            document
+               .querySelector('#prev-index')
+               .classList.remove('noClickable');
          }
       });
 }
 
 pintarPaginacion();
 
-function updateActiveIndex() {
-   const indexList = document.querySelector('#indexList');
-   indexList.addEventListener('click', function (e) {
-      $('.paginationList__index').removeClass('paginationList__index--active');
-      document
-         .getElementById(e.target.id)
-         .classList.add('paginationList__index--active');
-      currentIndex = e.target.id;
-      console.log(`el indece actual es ${e.target.id}`);
-      pintarTabla(e.target.id);
+function increaseIndex() {
+   const nextIndex = document.querySelector('#next-index');
+   nextIndex.addEventListener('click', function (e) {
+      ++currentIndex;
+      console.log(`el indice actual es ${currentIndex}`);
+      pintarPaginacion();
+      pintarTabla(currentIndex);
    });
 }
 
-updateActiveIndex();
+increaseIndex();
+
+function decreaseIndex() {
+   const prevIndex = document.querySelector('#prev-index');
+   prevIndex.addEventListener('click', function (e) {
+      --currentIndex;
+      console.log(`el indice actual es ${currentIndex}`);
+      pintarPaginacion();
+      pintarTabla(currentIndex);
+   });
+}
+
+decreaseIndex();
 
 $(document).ready(function () {
    //Funcion para mostrar nuevo grupo input

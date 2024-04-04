@@ -461,6 +461,14 @@ a .delete {
    background-color: var(--color-claro);
 }
 
+.paginationList__current-index {
+   padding: 8px;
+   cursor: default;
+   outline: var(--color-primario);
+   color: var(--color-primario);
+   background-color: var(--color-claro);
+}
+
 .noScroll {
    overflow: hidden;
    height: 100vh;
