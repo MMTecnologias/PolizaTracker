@@ -4,9 +4,7 @@ let clientsPerPage = 10;
 
 let currentIndex = 0;
 
-function currentIndexToShow(currentIndex) {
-   return currentIndex + 1;
-}
+const currentIndexToShow = (currentIndex) => currentIndex + 1;
 
 const currentPageData = async () => {
    let clientData = [];
@@ -157,8 +155,6 @@ fillTable();
 
 //    verGrupos();
 // }
-
-pintarTabla();
 
 function verGrupos() {
    fetch('/grupo')
