@@ -76,7 +76,8 @@ const fillTable = async () => {
                   </tr>`;
    });
    await pintarPaginacion();
-   await btnDelete();
+   await addBtnDelete();
+   await addBtnEdit();
 };
 
 fillTable();
@@ -106,34 +107,12 @@ const updateTable = async () => {
                               </li>
                            </ul></td>`;
    }
-   await btnDelete();
+   await addBtnDelete();
+   await addBtnEdit();
 };
 
 //Eliminar cliente desde la tabla
-
-//Editar cliente desde la tabla
-const btnEdit = document.querySelectorAll('.btn__icon_edit');
-
-btnEdit.forEach((btn) => {
-   btn.addEventListener('click', (event) => {
-      console.log(
-         `se ha realizado la consulta, id enviado: ${
-            event.target.id.split('_')[1]
-         }`
-      );
-      editClient(event.target.id.split('_')[1]);
-   });
-});
-
-function verGrupos() {
-   fetch('/grupo')
-      .then((response) => response.json())
-      .then((data) => {
-         console.log(data);
-      });
-}
-
-const btnDelete = async () => {
+const addBtnDelete = async () => {
    const btnDelete = document.querySelectorAll('.btn__icon_delete');
 
    btnDelete.forEach((btn) => {
@@ -160,11 +139,35 @@ async function deleteClient(id) {
    });
 }
 
+//Editar cliente desde la tabla
+const addBtnEdit = async () => {
+   const btnEdit = document.querySelectorAll('.btn__icon_edit');
+
+   btnEdit.forEach((btn) => {
+      btn.addEventListener('click', async (event) => {
+         console.log(
+            `se ha realizado la consulta, id enviado: ${
+               event.target.id.split('_')[1]
+            }`
+         );
+         await editClient(event.target.id.split('_')[1]);
+      });
+   });
+};
+
+function verGrupos() {
+   fetch('/grupo')
+      .then((response) => response.json())
+      .then((data) => {
+         console.log(data);
+      });
+}
+
 //Función para editar cliente
-function editClient(id) {
+async function editClient(id) {
    //insertar función eliminar
 
-   fetch('/get_clients_filtered', {
+   const response = await fetch('/get_clients_filtered', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -172,36 +175,31 @@ function editClient(id) {
       body: new URLSearchParams({
          search_value: id
       })
-   })
-      .then((response) => response.json())
-      .then((data) => {
-         console.log(data[0]);
-         document.querySelector('#cliente_id').value = data[0].id;
-         document.querySelector('#nombre').value = data[0].nombre;
-         document.querySelector('#apellido').value = data[0].apellido;
-         document.querySelector('#rfc').value = data[0].rfc;
-         document.querySelector('#telefono_oficina').value =
-            data[0].tel_oficina;
-         document.querySelector('#telefono_movil').value = data[0].tel_movil;
-         document.querySelector('#telefono_casa').value = data[0].tel_casa;
-         document.querySelector('#correo').value = data[0].correo;
-         document.querySelector('#direccion_fiscal').value = data[0].direccion;
-         document.querySelector('#fecha_nacimiento').value =
-            data[0].fecha_nacimiento;
-         document.querySelector(
-            '#sexo'
-         ).innerHTML = `<option value='${data[0].sexo}'>
+   });
+   const data = await response.json();
+   console.log(data[0]);
+   document.querySelector('#cliente_id').value = data[0].id;
+   document.querySelector('#nombre').value = data[0].nombre;
+   document.querySelector('#apellido').value = data[0].apellido;
+   document.querySelector('#rfc').value = data[0].rfc;
+   document.querySelector('#telefono_oficina').value = data[0].tel_oficina;
+   document.querySelector('#telefono_movil').value = data[0].tel_movil;
+   document.querySelector('#telefono_casa').value = data[0].tel_casa;
+   document.querySelector('#correo').value = data[0].correo;
+   document.querySelector('#direccion_fiscal').value = data[0].direccion;
+   document.querySelector('#fecha_nacimiento').value = data[0].fecha_nacimiento;
+   document.querySelector('#sexo').innerHTML = `<option value='${data[0].sexo}'>
          ${data[0].sexo}
          </option>
          <option value="Femenino">Femenino</option>
          <option value="Masculino">Masculino</option>
 
          `;
-         document.querySelector('#ocupacion').value = data[0].ocupacion;
-         document.querySelector('#giro_actividad').value = data[0].actividad;
-         document.querySelector('#grupo').innerHTML = `<option value='${
-            data[0].grupo_id
-         }'> ${data[0].grupo}</option>
+   document.querySelector('#ocupacion').value = data[0].ocupacion;
+   document.querySelector('#giro_actividad').value = data[0].actividad;
+   document.querySelector('#grupo').innerHTML = `<option value='${
+      data[0].grupo_id
+   }'> ${data[0].grupo}</option>
          <!-- pintar todas las opciones -->
          ${fetch('/grupo')
             .then((response) => response.json())
@@ -213,7 +211,6 @@ function editClient(id) {
                });
             })}
          `;
-      });
 }
 
 async function pintarPaginacion() {
