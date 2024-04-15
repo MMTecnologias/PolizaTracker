@@ -487,3 +487,11 @@ a .delete {
    pointer-events: none;
    cursor: not-allowed;
 }
+
+.table-name {
+   width: 300px;
+}
+
+.table-mail {
+   width: 400px;
+}
