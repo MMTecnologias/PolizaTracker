@@ -437,6 +437,7 @@ a .delete {
    justify-content: start;
    align-items: center;
    margin: 0;
+   user-select: none;
 }
 
 .paginationList__index {
@@ -486,6 +487,9 @@ a .delete {
 .noClickable {
    pointer-events: none;
    cursor: not-allowed;
+   &.paginationList__index {
+      opacity: 0.2;
+   }
 }
 
 .table-name {
