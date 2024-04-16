@@ -205,26 +205,7 @@
                      <p class="invalid-feedback">Ingresa un RFC válido.</p>
                   </div>
                </div>
-               <div class="form__input-data">
-                  <label
-                     for="telefono_oficina"
-                     class="label-input-data"
-                     >Teléfonos Oficina</label
-                  >
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="telefono_oficina"
-                        name="telefono_oficina"
-                        placeholder=""
-                        minlength="10"
-                        maxlength="10"
-                        required
-                     />
-                     <p class="invalid-feedback">Ingresa un teléfono válido.</p>
-                  </div>
-               </div>
+
                <div class="form__input-data">
                   <label
                      for="telefono_movil"
@@ -245,27 +226,55 @@
                      <p class="invalid-feedback">Ingresa un teléfono válido.</p>
                   </div>
                </div>
-               <div class="form__input-data">
-                  <label
-                     for="telefono_casa"
-                     class="label-input-data"
-                  >
-                     Teléfonos Casa</label
-                  >
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="telefono_casa"
-                        name="telefono_casa"
-                        placeholder=""
-                        minlength="10"
-                        maxlength="10"
-                        required
-                     />
-                     <p class="invalid-feedback">Ingresa un teléfono válido.</p>
+
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        for="telefono_casa"
+                        class="label-input-data"
+                     >
+                        Teléfonos Casa</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="telefono_casa"
+                           name="telefono_casa"
+                           placeholder=""
+                           minlength="10"
+                           maxlength="10"
+                           required
+                        />
+                        <p class="invalid-feedback">
+                           Ingresa un teléfono válido.
+                        </p>
+                     </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        for="telefono_oficina"
+                        class="label-input-data"
+                        >Teléfonos Oficina</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="telefono_oficina"
+                           name="telefono_oficina"
+                           placeholder=""
+                           minlength="10"
+                           maxlength="10"
+                           required
+                        />
+                        <p class="invalid-feedback">
+                           Ingresa un teléfono válido.
+                        </p>
+                     </div>
                   </div>
                </div>
+
                <div class="form__input-data">
                   <label
                      class="label-input-data"
@@ -310,86 +319,93 @@
                      </p>
                   </div>
                </div>
-               <div class="form__input-data">
-                  <label
-                     for="fecha_nacimiento"
-                     class="label-input-data"
-                     >Fecha de Nacimiento</label
-                  >
-                  <div class="input-group">
-                     <input
-                        type="date"
-                        class="form-control"
-                        id="fecha_nacimiento"
-                        name="fecha_nacimiento"
-                        placeholder=""
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        for="fecha_nacimiento"
+                        class="label-input-data"
+                        >Fecha de Nacimiento</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="date"
+                           class="form-control"
+                           id="fecha_nacimiento"
+                           name="fecha_nacimiento"
+                           placeholder=""
+                           required
+                        />
+                        <p class="invalid-feedback">
+                           Ingresa una fecha válida.
+                        </p>
+                     </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        for="sexo"
+                        class="label-input-data"
+                        >Sexo</label
+                     >
+                     <select
+                        class="custom-select"
+                        id="sexo"
+                        name="sexo"
                         required
-                     />
-                     <p class="invalid-feedback">Ingresa una fecha válida.</p>
+                     >
+                        <option value="">Selecciona...</option>
+                        <option value="Fememino">Femenino</option>
+                        <option value="Masculino">Masculino</option>
+                     </select>
+                     <p class="invalid-feedback">Selecciona un sexo válido.</p>
                   </div>
                </div>
-               <div class="form__input-data">
-                  <label
-                     for="sexo"
-                     class="label-input-data"
-                     >Sexo</label
-                  >
-                  <select
-                     class="custom-select"
-                     id="sexo"
-                     name="sexo"
-                     required
-                  >
-                     <option value="">Selecciona...</option>
-                     <option value="Fememino">Femenino</option>
-                     <option value="Masculino">Masculino</option>
-                  </select>
-                  <p class="invalid-feedback">Selecciona un sexo válido.</p>
-               </div>
-               <div class="form__input-data">
-                  <label
-                     for="ocupacion"
-                     class="label-input-data"
-                     >Ocupación</label
-                  >
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="ocupacion"
-                        name="ocupacion"
-                        placeholder=""
-                        minlength="2"
-                        maxlength="30"
-                        required
-                     />
-                     <p class="invalid-feedback">
-                        Ingresa una ocupación válida.
-                     </p>
+               <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        for="ocupacion"
+                        class="label-input-data"
+                        >Ocupación</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="ocupacion"
+                           name="ocupacion"
+                           placeholder=""
+                           minlength="2"
+                           maxlength="30"
+                           required
+                        />
+                        <p class="invalid-feedback">
+                           Ingresa una ocupación válida.
+                        </p>
+                     </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                     <label
+                        for="giro_actividad"
+                        class="label-input-data"
+                        >Giro o Actividad</label
+                     >
+                     <div class="input-group">
+                        <input
+                           type="text"
+                           class="form-control"
+                           id="giro_actividad"
+                           name="giro_actividad"
+                           placeholder=""
+                           minlength="2"
+                           maxlength="30"
+                           required
+                        />
+                        <p class="invalid-feedback">
+                           Ingresa un giro o actividad válido.
+                        </p>
+                     </div>
                   </div>
                </div>
-               <div class="form__input-data">
-                  <label
-                     for="giro_actividad"
-                     class="label-input-data"
-                     >Giro o Actividad</label
-                  >
-                  <div class="input-group">
-                     <input
-                        type="text"
-                        class="form-control"
-                        id="giro_actividad"
-                        name="giro_actividad"
-                        placeholder=""
-                        minlength="2"
-                        maxlength="30"
-                        required
-                     />
-                     <p class="invalid-feedback">
-                        Ingresa un giro o actividad válido.
-                     </p>
-                  </div>
-               </div>
+
                <div class="form__input-data">
                   <label
                      for="grupo"

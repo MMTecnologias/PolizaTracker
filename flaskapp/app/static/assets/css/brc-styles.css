@@ -8,7 +8,7 @@
 :root {
    --color-primario: #c94a1c;
    --primario-complementario: #1cb3c9;
-   --gris-medio: #6c757d;
+   --gris-medio: #6c757da9;
    --color-claro: #f2f2f2;
 }
 
@@ -93,7 +93,7 @@ p {
 }
 
 .input-group {
-   height: 16px;
+   height: fit-content;
 }
 
 .input-label {
@@ -129,7 +129,7 @@ p {
    width: 100%;
 }
 
-.input__icon {
+.form-control .input__icon {
    position: absolute;
    right: 0;
    bottom: 12px;
@@ -295,7 +295,7 @@ p {
 
 .form__input-data {
    position: relative;
-   margin: 7px;
+   margin: 2px;
 }
 
 .input-sibling {
@@ -310,6 +310,7 @@ p {
 .button-container {
    width: 100%;
    display: flex;
+   margin-top: 24px;
 }
 
 .btn {
@@ -334,8 +335,9 @@ tbody tr:nth-child(2n + 1) {
    background-color: var(--gris-medio);
 }
 
-.form-control {
-   height: 100%;
+.form-control,
+.custom-select {
+   height: 30px;
    /* border-bottom: 1px solid var(--gris-medio); */
 }
 
@@ -502,4 +504,9 @@ a .delete {
 
 .table-phone {
    width: 250px;
+}
+
+.invalid-feedback {
+   margin: 4px;
+   line-height: 0px;
 }

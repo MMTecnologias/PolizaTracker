@@ -191,8 +191,9 @@ async function editClient(id) {
    document.querySelector('#sexo').innerHTML = `<option value='${data[0].sexo}'>
          ${data[0].sexo}
          </option>
-         <option value="Femenino">Femenino</option>
-         <option value="Masculino">Masculino</option>
+         <option value="Mujer">Mujer</option>
+         <option value="Hombre">Hombre</option>
+         <option value="Otro">Otro</option>
 
          `;
    document.querySelector('#ocupacion').value = data[0].ocupacion;
