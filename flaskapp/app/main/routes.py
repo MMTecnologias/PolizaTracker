@@ -950,6 +950,7 @@ def get_clients_data2():
     if not check_access("Clientes"):
         return redirect(url_for('main.index'))
     
+    # Estos datos los recibe desde la función en JS
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
 
@@ -989,6 +990,67 @@ def get_clients_data2():
     return jsonify(total_records, data)
 
     # jsonResp = {'jack': 4098, 'sape': 4139}
+
+
+@main.route('/get_sorted_clients_data', methods=['POST'])
+@login_required
+def get_sorted_clients_data():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
+    # Get parameters from DataTables AJAX request
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    order_column_index = int(request.form.get('order[0][column]'))
+    order_dir = request.form.get('order[0][dir]')
+
+    # Query to fetch clientes data from the database 
+    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
+
+
+    # Implement sorting functionality
+    order_column_name = None
+    if order_column_index == 0:
+        order_column_name = 'nombre'
+    elif order_column_index == 1:
+        order_column_name = 'correo'
+    elif order_column_index == 2:
+        order_column_name = 'tel_movil'
+
+    if order_column_name:
+        if order_dir == 'desc':
+            clients_query = clients_query.order_by(desc(order_column_name))
+        else:
+            clients_query = clients_query.order_by(order_column_name)
+
+    
+    # Apply pagination
+    clients = clients_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for client, grupo_name in clients:
+        data.append({
+            'id': client.id,
+            'nombre': client.nombre,
+            'grupo_id': client.grupo_id,
+            'grupo': grupo_name,
+            'rfc': client.rfc,
+            'tel_oficina': client.tel_oficina,
+            'tel_movil': client.tel_movil,
+            'tel_casa': client.tel_casa,
+            'correo': client.correo,
+            'direccion': client.direccion,
+            'fecha_nacimiento': client.fecha_nacimiento.strftime('%Y-%m-%d'), # Format date as string
+            'sexo': client.sexo,
+            'ocupacion': client.ocupacion,
+            'actividad': client.actividad,
+            'apellido': client.apellido,
+            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+        })
+
+    return jsonify(data)
+    
+
 
 
 @main.route('/get_clients_filtered', methods=['POST'])
