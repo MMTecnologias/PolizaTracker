@@ -114,6 +114,7 @@ const fillTable = async () => {
    await pintarPaginacion();
    await addBtnDelete();
    await addBtnEdit();
+   await addBtnShow();
 };
 
 fillTable();
@@ -150,6 +151,7 @@ const updateTable = async () => {
    }
    await addBtnDelete();
    await addBtnEdit();
+   await addBtnShow();
 };
 
 //Eliminar cliente desde la tabla
@@ -245,6 +247,22 @@ const editClient = async (id) => {
                });
             })}
          `;
+};
+
+const addBtnShow = async () => {
+   const btnShow = document.querySelectorAll('.btn__icon_show');
+
+   btnShow.forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+         await showPoliza();
+         $('.container__modal').addClass('modal-active');
+      });
+   });
+};
+
+const showPoliza = async () => {
+   //Lanzar Modal
+   //Llenar Tabla
 };
 
 const verGrupos = async () => {

@@ -606,6 +606,7 @@ def get_polizas_data():
             'aseguradora': aseguradora,
             'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
             'id': poliza.id
+            # Ramo, Subramo, Prima Neta, Prima Total, Vigencia, Status
             # Add more fields as needed
         })
 
@@ -676,6 +677,7 @@ def get_receipts_data():
     print(response)
     return jsonify(response)
 
+
 @main.route('/search_clients', methods=['POST'])
 @login_required
 def search_clients():
@@ -696,7 +698,6 @@ def search_clients():
     options = [{'id': client.id, 'name': f"{client.nombre} {client.apellido}"} for client in clients_query]
 
     return jsonify({'options': options})
-
 
 
 """Menu"""
@@ -798,6 +799,7 @@ def calcular_recibos():
     #print(response)
     return response
 
+
 def add_months(start_date, num_months):
     # Convertir la cadena de fecha en un objeto datetime
    
@@ -808,11 +810,13 @@ def add_months(start_date, num_months):
     # Devolver la nueva fecha como cadena
     return new_date.strftime('%Y-%m-%d')
 
+
 @main.route('/calculate_receipts', methods=['POST'])
 @login_required
 def calculate_receipts():
     response=calcular_recibos()
     return jsonify(response)
+
 
 @main.route('/save_receipts', methods=['POST'])
 @login_required
@@ -882,7 +886,6 @@ def save_receipts():
         return jsonify({'error': True, 'msg':'Error en la creación de recibos'})
 
 
-
 @main.route('/fetch_test', methods=['GET'])
 def fetchtest():
     return jsonify ([
@@ -890,6 +893,46 @@ def fetchtest():
                         {"nombre":"sherley", "edad":27, "genero": "femenino"}
                      
                      ])
+
+
+@main.route('/get_polizas_data2', methods=['GET'])
+@login_required
+def get_polizas_data2():
+    # if not check_access("Admin usuarios"):
+    #     return redirect(url_for('main.index'))
+
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora"),Ramo.ramo.label("id"), Subramo.subramo.label("id"), TipoPago.tipo_pago.label("id")) \
+        .select_from(Poliza) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id)  \
+        .join(Subramo, Poliza.subramo_id == Subramo.id)  \
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
+
+    polizas = polizas_query.all()
+
+
+    # Format data as required by DataTables
+    data = []
+    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
+        data.append({
+            'poliza': poliza.serie,
+            'cliente': f"{nombre} {apellido}",
+            'aseguradora': aseguradora,
+            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+            'id': poliza.id,
+            'ramo': f"{ramo}",
+            'subramo': f"{subramo}",
+            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
+            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'primaNeta': poliza.prima_neta,
+            'primaTotal': poliza.prima_total,
+            'tipoPago': f"{tipo_pago}"
+            # Add more fields as needed
+        })
+
+
+    return jsonify(data)
 
 
 @main.route('/get_usuarios_data2', methods=['GET'])
@@ -1045,8 +1088,6 @@ def get_sorted_clients_data():
     return jsonify(data)
     
 
-
-
 @main.route('/get_clients_filtered', methods=['POST'])
 @login_required
 def get_clients_filtered():
@@ -1086,6 +1127,46 @@ def get_clients_filtered():
             'actividad': client.actividad,
             'apellido': client.apellido,
             'fullname': f"{client.nombre} {client.apellido}"  # Full name
+        })
+
+    return jsonify(data)
+
+
+@app.route('/get_poliza_byID', methods=['POST'])
+@login_required
+def get_polizas_byID():
+    # Get parameters from DataTables AJAX request
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    search_value = request.form.get('search[value]')
+
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
+
+    # Implement search functionality
+    if search_value:
+        polizas_query = polizas_query.filter(or_(
+            # Poliza.serie.ilike(f'%{search_value}%'),
+            Cliente.id.ilike(f'%{search_value}%'),
+            # Aseguradora.aseguradora.ilike(f'%{search_value}%'),
+            # Cliente.apellido.ilike(f'%{search_value}%')
+            # Add more fields for searching as needed
+        ))
+
+    polizas = polizas_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for poliza, nombre,apellido, aseguradora in polizas:
+        data.append({
+            'poliza': poliza.serie,
+            'cliente': f"{nombre} {apellido}",
+            'aseguradora': aseguradora,
+            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+            'id': poliza.id
+            # Add more fields as needed
         })
 
     return jsonify(data)
