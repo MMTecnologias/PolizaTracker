@@ -1000,27 +1000,21 @@ def get_sorted_clients_data():
     # Get parameters from DataTables AJAX request
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
-    order_column_index = int(request.form.get('order[0][column]'))
-    order_dir = request.form.get('order[0][dir]')
 
     # Query to fetch clientes data from the database 
     clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
 
 
     # Implement sorting functionality
-    order_column_name = None
-    if order_column_index == 0:
-        order_column_name = 'nombre'
-    elif order_column_index == 1:
-        order_column_name = 'correo'
-    elif order_column_index == 2:
-        order_column_name = 'tel_movil'
+    order_column_name = 'nombre'
+    clients_query = clients_query.order_by(order_column_name)
+    # clients_query = clients_query.order_by(desc(order_column_name))
 
-    if order_column_name:
-        if order_dir == 'desc':
-            clients_query = clients_query.order_by(desc(order_column_name))
-        else:
-            clients_query = clients_query.order_by(order_column_name)
+    # if order_column_name:
+    #     if order_dir == 'desc':
+    #         clients_query = clients_query.order_by(desc(order_column_name))
+    #     else:
+    #         clients_query = clients_query.order_by(order_column_name)
 
     
     # Apply pagination
