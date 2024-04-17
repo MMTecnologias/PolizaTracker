@@ -510,3 +510,13 @@ a .delete {
    margin: 4px;
    line-height: 0px;
 }
+
+.siblingContainerRow {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+}
+
+.tableHeader th {
+   padding: 0px;
+}
