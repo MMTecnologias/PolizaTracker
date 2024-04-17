@@ -166,7 +166,7 @@ const addBtnDelete = async () => {
 };
 
 //Función para eliminar cliente
-async function deleteClient(id) {
+const deleteClient = async (id) => {
    //insertar función eliminar
 
    await fetch('/delete_client', {
@@ -178,7 +178,7 @@ async function deleteClient(id) {
          client_id: id
       })
    });
-}
+};
 
 //Editar cliente desde la tabla
 const addBtnEdit = async () => {
@@ -197,7 +197,7 @@ const addBtnEdit = async () => {
 };
 
 //Función para editar cliente
-async function editClient(id) {
+const editClient = async (id) => {
    //insertar función eliminar
 
    const response = await fetch('/get_clients_filtered', {
@@ -245,17 +245,17 @@ async function editClient(id) {
                });
             })}
          `;
-}
+};
 
-function verGrupos() {
+const verGrupos = async () => {
    fetch('/grupo')
       .then((response) => response.json())
       .then((data) => {
          console.log(data);
       });
-}
+};
 
-async function pintarPaginacion() {
+const pintarPaginacion = async () => {
    await fetch('/get_clients_data2', {
       method: 'POST',
       headers: {
@@ -267,7 +267,7 @@ async function pintarPaginacion() {
       })
    })
       .then((response) => response.json())
-      .then(function (data) {
+      .then((data) => {
          console.log(
             `el total de datos en la tabla clientes es de ${
                data[0]
@@ -288,10 +288,10 @@ async function pintarPaginacion() {
                .classList.remove('noClickable');
          }
       });
-}
+};
 
 const nextIndex = document.querySelector('#next-index');
-nextIndex.addEventListener('click', async function (e) {
+nextIndex.addEventListener('click', async () => {
    ++currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
@@ -299,7 +299,7 @@ nextIndex.addEventListener('click', async function (e) {
 });
 
 const prevIndex = document.querySelector('#prev-index');
-prevIndex.addEventListener('click', async function (e) {
+prevIndex.addEventListener('click', async () => {
    --currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
@@ -307,10 +307,12 @@ prevIndex.addEventListener('click', async function (e) {
 });
 
 const sortButton = document.querySelector('#sortByName');
-sortButton.addEventListener('click', async function (e) {
+sortButton.addEventListener('click', async () => {
    sorting = !sorting;
    console.log(`el valor de sorting es ${sorting}`);
+   currentIndex = 0;
    updateTable();
+   pintarPaginacion();
 });
 
 $(document).ready(function () {
