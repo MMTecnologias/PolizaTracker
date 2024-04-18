@@ -92,9 +92,9 @@ p {
    border-bottom: 1px solid var(--gris-medio);
 }
 
-.input-group {
+/* .input-group {
    height: fit-content;
-}
+} */
 
 .input-label {
    pointer-events: none;
@@ -128,8 +128,8 @@ p {
 .input {
    width: 100%;
 }
-
-.form-control .input__icon {
+/* .form-control  */
+.input__icon {
    position: absolute;
    right: 0;
    bottom: 12px;
@@ -419,6 +419,10 @@ a .delete {
    border-radius: 14px;
 }
 
+.form__modal-table {
+   width: 80%;
+}
+
 .form__modal .form__btn-submit {
    width: fit-content;
    height: fit-content;
@@ -518,5 +522,5 @@ a .delete {
 }
 
 .tableHeader th {
-   padding: 0px;
+   padding: 2px 12px;
 }

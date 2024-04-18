@@ -1138,7 +1138,7 @@ def get_polizas_byID():
     # Get parameters from DataTables AJAX request
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
-    search_value = request.form.get('search[value]')
+    search_value = request.form.get('search_value')
 
     polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
     .select_from(Poliza) \

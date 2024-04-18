@@ -41,6 +41,41 @@ const currentPageData = async () => {
    return clientData;
 };
 
+const polizasById = async () => {
+   let polizas = [];
+   const index = currentIndex;
+   //Solicitamos los datos
+   const polizaData = await fetch('/get_poliza_byID', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: `${index === undefined ? 0 : index * clientsPerPage}`,
+         length: clientsPerPage,
+         search_value: 1
+      })
+   });
+
+   //Convertimos los datos a JSON
+   let data = await polizaData.json();
+
+   //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
+
+   //Rellenamos el arreglo "clientData" con los datos del servidor
+   data.forEach((poliza) => {
+      polizas.push({
+         'poliza': poliza.poliza,
+         'cliente': poliza.cliente,
+         'aseguradora': poliza.aseguradora,
+         'vigencia': poliza.vigencia
+      });
+   });
+   console.log(data);
+
+   return polizas;
+};
+
 const sortedCurrentPageData = async () => {
    let clientData = [];
    const index = currentIndex;
@@ -255,14 +290,28 @@ const addBtnShow = async () => {
    btnShow.forEach((btn) => {
       btn.addEventListener('click', async (e) => {
          await showPoliza();
+         // Activa el modal
          $('.container__modal').addClass('modal-active');
       });
    });
 };
 
 const showPoliza = async () => {
-   //Lanzar Modal
-   //Llenar Tabla
+   //Solicitamos los datos
+   const data = await polizasById();
+   console.log(data);
+   //Llenar Tabla modal
+   const modalTable = document.querySelector('#table__modal');
+   modalTable.innerHTML = '';
+   data.forEach((poliza) => {
+      modalTable.innerHTML += `
+               
+                  <tr  class="tableOption">
+                        <td>${poliza.poliza}</td>
+                        <td>${poliza.cliente}</td>
+                        <td>${poliza.aseguradora}</td>
+                  </tr>`;
+   });
 };
 
 const verGrupos = async () => {
