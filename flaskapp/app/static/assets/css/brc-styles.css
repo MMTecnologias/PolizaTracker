@@ -499,15 +499,19 @@ a .delete {
 }
 
 .table-name {
-   width: 300px;
+   width: 30%;
 }
 
 .table-mail {
-   width: 400px;
+   width: 30%;
 }
 
 .table-phone {
-   width: 250px;
+   width: 30%;
+}
+
+.table-actions {
+   width: 10%;
 }
 
 .invalid-feedback {
@@ -516,6 +520,7 @@ a .delete {
 }
 
 .siblingContainerRow {
+   width: 100%;
    display: flex;
    align-items: center;
    justify-content: space-between;

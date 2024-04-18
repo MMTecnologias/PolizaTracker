@@ -41,7 +41,7 @@ const currentPageData = async () => {
    return clientData;
 };
 
-const polizasById = async () => {
+const polizasById = async (id) => {
    let polizas = [];
    const index = currentIndex;
    //Solicitamos los datos
@@ -53,10 +53,10 @@ const polizasById = async () => {
       body: new URLSearchParams({
          start: `${index === undefined ? 0 : index * clientsPerPage}`,
          length: clientsPerPage,
-         search_value: 1
+         search_value: 3
       })
    });
-
+   console.log(`ID recibido ${id}`);
    //Convertimos los datos a JSON
    let data = await polizaData.json();
 
@@ -137,7 +137,7 @@ const fillTable = async () => {
                                  </a>
                               </li>
                               <li>
-                                 <a href="#" class="btn__icon_show">
+                                 <a href="#" class="btn__icon_show" id="btnShow_${client.id}">
                                     <svg class="noClickable" xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
                                  </a>
                               </li>
@@ -178,7 +178,7 @@ const updateTable = async () => {
                                  </a>
                               </li>
                               <li>
-                                 <a href="#" class="btn__icon_show">
+                                 <a href="#" class="btn__icon_show" id="btnShow_${currentData[i].id}">
                                     <svg class="noClickable" xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
                                  </a>
                               </li>
@@ -286,26 +286,27 @@ const editClient = async (id) => {
 
 const addBtnShow = async () => {
    const btnShow = document.querySelectorAll('.btn__icon_show');
+   console.log(btnShow);
 
    btnShow.forEach((btn) => {
       btn.addEventListener('click', async (e) => {
-         await showPoliza();
+         await showPoliza(e.target.id.split('_')[1]);
          // Activa el modal
          $('.container__modal').addClass('modal-active');
       });
    });
 };
 
-const showPoliza = async () => {
+const showPoliza = async (id) => {
    //Solicitamos los datos
-   const data = await polizasById();
+   const data = await polizasById(id);
    console.log(data);
    //Llenar Tabla modal
    const modalTable = document.querySelector('#table__modal');
    modalTable.innerHTML = '';
+   console.log(`Datos solicitados para el id ${id}`);
    data.forEach((poliza) => {
       modalTable.innerHTML += `
-               
                   <tr  class="tableOption">
                         <td>${poliza.poliza}</td>
                         <td>${poliza.cliente}</td>
