@@ -640,7 +640,7 @@ def get_receipts_data():
     
 
     # Query to fetch polizas data from the database 
-    recibos_query =Recibo.query.filter_by(poliza_id=poliza_id) 
+    recibos_query = Recibo.query.filter_by(poliza_id=poliza_id) 
 
     # Get total count of records without filtering
     total_records = recibos_query.count()
@@ -1171,3 +1171,82 @@ def get_polizas_data2():
 
 
     return jsonify(data)
+
+
+@main.route('/get_sorted_poliza_data', methods=['POST'])
+@login_required
+def get_sorted_poliza_data():
+    # Get parameters from DataTables AJAX request
+    # draw = int(request.form.get('draw'))
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    # search_value = request.form.get('search[value]')
+    order_column = int(request.form.get('column_index'))
+    # order_dir = request.form.get('order[0][dir]')
+
+    # Query to fetch polizas data from the database 
+    """
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Ramo,Subramo,Aseguradora.aseguradora.label("aseguradora"),TipoPago,Agente) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Ramo, Poliza.ramo_id == Ramo.id) \
+    .join(Subramo, Poliza.subramo_id == Subramo.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+    .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+    .join(Agente, Poliza.agente_id == Agente.id)
+    """
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
+    .select_from(Poliza) \
+    .join(Cliente, Poliza.cliente_id == Cliente.id) \
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
+
+    # Implement sorting functionality
+    order_column_name = None
+    if order_column == 0:
+        order_column_name = 'serie'
+    elif order_column == 1:
+        order_column_name = 'client_name'
+    elif order_column == 2:
+        order_column_name = 'aseguradora'
+
+    polizas_query = polizas_query.order_by(desc(order_column_name))
+
+    # if order_column_name:
+    #     if order_dir == 'desc':
+    #         polizas_query = polizas_query.order_by(desc(order_column_name))
+    #     else:
+    #         polizas_query = polizas_query.order_by(order_column_name)
+
+    # Get total count of records without filtering
+    total_records = polizas_query.count()
+    
+    # Apply pagination
+    polizas = polizas_query.offset(start).limit(length).all()
+
+    # Format data as required by DataTables
+    data = []
+    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
+        data.append({
+            'poliza': poliza.serie,
+            'cliente': f"{nombre} {apellido}",
+            'aseguradora': aseguradora,
+            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+            'id': poliza.id,
+            'ramo': f"{ramo}",
+            'subramo': f"{subramo}",
+            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
+            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'primaNeta': poliza.prima_neta,
+            'primaTotal': poliza.prima_total,
+            'tipoPago': f"{tipo_pago}"
+            # Add more fields as needed
+        })
+        
+    # Prepare response
+    response = {
+        # 'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+    return jsonify(response)
