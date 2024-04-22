@@ -62,7 +62,7 @@ const fillTable = async () => {
 
                <tr  class="tableOption">
 
-                     <td id="${poliza.poliza}"><p class="td-clickable">${poliza.poliza}</p></td>
+                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
                      <td>${poliza.fechaInicio}</td>
@@ -76,6 +76,7 @@ const fillTable = async () => {
 
             `;
    });
+   await addBtnShow();
    await pintarPaginacion();
 };
 
@@ -83,11 +84,11 @@ fillTable();
 
 const updateTable = async () => {
    const rows = document.querySelectorAll('#demo>tr.tableOption');
-   let currentData = '';
+   let poliza = '';
    if (sorting === true) {
-      currentData = await sortedCurrentPageData();
+      poliza = await sortedCurrentPageData();
    } else {
-      currentData = await currentPageData();
+      poliza = await currentPageData();
    }
    console.log(rows);
    for (let i = 0; i < rows.length; i++) {
@@ -95,7 +96,7 @@ const updateTable = async () => {
 
                <tr  class="tableOption">
 
-                     <td id="${poliza.poliza}"><p class="td-clickable">${poliza.poliza}</p></td>
+                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
                      <td>${poliza.fechaInicio}</td>
@@ -109,6 +110,20 @@ const updateTable = async () => {
 
             `;
    }
+   await addBtnShow();
+};
+
+const addBtnShow = async (id) => {
+   const btnShow = document.querySelectorAll('.td-clickable');
+
+   btnShow.forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+         await rellenarFormulario(e.target.id.split('_')[1]);
+         console.log(`id enviado: ${e.target.id.split('_')[1]}`);
+         // Activa el modal
+         // $('.container__modal').addClass('modal-active');
+      });
+   });
 };
 
 const pintarPaginacion = async () => {
@@ -199,7 +214,7 @@ prevIndex.addEventListener('click', async () => {
 
 // buscarPoliza();
 
-function rellenarFormulario(poliza) {
+const rellenarFormulario = async (poliza) => {
    fetch('/get_polizas_data2')
       .then((response) => response.json())
       .then(function (data) {
@@ -217,7 +232,7 @@ function rellenarFormulario(poliza) {
          document.getElementById('Aseguradora').value =
             coincidencia.aseguradora;
       });
-}
+};
 
 $(document).ready(function () {
    // funcion para mostrar nuevo ramo/subramo
