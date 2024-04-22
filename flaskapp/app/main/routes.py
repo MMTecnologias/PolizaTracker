@@ -543,12 +543,12 @@ def polizas():
 @login_required
 def get_polizas_data():
     # Get parameters from DataTables AJAX request
-    draw = int(request.form.get('draw'))
+    # draw = int(request.form.get('draw'))
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
-    search_value = request.form.get('search[value]')
-    order_column_index = int(request.form.get('order[0][column]'))
-    order_dir = request.form.get('order[0][dir]')
+    # search_value = request.form.get('search[value]')
+    # order_column_index = int(request.form.get('order[0][column]'))
+    # order_dir = request.form.get('order[0][dir]')
 
     # Query to fetch polizas data from the database 
     """
@@ -566,30 +566,30 @@ def get_polizas_data():
     .join(Cliente, Poliza.cliente_id == Cliente.id) \
     .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
 
-    # Implement search functionality
-    if search_value:
-        polizas_query = polizas_query.filter(or_(
-            Poliza.serie.ilike(f'%{search_value}%'),
-            Cliente.nombre.ilike(f'%{search_value}%'),
-            Aseguradora.aseguradora.ilike(f'%{search_value}%'),
-            Cliente.apellido.ilike(f'%{search_value}%')
-            # Add more fields for searching as needed
-        ))
+    # # Implement search functionality
+    # if search_value:
+    #     polizas_query = polizas_query.filter(or_(
+    #         Poliza.serie.ilike(f'%{search_value}%'),
+    #         Cliente.nombre.ilike(f'%{search_value}%'),
+    #         Aseguradora.aseguradora.ilike(f'%{search_value}%'),
+    #         Cliente.apellido.ilike(f'%{search_value}%')
+    #         # Add more fields for searching as needed
+    #     ))
 
-    # Implement sorting functionality
-    order_column_name = None
-    if order_column_index == 0:
-        order_column_name = 'serie'
-    elif order_column_index == 1:
-        order_column_name = 'client_name'
-    elif order_column_index == 2:
-        order_column_name = 'aseguradora'
+    # # Implement sorting functionality
+    # order_column_name = None
+    # if order_column_index == 0:
+    #     order_column_name = 'serie'
+    # elif order_column_index == 1:
+    #     order_column_name = 'client_name'
+    # elif order_column_index == 2:
+    #     order_column_name = 'aseguradora'
 
-    if order_column_name:
-        if order_dir == 'desc':
-            polizas_query = polizas_query.order_by(desc(order_column_name))
-        else:
-            polizas_query = polizas_query.order_by(order_column_name)
+    # if order_column_name:
+    #     if order_dir == 'desc':
+    #         polizas_query = polizas_query.order_by(desc(order_column_name))
+    #     else:
+    #         polizas_query = polizas_query.order_by(order_column_name)
 
     # Get total count of records without filtering
     total_records = polizas_query.count()
@@ -612,7 +612,7 @@ def get_polizas_data():
 
     # Prepare response
     response = {
-        'draw': draw,
+        # 'draw': draw,
         'recordsTotal': total_records,  # Total records without filtering
         'recordsFiltered': total_records,  # Total records after filtering
         'data': data  # Data to display
@@ -893,46 +893,6 @@ def fetchtest():
                         {"nombre":"sherley", "edad":27, "genero": "femenino"}
                      
                      ])
-
-
-@main.route('/get_polizas_data2', methods=['GET'])
-@login_required
-def get_polizas_data2():
-    # if not check_access("Admin usuarios"):
-    #     return redirect(url_for('main.index'))
-
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora"),Ramo.ramo.label("id"), Subramo.subramo.label("id"), TipoPago.tipo_pago.label("id")) \
-        .select_from(Poliza) \
-        .join(Cliente, Poliza.cliente_id == Cliente.id) \
-        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-        .join(Ramo, Poliza.ramo_id == Ramo.id)  \
-        .join(Subramo, Poliza.subramo_id == Subramo.id)  \
-        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
-
-    polizas = polizas_query.all()
-
-
-    # Format data as required by DataTables
-    data = []
-    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
-        data.append({
-            'poliza': poliza.serie,
-            'cliente': f"{nombre} {apellido}",
-            'aseguradora': aseguradora,
-            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'id': poliza.id,
-            'ramo': f"{ramo}",
-            'subramo': f"{subramo}",
-            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
-            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
-            'primaNeta': poliza.prima_neta,
-            'primaTotal': poliza.prima_total,
-            'tipoPago': f"{tipo_pago}"
-            # Add more fields as needed
-        })
-
-
-    return jsonify(data)
 
 
 @main.route('/get_usuarios_data2', methods=['GET'])

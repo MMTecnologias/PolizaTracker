@@ -3,84 +3,201 @@ import { datatableConfig_plane } from './datatable-config.js';
 
 const serie = document.getElementById('serie');
 
-function fetch_test() {
-   document.getElementById('demo').innerHTML = '';
-   // fetch('/get_usuarios_data2')
-   fetch('/get_polizas_data2')
-      .then((response) => response.json())
-      .then(function (data) {
-         for (var i = 0; i < data.length; i++) {
-            document.getElementById('demo').innerHTML += `
-            
+let clientsPerPage = 10;
+
+let currentIndex = 0;
+
+let sorting = false;
+
+const currentIndexToShow = (currentIndex) => currentIndex + 1;
+
+const currentPageData = async () => {
+   let polizaData = [];
+   const index = currentIndex;
+   //Solicitamos los datos
+   const currentPageData = await fetch('/get_polizas_data', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: `${index === undefined ? 0 : index * clientsPerPage}`,
+         length: clientsPerPage
+      })
+   });
+
+   //Convertimos los datos a JSON
+   let data = await currentPageData.json();
+
+   console.log(data);
+
+   //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
+
+   //Rellenamos el arreglo "clientData" con los datos del servidor
+   data.data.forEach((poliza) => {
+      polizaData.push({
+         'poliza': poliza.poliza,
+         'cliente': poliza.cliente,
+         'aseguradora': poliza.aseguradora,
+         'vigencia': poliza.vigencia,
+         'id': poliza.id,
+         'subramo': poliza.subramo,
+         'fechaInicio': poliza.fechaInicio,
+         'fechaFin': poliza.fechaFin,
+         'primaNeta': poliza.primaNeta,
+         'primaTotal': poliza.primaTotal,
+         'tipoPago': poliza.tipoPago
+      });
+   });
+
+   return polizaData;
+};
+
+const fillTable = async () => {
+   document.querySelector('#demo').innerHTML = '';
+   const currentData = await currentPageData();
+
+   currentData.forEach((poliza) => {
+      document.getElementById('demo').innerHTML += `
+
                <tr  class="tableOption">
-                 
-                     <td id=${data[i]['poliza']}><p class="td-clickable">${data[i]['poliza']}</p></td>
-                     <td>${data[i]['cliente']}</td>
-                     <td>${data[i]['subramo']}</td>
-                     <td>${data[i]['fechaInicio']}</td>
-                     <td>${data[i]['fechaFin']}</td>
-                     <td>${data[i]['primaNeta']}</td>
-                     <td>${data[i]['primaTotal']}</td>
-                     <td>${data[i]['aseguradora']}</td>
-                     <td>${data[i]['tipoPago']}</td>
-                  
+
+                     <td id="${poliza.poliza}"><p class="td-clickable">${poliza.poliza}</p></td>
+                     <td>${poliza.cliente}</td>
+                     <td>${poliza.subramo}</td>
+                     <td>${poliza.fechaInicio}</td>
+                     <td>${poliza.fechaFin}</td>
+                     <td>${poliza.primaNeta}</td>
+                     <td>${poliza.primaTotal}</td>
+                     <td>${poliza.aseguradora}</td>
+                     <td>${poliza.tipoPago}</td>
+
                </tr>
-               
+
             `;
-         }
-         const polizasTable = document.querySelectorAll('.td-clickable');
-         console.log(polizasTable);
-         polizasTable.forEach((poliza) => {
-            poliza.addEventListener('click', (event) => {
-               console.log(event.target.innerText);
-               rellenarFormulario(event.target.innerText);
-            });
-         });
-      });
-}
+   });
+   await pintarPaginacion();
+};
 
-fetch_test();
+fillTable();
 
-function buscarPoliza() {
-   const inputPoliza = document.getElementById('Poliza');
-   fetch('/get_polizas_data2')
+const updateTable = async () => {
+   const rows = document.querySelectorAll('#demo>tr.tableOption');
+   let currentData = '';
+   if (sorting === true) {
+      currentData = await sortedCurrentPageData();
+   } else {
+      currentData = await currentPageData();
+   }
+   console.log(rows);
+   for (let i = 0; i < rows.length; i++) {
+      rows[i].innerHTML = document.getElementById('demo').innerHTML += `
+
+               <tr  class="tableOption">
+
+                     <td id="${poliza.poliza}"><p class="td-clickable">${poliza.poliza}</p></td>
+                     <td>${poliza.cliente}</td>
+                     <td>${poliza.subramo}</td>
+                     <td>${poliza.fechaInicio}</td>
+                     <td>${poliza.fechaFin}</td>
+                     <td>${poliza.primaNeta}</td>
+                     <td>${poliza.primaTotal}</td>
+                     <td>${poliza.aseguradora}</td>
+                     <td>${poliza.tipoPago}</td>
+
+               </tr>
+
+            `;
+   }
+};
+
+const pintarPaginacion = async () => {
+   await fetch('/get_polizas_data', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: 0,
+         length: 1
+      })
+   })
       .then((response) => response.json())
-      .then(function (data) {
-         inputPoliza.addEventListener('input', (event) => {
-            console.log(event.target.value);
-            let coincidencias = data.filter((objeto) => {
-               let idString = objeto.poliza.toString();
-               let ultimosTresDigitos = idString.substring(idString.length - 3);
+      .then((data) => {
+         document.querySelector(
+            '#current-index'
+         ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
 
-               return ultimosTresDigitos.includes(event.target.value);
-            });
-            document.getElementById('demo').innerHTML = '';
-            console.log(typeof coincidencias);
-            console.log(coincidencias);
-            for (var i = 0; i < coincidencias.length; i++) {
-               console.log(coincidencias);
-               document.getElementById('demo').innerHTML += `
-               <p class="td-clickable">${coincidencias[i]['poliza']}</p>
-               <tr class='tableOption'>
-                  <td>${coincidencias[i]['cliente']}</td>
-                  <td>${coincidencias[i]['subramo']}</td>
-                  <td>${coincidencias[i]['fechaInicio']}</td>
-                  <td>${coincidencias[i]['fechaFin']}</td>
-                  <td>${coincidencias[i]['primaNeta']}</td>
-                  <td>${coincidencias[i]['primaTotal']}</td>
-                  <td>${coincidencias[i]['aseguradora']}</td>
-                  <td>${coincidencias[i]['tipoPago']}</td>
-               </tr>;
-               
-               `;
-            }
-            console.log(document.querySelectorAll('.td-clickable'));
-            return console.log(coincidencias);
-         });
+         if (currentIndex == 0) {
+            document.querySelector('#prev-index').classList.add('noClickable');
+         } else {
+            document
+               .querySelector('#prev-index')
+               .classList.remove('noClickable');
+         }
+
+         if (data.recordsTotal < clientsPerPage) {
+            document.querySelector('#next-index').classList.add('noClickable');
+         }
       });
-}
+};
 
-buscarPoliza();
+const nextIndex = document.querySelector('#next-index');
+nextIndex.addEventListener('click', async () => {
+   ++currentIndex;
+   console.log(`el indice actual es ${currentIndex}`);
+   await pintarPaginacion();
+   await updateTable();
+});
+
+const prevIndex = document.querySelector('#prev-index');
+prevIndex.addEventListener('click', async () => {
+   --currentIndex;
+   console.log(`el indice actual es ${currentIndex}`);
+   await pintarPaginacion();
+   await updateTable();
+});
+
+// function buscarPoliza() {
+//    const inputPoliza = document.getElementById('Poliza');
+//    fetch('/get_polizas_data2')
+//       .then((response) => response.json())
+//       .then(function (data) {
+//          inputPoliza.addEventListener('input', (event) => {
+//             console.log(event.target.value);
+//             let coincidencias = data.filter((objeto) => {
+//                let idString = objeto.poliza.toString();
+//                let ultimosTresDigitos = idString.substring(idString.length - 3);
+
+//                return ultimosTresDigitos.includes(event.target.value);
+//             });
+//             document.getElementById('demo').innerHTML = '';
+//             console.log(typeof coincidencias);
+//             console.log(coincidencias);
+//             for (var i = 0; i < coincidencias.length; i++) {
+//                console.log(coincidencias);
+//                document.getElementById('demo').innerHTML += `
+//                <p class="td-clickable">${coincidencias[i]['poliza']}</p>
+//                <tr class='tableOption'>
+//                   <td>${coincidencias[i]['cliente']}</td>
+//                   <td>${coincidencias[i]['subramo']}</td>
+//                   <td>${coincidencias[i]['fechaInicio']}</td>
+//                   <td>${coincidencias[i]['fechaFin']}</td>
+//                   <td>${coincidencias[i]['primaNeta']}</td>
+//                   <td>${coincidencias[i]['primaTotal']}</td>
+//                   <td>${coincidencias[i]['aseguradora']}</td>
+//                   <td>${coincidencias[i]['tipoPago']}</td>
+//                </tr>;
+
+//                `;
+//             }
+//             console.log(document.querySelectorAll('.td-clickable'));
+//             return console.log(coincidencias);
+//          });
+//       });
+// }
+
+// buscarPoliza();
 
 function rellenarFormulario(poliza) {
    fetch('/get_polizas_data2')
