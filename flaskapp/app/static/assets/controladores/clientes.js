@@ -43,7 +43,7 @@ const currentPageData = async () => {
 
 const polizasById = async (id) => {
    let polizas = [];
-   const index = currentIndex;
+   // const index = currentIndex;
    //Solicitamos los datos
    const polizaData = await fetch('/get_poliza_byID', {
       method: 'POST',
@@ -51,14 +51,15 @@ const polizasById = async (id) => {
          'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-         start: `${index === undefined ? 0 : index * clientsPerPage}`,
+         start: 0,
          length: clientsPerPage,
-         search_value: 3
+         search_value: id
       })
    });
    console.log(`ID recibido ${id}`);
    //Convertimos los datos a JSON
    let data = await polizaData.json();
+   console.log(data);
 
    //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
 
@@ -286,7 +287,6 @@ const editClient = async (id) => {
 
 const addBtnShow = async () => {
    const btnShow = document.querySelectorAll('.btn__icon_show');
-   console.log(btnShow);
 
    btnShow.forEach((btn) => {
       btn.addEventListener('click', async (e) => {
@@ -335,15 +335,7 @@ const pintarPaginacion = async () => {
       })
    })
       .then((response) => response.json())
-      .then((data) => {
-         console.log(
-            `el total de datos en la tabla clientes es de ${
-               data[0]
-            } y podemos pintar ${Math.ceil(
-               data[0] / clientsPerPage
-            )} páginas \n pagina actual: ${currentIndexToShow(currentIndex)}`
-         );
-
+      .then(() => {
          document.querySelector(
             '#current-index'
          ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;

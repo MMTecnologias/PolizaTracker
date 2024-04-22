@@ -1150,6 +1150,7 @@ def get_polizas_byID():
         polizas_query = polizas_query.filter(or_(
             # Poliza.serie.ilike(f'%{search_value}%'),
             Cliente.id.ilike(f'%{search_value}%'),
+            # Cliente.id(f'%{search_value}%'),
             # Aseguradora.aseguradora.ilike(f'%{search_value}%'),
             # Cliente.apellido.ilike(f'%{search_value}%')
             # Add more fields for searching as needed
