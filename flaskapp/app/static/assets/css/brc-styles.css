@@ -422,6 +422,7 @@ a .delete {
 }
 
 .form__modal-table {
+   position: relative;
    width: 80%;
    -webkit-box-shadow: 13px 12px 23px -15px rgba(0, 0, 0, 0.79);
    -moz-box-shadow: 13px 12px 23px -15px rgba(0, 0, 0, 0.79);
@@ -533,4 +534,19 @@ a .delete {
 
 .tableHeader th {
    padding: 2px 12px;
+}
+
+/* Modal Clientes */
+.btn_close-modal {
+   position: absolute;
+   top: 0;
+   right: 0;
+   padding: 8px;
+   margin: 8px;
+   color: var(--color-primario);
+   cursor: pointer;
+}
+
+.btn_close-modal:hover {
+   color: var(--primario-complementario);
 }
