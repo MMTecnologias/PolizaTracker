@@ -305,14 +305,24 @@ const showPoliza = async (id) => {
    const modalTable = document.querySelector('#table__modal');
    modalTable.innerHTML = '';
    console.log(`Datos solicitados para el id ${id}`);
-   data.forEach((poliza) => {
-      modalTable.innerHTML += `
+   if (data.length === 0) {
+      modalTable.innerHTML = `<tr>
+         <td>No hay polizas registradas</td>
+         <td></td>
+         <td></td>
+      </tr>`;
+   } else
+      data.forEach((poliza) => {
+         modalTable.innerHTML += `
                   <tr  class="tableOption">
                         <td>${poliza.poliza}</td>
-                        <td>${poliza.cliente}</td>
-                        <td>${poliza.aseguradora}</td>
+                        <td>${poliza.ramo}</td>
+                        <td>${poliza.subramo}</td>
+                        <td>${poliza.primaNeta}</td>
+                        <td>${poliza.primaTotal}</td>
+                        <td>${poliza.fechaFin}</td>
                   </tr>`;
-   });
+      });
 };
 
 const verGrupos = async () => {
@@ -335,16 +345,22 @@ const pintarPaginacion = async () => {
       })
    })
       .then((response) => response.json())
-      .then(() => {
+      .then((data) => {
+         console.log(data[0]);
          document.querySelector(
             '#current-index'
          ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
 
          if (currentIndex == 0) {
             document.querySelector('#prev-index').classList.add('noClickable');
+         } else if (currentIndex == Math.floor(data[0] / clientsPerPage)) {
+            document.querySelector('#next-index').classList.add('noClickable');
          } else {
             document
                .querySelector('#prev-index')
+               .classList.remove('noClickable');
+            document
+               .querySelector('#next-index')
                .classList.remove('noClickable');
          }
       });
@@ -633,6 +649,12 @@ $(document).ready(function () {
 //modal
 const btnCancelar = document.querySelector('#btn_close-modal');
 btnCancelar.addEventListener('click', function (e) {
+   e.preventDefault();
+   $('.container__modal').removeClass('modal-active');
+});
+
+const closeZone = document.querySelector('.container__modal');
+closeZone.addEventListener('click', function (e) {
    e.preventDefault();
    $('.container__modal').removeClass('modal-active');
 });

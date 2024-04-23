@@ -263,9 +263,8 @@ const sortedCurrentPageData = async () => {
          'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-         start: 0,
-         length: clientsPerPage,
-         column_index: 0
+         start: `${index === undefined ? 0 : index * clientsPerPage}`,
+         length: clientsPerPage
       })
    });
 

@@ -942,7 +942,7 @@ def get_usuarios_data2():
     }
 
 
-    return jsonify(data)
+    return jsonify(response)
 
 # test table polizas
 
@@ -1181,7 +1181,6 @@ def get_sorted_poliza_data():
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
     # search_value = request.form.get('search[value]')
-    order_column = int(request.form.get('column_index'))
     # order_dir = request.form.get('order[0][dir]')
 
     # Query to fetch polizas data from the database 
@@ -1195,20 +1194,24 @@ def get_sorted_poliza_data():
     .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
     .join(Agente, Poliza.agente_id == Agente.id)
     """
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
-    .select_from(Poliza) \
-    .join(Cliente, Poliza.cliente_id == Cliente.id) \
-    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
+    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora"),Ramo.ramo.label("id"), Subramo.subramo.label("id"), TipoPago.tipo_pago.label("id")) \
+        .select_from(Poliza) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id)  \
+        .join(Subramo, Poliza.subramo_id == Subramo.id)  \
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) 
 
     # Implement sorting functionality
-    order_column_name = None
-    if order_column == 0:
-        order_column_name = 'serie'
-    elif order_column == 1:
-        order_column_name = 'client_name'
-    elif order_column == 2:
-        order_column_name = 'aseguradora'
+    # order_column_name = None
+    # if order_column == 0:
+        
+    # elif order_column == 1:
+    #     order_column_name = 'client_name'
+    # elif order_column == 2:
+    #     order_column_name = 'aseguradora'
 
+    order_column_name = 'serie' 
     polizas_query = polizas_query.order_by(desc(order_column_name))
 
     # if order_column_name:
