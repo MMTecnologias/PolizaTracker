@@ -92,7 +92,7 @@ const updateTable = async () => {
    }
    console.log(rows);
    for (let i = 0; i < rows.length; i++) {
-      rows[i].innerHTML = document.getElementById('demo').innerHTML += `
+      rows[i].innerHTML = `
 
                <tr  class="tableOption">
 
