@@ -249,29 +249,29 @@ const editClient = async (id) => {
    });
    const data = await response.json();
    console.log(data[0]);
-   document.querySelector('#cliente_id').value = data[0].id;
-   document.querySelector('#nombre').value = data[0].nombre;
-   document.querySelector('#apellido').value = data[0].apellido;
-   document.querySelector('#rfc').value = data[0].rfc;
-   document.querySelector('#telefono_oficina').value = data[0].tel_oficina;
-   document.querySelector('#telefono_movil').value = data[0].tel_movil;
-   document.querySelector('#telefono_casa').value = data[0].tel_casa;
-   document.querySelector('#correo').value = data[0].correo;
-   document.querySelector('#direccion_fiscal').value = data[0].direccion;
-   document.querySelector('#fecha_nacimiento').value = data[0].fecha_nacimiento;
-   document.querySelector('#sexo').innerHTML = `<option value='${data[0].sexo}'>
+   $('#cliente_id').val(data[0].id);
+   $('#nombre').val(data[0].nombre);
+   $('#apellido').val(data[0].apellido);
+   $('#rfc').val(data[0].rfc);
+   $('#telefono_oficina').val(data[0].tel_oficina);
+   $('#telefono_movil').val(data[0].tel_movil);
+   $('#telefono_casa').val(data[0].tel_casa);
+   $('#correo').val(data[0].correo);
+   $('#direccion_fiscal').val(data[0].direccion);
+   $('#fecha_nacimiento').val(data[0].fecha_nacimiento);
+   $('#sexo').html(`<option value='${data[0].sexo}'>
          ${data[0].sexo}
          </option>
          <option value="Mujer">Mujer</option>
          <option value="Hombre">Hombre</option>
          <option value="Otro">Otro</option>
 
-         `;
-   document.querySelector('#ocupacion').value = data[0].ocupacion;
-   document.querySelector('#giro_actividad').value = data[0].actividad;
-   document.querySelector('#grupo').innerHTML = `<option value='${
-      data[0].grupo_id
-   }'> ${data[0].grupo}</option>
+         `);
+   $('#ocupacion').val(data[0].ocupacion);
+   $('#giro_actividad').val(data[0].actividad);
+   $('#grupo').html(`<option value='${data[0].grupo_id}'> ${
+      data[0].grupo
+   }</option>
          <!-- pintar todas las opciones -->
          ${fetch('/grupo')
             .then((response) => response.json())
@@ -282,7 +282,7 @@ const editClient = async (id) => {
                `;
                });
             })}
-         `;
+         `);
 };
 
 const addBtnShow = async () => {
@@ -653,8 +653,8 @@ btnCancelar.addEventListener('click', function (e) {
    $('.container__modal').removeClass('modal-active');
 });
 
-const closeZone = document.querySelector('.container__modal');
-closeZone.addEventListener('click', function (e) {
-   e.preventDefault();
-   $('.container__modal').removeClass('modal-active');
-});
+// const closeZone = document.querySelector('.container__modal');
+// closeZone.addEventListener('click', function (e) {
+//    e.preventDefault();
+//    $('.container__modal').removeClass('modal-active');
+// });
