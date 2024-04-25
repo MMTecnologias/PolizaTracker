@@ -956,10 +956,20 @@ def get_clients_data2():
     # Estos datos los recibe desde la función en JS
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
+    search_value = request.form.get('searchValue')
 
     # Query to fetch clientes data from the database 
     clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
     
+    # Implement search functionality
+    if search_value:
+        clients_query = clients_query.filter(or_(
+            Cliente.nombre.ilike(f'%{search_value}%'),
+            Cliente.apellido.ilike(f'%{search_value}%'),
+            Cliente.correo.ilike(f'%{search_value}%'),
+            # Add more fields for searching as needed
+        ))
+
     # Get total count of records without filtering
     total_records = clients_query.count()
     
@@ -1062,7 +1072,9 @@ def get_clients_filtered():
     # Implement search functionality
     if search_value:
         clients_query = clients_query.filter(or_(
-            Cliente.id.ilike(f'%{search_value}%'),
+            Cliente.nombre.ilike(f'%{search_value}%'),
+            Cliente.apellido.ilike(f'%{search_value}%'),
+            Cliente.correo.ilike(f'%{search_value}%'),
             # Add more fields for searching as needed
         ))
 
@@ -1128,6 +1140,7 @@ def get_polizas_byID():
             'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
             'id': poliza.id
             # Add more fields as needed
+            # Ramo, Subramo, Prima Neta, Prima Total, Vigencia, Estatus
         })
 
     return jsonify(data)

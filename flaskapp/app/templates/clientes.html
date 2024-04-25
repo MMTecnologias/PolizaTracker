@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html
    class="no-js"
-   lang="en"
+   lang="es-mx"
 >
    <head>
       <meta charset="utf-8" />
@@ -19,6 +19,12 @@
          type="image/png"
          href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}"
       />
+
+      <script
+         defer
+         src="https://cdn.tailwindcss.com"
+      ></script>
+
       <link
          rel="stylesheet"
          href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}"
@@ -125,6 +131,7 @@
             </div>
          </div>
       </nav>
+
       <!-- page container area start -->
       <div class="tables-container">
          <div class="form__container form_polizas">
@@ -476,6 +483,18 @@
                id="table-polizas"
             >
                <h4 class="header-title">Tabla de Clientes</h4>
+               <form
+                  class="d-flex"
+                  role="search"
+               >
+                  <input
+                     class="form-control my-2"
+                     type="search"
+                     placeholder="Buscar Cliente"
+                     aria-label="Search"
+                     id="searchClient"
+                  />
+               </form>
 
                <table class="table">
                   <thead class="tableHeader">

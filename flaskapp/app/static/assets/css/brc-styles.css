@@ -195,6 +195,8 @@ p {
 }
 
 .name-app {
+   font-size: 2rem;
+   font-weight: 600;
    color: var(--gris-medio);
    margin: auto 6px;
 }

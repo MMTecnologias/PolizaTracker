@@ -658,3 +658,25 @@ btnCancelar.addEventListener('click', function (e) {
 //    e.preventDefault();
 //    $('.container__modal').removeClass('modal-active');
 // });
+
+//Buscar cliente
+const inputSearchClient = document.querySelector('#searchClient');
+inputSearchClient.addEventListener('keyup', async (e) => {
+   const searchValue = e.target.value;
+   if (searchValue.length >= 3) {
+      console.log(searchValue);
+      const response = await fetch('/get_clients_filtered', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+         },
+         body: new URLSearchParams({
+            search_value: searchValue
+         })
+      });
+      const data = await response.json();
+      console.log(data);
+   }
+   //Enviamos el objeto/array para actualizar la tabla
+   // return updateTable(data);
+});
