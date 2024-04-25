@@ -1000,7 +1000,15 @@ def get_clients_data2():
             'fullname': f"{client.nombre} {client.apellido}"  # Full name
         })
 
-    return jsonify(total_records, data)
+    # Prepare response
+    response = {
+        # 'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+    
+    return jsonify(response)
 
     # jsonResp = {'jack': 4098, 'sape': 4139}
 
@@ -1029,7 +1037,9 @@ def get_sorted_clients_data():
     #     else:
     #         clients_query = clients_query.order_by(order_column_name)
 
-    
+    # Get total count of records without filtering
+    total_records = clients_query.count()
+
     # Apply pagination
     clients = clients_query.offset(start).limit(length).all()
 
@@ -1055,7 +1065,14 @@ def get_sorted_clients_data():
             'fullname': f"{client.nombre} {client.apellido}"  # Full name
         })
 
-    return jsonify(data)
+    # Prepare response
+    response = {
+        # 'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+    
+    return jsonify(response)
     
 
 @main.route('/get_clients_filtered', methods=['POST'])
@@ -1072,11 +1089,12 @@ def get_clients_filtered():
     # Implement search functionality
     if search_value:
         clients_query = clients_query.filter(or_(
-            Cliente.nombre.ilike(f'%{search_value}%'),
-            Cliente.apellido.ilike(f'%{search_value}%'),
-            Cliente.correo.ilike(f'%{search_value}%'),
+            Cliente.id.ilike(f'%{search_value}%'),
             # Add more fields for searching as needed
         ))
+
+        # Get total count of records without filtering
+    total_records = clients_query.count()
 
     clients = clients_query
     # Format data as required by DataTables
@@ -1101,7 +1119,74 @@ def get_clients_filtered():
             'fullname': f"{client.nombre} {client.apellido}"  # Full name
         })
 
-    return jsonify(data)
+    # Prepare response
+    response = {
+        # 'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+   
+    return jsonify(response)
+
+
+@main.route('/get_clients_filtered_byName', methods=['POST'])
+@login_required
+def get_clients_filtered_byName():
+    if not check_access("Clientes"):
+        return redirect(url_for('main.index'))
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    search_value = request.form.get('search_value')
+
+    # Query to fetch clientes data from the database 
+    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
+    
+    # Implement search functionality
+    if search_value:
+        clients_query = clients_query.filter(or_(
+            Cliente.nombre.ilike(f'%{search_value}%'),
+            Cliente.apellido.ilike(f'%{search_value}%'),
+            # Add more fields for searching as needed
+        ))
+
+
+        # Get total count of records without filtering
+    total_records = clients_query.count()
+
+        # Apply pagination
+    clients = clients_query.offset(start).limit(length).all()
+    
+    # Format data as required by DataTables
+    data = []
+    for client, grupo_name in clients:
+        data.append({
+            'id': client.id,
+            'nombre': client.nombre,
+            'grupo_id': client.grupo_id,
+            'grupo': grupo_name,
+            'rfc': client.rfc,
+            'tel_oficina': client.tel_oficina,
+            'tel_movil': client.tel_movil,
+            'tel_casa': client.tel_casa,
+            'correo': client.correo,
+            'direccion': client.direccion,
+            'fecha_nacimiento': client.fecha_nacimiento.strftime('%Y-%m-%d'), # Format date as string
+            'sexo': client.sexo,
+            'ocupacion': client.ocupacion,
+            'actividad': client.actividad,
+            'apellido': client.apellido,
+            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+        })
+
+    # Prepare response
+    response = {
+        # 'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+   
+    return jsonify(response)
+
 
 
 @app.route('/get_poliza_byID', methods=['POST'])
