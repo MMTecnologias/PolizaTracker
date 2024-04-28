@@ -1195,39 +1195,52 @@ def get_polizas_byID():
     # Get parameters from DataTables AJAX request
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
-    search_value = request.form.get('search_value')
+    cliente_id = request.form.get('search_value')
 
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
+
+    polizas_query = db.session.query(Poliza, 
+                                     Cliente.nombre.label("client_name"),
+                                     Cliente.apellido.label("client_lastname"),
+                                     Aseguradora.aseguradora.label("aseguradora"),
+                                     Ramo.ramo.label("ramo"),
+                                     Subramo.subramo.label("subramo")) \
     .select_from(Poliza) \
     .join(Cliente, Poliza.cliente_id == Cliente.id) \
-    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
+    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)  \
+    .join(Ramo, Poliza.ramo_id == Ramo.id)  \
+    .join(Subramo, Poliza.subramo_id == Subramo.id) 
 
     # Implement search functionality
-    if search_value:
-        polizas_query = polizas_query.filter(or_(
-            # Poliza.serie.ilike(f'%{search_value}%'),
-            Cliente.id.ilike(f'%{search_value}%'),
-            # Cliente.id(f'%{search_value}%'),
-            # Aseguradora.aseguradora.ilike(f'%{search_value}%'),
-            # Cliente.apellido.ilike(f'%{search_value}%')
-            # Add more fields for searching as needed
-        ))
+    if cliente_id:
+        polizas_query = polizas_query.filter(Poliza.cliente_id == cliente_id)
 
     polizas = polizas_query.offset(start).limit(length).all()
 
     # Format data as required by DataTables
     data = []
-    for poliza, nombre,apellido, aseguradora in polizas:
+    for poliza, nombre,apellido, aseguradora,ramo,subramo in polizas:
         data.append({
             'poliza': poliza.serie,
             'cliente': f"{nombre} {apellido}",
             'aseguradora': aseguradora,
             'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'id': poliza.id
+            'id': poliza.id,
+            'ramo': ramo,
+            'subramo': subramo,
+            'primaNeta': float(poliza.prima_neta),
+            'primaTotal': float(poliza.prima_total),
+            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'status':poliza.status
+            #            <td>${poliza.poliza}</td>
+            #            <td>${poliza.ramo}</td>
+            #            <td>${poliza.subramo}</td>
+            #            <td>${poliza.primaNeta}</td>
+            #            <td>${poliza.primaTotal}</td>
+            #            <td>${poliza.fechaFin}</td>
             # Add more fields as needed
             # Ramo, Subramo, Prima Neta, Prima Total, Vigencia, Estatus
         })
-
+    print(data)
     return jsonify(data)
 
 
