@@ -84,8 +84,14 @@ const polizasById = async (id) => {
          'poliza': poliza.poliza,
          'cliente': poliza.cliente,
          'aseguradora': poliza.aseguradora,
-         'vigencia': poliza.vigencia
-      });
+         'vigencia': poliza.vigencia,
+         'ramo':poliza.ramo,
+         'subramo':poliza.subramo,
+         'primaNeta':poliza.primaNeta,
+         'primaTotal':poliza.primaTotal,
+         'fechaFin':poliza.fechaFin,
+         'status':poliza.status
+        });
    });
    console.log(data);
 
@@ -256,6 +262,7 @@ const showPoliza = async (id) => {
                         <td>${poliza.primaNeta}</td>
                         <td>${poliza.primaTotal}</td>
                         <td>${poliza.fechaFin}</td>
+                        <td>${poliza.status}</td>
                   </tr>`;
       });
 };
