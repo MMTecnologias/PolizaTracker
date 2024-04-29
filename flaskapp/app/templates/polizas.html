@@ -627,6 +627,18 @@
                id="table-polizas"
             >
                <h4 class="header-title">Tabla de Pólizas</h4>
+               <form
+                  class="d-flex"
+                  role="search"
+               >
+                  <input
+                     class="form-control my-2"
+                     type="search"
+                     placeholder="Buscar Cliente"
+                     aria-label="Search"
+                     id="searchClient"
+                  />
+               </form>
 
                <!-- <table
                   class="table"
@@ -674,6 +686,27 @@
                   </tbody>
                </table>
             </div>
+            <ul
+               id="indexList"
+               class="paginationList"
+            >
+               <li
+                  class="paginationList__index"
+                  id="prev-index"
+               >
+                  <
+               </li>
+               <li
+                  id="current-index"
+                  class="paginationList__current-index noClickable"
+               ></li>
+               <li
+                  class="paginationList__index"
+                  id="next-index"
+               >
+                  >
+               </li>
+            </ul>
 
             <div class="card-body">
                <h4 class="header-title">Listas de Recibos</h4>
@@ -700,27 +733,6 @@
                   </tbody>
                </table>
             </div>
-            <ul
-               id="indexList"
-               class="paginationList"
-            >
-               <li
-                  class="paginationList__index"
-                  id="prev-index"
-               >
-                  <
-               </li>
-               <li
-                  id="current-index"
-                  class="paginationList__current-index noClickable"
-               ></li>
-               <li
-                  class="paginationList__index"
-                  id="next-index"
-               >
-                  >
-               </li>
-            </ul>
          </div>
       </div>
 

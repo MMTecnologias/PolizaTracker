@@ -12,28 +12,41 @@ let sorting = false;
 const currentIndexToShow = (currentIndex) => currentIndex + 1;
 
 const currentPageData = async () => {
+   let currentData = {};
    let polizaData = [];
    const index = currentIndex;
    //Solicitamos los datos
-   const currentPageData = await fetch('/get_polizas_data', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-         start: `${index === undefined ? 0 : index * clientsPerPage}`,
-         length: clientsPerPage
-      })
-   });
+   if (sorting === true) {
+      currentData = await fetch('/get_sorted_poliza_data', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+         },
+         body: new URLSearchParams({
+            start: `${index === undefined ? 0 : index * clientsPerPage}`,
+            length: clientsPerPage
+         })
+      });
+   } else {
+      currentData = await fetch('/get_polizas_data2', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+         },
+         body: new URLSearchParams({
+            start: `${index === undefined ? 0 : index * clientsPerPage}`,
+            length: clientsPerPage
+         })
+      });
+   }
 
    //Convertimos los datos a JSON
-   let data = await currentPageData.json();
-
+   let data = await currentData.json();
    console.log(data);
 
-   //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
+   //Creamos un objeto llamado polizaData y lo llenamos iterando en la data JSON
 
-   //Rellenamos el arreglo "clientData" con los datos del servidor
+   //Rellenamos el arreglo "polizaData" con los datos del servidor
    data.data.forEach((poliza) => {
       polizaData.push({
          'poliza': poliza.poliza,
@@ -49,38 +62,10 @@ const currentPageData = async () => {
          'tipoPago': poliza.tipoPago
       });
    });
+   console.log(`Estoy imprimiendo desde currentPageData ${polizaData}`);
 
    return polizaData;
 };
-
-const fillTable = async () => {
-   document.querySelector('#demo').innerHTML = '';
-   const currentData = await currentPageData();
-
-   currentData.forEach((poliza) => {
-      document.getElementById('demo').innerHTML += `
-
-               <tr  class="tableOption" >
-
-                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
-                     <td>${poliza.cliente}</td>
-                     <td>${poliza.subramo}</td>
-                     <td>${poliza.fechaInicio}</td>
-                     <td>${poliza.fechaFin}</td>
-                     <td>${poliza.primaNeta}</td>
-                     <td>${poliza.primaTotal}</td>
-                     <td>${poliza.aseguradora}</td>
-                     <td>${poliza.tipoPago}</td>
-
-               </tr>
-
-            `;
-   });
-   await addBtnShow();
-   await pintarPaginacion();
-};
-
-fillTable();
 
 const updateTable = async () => {
    const rows = document.querySelectorAll('#demo>tr.tableOption');
@@ -127,7 +112,7 @@ const addBtnShow = async (id) => {
 };
 
 const pintarPaginacion = async () => {
-   await fetch('/get_polizas_data', {
+   await fetch('/get_polizas_data2', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -139,20 +124,30 @@ const pintarPaginacion = async () => {
    })
       .then((response) => response.json())
       .then((data) => {
+         console.log(`indice actual es: ${currentIndex}`);
          document.querySelector(
             '#current-index'
          ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
 
-         if (currentIndex == 0) {
+         if (
+            currentIndex == 0 &&
+            Math.floor(data.recordsTotal / clientsPerPage) == 0
+         ) {
             document.querySelector('#prev-index').classList.add('noClickable');
+            document.querySelector('#next-index').classList.add('noClickable');
+         } else if (currentIndex == 0) {
+            document.querySelector('#prev-index').classList.add('noClickable');
+         } else if (
+            currentIndex == Math.floor(data.recordsTotal / clientsPerPage)
+         ) {
+            document.querySelector('#next-index').classList.add('noClickable');
          } else {
             document
                .querySelector('#prev-index')
                .classList.remove('noClickable');
-         }
-
-         if (data.recordsTotal < clientsPerPage) {
-            document.querySelector('#next-index').classList.add('noClickable');
+            document
+               .querySelector('#next-index')
+               .classList.remove('noClickable');
          }
       });
 };
@@ -173,8 +168,8 @@ prevIndex.addEventListener('click', async () => {
    await updateTable();
 });
 
+const inputPoliza = document.getElementById('Poliza');
 function buscarPoliza() {
-   const inputPoliza = document.getElementById('Poliza');
    fetch('/get_polizas_data2')
       .then((response) => response.json())
       .then(function (data) {
@@ -561,3 +556,31 @@ $(document).ready(function () {
       receiptsTable.ajax.reload();
    });
 });
+
+const fillTable = async (data) => {
+   document.querySelector('#demo').innerHTML = '';
+
+   data.forEach((poliza) => {
+      document.getElementById('demo').innerHTML += `
+
+               <tr  class="tableOption" >
+
+                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
+                     <td>${poliza.cliente}</td>
+                     <td>${poliza.subramo}</td>
+                     <td>${poliza.fechaInicio}</td>
+                     <td>${poliza.fechaFin}</td>
+                     <td>${poliza.primaNeta}</td>
+                     <td>${poliza.primaTotal}</td>
+                     <td>${poliza.aseguradora}</td>
+                     <td>${poliza.tipoPago}</td>
+
+               </tr>
+
+            `;
+   });
+   await pintarPaginacion();
+   await addBtnShow();
+};
+
+fillTable(await currentPageData());

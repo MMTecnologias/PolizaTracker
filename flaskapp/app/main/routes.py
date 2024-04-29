@@ -1312,18 +1312,28 @@ def get_polizas_data2():
 
         # poliza_data = {column.name: getattr(poliza, column.name) for column in Poliza.__table__.columns}
 
-        # Append additional information
-        poliza_data.update({
+    # Append additional information
+    data = []
+    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
+        data.append({
+            'poliza': poliza.serie,
             'cliente': f"{nombre} {apellido}",
             'aseguradora': aseguradora,
             'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+            'id': poliza.id,
             'ramo': f"{ramo}",
             'subramo': f"{subramo}",
-            'tipoPago': f"{tipo_pago}",
+            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
+            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'primaNeta': poliza.prima_neta,
+            'primaTotal': poliza.prima_total,
+            'tipoPago': f"{tipo_pago}"
+            # Add more fields as needed
         })
 
-        # Append to data list
-        data.append(poliza_data)
+# Estas lineas generaban un fila de undefined
+        # # Append to data list
+        # data.append(poliza_data)
 
     #Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response
