@@ -235,7 +235,7 @@ const rellenarFormulario = async (poliza) => {
          document.getElementById('prima_total').value = coincidencia.prima_total;
          document.getElementById('VigenciaF').value = coincidencia.fecha_termino;
          document.getElementById(
-            'Aseguradora'
+            'aseguradora'
          ).innerHTML = `<option value="${coincidencia.aseguradora}">
         ${coincidencia.aseguradora}
          </option>`;
@@ -337,8 +337,8 @@ $(document).ready(function () {
    });
 
    // funcion para mostrar nueva aseguradora
-   $('#Aseguradora').change(function () {
-      var opt = $('#Aseguradora').val();
+   $('#aseguradora').change(function () {
+      var opt = $('#aseguradora').val();
       if (opt == 'New') {
          $('#nuevo_aseguradora_div').show();
          $('#nuevo_aseguradora').prop('required', true);

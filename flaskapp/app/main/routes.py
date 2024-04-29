@@ -6,7 +6,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 #from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
@@ -25,6 +25,20 @@ def check_access(nombre_del_servicio):
         return False
     return True
 
+def new_class(clase,form_id ,nuevo,columname):
+    if form_id=="New":
+        existente = clase.query.filter(getattr(clase,columname)== nuevo).first()
+        if existente:
+            id=existente.id
+        else:
+            kwargs = {columname: nuevo}
+            nuevo = clase(**kwargs)
+            db.session.add(nuevo)
+            db.session.commit()
+            id=nuevo.id
+    else:
+        id=int(form_id)
+    return id
 
 """Clientes"""
 
@@ -536,7 +550,8 @@ def polizas():
     pagos=TipoPago.query.all()
     aseguradoras=Aseguradora.query.all()
     agentes=Agente.query.all()
-    return render_template('polizas.html', user=current_user,ramos=ramos,subramos=subramos,pagos=pagos,aseguradoras=aseguradoras,agentes=agentes)
+    vendedores=Vendedor.query.all()
+    return render_template('polizas.html', user=current_user,ramos=ramos,subramos=subramos,pagos=pagos,aseguradoras=aseguradoras,agentes=agentes,vendedores=vendedores)
 
 
 @main.route('/get_polizas_data', methods=['POST'])
@@ -1333,7 +1348,6 @@ def get_polizas_data2():
     return jsonify(response)
 
 
-
 @main.route('/get_sorted_poliza_data', methods=['POST'])
 @login_required
 def get_sorted_poliza_data():
@@ -1421,3 +1435,93 @@ def get_sorted_poliza_data():
         'data': data  # Data to display
     }
     return jsonify(response)
+
+
+@main.route('/create_poliza', methods=['POST'])
+@login_required
+def create_poliza():
+    #if not check_access("Clientes"):
+    #    return redirect(url_for('main.index'))
+    poliza_id = request.form.get('poliza_id')
+
+    def check_new_form():   
+        argdict={}
+
+        ramo = request.form.get('ramo')
+        nuevo_ramo = request.form.get('nuevo_ramo')
+        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+
+        subramo = request.form.get('subramo')
+        nuevo_subramo = request.form.get('nuevo_subramo')
+        argdict["subramo_id"] = new_class(Subramo, subramo, nuevo_subramo, "subramo")
+
+        aseguradora = request.form.get('aseguradora')
+        nuevo_aseguradora = request.form.get('nuevo_aseguradora')
+        argdict["aseguradora_id"] = new_class(Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
+
+        vendedor = request.form.get('vendedor')
+        nuevo_vendedor = request.form.get('nuevo_vendedor')
+        argdict["vendedor_id"] = new_class(Vendedor, vendedor, nuevo_vendedor, "nombre")
+
+        agente = request.form.get('agente')
+        nuevo_agente = request.form.get('nuevo_agente')
+        argdict["agente_id"] = new_class(Agente, agente, nuevo_agente, "nombre")
+        return argdict
+
+    # fecha_captura
+    column_name_mapping = {
+        'cliente_id': 'selected-client-id',
+        'fecha_inicio': 'VigenciaI',
+        'fecha_termino': 'VigenciaF',
+        'moneda': 'Moneda',
+        'tipo_pago_id': 'Pago',
+        'serie': 'serie',
+        'notas': 'notas',
+        'poliza_anterior': 'polizaAnterior',
+        'renovacion': 'renovacion',
+        'prima_neta': 'prima_neta',
+        'prima_total': 'prima_total',
+        'poliza': 'Poliza'
+    }
+    form_value_mapping = {
+        'selected-client-id': request.form.get('selected-client-id'),
+        'VigenciaI': request.form.get('VigenciaI'),
+        'VigenciaF': request.form.get('VigenciaF'),
+        'Moneda': request.form.get('Moneda'),
+        'Pago': request.form.get('Pago'),
+        'serie': request.form.get('serie'),
+        'notas': request.form.get('notas'),
+        'polizaAnterior': request.form.get('polizaAnterior'),
+        'renovacion': request.form.get('renovacion'),
+        'prima_neta': request.form.get('prima_neta'),
+        'prima_total': request.form.get('prima_total'),
+        'Poliza': request.form.get('Poliza')
+    }
+    arg_values={col:form_value_mapping[map] for col,map in column_name_mapping.items() if form_value_mapping[map]}
+    #print(form_value_mapping)
+    #return arg_values
+
+    # If cliente_id is "New", then it's a new client creation
+    if poliza_id == "New":
+        arg_values.update(check_new_form())
+        arg_values["fecha_captura"]= datetime.now().strftime('%Y-%m-%d')
+        # Create a new client
+        new_poliza = Poliza(**arg_values)
+        # Save the new client to the database
+        db.session.add(new_poliza)
+        db.session.commit()
+
+        return jsonify({
+            'error': False,
+            'redirect': url_for('main.polizas'),
+            'msg': arg_values,
+            'title':'Poliza registrada exitosamente'
+        })
+    else:
+        return jsonify({
+            'error': False,
+            'redirect': url_for('main.polizas'),
+            'msg': 'Solo se puede editar poliza en endosos',
+            'title':'Sin cambios'
+        })
+    

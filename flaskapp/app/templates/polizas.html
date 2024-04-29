@@ -136,6 +136,8 @@
 
             <form
                id="form-polizas"
+               method="POST"
+               action="{{ url_for('main.create_poliza') }}"
                class="needs-validation form-data"
                novalidate=""
             >
@@ -144,6 +146,12 @@
                   id="poliza_id"
                   name="poliza_id"
                   value="New"
+               />
+               <input
+                  type="hidden"
+                  id="selected-client-id"
+                  name="selected-client-id"
+                  value="None"
                />
 
                <!--<div class="form__input-data">
@@ -398,8 +406,8 @@
                      <label class="label-input-data">Aseguradora</label>
                      <select
                         class="custom-select"
-                        id="Aseguradora"
-                        name="Aseguradora"
+                        id="aseguradora"
+                        name="aseguradora"
                         required
                      >
                         <option value="">Selecciona...</option>
@@ -440,9 +448,9 @@
                         required
                      >
                         <option value="">Selecciona...</option>
-                        {% for agente in agentes %}
-                        <option value="{{ agente.id }}">
-                           {{ agente.nombre }}
+                        {% for vendedor in vendedores %}
+                        <option value="{{ vendedor.id }}">
+                           {{ vendedor.nombre }}
                         </option>
                         {% endfor %}
                         <option value="New">Nuevo Vendedor</option>
@@ -514,7 +522,6 @@
                            id="polizaAnterior"
                            name="polizaAnterior"
                            aria-describedby="inputGroupPrepend"
-                           required=""
                         />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
@@ -532,7 +539,6 @@
                            id="renovacion"
                            name="renovacion"
                            aria-describedby="inputGroupPrepend"
-                           required=""
                         />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
