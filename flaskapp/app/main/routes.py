@@ -1337,80 +1337,87 @@ def get_polizas_data2():
 @main.route('/get_sorted_poliza_data', methods=['POST'])
 @login_required
 def get_sorted_poliza_data():
-    # Get parameters from DataTables AJAX request
-    # draw = int(request.form.get('draw'))
+    # if not check_access("Admin usuarios"):
+    #     return redirect(url_for('main.index'))
+
+    # Estos datos los recibe desde la función en JS
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
-    # search_value = request.form.get('search[value]')
-    # order_dir = request.form.get('order[0][dir]')
+    search_value = request.form.get('searchValue')
+    #start = 0
+    #length = 1
+    #search_value=False
 
-    # Query to fetch polizas data from the database 
-    """
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Ramo,Subramo,Aseguradora.aseguradora.label("aseguradora"),TipoPago,Agente) \
-    .select_from(Poliza) \
-    .join(Cliente, Poliza.cliente_id == Cliente.id) \
-    .join(Ramo, Poliza.ramo_id == Ramo.id) \
-    .join(Subramo, Poliza.subramo_id == Subramo.id) \
-    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-    .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
-    .join(Agente, Poliza.agente_id == Agente.id)
-    """
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora"),Ramo.ramo.label("id"), Subramo.subramo.label("id"), TipoPago.tipo_pago.label("id")) \
+    polizas_query = db.session.query(Poliza, 
+                                     Cliente.nombre.label("client_name"),
+                                     Cliente.apellido.label("client_lastname"),
+                                     Aseguradora.aseguradora.label("aseguradora"),
+                                     Ramo.ramo.label("ramo"), 
+                                     Subramo.subramo.label("subramo"), 
+                                     TipoPago.tipo_pago.label("tipo_pago")) \
         .select_from(Poliza) \
         .join(Cliente, Poliza.cliente_id == Cliente.id) \
         .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
         .join(Ramo, Poliza.ramo_id == Ramo.id)  \
         .join(Subramo, Poliza.subramo_id == Subramo.id)  \
-        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) 
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
 
-    # Implement sorting functionality
-    # order_column_name = None
-    # if order_column == 0:
-        
-    # elif order_column == 1:
-    #     order_column_name = 'client_name'
-    # elif order_column == 2:
-    #     order_column_name = 'aseguradora'
+    order_column_name = 'poliza'
+    polizas_query = polizas_query.order_by(order_column_name)
+    polizas = polizas_query.all()
+    
+    # Implement search functionality
+    if search_value:
+        polizas_query = polizas_query.filter(or_(
+            Poliza.poliza.ilike(f'%{search_value}%'),
+            Poliza.serie.ilike(f'%{search_value}%')
+            # Add more fields for searching as needed
+        ))
 
-    order_column_name = 'serie' 
-    polizas_query = polizas_query.order_by(desc(order_column_name))
-
-    # if order_column_name:
-    #     if order_dir == 'desc':
-    #         polizas_query = polizas_query.order_by(desc(order_column_name))
-    #     else:
-    #         polizas_query = polizas_query.order_by(order_column_name)
-
-    # Get total count of records without filtering
+     # Get total count of records without filtering
     total_records = polizas_query.count()
     
     # Apply pagination
     polizas = polizas_query.offset(start).limit(length).all()
 
-    # Format data as required by DataTables
     data = []
-    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
-        data.append({
-            'poliza': poliza.serie,
+    # Iterate through the query results
+    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago in polizas:
+        # Extracting all columns from the Poliza object
+        poliza_data = {}
+        # Iterate through each column in the Poliza table
+        for column in Poliza.__table__.columns:
+            # Get the value of the column
+            value = getattr(poliza, column.name)
+            # Convert date to string if it's a date type
+            if isinstance(value, date):
+                value = value.strftime('%Y-%m-%d')
+            # Convert Decimal to float if it's a Decimal type
+            elif isinstance(value, Decimal):
+                value = float(value)
+            # Add column name and corresponding value to poliza_data dictionary
+            poliza_data[column.name] = value
+
+        # poliza_data = {column.name: getattr(poliza, column.name) for column in Poliza.__table__.columns}
+
+        # Append additional information
+        poliza_data.update({
             'cliente': f"{nombre} {apellido}",
             'aseguradora': aseguradora,
             'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'id': poliza.id,
             'ramo': f"{ramo}",
             'subramo': f"{subramo}",
-            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
-            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
-            'primaNeta': poliza.prima_neta,
-            'primaTotal': poliza.prima_total,
-            'tipoPago': f"{tipo_pago}"
-            # Add more fields as needed
+            'tipoPago': f"{tipo_pago}",
         })
-        
+
+        # Append to data list
+        data.append(poliza_data)
+
+    #Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response
     response = {
         # 'draw': draw,
         'recordsTotal': total_records,  # Total records without filtering
-        'recordsFiltered': total_records,  # Total records after filtering
         'data': data  # Data to display
     }
     return jsonify(response)

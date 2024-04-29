@@ -250,6 +250,7 @@ const rellenarFormulario = async (poliza) => {
 
 const sortedCurrentPageData = async () => {
    let clientData = [];
+   let polizaData = [];
    const index = currentIndex;
    //Solicitamos los datos
    const currentPageData = await fetch('/get_sorted_poliza_data', {
@@ -285,8 +286,7 @@ const sortedCurrentPageData = async () => {
          'tipoPago': poliza.tipoPago
       });
    });
-
-   return clientData;
+   return polizaData;
 };
 
 const sortButton = document.querySelector('#sortByPoliza');
