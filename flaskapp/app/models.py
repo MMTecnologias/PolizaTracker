@@ -52,6 +52,12 @@ class Cliente(db.Model):
     actividad = Column(String(30))
     status = Column(Enum('Activo', 'Eliminado'), nullable=False,default='Activo')
 
+
+class Vendedor(db.Model):
+    __tablename__ = 'vendedores'
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(50), nullable=False, unique=True)
+
 class Poliza(db.Model):
     __tablename__ = 'polizas'
     id = Column(Integer, primary_key=True)
@@ -78,6 +84,8 @@ class Poliza(db.Model):
     rec_pago = Column(DECIMAL(5, 4))
     comision = Column(DECIMAL(5, 4))
     recibos = Column(Enum('Generados', 'Por generar'), default='Por generar')
+    vendedor_id = Column(Integer, ForeignKey('vendedores.id'), nullable=False)
+    poliza = Column(String(30), nullable=False)
 
 class Recibo(db.Model):
     __tablename__ = 'recibos'

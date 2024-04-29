@@ -1299,41 +1299,29 @@ def get_polizas_data2():
         for column in Poliza.__table__.columns:
             # Get the value of the column
             value = getattr(poliza, column.name)
-            print(type(value))
             # Convert date to string if it's a date type
             if isinstance(value, date):
                 value = value.strftime('%Y-%m-%d')
             # Convert Decimal to float if it's a Decimal type
             elif isinstance(value, Decimal):
                 value = float(value)
-
             # Add column name and corresponding value to poliza_data dictionary
             poliza_data[column.name] = value
 
         # poliza_data = {column.name: getattr(poliza, column.name) for column in Poliza.__table__.columns}
 
-    # Append additional information
-    data = []
-    for poliza, nombre,apellido, aseguradora, ramo, subramo, tipo_pago  in polizas:
-        data.append({
-            'poliza': poliza.serie,
+        # Append additional information
+        poliza_data.update({
             'cliente': f"{nombre} {apellido}",
             'aseguradora': aseguradora,
             'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'id': poliza.id,
             'ramo': f"{ramo}",
             'subramo': f"{subramo}",
-            'fechaInicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
-            'fechaFin': poliza.fecha_termino.strftime('%Y-%m-%d'),
-            'primaNeta': poliza.prima_neta,
-            'primaTotal': poliza.prima_total,
-            'tipoPago': f"{tipo_pago}"
-            # Add more fields as needed
+            'tipoPago': f"{tipo_pago}",
         })
 
-# Estas lineas generaban un fila de undefined
-        # # Append to data list
-        # data.append(poliza_data)
+        # Append to data list
+        data.append(poliza_data)
 
     #Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response
@@ -1342,8 +1330,8 @@ def get_polizas_data2():
         'recordsTotal': total_records,  # Total records without filtering
         'data': data  # Data to display
     }
-    print(response)
     return jsonify(response)
+
 
 
 @main.route('/get_sorted_poliza_data', methods=['POST'])

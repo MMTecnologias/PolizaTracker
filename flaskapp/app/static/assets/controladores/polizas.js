@@ -55,10 +55,10 @@ const currentPageData = async () => {
          'vigencia': poliza.vigencia,
          'id': poliza.id,
          'subramo': poliza.subramo,
-         'fechaInicio': poliza.fechaInicio,
-         'fechaFin': poliza.fechaFin,
-         'primaNeta': poliza.primaNeta,
-         'primaTotal': poliza.primaTotal,
+         'fecha_inicio': poliza.fecha_inicio,
+         'fecha_termino': poliza.fecha_termino,
+         'prima_neta': poliza.prima_neta,
+         'prima_total': poliza.prima_total,
          'tipoPago': poliza.tipoPago
       });
    });
@@ -84,10 +84,10 @@ const updateTable = async () => {
                      <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
-                     <td>${poliza.fechaInicio}</td>
-                     <td>${poliza.fechaFin}</td>
-                     <td>${poliza.primaNeta}</td>
-                     <td>${poliza.primaTotal}</td>
+                     <td>${poliza.fecha_inicio}</td>
+                     <td>${poliza.fecha_termino}</td>
+                     <td>${poliza.prima_neta}</td>
+                     <td>${poliza.prima_total}</td>
                      <td>${poliza.aseguradora}</td>
                      <td>${poliza.tipoPago}</td>
 
@@ -191,10 +191,10 @@ function buscarPoliza() {
                   <td> <p class="td-clickable">${coincidencias[i]['poliza']}</p></td>
                   <td>${coincidencias[i]['cliente']}</td>
                   <td>${coincidencias[i]['subramo']}</td>
-                  <td>${coincidencias[i]['fechaInicio']}</td>
-                  <td>${coincidencias[i]['fechaFin']}</td>
-                  <td>${coincidencias[i]['primaNeta']}</td>
-                  <td>${coincidencias[i]['primaTotal']}</td>
+                  <td>${coincidencias[i]['fecha_inicio']}</td>
+                  <td>${coincidencias[i]['fecha_termino']}</td>
+                  <td>${coincidencias[i]['prima_neta']}</td>
+                  <td>${coincidencias[i]['prima_total']}</td>
                   <td>${coincidencias[i]['aseguradora']}</td>
                   <td>${coincidencias[i]['tipoPago']}</td>
                </tr>
@@ -230,10 +230,10 @@ const rellenarFormulario = async (poliza) => {
          ).innerHTML = `<option value="${coincidencia.subramo}">
         ${coincidencia.subramo}
          </option>`;
-         document.getElementById('VigenciaI').value = coincidencia.fechaInicio;
-         document.getElementById('prima_neta').value = coincidencia.primaNeta;
-         document.getElementById('prima_total').value = coincidencia.primaTotal;
-         document.getElementById('VigenciaF').value = coincidencia.fechaFin;
+         document.getElementById('VigenciaI').value = coincidencia.fecha_inicio;
+         document.getElementById('prima_neta').value = coincidencia.prima_neta;
+         document.getElementById('prima_total').value = coincidencia.prima_total;
+         document.getElementById('VigenciaF').value = coincidencia.fecha_termino;
          document.getElementById(
             'Aseguradora'
          ).innerHTML = `<option value="${coincidencia.aseguradora}">
@@ -278,10 +278,10 @@ const sortedCurrentPageData = async () => {
          'vigencia': poliza.vigencia,
          'id': poliza.id,
          'subramo': poliza.subramo,
-         'fechaInicio': poliza.fechaInicio,
-         'fechaFin': poliza.fechaFin,
-         'primaNeta': poliza.primaNeta,
-         'primaTotal': poliza.primaTotal,
+         'fecha_inicio': poliza.fecha_inicio,
+         'fecha_termino': poliza.fecha_termino,
+         'prima_neta': poliza.prima_neta,
+         'prima_total': poliza.prima_total,
          'tipoPago': poliza.tipoPago
       });
    });
@@ -568,10 +568,10 @@ const fillTable = async (data) => {
                      <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
-                     <td>${poliza.fechaInicio}</td>
-                     <td>${poliza.fechaFin}</td>
-                     <td>${poliza.primaNeta}</td>
-                     <td>${poliza.primaTotal}</td>
+                     <td>${poliza.fecha_inicio}</td>
+                     <td>${poliza.fecha_termino}</td>
+                     <td>${poliza.prima_neta}</td>
+                     <td>${poliza.prima_total}</td>
                      <td>${poliza.aseguradora}</td>
                      <td>${poliza.tipoPago}</td>
 
