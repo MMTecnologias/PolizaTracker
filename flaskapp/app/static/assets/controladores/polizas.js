@@ -107,7 +107,7 @@ const addBtnShow = async () => {
          await rellenarFormulario(e.target.id.split('_')[1]);
          // await mostrarRecibos(e.target.id.split('_')[1]);
          // Activa el modal
-         // $('.container__modal').addClass('modal-active');
+         // $('.container__modal-endoso').addClass('modal-active');
       });
    });
 };
@@ -603,6 +603,16 @@ $(document).ready(function () {
       $('#poliza_id').val(polizaId);
       receiptsTable.ajax.reload();
    });
+});
+
+$('#btnGenerarEndoso').on('click', function () {
+   $('.container__modal-endoso').addClass('modal-active');
+});
+
+const btnCancelar = document.querySelector('#btn_close-modal');
+btnCancelar.addEventListener('click', function (e) {
+   e.preventDefault();
+   $('.container__modal-endoso').removeClass('modal-active');
 });
 
 const fillTable = async (data) => {
