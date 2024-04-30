@@ -181,46 +181,48 @@ prevIndex.addEventListener('click', async () => {
    }
 });
 
-const inputPoliza = document.getElementById('Poliza');
-function buscarPoliza() {
-   fetch('/get_polizas_data2')
-      .then((response) => response.json())
-      .then(function (data) {
-         inputPoliza.addEventListener('input', (event) => {
-            console.log(event.target.value);
-            let coincidencias = data.filter((objeto) => {
-               let idString = objeto.poliza.toString();
-               let ultimosTresDigitos = idString.substring(idString.length - 3);
-
-               return ultimosTresDigitos.includes(event.target.value);
-            });
-            document.getElementById('demo').innerHTML = '';
-            console.log(typeof coincidencias);
-            console.log(coincidencias);
-            for (var i = 0; i < coincidencias.length; i++) {
-               console.log(coincidencias);
-               document.getElementById('demo').innerHTML += `
-               <tr class='tableOption'>
-                  <td> <p class="td-clickable">${coincidencias[i]['poliza']}</p></td>
-                  <td>${coincidencias[i]['cliente']}</td>
-                  <td>${coincidencias[i]['subramo']}</td>
-                  <td>${coincidencias[i]['fecha_inicio']}</td>
-                  <td>${coincidencias[i]['fecha_termino']}</td>
-                  <td>${coincidencias[i]['prima_neta']}</td>
-                  <td>${coincidencias[i]['prima_total']}</td>
-                  <td>${coincidencias[i]['aseguradora']}</td>
-                  <td>${coincidencias[i]['tipoPago']}</td>
-               </tr>
-
-               `;
-            }
-            console.log(document.querySelectorAll('.td-clickable'));
-            return console.log(coincidencias);
+//Buscar póliza
+const inputSearchPoliza = document.querySelector('#searchPoliza');
+inputSearchPoliza.addEventListener('keyup', async (e) => {
+   let polizaData = [];
+   let searchValue = e.target.value;
+   if (searchValue.length >= 3) {
+      console.log(searchValue);
+      const response = await fetch('/get_polizas_data2', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+         },
+         body: new URLSearchParams({
+            start: 0,
+            length: 10,
+            searchValue: searchValue
+         })
+      });
+      const data = await response.json();
+      console.log(`data from inputSearchPoliza ${data.data.cliente}`);
+      data.data.forEach((poliza) => {
+         polizaData.push({
+            'poliza': poliza.poliza,
+            'cliente': poliza.cliente,
+            'aseguradora': poliza.aseguradora,
+            'vigencia': poliza.vigencia,
+            'id': poliza.id,
+            'subramo': poliza.subramo,
+            'fecha_inicio': poliza.fecha_inicio,
+            'fecha_termino': poliza.fecha_termino,
+            'prima_neta': poliza.prima_neta,
+            'prima_total': poliza.prima_total,
+            'tipoPago': poliza.tipoPago
          });
       });
-}
-
-buscarPoliza();
+      await fillTable(polizaData);
+   } else {
+      await fillTable(await currentPageData());
+   }
+   //Enviamos el objeto/array para actualizar la tabla
+   // return updateTable(data);
+});
 
 const rellenarFormulario = async (poliza) => {
    fetch('/get_polizas_data2')
