@@ -9,6 +9,8 @@ let currentIndex = 0;
 
 let sorting = false;
 
+let totalPages = 0;
+
 const currentIndexToShow = (currentIndex) => currentIndex + 1;
 
 const currentPageData = async () => {
@@ -44,6 +46,9 @@ const currentPageData = async () => {
    let data = await currentData.json();
    console.log(data);
 
+   totalPages = Math.floor(data.recordsTotal / clientsPerPage);
+   console.log(`numero total de página ${totalPages}`);
+
    //Creamos un objeto llamado polizaData y lo llenamos iterando en la data JSON
 
    //Rellenamos el arreglo "polizaData" con los datos del servidor
@@ -62,22 +67,17 @@ const currentPageData = async () => {
          'tipoPago': poliza.tipoPago
       });
    });
-   console.log(`Estoy imprimiendo desde currentPageData ${polizaData}`);
+   // console.log(`Estoy imprimiendo desde currentPageData ${polizaData}`);
 
    return polizaData;
 };
 
-const updateTable = async () => {
+const updateTable = async (polizaData) => {
+   let iterator = 0;
+   // const rows = document.querySelectorAll('#demo>tr.tableOption');
    const rows = document.querySelectorAll('#demo>tr.tableOption');
-   let poliza = '';
-   if (sorting === true) {
-      poliza = await sortedCurrentPageData();
-   } else {
-      poliza = await currentPageData();
-   }
-   console.log(rows);
-   for (let i = 0; i < rows.length; i++) {
-      rows[i].innerHTML = `
+   polizaData.forEach((poliza) => {
+      rows[iterator].innerHTML = `
 
                <tr  class="tableOption">
 
@@ -91,10 +91,10 @@ const updateTable = async () => {
                      <td>${poliza.aseguradora}</td>
                      <td>${poliza.tipoPago}</td>
 
-               </tr>
+               </tr>`;
+      iterator++;
+   });
 
-            `;
-   }
    await addBtnShow();
 };
 
@@ -124,23 +124,28 @@ const pintarPaginacion = async () => {
    })
       .then((response) => response.json())
       .then((data) => {
-         console.log(`indice actual es: ${currentIndex}`);
+         const btnPrev = document.querySelector('#prev-index');
+         const btnNext = document.querySelector('#next-index');
+         btnPrev.classList.remove('noClickable');
+         btnNext.classList.remove('noClickable');
          document.querySelector(
             '#current-index'
          ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
 
          if (
-            currentIndex == 0 &&
-            Math.floor(data.recordsTotal / clientsPerPage) == 0
+            totalPages != 0 &&
+            currentIndex != 0 &&
+            currentIndex != totalPages
          ) {
-            document.querySelector('#prev-index').classList.add('noClickable');
-            document.querySelector('#next-index').classList.add('noClickable');
+            btnPrev.classList.remove('noClickable');
+            btnNext.classList.remove('noClickable');
          } else if (currentIndex == 0) {
             document.querySelector('#prev-index').classList.add('noClickable');
-         } else if (
-            currentIndex == Math.floor(data.recordsTotal / clientsPerPage)
-         ) {
+         } else if (currentIndex == totalPages) {
             document.querySelector('#next-index').classList.add('noClickable');
+            document
+               .querySelector('#prev-index')
+               .classList.remove('noClickable');
          } else {
             document
                .querySelector('#prev-index')
@@ -157,7 +162,11 @@ nextIndex.addEventListener('click', async () => {
    ++currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable();
+   if (currentIndex == totalPages) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
 const prevIndex = document.querySelector('#prev-index');
@@ -165,7 +174,11 @@ prevIndex.addEventListener('click', async () => {
    --currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable();
+   if (currentIndex == totalPages - 1) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
 const inputPoliza = document.getElementById('Poliza');
@@ -232,8 +245,10 @@ const rellenarFormulario = async (poliza) => {
          </option>`;
          document.getElementById('VigenciaI').value = coincidencia.fecha_inicio;
          document.getElementById('prima_neta').value = coincidencia.prima_neta;
-         document.getElementById('prima_total').value = coincidencia.prima_total;
-         document.getElementById('VigenciaF').value = coincidencia.fecha_termino;
+         document.getElementById('prima_total').value =
+            coincidencia.prima_total;
+         document.getElementById('VigenciaF').value =
+            coincidencia.fecha_termino;
          document.getElementById(
             'aseguradora'
          ).innerHTML = `<option value="${coincidencia.aseguradora}">
@@ -248,53 +263,12 @@ const rellenarFormulario = async (poliza) => {
       });
 };
 
-const sortedCurrentPageData = async () => {
-   let clientData = [];
-   let polizaData = [];
-   const index = currentIndex;
-   //Solicitamos los datos
-   const currentPageData = await fetch('/get_sorted_poliza_data', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-         start: `${index === undefined ? 0 : index * clientsPerPage}`,
-         length: clientsPerPage
-      })
-   });
-
-   //Convertimos los datos a JSON
-   let data = await currentPageData.json();
-   console.log(data);
-
-   //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
-
-   //Rellenamos el arreglo "clientData" con los datos del servidor
-   data.data.forEach((poliza) => {
-      polizaData.push({
-         'poliza': poliza.poliza,
-         'cliente': poliza.cliente,
-         'aseguradora': poliza.aseguradora,
-         'vigencia': poliza.vigencia,
-         'id': poliza.id,
-         'subramo': poliza.subramo,
-         'fecha_inicio': poliza.fecha_inicio,
-         'fecha_termino': poliza.fecha_termino,
-         'prima_neta': poliza.prima_neta,
-         'prima_total': poliza.prima_total,
-         'tipoPago': poliza.tipoPago
-      });
-   });
-   return polizaData;
-};
-
 const sortButton = document.querySelector('#sortByPoliza');
 sortButton.addEventListener('click', async () => {
    sorting = !sorting;
    console.log(`el valor de sorting es ${sorting}`);
    currentIndex = 0;
-   updateTable();
+   await updateTable(await currentPageData());
    pintarPaginacion();
 });
 
