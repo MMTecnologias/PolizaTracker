@@ -6,6 +6,8 @@ let currentIndex = 0;
 
 let sorting = false;
 
+let totalPages = 0;
+
 const currentIndexToShow = (currentIndex) => currentIndex + 1;
 
 const currentPageData = async () => {
@@ -40,6 +42,9 @@ const currentPageData = async () => {
    //Convertimos los datos a JSON
    let data = await currentData.json();
    console.log(data);
+
+   totalPages = Math.floor(data.recordsTotal / clientsPerPage);
+   console.log(`numero total de página ${totalPages}`);
 
    //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
 
@@ -85,13 +90,13 @@ const polizasById = async (id) => {
          'cliente': poliza.cliente,
          'aseguradora': poliza.aseguradora,
          'vigencia': poliza.vigencia,
-         'ramo':poliza.ramo,
-         'subramo':poliza.subramo,
-         'primaNeta':poliza.primaNeta,
-         'primaTotal':poliza.primaTotal,
-         'fechaFin':poliza.fechaFin,
-         'status':poliza.status
-        });
+         'ramo': poliza.ramo,
+         'subramo': poliza.subramo,
+         'primaNeta': poliza.primaNeta,
+         'primaTotal': poliza.primaTotal,
+         'fechaFin': poliza.fechaFin,
+         'status': poliza.status
+      });
    });
    console.log(data);
 
@@ -292,7 +297,13 @@ const pintarPaginacion = async () => {
             '#current-index'
          ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
 
-         if (currentIndex == 0) {
+         if (
+            currentIndex == 0 &&
+            Math.floor(data.recordsTotal / clientsPerPage) == 0
+         ) {
+            document.querySelector('#prev-index').classList.add('noClickable');
+            document.querySelector('#next-index').classList.add('noClickable');
+         } else if (currentIndex == 0) {
             document.querySelector('#prev-index').classList.add('noClickable');
          } else if (
             currentIndex == Math.floor(data.recordsTotal / clientsPerPage)
@@ -314,7 +325,11 @@ nextIndex.addEventListener('click', async () => {
    ++currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable(await currentPageData());
+   if (currentIndex == totalPages) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
 const prevIndex = document.querySelector('#prev-index');
@@ -322,7 +337,11 @@ prevIndex.addEventListener('click', async () => {
    --currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable(await currentPageData());
+   if (currentIndex == totalPages - 1) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
 const sortButton = document.querySelector('#sortByName');
