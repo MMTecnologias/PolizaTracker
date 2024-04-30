@@ -1204,9 +1204,9 @@ def get_clients_filtered_byName():
 
 
 
-@main.route('/get_poliza_byID', methods=['POST'])
+@main.route('/get_poliza_byClientID', methods=['POST'])
 @login_required
-def get_polizas_byID():
+def get_poliza_byClientID():
     # Get parameters from DataTables AJAX request
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))

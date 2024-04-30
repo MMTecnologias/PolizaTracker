@@ -81,7 +81,7 @@ const updateTable = async (polizaData) => {
 
                <tr  class="tableOption">
 
-                     <td><p class="td-clickable" id="td-clickable_${poliza.id}">${poliza.poliza}</p></td>
+                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
                      <td>${poliza.fecha_inicio}</td>
@@ -226,7 +226,7 @@ inputSearchPoliza.addEventListener('keyup', async (e) => {
 });
 
 const rellenarFormulario = async (id) => {
-   const response = await fetch('/get_poliza_byID', {
+   const response = await fetch('/get_polizas_data2', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -234,7 +234,7 @@ const rellenarFormulario = async (id) => {
       body: new URLSearchParams({
          start: 0,
          length: 2,
-         search_value: id
+         searchValue: id
       })
    });
    const data = await response.json();
@@ -609,7 +609,7 @@ const fillTable = async (data) => {
 
                <tr  class="tableOption" >
 
-                     <td><p class="td-clickable" id="td-clickable_${poliza.id}">${poliza.poliza}</p></td>
+                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
                      <td>${poliza.fecha_inicio}</td>
