@@ -714,13 +714,10 @@
                </li>
             </ul>
 
-            <div class="card-body">
+            <div class="table-recibos">
                <h4 class="header-title">Listas de Recibos</h4>
-               <table
-                  class="table"
-                  id="recibosTable"
-               >
-                  <thead>
+               <table class="table">
+                  <thead class="tableHeader">
                      <tr>
                         <th scope="col">Número</th>
                         <th scope="col">Fecha de Recibo</th>
@@ -734,8 +731,11 @@
                         <th scope="col">Cancelado</th>
                      </tr>
                   </thead>
-                  <tbody>
+                  <tbody id="receiptsTable">
                      <!-- Agregar la información de la tabla -->
+                     <tr class="tableOption">
+                        <td>Prueba</td>
+                     </tr>
                   </tbody>
                </table>
             </div>

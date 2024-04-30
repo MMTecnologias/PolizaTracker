@@ -1230,6 +1230,7 @@ def get_polizas_byID():
         polizas_query = polizas_query.filter(Poliza.cliente_id == cliente_id)
 
     polizas = polizas_query.offset(start).limit(length).all()
+    total_records = polizas_query.count()
 
     # Format data as required by DataTables
     data = []
@@ -1255,9 +1256,14 @@ def get_polizas_byID():
             # Add more fields as needed
             # Ramo, Subramo, Prima Neta, Prima Total, Vigencia, Estatus
         })
-    print(data)
-    return jsonify(data)
-
+     # Prepare response
+    response = {
+        # 'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+   
+    return jsonify(response)
 
 from datetime import date
 from decimal import Decimal
