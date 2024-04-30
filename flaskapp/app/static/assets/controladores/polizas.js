@@ -81,7 +81,7 @@ const updateTable = async (polizaData) => {
 
                <tr  class="tableOption">
 
-                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
+                     <td><p class="td-clickable" id="td-clickable_${poliza.id}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
                      <td>${poliza.fecha_inicio}</td>
@@ -98,7 +98,7 @@ const updateTable = async (polizaData) => {
    await addBtnShow();
 };
 
-const addBtnShow = async (id) => {
+const addBtnShow = async () => {
    const btnShow = document.querySelectorAll('.td-clickable');
 
    btnShow.forEach((btn) => {
@@ -224,45 +224,49 @@ inputSearchPoliza.addEventListener('keyup', async (e) => {
    // return updateTable(data);
 });
 
-const rellenarFormulario = async (poliza) => {
-   fetch('/get_polizas_data2')
-      .then((response) => response.json())
-      .then(async function (data) {
-         let coincidencia = await data.find((objeto) => {
-            return objeto.poliza == poliza;
-         });
-         console.log(coincidencia);
-         document.getElementById('buscar-cliente').value = coincidencia.cliente;
-         document.getElementById('Poliza').value = coincidencia.poliza;
-         document.getElementById('serie').value = coincidencia.serie;
-         document.getElementById(
-            'ramo'
-         ).innerHTML = `<option value="${coincidencia.ramo}">
+const rellenarFormulario = async (id) => {
+   const response = await fetch('/get_polizas_data2', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: 0,
+         length: 1,
+         searchValue: id
+      })
+   });
+   const data = await response.json();
+   const coincidencia = data.data[0];
+   console.log(coincidencia);
+   document.getElementById('buscar-cliente').value = coincidencia.cliente;
+   document.getElementById('Poliza').value = coincidencia.poliza;
+   document.getElementById('serie').value = coincidencia.serie;
+   document.getElementById(
+      'ramo'
+   ).innerHTML = `<option value="${coincidencia.ramo}">
         ${coincidencia.ramo}
          </option>`;
-         document.getElementById(
-            'subramo'
-         ).innerHTML = `<option value="${coincidencia.subramo}">
+   document.getElementById(
+      'subramo'
+   ).innerHTML = `<option value="${coincidencia.subramo}">
         ${coincidencia.subramo}
          </option>`;
-         document.getElementById('VigenciaI').value = coincidencia.fecha_inicio;
-         document.getElementById('prima_neta').value = coincidencia.prima_neta;
-         document.getElementById('prima_total').value =
-            coincidencia.prima_total;
-         document.getElementById('VigenciaF').value =
-            coincidencia.fecha_termino;
-         document.getElementById(
-            'aseguradora'
-         ).innerHTML = `<option value="${coincidencia.aseguradora}">
+   document.getElementById('VigenciaI').value = coincidencia.fecha_inicio;
+   document.getElementById('prima_neta').value = coincidencia.prima_neta;
+   document.getElementById('prima_total').value = coincidencia.prima_total;
+   document.getElementById('VigenciaF').value = coincidencia.fecha_termino;
+   document.getElementById(
+      'aseguradora'
+   ).innerHTML = `<option value="${coincidencia.aseguradora}">
         ${coincidencia.aseguradora}
          </option>`;
-         document.getElementById(
-            'Pago'
-         ).innerHTML = `<option value="${coincidencia.tipoPago}">
+   document.getElementById(
+      'Pago'
+   ).innerHTML = `<option value="${coincidencia.tipoPago}">
         ${coincidencia.tipoPago}
          </option>`;
-         //Falta Vendedor, Moneda, Agente, Poliza anterior
-      });
+   //Falta Vendedor, Moneda, Agente, Poliza anterior
 };
 
 const sortButton = document.querySelector('#sortByPoliza');
