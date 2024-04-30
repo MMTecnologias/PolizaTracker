@@ -640,13 +640,13 @@ def get_polizas_data():
 @login_required
 def get_receipts_data():
     poliza_id = request.form.get('poliza_id')  # Assuming the poliza_id is sent via POST
-    draw = int(request.form.get('draw'))
+    # draw = int(request.form.get('draw'))
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
     
     if poliza_id=="New":
         response = {
-            'draw': draw,
+            # 'draw': draw,
             'recordsTotal': 0,  # Total records without filtering
             'recordsFiltered': 0,  # Total records after filtering
             'data': []  # Data to display
@@ -684,7 +684,7 @@ def get_receipts_data():
 
     # Prepare response
     response = {
-        'draw': draw,
+        # 'draw': draw,
         'recordsTotal': total_records,  # Total records without filtering
         'recordsFiltered': total_records,  # Total records after filtering
         'data': data  # Data to display

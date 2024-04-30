@@ -105,7 +105,7 @@ const addBtnShow = async () => {
       btn.addEventListener('click', async (e) => {
          console.log(`id enviado: ${e.target.id.split('_')[1]}`);
          await rellenarFormulario(e.target.id.split('_')[1]);
-         await mostrarRecibos(e.target.id.split('_')[1]);
+         // await mostrarRecibos(e.target.id.split('_')[1]);
          // Activa el modal
          // $('.container__modal').addClass('modal-active');
       });
@@ -267,7 +267,12 @@ const rellenarFormulario = async (id) => {
    ).innerHTML = `<option value="${coincidencia.tipoPago}">
         ${coincidencia.tipoPago}
          </option>`;
+   $('#vendedor').val(`<option value="${coincidencia.vendedor}">
+        ${coincidencia.vendedor}
+         </option>`);
    //Falta Vendedor, Moneda, Agente, Poliza anterior
+
+   mostrarRecibos(coincidencia.id);
 };
 
 const mostrarRecibos = async (id) => {
@@ -292,45 +297,44 @@ const mostrarRecibos = async (id) => {
    //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
 
    //Rellenamos el arreglo "clientData" con los datos del servidor
-   data.forEach((poliza) => {
+   data.data.forEach((recibo) => {
       receipts.push({
-         'poliza': poliza.poliza,
-         'cliente': poliza.cliente,
-         'aseguradora': poliza.aseguradora,
-         'vigencia': poliza.vigencia,
-         'ramo': poliza.ramo,
-         'subramo': poliza.subramo,
-         'primaNeta': poliza.primaNeta,
-         'primaTotal': poliza.primaTotal,
-         'fechaFin': poliza.fechaFin,
-         'status': poliza.status
+         'poliza': recibo.poliza,
+         'cliente': recibo.cliente,
+         'aseguradora': recibo.aseguradora,
+         'vigencia': recibo.vigencia,
+         'ramo': recibo.ramo,
+         'subramo': recibo.subramo,
+         'primaNeta': recibo.primaNeta,
+         'primaTotal': recibo.primaTotal,
+         'fechaFin': recibo.fechaFin,
+         'status': recibo.status
       });
    });
 
    receiptsTable.innerHTML = '';
    console.log(`Datos solicitados para el id ${id}`);
-   receiptsTable.innerHTML = `<tr><td>Recibos</td></tr>`;
-   // if (data.length === 0) {
-   //    receiptsTable.innerHTML = `<tr>
-   //       <td>No hay polizas registradas</td>
-   //       <td></td>
-   //       <td></td>
-   //    </tr>`;
-   // } else
-   //    data.forEach((recibo) => {
-   //       receiptsTable.innerHTML += `
-   //                <tr  class="tableOption">
-   //                      <td>${recibo.numero}</td>
-   //                      <td>${recibo.fecha_recibo}</td>
-   //                      <td>${recibo.vencimiento}</td>
-   //                      <td>${recibo.prima_total}</td>
-   //                      <td>${recibo.comision}</td>
-   //                      <td>${recibo.pagado}</td>
-   //                      <td>${recibo.fecha_pago}</td>
-   //                      <td>${recibo.comprobante}</td>
-   //                      <td>${recibo.cancelado}</td>
-   //                </tr>`;
-   //    });
+   // receiptsTable.innerHTML = `<tr><td>Recibos</td></tr>`;
+   if (data.data.length === 0) {
+      receiptsTable.innerHTML = `<tr>
+         <td>No hay recibos registrados</td>
+      </tr>`;
+   } else
+      data.data.forEach((recibo) => {
+         console.log(`llenando tabla de recibos `);
+         receiptsTable.innerHTML += `
+                  <tr  class="tableOption">
+                        <td>${recibo.numero}</td>
+                        <td>${recibo.fecha_recibo}</td>
+                        <td>${recibo.vencimiento}</td>
+                        <td>${recibo.prima_total}</td>
+                        <td>${recibo.comision}</td>
+                        <td>${recibo.pagado}</td>
+                        <td>${recibo.fecha_pago}</td>
+                        <td>${recibo.comprobante}</td>
+                        <td>${recibo.cancelado}</td>
+                  </tr>`;
+      });
 };
 
 const sortButton = document.querySelector('#sortByPoliza');
