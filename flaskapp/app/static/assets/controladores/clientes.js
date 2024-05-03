@@ -148,20 +148,49 @@ const addBtnDelete = async () => {
    });
 };
 
-//Función para eliminar cliente
-const deleteClient = async (id) => {
-   //insertar función eliminar
 
-   await fetch('/delete_client', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-         client_id: id
-      })
-   });
+
+const deleteClient = async (id) => {
+   try {
+      const response = await fetch('/delete_client', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+         },
+         body: new URLSearchParams({
+            client_id: id
+         })
+      });
+
+      const responseData = await response.json();
+
+      if (!responseData.error) {
+         // Success response
+         Swal.fire({
+            title: responseData.title,
+            text: responseData.msg,
+            icon: 'success'
+         });
+      } else {
+         // Error response
+         Swal.fire({
+            title: 'Error',
+            text: responseData.msg,
+            icon: 'error'
+         });
+      }
+   } catch (error) {
+      // Fetch error
+      Swal.fire({
+         title: 'Error inesperado',
+         text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+         icon: 'error'
+      }).then(function () {
+         resetPage();
+      });
+   }
 };
+
 
 //Editar cliente desde la tabla
 const addBtnEdit = async () => {

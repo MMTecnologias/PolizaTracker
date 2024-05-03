@@ -6,7 +6,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 #from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor, Request,Log
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
@@ -261,7 +261,6 @@ def get_clients_data():
     # jsonResp = {'jack': 4098, 'sape': 4139}
 
     
-
 @main.route('/delete_client', methods=['POST'])
 @login_required
 def delete_client():
@@ -272,11 +271,78 @@ def delete_client():
     client = Cliente.query.get(client_id)
     if client:
         # Update the user's status to "Eliminado"
+        request_entry = Request(usuario_id=current_user.id, description=f"Eliminar cliente {client.nombre} {client.apellido}")
+        db.session.add(request_entry)
+        db.session.commit()
+        log_entry = Log(request_id=request_entry.id, table_name='Cliente', row_id=client.id, column_name='status', old_value=client.status, new_value='Eliminado')
+    
+        db.session.add(log_entry)
         client.status = "Eliminado"
         db.session.commit()
-        return jsonify({'error': False, 'title': 'Cliente eliminado', 'msg': 'El cliente ha sido eliminado con éxito.'})
+        return jsonify({'error': False, 'title': 'Cliente eliminado', 'msg': 'El cliente ha sido eliminado con éxito, esta accion esta sujeta a revision y puede ser revertida por el administrador.'})
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el cliente.'})
+
+
+
+def revert_log_entry(request_id):
+    """
+    Apply changes to the database based on the information in the log entry.
+    """
+    log_entries = Log.query.filter_by(request_id=request_id).all()
+
+    a=0
+    for log_entry in log_entries:
+        if a==0:
+            # Get the table class dynamically
+            table_class = globals()[log_entry.table_name]
+            # Retrieve the record based on the row ID
+            record = table_class.query.get(log_entry.row_id)
+            a=1
+        # Update the corresponding attribute with the new value
+        setattr(record, log_entry.column_name, log_entry.old_value)
+        # Commit the changes to the database
+    db.session.commit()
+
+
+#Para pasar de GET a POST descomente las lineas con ##
+@app.route('/process-request/<int:request_id>/<action>', methods=['GET'])
+##@app.route('/process-request/<int:request_id>/<action>', methods=['POST'])
+
+@login_required
+
+##def process_request():
+def process_request(request_id, action):
+
+    ##request_id = request.form.get('request_id')
+    ##action = request.form.get('action')
+
+    # Get the request
+    request_entry = Request.query.get(request_id)
+    if not request_entry:
+        return  jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró la solicitud.'})
+
+    if request_entry.status!="Pendiente":
+        return  jsonify({'error': True, 'title': 'Error', 'msg': 'Esta solicitud ya fue revisada.'})
+    
+    # Check if the action is valid
+    if action not in ['Aceptada', 'Rechazada']:
+        return jsonify({'error': True, 'title': 'Error', 'msg': 'Accion invalida.'})
+
+    if action == 'Aceptada':
+        # Update the status of the request to 'Aceptada'
+        request_entry.status = 'Aceptada'
+        db.session.commit()
+
+        return jsonify({'error': False, 'title': 'Solicitud Aceptada', 'msg': ''})
+
+    elif action == 'Rechazada':
+        # Update the status of the request to 'Rechazada'
+            # Apply the changes based on the log entries
+        revert_log_entry(request_id)
+        request_entry.status = 'Rechazada'
+        db.session.commit()
+        return jsonify({'error': False, 'title': 'Solicitud Rechazada', 'msg': 'Cambios revertidos'})
 
 
 @main.route('/export_clients')
