@@ -9,6 +9,8 @@ let currentIndex = 0;
 
 let sorting = false;
 
+let totalPages = 0;
+
 const currentIndexToShow = (currentIndex) => currentIndex + 1;
 
 const currentPageData = async () => {
@@ -44,6 +46,9 @@ const currentPageData = async () => {
    let data = await currentData.json();
    console.log(data);
 
+   totalPages = Math.floor(data.recordsTotal / clientsPerPage);
+   console.log(`numero total de página ${totalPages}`);
+
    //Creamos un objeto llamado polizaData y lo llenamos iterando en la data JSON
 
    //Rellenamos el arreglo "polizaData" con los datos del servidor
@@ -62,22 +67,17 @@ const currentPageData = async () => {
          'tipoPago': poliza.tipoPago
       });
    });
-   console.log(`Estoy imprimiendo desde currentPageData ${polizaData}`);
+   // console.log(`Estoy imprimiendo desde currentPageData ${polizaData}`);
 
    return polizaData;
 };
 
-const updateTable = async () => {
+const updateTable = async (polizaData) => {
+   let iterator = 0;
+   // const rows = document.querySelectorAll('#demo>tr.tableOption');
    const rows = document.querySelectorAll('#demo>tr.tableOption');
-   let poliza = '';
-   if (sorting === true) {
-      poliza = await sortedCurrentPageData();
-   } else {
-      poliza = await currentPageData();
-   }
-   console.log(rows);
-   for (let i = 0; i < rows.length; i++) {
-      rows[i].innerHTML = `
+   polizaData.forEach((poliza) => {
+      rows[iterator].innerHTML = `
 
                <tr  class="tableOption">
 
@@ -91,22 +91,23 @@ const updateTable = async () => {
                      <td>${poliza.aseguradora}</td>
                      <td>${poliza.tipoPago}</td>
 
-               </tr>
+               </tr>`;
+      iterator++;
+   });
 
-            `;
-   }
    await addBtnShow();
 };
 
-const addBtnShow = async (id) => {
+const addBtnShow = async () => {
    const btnShow = document.querySelectorAll('.td-clickable');
 
    btnShow.forEach((btn) => {
       btn.addEventListener('click', async (e) => {
-         await rellenarFormulario(e.target.id.split('_')[1]);
          console.log(`id enviado: ${e.target.id.split('_')[1]}`);
+         await rellenarFormulario(e.target.id.split('_')[1]);
+         // await mostrarRecibos(e.target.id.split('_')[1]);
          // Activa el modal
-         // $('.container__modal').addClass('modal-active');
+         // $('.container__modal-endoso').addClass('modal-active');
       });
    });
 };
@@ -124,23 +125,28 @@ const pintarPaginacion = async () => {
    })
       .then((response) => response.json())
       .then((data) => {
-         console.log(`indice actual es: ${currentIndex}`);
+         const btnPrev = document.querySelector('#prev-index');
+         const btnNext = document.querySelector('#next-index');
+         btnPrev.classList.remove('noClickable');
+         btnNext.classList.remove('noClickable');
          document.querySelector(
             '#current-index'
          ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
 
          if (
-            currentIndex == 0 &&
-            Math.floor(data.recordsTotal / clientsPerPage) == 0
+            totalPages != 0 &&
+            currentIndex != 0 &&
+            currentIndex != totalPages
          ) {
-            document.querySelector('#prev-index').classList.add('noClickable');
-            document.querySelector('#next-index').classList.add('noClickable');
+            btnPrev.classList.remove('noClickable');
+            btnNext.classList.remove('noClickable');
          } else if (currentIndex == 0) {
             document.querySelector('#prev-index').classList.add('noClickable');
-         } else if (
-            currentIndex == Math.floor(data.recordsTotal / clientsPerPage)
-         ) {
+         } else if (currentIndex == totalPages) {
             document.querySelector('#next-index').classList.add('noClickable');
+            document
+               .querySelector('#prev-index')
+               .classList.remove('noClickable');
          } else {
             document
                .querySelector('#prev-index')
@@ -157,7 +163,11 @@ nextIndex.addEventListener('click', async () => {
    ++currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable();
+   if (currentIndex == totalPages) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
 const prevIndex = document.querySelector('#prev-index');
@@ -165,128 +175,166 @@ prevIndex.addEventListener('click', async () => {
    --currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable();
+   if (currentIndex == totalPages - 1) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
-const inputPoliza = document.getElementById('Poliza');
-function buscarPoliza() {
-   fetch('/get_polizas_data2')
-      .then((response) => response.json())
-      .then(function (data) {
-         inputPoliza.addEventListener('input', (event) => {
-            console.log(event.target.value);
-            let coincidencias = data.filter((objeto) => {
-               let idString = objeto.poliza.toString();
-               let ultimosTresDigitos = idString.substring(idString.length - 3);
-
-               return ultimosTresDigitos.includes(event.target.value);
-            });
-            document.getElementById('demo').innerHTML = '';
-            console.log(typeof coincidencias);
-            console.log(coincidencias);
-            for (var i = 0; i < coincidencias.length; i++) {
-               console.log(coincidencias);
-               document.getElementById('demo').innerHTML += `
-               <tr class='tableOption'>
-                  <td> <p class="td-clickable">${coincidencias[i]['poliza']}</p></td>
-                  <td>${coincidencias[i]['cliente']}</td>
-                  <td>${coincidencias[i]['subramo']}</td>
-                  <td>${coincidencias[i]['fecha_inicio']}</td>
-                  <td>${coincidencias[i]['fecha_termino']}</td>
-                  <td>${coincidencias[i]['prima_neta']}</td>
-                  <td>${coincidencias[i]['prima_total']}</td>
-                  <td>${coincidencias[i]['aseguradora']}</td>
-                  <td>${coincidencias[i]['tipoPago']}</td>
-               </tr>
-
-               `;
-            }
-            console.log(document.querySelectorAll('.td-clickable'));
-            return console.log(coincidencias);
-         });
-      });
-}
-
-buscarPoliza();
-
-const rellenarFormulario = async (poliza) => {
-   fetch('/get_polizas_data2')
-      .then((response) => response.json())
-      .then(async function (data) {
-         let coincidencia = await data.find((objeto) => {
-            return objeto.poliza == poliza;
-         });
-         console.log(coincidencia);
-         document.getElementById('buscar-cliente').value = coincidencia.cliente;
-         document.getElementById('Poliza').value = coincidencia.poliza;
-         document.getElementById('serie').value = coincidencia.serie;
-         document.getElementById(
-            'ramo'
-         ).innerHTML = `<option value="${coincidencia.ramo}">
-        ${coincidencia.ramo}
-         </option>`;
-         document.getElementById(
-            'subramo'
-         ).innerHTML = `<option value="${coincidencia.subramo}">
-        ${coincidencia.subramo}
-         </option>`;
-         document.getElementById('VigenciaI').value = coincidencia.fecha_inicio;
-         document.getElementById('prima_neta').value = coincidencia.prima_neta;
-         document.getElementById('prima_total').value = coincidencia.prima_total;
-         document.getElementById('VigenciaF').value = coincidencia.fecha_termino;
-         document.getElementById(
-            'aseguradora'
-         ).innerHTML = `<option value="${coincidencia.aseguradora}">
-        ${coincidencia.aseguradora}
-         </option>`;
-         document.getElementById(
-            'Pago'
-         ).innerHTML = `<option value="${coincidencia.tipoPago}">
-        ${coincidencia.tipoPago}
-         </option>`;
-         //Falta Vendedor, Moneda, Agente, Poliza anterior
-      });
-};
-
-const sortedCurrentPageData = async () => {
-   let clientData = [];
+//Buscar póliza
+const inputSearchPoliza = document.querySelector('#searchPoliza');
+inputSearchPoliza.addEventListener('keyup', async (e) => {
    let polizaData = [];
-   const index = currentIndex;
-   //Solicitamos los datos
-   const currentPageData = await fetch('/get_sorted_poliza_data', {
+   let searchValue = e.target.value;
+   if (searchValue.length >= 3) {
+      console.log(searchValue);
+      const response = await fetch('/get_polizas_data2', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+         },
+         body: new URLSearchParams({
+            start: 0,
+            length: 10,
+            searchValue: searchValue
+         })
+      });
+      const data = await response.json();
+      console.log(`data from inputSearchPoliza ${data.data.cliente}`);
+      data.data.forEach((poliza) => {
+         polizaData.push({
+            'poliza': poliza.poliza,
+            'cliente': poliza.cliente,
+            'aseguradora': poliza.aseguradora,
+            'vigencia': poliza.vigencia,
+            'id': poliza.id,
+            'subramo': poliza.subramo,
+            'fecha_inicio': poliza.fecha_inicio,
+            'fecha_termino': poliza.fecha_termino,
+            'prima_neta': poliza.prima_neta,
+            'prima_total': poliza.prima_total,
+            'tipoPago': poliza.tipoPago
+         });
+      });
+      await fillTable(polizaData);
+   } else {
+      await fillTable(await currentPageData());
+   }
+   //Enviamos el objeto/array para actualizar la tabla
+   // return updateTable(data);
+});
+
+const rellenarFormulario = async (id) => {
+   const response = await fetch('/get_polizas_data2', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-         start: `${index === undefined ? 0 : index * clientsPerPage}`,
-         length: clientsPerPage
+         start: 0,
+         length: 2,
+         searchValue: id
       })
    });
+   const data = await response.json();
+   const coincidencia = await data.data[0];
+   console.log(coincidencia);
+   document.getElementById('buscar-cliente').value = coincidencia.cliente;
+   document.getElementById('Poliza').value = coincidencia.poliza;
+   document.getElementById('serie').value = coincidencia.serie;
+   document.getElementById(
+      'ramo'
+   ).innerHTML = `<option value="${coincidencia.ramo}">
+        ${coincidencia.ramo}
+         </option>`;
+   document.getElementById(
+      'subramo'
+   ).innerHTML = `<option value="${coincidencia.subramo}">
+        ${coincidencia.subramo}
+         </option>`;
+   document.getElementById('VigenciaI').value = coincidencia.fecha_inicio;
+   document.getElementById('prima_neta').value = coincidencia.prima_neta;
+   document.getElementById('prima_total').value = coincidencia.prima_total;
+   document.getElementById('VigenciaF').value = coincidencia.fecha_termino;
+   document.getElementById(
+      'aseguradora'
+   ).innerHTML = `<option value="${coincidencia.aseguradora}">
+        ${coincidencia.aseguradora}
+         </option>`;
+   document.getElementById(
+      'Pago'
+   ).innerHTML = `<option value="${coincidencia.tipoPago}">
+        ${coincidencia.tipoPago}
+         </option>`;
+   $('#vendedor').val(`<option value="${coincidencia.vendedor}">
+        ${coincidencia.vendedor}
+         </option>`);
+   //Falta Vendedor, Moneda, Agente, Poliza anterior
 
+   mostrarRecibos(coincidencia.id);
+};
+
+const mostrarRecibos = async (id) => {
+   let receipts = [];
+   const receiptsTable = document.querySelector('#receiptsTable');
+   const receiptData = await fetch('/get_receipts_data', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: 0,
+         length: 100,
+         poliza_id: id
+      })
+   });
+   console.log(`ID recibido ${id}`);
    //Convertimos los datos a JSON
-   let data = await currentPageData.json();
+   let data = await receiptData.json();
    console.log(data);
 
    //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
 
    //Rellenamos el arreglo "clientData" con los datos del servidor
-   data.data.forEach((poliza) => {
-      polizaData.push({
-         'poliza': poliza.poliza,
-         'cliente': poliza.cliente,
-         'aseguradora': poliza.aseguradora,
-         'vigencia': poliza.vigencia,
-         'id': poliza.id,
-         'subramo': poliza.subramo,
-         'fecha_inicio': poliza.fecha_inicio,
-         'fecha_termino': poliza.fecha_termino,
-         'prima_neta': poliza.prima_neta,
-         'prima_total': poliza.prima_total,
-         'tipoPago': poliza.tipoPago
+   data.data.forEach((recibo) => {
+      receipts.push({
+         'poliza': recibo.poliza,
+         'cliente': recibo.cliente,
+         'aseguradora': recibo.aseguradora,
+         'vigencia': recibo.vigencia,
+         'ramo': recibo.ramo,
+         'subramo': recibo.subramo,
+         'primaNeta': recibo.primaNeta,
+         'primaTotal': recibo.primaTotal,
+         'fechaFin': recibo.fechaFin,
+         'status': recibo.status
       });
    });
-   return polizaData;
+
+   receiptsTable.innerHTML = '';
+   console.log(`Datos solicitados para el id ${id}`);
+   // receiptsTable.innerHTML = `<tr><td>Recibos</td></tr>`;
+   if (data.data.length === 0) {
+      receiptsTable.innerHTML = `<tr>
+         <td>No hay recibos registrados</td>
+      </tr>`;
+   } else
+      data.data.forEach((recibo) => {
+         console.log(`llenando tabla de recibos `);
+         receiptsTable.innerHTML += `
+                  <tr  class="tableOption">
+                        <td>${recibo.numero}</td>
+                        <td>${recibo.fecha_recibo}</td>
+                        <td>${recibo.vencimiento}</td>
+                        <td>${recibo.prima_total}</td>
+                        <td>${recibo.comision}</td>
+                        <td>${recibo.pagado}</td>
+                        <td>${recibo.fecha_pago}</td>
+                        <td>${recibo.comprobante}</td>
+                        <td>${recibo.cancelado}</td>
+                  </tr>`;
+      });
 };
 
 const sortButton = document.querySelector('#sortByPoliza');
@@ -294,7 +342,7 @@ sortButton.addEventListener('click', async () => {
    sorting = !sorting;
    console.log(`el valor de sorting es ${sorting}`);
    currentIndex = 0;
-   updateTable();
+   await updateTable(await currentPageData());
    pintarPaginacion();
 });
 
@@ -555,6 +603,16 @@ $(document).ready(function () {
       $('#poliza_id').val(polizaId);
       receiptsTable.ajax.reload();
    });
+});
+
+$('#btnGenerarEndoso').on('click', function () {
+   $('.container__modal-endoso').addClass('modal-active');
+});
+
+const btnCancelar = document.querySelector('#btn_close-modal');
+btnCancelar.addEventListener('click', function (e) {
+   e.preventDefault();
+   $('.container__modal-endoso').removeClass('modal-active');
 });
 
 const fillTable = async (data) => {

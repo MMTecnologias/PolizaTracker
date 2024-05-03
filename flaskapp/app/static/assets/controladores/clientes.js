@@ -6,6 +6,8 @@ let currentIndex = 0;
 
 let sorting = false;
 
+let totalPages = 0;
+
 const currentIndexToShow = (currentIndex) => currentIndex + 1;
 
 const currentPageData = async () => {
@@ -41,6 +43,9 @@ const currentPageData = async () => {
    let data = await currentData.json();
    console.log(data);
 
+   totalPages = Math.floor(data.recordsTotal / clientsPerPage);
+   console.log(`numero total de página ${totalPages}`);
+
    //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
 
    //Rellenamos el arreglo "clientData" con los datos del servidor
@@ -56,11 +61,11 @@ const currentPageData = async () => {
    return clientData;
 };
 
-const polizasById = async (id) => {
+const polizasByClientId = async (id) => {
    let polizas = [];
    // const index = currentIndex;
    //Solicitamos los datos
-   const polizaData = await fetch('/get_poliza_byID', {
+   const polizaData = await fetch('/get_poliza_byClientID', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -79,19 +84,19 @@ const polizasById = async (id) => {
    //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
 
    //Rellenamos el arreglo "clientData" con los datos del servidor
-   data.forEach((poliza) => {
+   data.data.forEach((poliza) => {
       polizas.push({
          'poliza': poliza.poliza,
          'cliente': poliza.cliente,
          'aseguradora': poliza.aseguradora,
          'vigencia': poliza.vigencia,
-         'ramo':poliza.ramo,
-         'subramo':poliza.subramo,
-         'primaNeta':poliza.primaNeta,
-         'primaTotal':poliza.primaTotal,
-         'fechaFin':poliza.fechaFin,
-         'status':poliza.status
-        });
+         'ramo': poliza.ramo,
+         'subramo': poliza.subramo,
+         'primaNeta': poliza.primaNeta,
+         'primaTotal': poliza.primaTotal,
+         'fechaFin': poliza.fechaFin,
+         'status': poliza.status
+      });
    });
    console.log(data);
 
@@ -240,7 +245,7 @@ const addBtnShow = async () => {
 
 const showPoliza = async (id) => {
    //Solicitamos los datos
-   const data = await polizasById(id);
+   const data = await polizasByClientId(id);
    console.log(data);
    //Llenar Tabla modal
    const modalTable = document.querySelector('#table__modal');
@@ -292,7 +297,13 @@ const pintarPaginacion = async () => {
             '#current-index'
          ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
 
-         if (currentIndex == 0) {
+         if (
+            currentIndex == 0 &&
+            Math.floor(data.recordsTotal / clientsPerPage) == 0
+         ) {
+            document.querySelector('#prev-index').classList.add('noClickable');
+            document.querySelector('#next-index').classList.add('noClickable');
+         } else if (currentIndex == 0) {
             document.querySelector('#prev-index').classList.add('noClickable');
          } else if (
             currentIndex == Math.floor(data.recordsTotal / clientsPerPage)
@@ -314,7 +325,11 @@ nextIndex.addEventListener('click', async () => {
    ++currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable(await currentPageData());
+   if (currentIndex == totalPages) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
 const prevIndex = document.querySelector('#prev-index');
@@ -322,7 +337,11 @@ prevIndex.addEventListener('click', async () => {
    --currentIndex;
    console.log(`el indice actual es ${currentIndex}`);
    await pintarPaginacion();
-   await updateTable(await currentPageData());
+   if (currentIndex == totalPages - 1) {
+      await fillTable(await currentPageData());
+   } else {
+      await updateTable(await currentPageData());
+   }
 });
 
 const sortButton = document.querySelector('#sortByName');
