@@ -1,10 +1,20 @@
 # app/__init__.py
-from flask import Flask
+from flask import Flask,send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+
+import mimetypes
+# Explicitly set MIME type for JavaScript files
+mimetypes.add_type('application/javascript', '.js')
+
+# Route to serve static files
+@app.route('/static/<path:path>')
+def send_static(path):
+    return send_from_directory('static', path)
+
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
