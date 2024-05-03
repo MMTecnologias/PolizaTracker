@@ -640,13 +640,13 @@ def get_polizas_data():
 @login_required
 def get_receipts_data():
     poliza_id = request.form.get('poliza_id')  # Assuming the poliza_id is sent via POST
-    draw = int(request.form.get('draw'))
+    # draw = int(request.form.get('draw'))
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
     
     if poliza_id=="New":
         response = {
-            'draw': draw,
+            # 'draw': draw,
             'recordsTotal': 0,  # Total records without filtering
             'recordsFiltered': 0,  # Total records after filtering
             'data': []  # Data to display
@@ -684,7 +684,7 @@ def get_receipts_data():
 
     # Prepare response
     response = {
-        'draw': draw,
+        # 'draw': draw,
         'recordsTotal': total_records,  # Total records without filtering
         'recordsFiltered': total_records,  # Total records after filtering
         'data': data  # Data to display
@@ -1204,9 +1204,9 @@ def get_clients_filtered_byName():
 
 
 
-@main.route('/get_poliza_byID', methods=['POST'])
+@main.route('/get_poliza_byClientID', methods=['POST'])
 @login_required
-def get_polizas_byID():
+def get_poliza_byClientID():
     # Get parameters from DataTables AJAX request
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
@@ -1230,6 +1230,7 @@ def get_polizas_byID():
         polizas_query = polizas_query.filter(Poliza.cliente_id == cliente_id)
 
     polizas = polizas_query.offset(start).limit(length).all()
+    total_records = polizas_query.count()
 
     # Format data as required by DataTables
     data = []
@@ -1255,9 +1256,14 @@ def get_polizas_byID():
             # Add more fields as needed
             # Ramo, Subramo, Prima Neta, Prima Total, Vigencia, Estatus
         })
-    print(data)
-    return jsonify(data)
-
+     # Prepare response
+    response = {
+        # 'draw': draw,
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+   
+    return jsonify(response)
 
 from datetime import date
 from decimal import Decimal
