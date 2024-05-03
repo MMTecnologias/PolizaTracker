@@ -308,9 +308,7 @@ def revert_log_entry(request_id):
 #Para pasar de GET a POST descomente las lineas con ##
 @app.route('/process-request/<int:request_id>/<action>', methods=['GET'])
 ##@app.route('/process-request/<int:request_id>/<action>', methods=['POST'])
-
 @login_required
-
 ##def process_request():
 def process_request(request_id, action):
 
@@ -332,6 +330,7 @@ def process_request(request_id, action):
     if action == 'Aceptada':
         # Update the status of the request to 'Aceptada'
         request_entry.status = 'Aceptada'
+        request_entry.usuario_review_id = current_user.id
         db.session.commit()
 
         return jsonify({'error': False, 'title': 'Solicitud Aceptada', 'msg': ''})
@@ -341,6 +340,7 @@ def process_request(request_id, action):
             # Apply the changes based on the log entries
         revert_log_entry(request_id)
         request_entry.status = 'Rechazada'
+        request_entry.usuario_review_id = current_user.id
         db.session.commit()
         return jsonify({'error': False, 'title': 'Solicitud Rechazada', 'msg': 'Cambios revertidos'})
 
