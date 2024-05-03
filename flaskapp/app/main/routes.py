@@ -307,7 +307,7 @@ def revert_log_entry(request_id):
 
 #Para pasar de GET a POST descomente las lineas con ##
 @app.route('/process-request/<int:request_id>/<action>', methods=['GET'])
-##@app.route('/process-request/<int:request_id>/<action>', methods=['POST'])
+##@app.route('/process-request', methods=['POST'])
 @login_required
 ##def process_request():
 def process_request(request_id, action):
