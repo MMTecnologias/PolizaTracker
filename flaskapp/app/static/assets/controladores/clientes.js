@@ -61,11 +61,11 @@ const currentPageData = async () => {
    return clientData;
 };
 
-const polizasById = async (id) => {
+const polizasByClientId = async (id) => {
    let polizas = [];
    // const index = currentIndex;
    //Solicitamos los datos
-   const polizaData = await fetch('/get_poliza_byID', {
+   const polizaData = await fetch('/get_poliza_byClientID', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -84,7 +84,7 @@ const polizasById = async (id) => {
    //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
 
    //Rellenamos el arreglo "clientData" con los datos del servidor
-   data.forEach((poliza) => {
+   data.data.forEach((poliza) => {
       polizas.push({
          'poliza': poliza.poliza,
          'cliente': poliza.cliente,
@@ -245,7 +245,7 @@ const addBtnShow = async () => {
 
 const showPoliza = async (id) => {
    //Solicitamos los datos
-   const data = await polizasById(id);
+   const data = await polizasByClientId(id);
    console.log(data);
    //Llenar Tabla modal
    const modalTable = document.querySelector('#table__modal');
