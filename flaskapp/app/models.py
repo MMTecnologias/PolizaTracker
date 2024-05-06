@@ -1,6 +1,7 @@
 from flask_login import UserMixin
-from sqlalchemy import Column, Integer, String, Date, Enum, DECIMAL, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, Enum, DECIMAL, ForeignKey,TIMESTAMP
 from app import db
+from sqlalchemy.sql import func
 
 class Grupo(db.Model):
     __tablename__ = 'grupos'
@@ -51,6 +52,7 @@ class Cliente(db.Model):
     ocupacion = Column(String(30))
     actividad = Column(String(30))
     status = Column(Enum('Activo', 'Eliminado'), nullable=False,default='Activo')
+    info_pago = Column(String(50))
 
 
 class Vendedor(db.Model):
@@ -68,7 +70,7 @@ class Poliza(db.Model):
     subramo_id = Column(Integer, ForeignKey('subramos.id'), nullable=False)
     fecha_inicio = Column(Date, nullable=False)
     fecha_termino = Column(Date, nullable=False)
-    moneda = Column(Enum('MXN', 'USD', 'Otro'), nullable=False)
+    moneda = Column(Enum('MXN', 'USD', 'UDIS'), nullable=False)
     tipo_pago_id = Column(Integer, ForeignKey('tipos_pagos.id'), nullable=False)
     agente_id = Column(Integer, ForeignKey('agentes.id'), nullable=False)
     aseguradora_id = Column(Integer, ForeignKey('aseguradoras.id'), nullable=False)
@@ -133,7 +135,24 @@ class SolicitudNewPass(db.Model):
     usuario_id = Column(Integer, ForeignKey('usuarios.id'), primary_key=True)
     status = Column(Enum('Resuelta', 'Pendiente'), nullable=False, default="Pendiente")
 
+class Request(db.Model):
+    __tablename__ = 'requests'
+    id = Column(Integer, primary_key=True)
+    usuario_id = Column(Integer, ForeignKey('usuarios.id'), nullable=False)
+    timestamp = Column(TIMESTAMP, default=func.current_timestamp())
+    usuario_review_id = Column(Integer, ForeignKey('usuarios.id'))
+    description = Column(String(400))
+    status = Column(Enum('Pendiente', 'Aceptada', 'Rechazada'), default='Pendiente')
 
+class Log(db.Model):
+    __tablename__ = 'log'
+    id = Column(Integer, primary_key=True)
+    request_id = Column(Integer, ForeignKey('requests.id'), nullable=False)
+    row_id = Column(Integer,nullable=False)
+    table_name = Column(String(50), nullable=False)
+    column_name = Column(String(50), nullable=False)
+    old_value = Column(String(400))
+    new_value = Column(String(400))
 
 
 # Ahora debes ajustar cualquier lógica adicional que estés utilizando en tu aplicación para que funcione con estas clases de modelo. También, asegúrate de tener las importaciones necesarias en otros archivos de tu aplicación.
