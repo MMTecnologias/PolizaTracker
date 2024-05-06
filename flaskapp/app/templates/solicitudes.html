@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es-mx">
    <head>
       <meta charset="UTF-8" />
       <meta
@@ -7,8 +7,28 @@
          content="width=device-width, initial-scale=1.0"
       />
       <title>Solicitudes</title>
+      <link
+         rel="stylesheet"
+         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/typography.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/styles.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/brc-styles.css') }}"
+      />
    </head>
-   <body>
+   <body class="noScroll">
       <nav class="navbar">
          <a
             class="app-section"
@@ -42,5 +62,7 @@
             </div>
          </div>
       </nav>
+      <div class="containerCards"></div>
    </body>
+   <script src="{{ url_for('static', filename='assets/controladores/solicitudes.js') }}"></script>
 </html>

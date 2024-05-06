@@ -306,14 +306,14 @@ def revert_log_entry(request_id):
 
 
 #Para pasar de GET a POST descomente las lineas con ##
-@app.route('/process-request/<int:request_id>/<action>', methods=['GET'])
-##@app.route('/process-request', methods=['POST'])
+# # @app.route('/process-request/<int:request_id>/<action>', methods=['GET'])
+@app.route('/process-request', methods=['POST'])
 @login_required
-##def process_request():
-def process_request(request_id, action):
+def process_request():
+# # def process_request(request_id, action):
 
-    ##request_id = request.form.get('request_id')
-    ##action = request.form.get('action')
+    request_id = request.form.get('request_id')
+    action = request.form.get('action')
 
     # Get the request
     request_entry = Request.query.get(request_id)
@@ -1597,3 +1597,50 @@ def create_poliza():
             'title':'Sin cambios'
         })
     
+"""Solicitudes"""
+
+@main.route('/solicitudes', methods=['GET'])
+@login_required
+def solicitudes():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
+    grupos=Grupo.query.all()
+    return render_template('solicitudes.html', user=current_user,grupos=grupos)
+
+@main.route('/get_requests_data', methods=['GET'])
+@login_required
+def requests_data():
+    # Estos datos los recibe desde la función en JS
+    #start = int(request.form.get('start'))
+    #length = int(request.form.get('length'))
+    start = 0
+    length = 10
+
+    # Query to fetch clientes data from the database 
+    request_query = db.session.query(Request, 
+                                     Usuario.nombre.label('usuario_nombre'),
+                                     Usuario.apellido.label('usuario_apellido')).join(
+                                         Usuario, Request.usuario_id == Usuario.id).filter(Request.status == 'Pendiente')
+
+    # Get total count of records without filtering
+    total_records = request_query.count()
+    # Apply pagination
+    requests = request_query.offset(start).limit(length).all()
+
+    # Format data
+    data = []
+    for request, usuario_nombre,usuario_apellido in requests:
+        data.append({
+            'id': request.id,
+            'usuario': f"{usuario_nombre} {usuario_apellido}",
+            'timestamp': request.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'descripcion': request.description
+        })
+
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)

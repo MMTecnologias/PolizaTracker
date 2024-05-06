@@ -569,3 +569,30 @@ a .delete {
 .btn_close-modal:hover {
    color: var(--primario-complementario);
 }
+
+/* Estilos para la ventana solicitudes */
+
+.containerCards {
+   width: 50vw;
+   height: 100vh;
+   margin: auto;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   flex-direction: column;
+}
+
+.card {
+   width: 100%;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: 16px;
+   margin: 16px;
+   border-radius: 14px;
+   box-shadow: 5px 2px 14px -9px var(--gris-medio);
+}
+
+.material-symbols-outlined {
+   pointer-events: none;
+}
