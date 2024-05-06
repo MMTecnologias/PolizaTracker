@@ -1531,3 +1531,41 @@ def create_poliza():
             'title':'Sin cambios'
         })
     
+
+@main.route('/get_requests_data', methods=['POST'])
+@login_required
+def requests_data():
+    # Estos datos los recibe desde la función en JS
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    #start = 0
+    #length = 10
+
+    # Query to fetch clientes data from the database 
+    request_query = db.session.query(Request, 
+                                     Usuario.nombre.label('usuario_nombre'),
+                                     Usuario.apellido.label('usuario_apellido')).join(
+                                         Usuario, Request.usuario_id == Usuario.id).filter(Request.status == 'Pendiente')
+
+    # Get total count of records without filtering
+    total_records = request_query.count()
+    # Apply pagination
+    requests = request_query.offset(start).limit(length).all()
+
+    # Format data
+    data = []
+    for request, usuario_nombre,usuario_apellido in requests:
+        data.append({
+            'id': request.id,
+            'usuario': f"{usuario_nombre} {usuario_apellido}",
+            'timestamp': request.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'descripcion': request.description
+        })
+
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+    
+    return jsonify(response)
