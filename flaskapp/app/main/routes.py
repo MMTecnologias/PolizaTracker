@@ -311,6 +311,7 @@ def revert_log_entry(request_id):
 @login_required
 def process_request():
 # # def process_request(request_id, action):
+# # sugar comment
 
     request_id = request.form.get('request_id')
     action = request.form.get('action')
