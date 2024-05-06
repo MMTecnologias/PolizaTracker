@@ -230,6 +230,36 @@
             <a
                href="#"
                class="card"
+               id="solicitudes"
+            >
+               <div name="solicitudes">
+                  <img
+                     class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/reportes.png') }}"
+                  />
+
+                  <h3 class="text-card">Solicitudes</h3>
+               </div>
+            </a>
+
+            <a
+               href="{{ url_for('main.solicitudes') }}"
+               class="card"
+               id="utilerias"
+            >
+               <div name="utilerias">
+                  <img
+                     class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/utilierias.png') }}"
+                  />
+
+                  <h3 class="text-card">Utilierias</h3>
+               </div>
+            </a>
+
+            <a
+               href="#"
+               class="card"
                id="acerca"
             >
                <div name="acerca">

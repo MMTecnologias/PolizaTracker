@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1.0"
+      />
+      <title>Solicitudes</title>
+   </head>
+   <body>
+      <nav class="navbar">
+         <a
+            class="app-section"
+            href="{{ url_for('main.index') }}"
+         >
+            <h2 class="name-app">Póliza Tracker</h2>
+            <img
+               src="{{ url_for('static',filename='assets/images/GGGC.png') }}"
+               class="logo-ggc"
+            />
+         </a>
+
+         <div class="user-profile pull-right">
+            <h6
+               class="user-name dropdown-toggle"
+               data-toggle="dropdown"
+            >
+               {{ current_user.username }}<i class="fa fa-angle-down"></i>
+            </h6>
+            <div class="dropdown-menu">
+               <a
+                  class="dropdown-item"
+                  href="{{ url_for('auth.logout') }}"
+                  >Cerrar Sesión</a
+               >
+               <a
+                  class="dropdown-item"
+                  href="{{ url_for('auth.cambiar_contrasena') }}"
+                  >Cambiar Contraseña</a
+               >
+            </div>
+         </div>
+      </nav>
+   </body>
+</html>
