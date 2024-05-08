@@ -1652,3 +1652,23 @@ def requests_data():
     }
 
     return jsonify(response)
+
+
+@main.route('/create_multiple', methods=['POST'])
+@login_required
+def create_user():
+    tipo = request.form.get('tipo')
+    nombre=request.form.get('nombre')
+    clases={"Aseguradora":Aseguradora,
+            "Agente":Agente,
+            "Vendedor":Vendedor}
+    colnames={"Aseguradora":"aseguradora",
+            "Agente":"nombre",
+            "Vendedor":"nombre"}
+    if tipo not in clases.keys():
+        return jsonify({"error":True})
+    
+    new_record_id=new_class(clases[tipo],"New" ,nombre,colnames[tipo])
+
+    return jsonify({"error":True,"record_id":new_record_id})
+
