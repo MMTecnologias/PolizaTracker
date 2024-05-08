@@ -4,26 +4,30 @@ const data = async () => {
    console.log(data.data);
    const container = document.querySelector('.containerCards');
    container.innerHTML = '';
-   data.data.map(async (item) => {
-      console.log(item);
-      container.innerHTML += `<div class="card">
-      <h5 class="card-title">${item.descripcion}</h5>
-      <div class="buttons">
-            <ul class="btn_table_options">
-                <li>
-                    <a href="#" class="btn__icon_delete" id="btnDelete_${item.id}">
-                    <span class="material-symbols-outlined">check_circle</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" class="btn__icon_edit" id="btnEdit_${item.id}">
-                    <span class="material-symbols-outlined">cancel</span> 
-                    </a>
-                </li> 
-            </ul>
-      </div>
-      </div>`;
-   });
+   if (data.data.length === 0) {
+      container.innerHTML += `<h2>Sin solicitudes pendientes🎉</h2>`;
+   } else {
+      data.data.map(async (item) => {
+         console.log(item);
+         container.innerHTML += `<div class="card">
+         <h5 class="card-title">${item.descripcion}</h5>
+         <div class="buttons">
+               <ul class="btn_table_options">
+                   <li>
+                       <a href="#" class="btn__icon_delete" id="btnDelete_${item.id}">
+                       <span class="material-symbols-outlined">check_circle</span>
+                       </a>
+                   </li>
+                   <li>
+                       <a href="#" class="btn__icon_edit" id="btnEdit_${item.id}">
+                       <span class="material-symbols-outlined">cancel</span> 
+                       </a>
+                   </li> 
+               </ul>
+         </div>
+         </div>`;
+      });
+   }
    await addBtnDelete();
 };
 

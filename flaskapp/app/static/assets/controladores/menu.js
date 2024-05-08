@@ -67,3 +67,18 @@ document.addEventListener('DOMContentLoaded', function () {
       reportesG.style.display = 'none';
    }
 });
+
+const numberOfRequests = async () => {
+   const response = await fetch('/get_requests_data');
+   const data = await response.json();
+   const bubble = document.querySelector('.numberOfRequests');
+   const bubbleTxt = document.querySelector('#numberOfRequests');
+   console.log(data.recordsTotal);
+   data.recordsTotal == 0
+      ? bubble.classList.add('hidden')
+      : bubble.classList.remove('hidden');
+   bubbleTxt.innerHTML = await data.recordsTotal;
+   console.log(data.recordsTotal);
+};
+
+numberOfRequests();
