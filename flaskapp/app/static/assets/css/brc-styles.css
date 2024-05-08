@@ -582,7 +582,7 @@ a .delete {
    flex-direction: column;
 }
 
-.card {
+.containerCards .card {
    width: 100%;
    display: flex;
    justify-content: space-between;

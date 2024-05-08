@@ -456,6 +456,29 @@
                      <p class="invalid-feedback">Ingresa un nuevo grupo</p>
                   </div>
                </div>
+               <div class="form__input-data">
+                  <label
+                     for="cuenta"
+                     class="label-input-data"
+                  >
+                     Número de Cuenta/Tarjeta
+                  </label>
+                  <div class="input-group">
+                     <input
+                        type="tel"
+                        inputmode="numeric"
+                        pattern="[0-9\s]{16,18}"
+                        autocomplete="cc-number"
+                        maxlength="19"
+                        class="form-control"
+                        id="cuenta"
+                        name="cuenta"
+                        placeholder="xxxx xxxx xxxx xxxx"
+                        required
+                     />
+                     <p class="invalid-feedback">Ingresa una cuenta válida.</p>
+                  </div>
+               </div>
                <div class="button-container">
                   <button
                      id="Savebtn"
