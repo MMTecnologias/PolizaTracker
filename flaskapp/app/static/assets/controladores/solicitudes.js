@@ -29,6 +29,7 @@ const data = async () => {
       });
    }
    await addBtnDelete();
+   await addBtnDeny();
 };
 
 data();
@@ -56,6 +57,35 @@ const deleteClient = async (id) => {
       body: new URLSearchParams({
          request_id: id,
          action: 'Aceptada'
+      })
+   });
+
+   const responseData = await response.json();
+   console.log(responseData);
+};
+
+const addBtnDeny = async () => {
+   const btnDelete = document.querySelectorAll('.btn__icon_edit');
+
+   btnDelete.forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+         //función eliminar
+         //console.log(e.target.id.split('_')[1]);
+         await denyRequest(e.target.id.split('_')[1]);
+         await data();
+      });
+   });
+};
+
+const denyRequest = async (id) => {
+   const response = await fetch('/process-request', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         request_id: id,
+         action: 'Rechazada'
       })
    });
 

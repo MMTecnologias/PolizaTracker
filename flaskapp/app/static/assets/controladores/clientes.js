@@ -258,6 +258,7 @@ const editClient = async (id) => {
                });
             })}
          `);
+   $('#cuenta').val(data.data[0].cuenta);
 };
 
 const addBtnShow = async () => {

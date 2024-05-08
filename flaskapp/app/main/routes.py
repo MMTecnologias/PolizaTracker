@@ -114,7 +114,8 @@ def create_client():
                 fecha_nacimiento=request.form.get('fecha_nacimiento'),
                 sexo=request.form.get('sexo'),
                 ocupacion=request.form.get('ocupacion'),
-                actividad=request.form.get('giro_actividad')
+                actividad=request.form.get('giro_actividad'),
+                info_pago=request.form.get('cuenta')
             )
             # Save the new client to the database
             db.session.add(new_client)
@@ -164,6 +165,7 @@ def create_client():
             existing_client.sexo = request.form.get('sexo')
             existing_client.ocupacion = request.form.get('ocupacion')
             existing_client.actividad = request.form.get('giro_actividad')
+            existing_client.info_pago=request.form.get('cuenta')
             # Save the changes to the database
             db.session.commit()
 
@@ -1079,7 +1081,9 @@ def get_clients_data2():
             'ocupacion': client.ocupacion,
             'actividad': client.actividad,
             'apellido': client.apellido,
-            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+            'fullname': f"{client.nombre} {client.apellido}",
+            'cuenta': client.info_pago  
+            
         })
 
     # Prepare response
@@ -1144,7 +1148,8 @@ def get_sorted_clients_data():
             'ocupacion': client.ocupacion,
             'actividad': client.actividad,
             'apellido': client.apellido,
-            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+            'fullname': f"{client.nombre} {client.apellido}",
+            'cuenta': client.info_pago    # Full name
         })
 
     # Prepare response
@@ -1198,7 +1203,8 @@ def get_clients_filtered():
             'ocupacion': client.ocupacion,
             'actividad': client.actividad,
             'apellido': client.apellido,
-            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+            'fullname': f"{client.nombre} {client.apellido}" ,
+            'cuenta': client.info_pago   # Full name
         })
 
     # Prepare response
@@ -1257,7 +1263,8 @@ def get_clients_filtered_byName():
             'ocupacion': client.ocupacion,
             'actividad': client.actividad,
             'apellido': client.apellido,
-            'fullname': f"{client.nombre} {client.apellido}"  # Full name
+            'fullname': f"{client.nombre} {client.apellido}" ,
+            'cuenta': client.info_pago   # Full name
         })
 
     # Prepare response
@@ -1615,7 +1622,7 @@ def requests_data():
     #start = int(request.form.get('start'))
     #length = int(request.form.get('length'))
     start = 0
-    length = 10
+    length = 50
 
     # Query to fetch clientes data from the database 
     request_query = db.session.query(Request, 
