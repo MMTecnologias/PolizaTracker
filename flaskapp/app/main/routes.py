@@ -17,6 +17,9 @@ from dateutil.relativedelta import relativedelta
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
 
+
+"""Funciones generales"""
+
 def check_access(nombre_del_servicio):
     # Verificar si el usuario tiene acceso al servicio "Editar Usuarios"
     servicio_crear_usuario_id=Servicio.query.filter_by(nombre=nombre_del_servicio).first().id
@@ -1656,7 +1659,7 @@ def requests_data():
 
 @main.route('/create_multiple', methods=['POST'])
 @login_required
-def create_user():
+def create_multiple():
     tipo = request.form.get('tipo')
     nombre=request.form.get('nombre')
     clases={"Aseguradora":Aseguradora,
