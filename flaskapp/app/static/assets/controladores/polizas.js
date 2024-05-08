@@ -240,6 +240,7 @@ const rellenarFormulario = async (id) => {
    const data = await response.json();
    const coincidencia = await data.data[0];
    console.log(coincidencia);
+   document.getElementById('buscar-cliente').disabled = true;
    document.getElementById('buscar-cliente').value = coincidencia.cliente;
    document.getElementById('Poliza').value = coincidencia.poliza;
    document.getElementById('serie').value = coincidencia.serie;
