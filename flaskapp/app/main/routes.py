@@ -1675,3 +1675,104 @@ def create_multiple():
 
     return jsonify({"error":True,"record_id":new_record_id})
 
+"""
+Solicitudes para utilerias
+"""
+from sqlalchemy.orm import aliased
+
+# Alias for the reviewed usuario
+
+#@main.route('/get_requests_data_all', methods=['GET'])
+@main.route('/get_requests_data_all', methods=['POST'])
+@login_required
+def requests_data_all():
+    # Estos datos los recibe desde la función en JS
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    #start = 0
+    #length = 50
+    UsuarioReview = aliased(Usuario)
+    # Query to fetch clientes data from the database 
+    request_query = db.session.query(Request, 
+                                     Usuario.nombre.label('usuario_nombre'),
+                                     Usuario.apellido.label('usuario_apellido'),
+                                     UsuarioReview.nombre.label('reviso_nombre'),
+                                     UsuarioReview.apellido.label('reviso_apellido'))\
+                                .join(Usuario, Request.usuario_id == Usuario.id)\
+                                .join(UsuarioReview, Request.usuario_review_id == UsuarioReview.id)
+
+    # Get total count of records without filtering
+    total_records = request_query.count()
+    # Apply pagination
+    requests = request_query.offset(start).limit(length).all()
+
+    # Format data
+    data = []
+    for request, usuario_nombre,usuario_apellido,reviso_nombre,reviso_apellido in requests:
+        data.append({
+            'id': request.id,
+            'usuario': f"{usuario_nombre} {usuario_apellido}",
+            'reviso': f"{reviso_nombre} {reviso_apellido}",
+            'timestamp': request.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'descripcion': request.description,
+            'status':request.status
+        })
+
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
+@main.route('/get_log_by_request_id', methods=['POST'])
+#@main.route('/get_log_by_request_id/<int:request_id>', methods=['GET'])
+@login_required
+#def get_log_by_request_id(request_id):
+def get_log_by_request_id():
+    # Estos datos los recibe desde la función en JS
+    #start = int(request.form.get('start'))
+    #length = int(request.form.get('length'))
+    
+    start = 0
+    length = 50
+    request_id = int(request.form.get('request_id'))
+
+    log_query=Log.query.filter_by(request_id=request_id)
+
+    # Get total count of records without filtering
+    total_records = log_query.count()
+    # Apply pagination
+    logs = log_query.offset(start).limit(length).all()
+
+    # Format data
+    data = []
+
+    for log in logs:
+        # Extracting all columns from the Poliza object
+        log_data = {}
+        # Iterate through each column in the Poliza table
+        for column in Log.__table__.columns:
+            # Get the value of the column
+            value = getattr(log, column.name)
+            # Add column name and corresponding value to poliza_data dictionary
+            log_data[column.name] = value
+
+        # Append additional information
+        #log_data.update({})
+
+        # Append to data list
+        data.append(log_data)
+
+  
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
