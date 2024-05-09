@@ -1,9 +1,6 @@
 # app/main/routes.py
 from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort,Flask, Response
 from flask_login import login_user, logout_user, login_required, current_user
-#from flask_wtf import FlaskForm
-#from wtforms import StringField, PasswordField, SubmitField,SelectField,DateField,EmailField
-#from wtforms.validators import DataRequired,Email,InputRequired,Length
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor, Request,Log
@@ -11,11 +8,64 @@ from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
 from . import main 
-from datetime import datetime
+from datetime import datetime,date
+from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+from sqlalchemy.orm import aliased
 
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
+"""  #Code to check use of rutes
+from collections import defaultdict
+# Dictionary to store route access counts
+route_access_counts = defaultdict(int)
+route_access_counts_2 = {}
+
+@app.before_request
+def track_route_access():
+    # Increment access count for the requested route
+    if str(request.path) in route_access_counts_2.keys():
+        route_access_counts[request.path] += 1
+
+@main.route('/see', methods=['GET'])
+@login_required
+def see():
+    return route_access_counts
+
+@main.route('/see2', methods=['GET'])
+@login_required
+# Function to get all registered routes
+def see2():
+    for rule in app.url_map.iter_rules():
+        route_access_counts_2[rule.rule] = 0
+    return route_access_counts_2
+ """
+
+""" 
+# Base Code for Export
+def export_clients():
+    headers = []
+    query=
+    def generate():
+        f = StringIO()
+        f.seek(0)
+        f.write(u'\uFEFF')
+        writer = csv.writer(f)
+        writer.writerow(tuple(headers))
+        # Write rows
+        for data in query:
+            row = []
+            writer.writerow(tuple(row))
+            yield f.getvalue()
+            f.seek(0)
+            f.truncate(0)
+
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename='.csv')
+    return response
+
+ """
+"""Funciones generales"""
 
 def check_access(nombre_del_servicio):
     # Verificar si el usuario tiene acceso al servicio "Editar Usuarios"
@@ -65,6 +115,7 @@ def grupo():
         })
     return jsonify(data)
 
+#modify log
 @main.route('/create_client', methods=['POST'])
 @login_required
 def create_client():
@@ -182,86 +233,6 @@ def create_client():
             # Handle the case where the client does not exist
             return jsonify({'error': True, 'msg': 'Cliente no encontrado'})
 
-@main.route('/get_clients_data', methods=['POST'])
-@login_required
-def get_clients_data():
-    if not check_access("Clientes"):
-        return redirect(url_for('main.index'))
-    # Get parameters from DataTables AJAX request
-    draw = int(request.form.get('draw'))
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
-    search_value = request.form.get('search[value]')
-    order_column_index = int(request.form.get('order[0][column]'))
-    order_dir = request.form.get('order[0][dir]')
-
-    # Query to fetch clientes data from the database 
-    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
-
-    # Implement search functionality
-    if search_value:
-        clients_query = clients_query.filter(or_(
-            Cliente.nombre.ilike(f'%{search_value}%'),
-            Cliente.apellido.ilike(f'%{search_value}%'),
-            Cliente.correo.ilike(f'%{search_value}%'),
-            # Add more fields for searching as needed
-        ))
-
-    # Implement sorting functionality
-    order_column_name = None
-    if order_column_index == 0:
-        order_column_name = 'nombre'
-    elif order_column_index == 1:
-        order_column_name = 'correo'
-    elif order_column_index == 2:
-        order_column_name = 'tel_movil'
-
-    if order_column_name:
-        if order_dir == 'desc':
-            clients_query = clients_query.order_by(desc(order_column_name))
-        else:
-            clients_query = clients_query.order_by(order_column_name)
-
-
-
-    # Get total count of records without filtering
-    total_records = clients_query.count()
-    
-    # Apply pagination
-    clients = clients_query.offset(start).limit(length).all()
-
-    # Format data as required by DataTables
-    data = []
-    for client, grupo_name in clients:
-        data.append({
-            'id': client.id,
-            'nombre': client.nombre,
-            'grupo_id': client.grupo_id,
-            'grupo': grupo_name,
-            'rfc': client.rfc,
-            'tel_oficina': client.tel_oficina,
-            'tel_movil': client.tel_movil,
-            'tel_casa': client.tel_casa,
-            'correo': client.correo,
-            'direccion': client.direccion,
-            'fecha_nacimiento': client.fecha_nacimiento.strftime('%Y-%m-%d'), # Format date as string
-            'sexo': client.sexo,
-            'ocupacion': client.ocupacion,
-            'actividad': client.actividad,
-            'apellido': client.apellido,
-            'fullname': f"{client.nombre} {client.apellido}"  # Full name
-        })
-
-    # Prepare response
-    response = {
-        'draw': draw,
-        'recordsTotal': total_records,  # Total records without filtering
-        'recordsFiltered': total_records,  # Total records after filtering
-        'data': data  # Data to display
-    }
-    return response
-    # jsonResp = {'jack': 4098, 'sape': 4139}
-
     
 @main.route('/delete_client', methods=['POST'])
 @login_required
@@ -348,62 +319,6 @@ def process_request():
         return jsonify({'error': False, 'title': 'Solicitud Rechazada', 'msg': 'Cambios revertidos'})
 
 
-@main.route('/export_clients')
-@login_required
-def export_clients():
-    if not check_access("Clientes"):
-        return redirect(url_for('main.index'))
-    headers = ['nombre',
-                'apellido',
-                'rfc',
-                'tel_oficina',
-                'tel_movil',
-                'tel_casa',
-                'correo',
-                'direccion',
-                'fecha_nacimiento',
-                'sexo',
-                'ocupacion',
-                'actividad',
-                'grupo',
-                'status']
-    clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo)
-    clients_data = clients_query.all()
-    def generate():
-        f = StringIO()
-        f.seek(0)
-        f.write(u'\uFEFF')
-        writer = csv.writer(f)
-        writer.writerow(tuple(headers))
-
-
-        # Write rows
-        for client, grupo_name in clients_data:
-            row = [
-                client.nombre,
-                client.apellido,
-                client.rfc,
-                client.tel_oficina,
-                client.tel_movil,
-                client.tel_casa,
-                client.correo,
-                client.direccion,
-                client.fecha_nacimiento.strftime('%Y-%m-%d'),
-                client.sexo,
-                client.ocupacion,
-                client.actividad,
-                grupo_name,
-                client.status
-            ]
-            writer.writerow(tuple(row))
-            yield f.getvalue()
-            f.seek(0)
-            f.truncate(0)
-
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition", "attachment", filename='clientes.csv')
-    return response
-
 
 
 """Usuarios"""
@@ -416,6 +331,7 @@ def usuario():
     niveles = NivelAcceso.query.all()
     return render_template('usuario.html', user=current_user,niveles =niveles)
 
+#modify
 @main.route('/get_usuarios_data', methods=['POST'])
 @login_required
 def get_usuarios_data():
@@ -490,6 +406,59 @@ def get_usuarios_data():
 
     return jsonify(response)
 
+#check
+@main.route('/get_usuarios_data2', methods=['GET'])
+@login_required
+def get_usuarios_data2():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
+    # Get parameters from DataTables AJAX request
+
+
+    usuarios_query = Usuario.query.filter_by(status='Activo')
+
+
+    # Get total count of records without filtering
+    total_records = usuarios_query.count()
+
+
+    # Apply pagination
+    usuarios = usuarios_query.all()
+
+
+    # Query to fetch usuarios data from the database
+    usuarios = usuarios_query.all()
+
+
+    # Format data as required by DataTables
+    data = []
+    for usuario in usuarios:
+        name=usuario.nombre
+        lastname=usuario.apellido
+        data.append({
+            'id': usuario.id,
+            'fullname': f"{name} {lastname}",
+            'correo': usuario.correo,
+            'username': usuario.username,
+            'telefono': usuario.telefono,
+            'nombre': name,
+            'apellido': lastname,
+            'acceso': usuario.nivel_id,
+            # Add more fields as needed
+        })
+
+
+    # Prepare response
+    response = {
+        'data': data  # Data to display
+    }
+
+
+    return jsonify(response)
+
+
+
+#check
 @main.route('/create_user', methods=['POST'])
 @login_required
 def create_user():
@@ -547,6 +516,7 @@ def create_user():
             # Manejar el caso en el que el usuario no exista
             return jsonify({'error': True, 'msg': 'Usuario no encontrado'})
 
+#check
 @main.route('/delete_user', methods=['POST'])
 @login_required
 def delete_user():
@@ -566,48 +536,6 @@ def delete_user():
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el usuario.'})
 
-@main.route('/export_users')
-@login_required
-def export_users():
-    if not check_access("Admin usuarios"):
-        return redirect(url_for('main.index'))
-    headers = ['nombre',
-                'apellido',
-                'correo',
-                'telefono',
-                'usuario',
-                'acceso',
-                'status']
-    users_query = db.session.query(Usuario, NivelAcceso.nombre.label('acceso')).join(NivelAcceso)
-    users_data = users_query.all()
-    def generate():
-        f = StringIO()
-        f.seek(0)
-        f.write(u'\uFEFF')
-        writer = csv.writer(f)
-        writer.writerow(tuple(headers))
-
-
-        # Write rows
-        for user, acceso in users_data:
-            row = [
-                user.nombre,
-                user.apellido,
-                user.correo,
-                user.telefono,
-                user.username,
-                acceso,
-                user.status
-            ]
-            writer.writerow(tuple(row))
-            yield f.getvalue()
-            f.seek(0)
-            f.truncate(0)
-
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition", "attachment", filename='usuarios.csv')
-    return response
-
 
 """Polizas"""
 # Ruta usuarios
@@ -621,88 +549,6 @@ def polizas():
     agentes=Agente.query.all()
     vendedores=Vendedor.query.all()
     return render_template('polizas.html', user=current_user,ramos=ramos,subramos=subramos,pagos=pagos,aseguradoras=aseguradoras,agentes=agentes,vendedores=vendedores)
-
-
-@main.route('/get_polizas_data', methods=['POST'])
-@login_required
-def get_polizas_data():
-    # Get parameters from DataTables AJAX request
-    # draw = int(request.form.get('draw'))
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
-    # search_value = request.form.get('search[value]')
-    # order_column_index = int(request.form.get('order[0][column]'))
-    # order_dir = request.form.get('order[0][dir]')
-
-    # Query to fetch polizas data from the database 
-    """
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Ramo,Subramo,Aseguradora.aseguradora.label("aseguradora"),TipoPago,Agente) \
-    .select_from(Poliza) \
-    .join(Cliente, Poliza.cliente_id == Cliente.id) \
-    .join(Ramo, Poliza.ramo_id == Ramo.id) \
-    .join(Subramo, Poliza.subramo_id == Subramo.id) \
-    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-    .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
-    .join(Agente, Poliza.agente_id == Agente.id)
-    """
-    polizas_query = db.session.query(Poliza, Cliente.nombre.label("client_name"),Cliente.apellido.label("client_lastname"),Aseguradora.aseguradora.label("aseguradora")) \
-    .select_from(Poliza) \
-    .join(Cliente, Poliza.cliente_id == Cliente.id) \
-    .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) 
-
-    # # Implement search functionality
-    # if search_value:
-    #     polizas_query = polizas_query.filter(or_(
-    #         Poliza.serie.ilike(f'%{search_value}%'),
-    #         Cliente.nombre.ilike(f'%{search_value}%'),
-    #         Aseguradora.aseguradora.ilike(f'%{search_value}%'),
-    #         Cliente.apellido.ilike(f'%{search_value}%')
-    #         # Add more fields for searching as needed
-    #     ))
-
-    # # Implement sorting functionality
-    # order_column_name = None
-    # if order_column_index == 0:
-    #     order_column_name = 'serie'
-    # elif order_column_index == 1:
-    #     order_column_name = 'client_name'
-    # elif order_column_index == 2:
-    #     order_column_name = 'aseguradora'
-
-    # if order_column_name:
-    #     if order_dir == 'desc':
-    #         polizas_query = polizas_query.order_by(desc(order_column_name))
-    #     else:
-    #         polizas_query = polizas_query.order_by(order_column_name)
-
-    # Get total count of records without filtering
-    total_records = polizas_query.count()
-    
-    # Apply pagination
-    polizas = polizas_query.offset(start).limit(length).all()
-
-    # Format data as required by DataTables
-    data = []
-    for poliza, nombre,apellido, aseguradora in polizas:
-        data.append({
-            'poliza': poliza.serie,
-            'cliente': f"{nombre} {apellido}",
-            'aseguradora': aseguradora,
-            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'id': poliza.id
-            # Ramo, Subramo, Prima Neta, Prima Total, Vigencia, Status
-            # Add more fields as needed
-        })
-
-    # Prepare response
-    response = {
-        # 'draw': draw,
-        'recordsTotal': total_records,  # Total records without filtering
-        'recordsFiltered': total_records,  # Total records after filtering
-        'data': data  # Data to display
-    }
-
-    return jsonify(response)
 
 
 @main.route('/get_receipts_data', methods=['POST'])
@@ -793,7 +639,8 @@ def index():
 
     return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
 
-"""Recibos"""
+"""Recibos (revisar) actualizar"""
+
 @main.route('/recibos', methods=['GET'])
 @login_required
 def recibos():
@@ -970,64 +817,6 @@ def save_receipts():
         return jsonify({'error': True, 'msg':'Error en la creación de recibos'})
 
 
-@main.route('/fetch_test', methods=['GET'])
-def fetchtest():
-    return jsonify ([
-                        {"nombre":"baruc", "edad":27, "genero": "masculino"},
-                        {"nombre":"sherley", "edad":27, "genero": "femenino"}
-                     
-                     ])
-
-
-@main.route('/get_usuarios_data2', methods=['GET'])
-@login_required
-def get_usuarios_data2():
-    if not check_access("Admin usuarios"):
-        return redirect(url_for('main.index'))
-    # Get parameters from DataTables AJAX request
-
-
-    usuarios_query = Usuario.query.filter_by(status='Activo')
-
-
-    # Get total count of records without filtering
-    total_records = usuarios_query.count()
-
-
-    # Apply pagination
-    usuarios = usuarios_query.all()
-
-
-    # Query to fetch usuarios data from the database
-    usuarios = usuarios_query.all()
-
-
-    # Format data as required by DataTables
-    data = []
-    for usuario in usuarios:
-        name=usuario.nombre
-        lastname=usuario.apellido
-        data.append({
-            'id': usuario.id,
-            'fullname': f"{name} {lastname}",
-            'correo': usuario.correo,
-            'username': usuario.username,
-            'telefono': usuario.telefono,
-            'nombre': name,
-            'apellido': lastname,
-            'acceso': usuario.nivel_id,
-            # Add more fields as needed
-        })
-
-
-    # Prepare response
-    response = {
-        'data': data  # Data to display
-    }
-
-
-    return jsonify(response)
-
 # test table polizas
 
 
@@ -1175,10 +964,7 @@ def get_clients_filtered():
 
     # Implement search functionality
     if search_value:
-        clients_query = clients_query.filter(or_(
-            Cliente.id.ilike(f'%{search_value}%'),
-            # Add more fields for searching as needed
-        ))
+        clients_query = clients_query.filter(Cliente.id == search_value)
 
         # Get total count of records without filtering
     total_records = clients_query.count()
@@ -1339,8 +1125,7 @@ def get_poliza_byClientID():
    
     return jsonify(response)
 
-from datetime import date
-from decimal import Decimal
+
 @main.route('/get_polizas_data2', methods=['POST'])
 @login_required
 def get_polizas_data2():
@@ -1656,7 +1441,7 @@ def requests_data():
 
 @main.route('/create_multiple', methods=['POST'])
 @login_required
-def create_user():
+def create_multiple():
     tipo = request.form.get('tipo')
     nombre=request.form.get('nombre')
     clases={"Aseguradora":Aseguradora,
@@ -1671,4 +1456,142 @@ def create_user():
     new_record_id=new_class(clases[tipo],"New" ,nombre,colnames[tipo])
 
     return jsonify({"error":True,"record_id":new_record_id})
+
+#@main.route('/get_data_multiple', methods=['GET'])
+@main.route('/get_data_multiple', methods=['POST'])
+@login_required
+def get_data_multiple():
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    #start = 0
+    #length = 2
+    clases={"Aseguradora":Aseguradora,
+            "Agente":Agente,
+            "Vendedor":Vendedor}
+    response={}
+    for key,tabla in clases.items():
+        query=tabla.query
+        total_records = query.count()
+        # Apply pagination
+        records = query.offset(start).limit(length).all()
+        # Format data
+        data = []
+        for record in records:
+            # Extracting all columns from the Poliza object
+            record_data = {}
+            # Iterate through each column in the Poliza table
+            for column in tabla.__table__.columns:
+                # Get the value of the column
+                value = getattr(record, column.name)
+                # Add column name and corresponding value to poliza_data dictionary
+                record_data[column.name] = value
+            # Append to data list
+            data.append(record_data)
+        # Prepare response
+        response[key] = {
+            'recordsTotal': total_records,  # Total records without filtering
+            'data': data  # Data to display
+        }
+
+    return jsonify(response)
+
+"""
+Solicitudes para utilerias
+"""
+
+# Alias for the reviewed usuario
+
+#@main.route('/get_requests_data_all', methods=['GET'])
+@main.route('/get_requests_data_all', methods=['POST'])
+@login_required
+def requests_data_all():
+    # Estos datos los recibe desde la función en JS
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    #start = 0
+    #length = 50
+    UsuarioReview = aliased(Usuario)
+    # Query to fetch clientes data from the database 
+    request_query = db.session.query(Request, 
+                                     Usuario.nombre.label('usuario_nombre'),
+                                     Usuario.apellido.label('usuario_apellido'),
+                                     UsuarioReview.nombre.label('reviso_nombre'),
+                                     UsuarioReview.apellido.label('reviso_apellido'))\
+                                .join(Usuario, Request.usuario_id == Usuario.id)\
+                                .join(UsuarioReview, Request.usuario_review_id == UsuarioReview.id)
+
+    # Get total count of records without filtering
+    total_records = request_query.count()
+    # Apply pagination
+    requests = request_query.offset(start).limit(length).all()
+
+    # Format data
+    data = []
+    for request, usuario_nombre,usuario_apellido,reviso_nombre,reviso_apellido in requests:
+        data.append({
+            'id': request.id,
+            'usuario': f"{usuario_nombre} {usuario_apellido}",
+            'reviso': f"{reviso_nombre} {reviso_apellido}",
+            'timestamp': request.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'descripcion': request.description,
+            'status':request.status
+        })
+
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
+@main.route('/get_log_by_request_id', methods=['POST'])
+#@main.route('/get_log_by_request_id/<int:request_id>', methods=['GET'])
+@login_required
+#def get_log_by_request_id(request_id):
+def get_log_by_request_id():
+    # Estos datos los recibe desde la función en JS
+    #start = int(request.form.get('start'))
+    #length = int(request.form.get('length'))
+    
+    start = 0
+    length = 50
+    request_id = int(request.form.get('request_id'))
+
+    log_query=Log.query.filter_by(request_id=request_id)
+
+    # Get total count of records without filtering
+    total_records = log_query.count()
+    # Apply pagination
+    logs = log_query.offset(start).limit(length).all()
+
+    # Format data
+    data = []
+
+    for log in logs:
+        # Extracting all columns from the Poliza object
+        log_data = {}
+        # Iterate through each column in the Poliza table
+        for column in Log.__table__.columns:
+            # Get the value of the column
+            value = getattr(log, column.name)
+            # Add column name and corresponding value to poliza_data dictionary
+            log_data[column.name] = value
+
+        # Append additional information
+        #log_data.update({})
+
+        # Append to data list
+        data.append(log_data)
+
+  
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
 

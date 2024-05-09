@@ -65,14 +65,6 @@ def forgotpass_ajax():
         response["correctuser"]=False
     return jsonify(response)
 
-# Ruta para pedir un cambio de contrasena
-@auth.route('/req_new_pass', methods=['GET'])#, 'POST'])
-def req_new_pass():
-    if current_user.is_authenticated:
-        # Si ya ha iniciado sesión, redireccionar a la página principal u otra página
-        return redirect(url_for('main.index'))
-    return render_template('forgotpass.html')
-
 
 """Logout"""
 # Ruta para cerrar sesión
