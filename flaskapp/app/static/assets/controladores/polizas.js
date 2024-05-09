@@ -19,18 +19,19 @@ const currentPageData = async () => {
    const index = currentIndex;
    //Solicitamos los datos
    if (sorting === true) {
-      currentData = await fetch('/get_sorted_poliza_data', {
+      currentData = await fetch('/polizas/get', {
          method: 'POST',
          headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
          },
          body: new URLSearchParams({
             start: `${index === undefined ? 0 : index * clientsPerPage}`,
-            length: clientsPerPage
+            length: clientsPerPage,
+            order: true
          })
       });
    } else {
-      currentData = await fetch('/get_polizas_data2', {
+      currentData = await fetch('/polizas/get', {
          method: 'POST',
          headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -81,7 +82,7 @@ const updateTable = async (polizaData) => {
 
                <tr  class="tableOption">
 
-                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
+                     <td><p class="td-clickable" id="td-clickable_${poliza.id}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
                      <td>${poliza.fecha_inicio}</td>
@@ -113,7 +114,7 @@ const addBtnShow = async () => {
 };
 
 const pintarPaginacion = async () => {
-   await fetch('/get_polizas_data2', {
+   await fetch('/polizas/get', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -189,7 +190,7 @@ inputSearchPoliza.addEventListener('keyup', async (e) => {
    let searchValue = e.target.value;
    if (searchValue.length >= 3) {
       console.log(searchValue);
-      const response = await fetch('/get_polizas_data2', {
+      const response = await fetch('/polizas/get', {
          method: 'POST',
          headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -226,7 +227,7 @@ inputSearchPoliza.addEventListener('keyup', async (e) => {
 });
 
 const rellenarFormulario = async (id) => {
-   const response = await fetch('/get_polizas_data2', {
+   const response = await fetch('/polizas/get', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -234,7 +235,7 @@ const rellenarFormulario = async (id) => {
       body: new URLSearchParams({
          start: 0,
          length: 2,
-         searchValue: id
+         poliza_id: id
       })
    });
    const data = await response.json();
@@ -268,9 +269,13 @@ const rellenarFormulario = async (id) => {
    ).innerHTML = `<option value="${coincidencia.tipoPago}">
         ${coincidencia.tipoPago}
          </option>`;
-   $('#vendedor').val(`<option value="${coincidencia.vendedor}">
-        ${coincidencia.vendedor}
-         </option>`);
+   $('#vendedor').val(coincidencia.vendedor_id);
+   $('#Moneda').val(coincidencia.moneda);
+   $('#agente').val(coincidencia.agente_id);
+   $('#notas').val(coincidencia.notas);
+   $('#polizaAnterior').val(coincidencia.poliza_anterior);
+   $('#renovacion').val(coincidencia.renovacion);
+   
    //Falta Vendedor, Moneda, Agente, Poliza anterior
 
    mostrarRecibos(coincidencia.id);
@@ -279,7 +284,7 @@ const rellenarFormulario = async (id) => {
 const mostrarRecibos = async (id) => {
    let receipts = [];
    const receiptsTable = document.querySelector('#receiptsTable');
-   const receiptData = await fetch('/get_receipts_data', {
+   const receiptData = await fetch('/polizas/get_receipts', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -423,7 +428,7 @@ $(document).ready(function () {
    // funcion para buscar clientes
    function fetchClientOptions(inputValue) {
       $.ajax({
-         url: '/search_clients', // Your server route to fetch client options
+         url: 'polizas/search_clients', // Your server route to fetch client options
          method: 'POST',
          dataType: 'json',
          data: { query: inputValue }, // Send the input value as data
@@ -501,109 +506,9 @@ $(document).ready(function () {
       }
    });
 
-   // Configuracion de Tabla de polizas
-   var table = $('#polizasTable').DataTable({
-      ...datatableConfig,
-      'ajax': {
-         'url': '/get_polizas_data',
-         'type': 'POST',
-         'dataSrc': 'data',
-         'error': function (xhr, textStatus, errorThrown) {
-            Swal.fire({
-               title: 'Error inesperado',
-               text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-               icon: 'error'
-            });
-         }
-      },
-      'columns': [
-         { 'data': 'poliza' },
-         { 'data': 'cliente' },
-         { 'data': 'aseguradora' },
-         { 'data': 'vigencia' },
-         {
-            'data': null,
-            'render': function (data, type, row, meta) {
-               return (
-                  '<a href="#" class="edit" data-id="' +
-                  row.id +
-                  '" data-row="' +
-                  meta.row +
-                  '"><img src="' +
-                  seeicon +
-                  '" width="15" height="15" /><i class="material-icons" data-toggle="tooltip" title="See"></i></a>'
-               );
-            },
-            'width': '2%'
-         },
-         { 'data': 'id', 'visible': false, 'title': 'Id' }
-      ]
-   });
 
-   $('#polizasTable_wrapper .col-md-6:eq(0)').append(
-      $('#myTable_wrapper .dt-buttons')
-   );
-   $('#polizasTable_length').appendTo('#LengthMenu');
-   $('#polizasTable_filter').appendTo('#Buscador');
-   $('#polizasTable_info').appendTo('#InfoEmpaty');
-   $('#polizasTable_paginate').appendTo('#Paginacion');
 
-   // Configuracion de Tabla de clientes
-   var receiptsTable = $('#recibosTable').DataTable({
-      ...datatableConfig_plane,
-      'ajax': {
-         'url': '/get_receipts_data',
-         'type': 'POST',
-         'data': function (d) {
-            // Additional data to send with the request
-            d.poliza_id = $('#poliza_id').val(); // Assuming the id is obtained from some element
-         },
-         'dataSrc': 'data',
-         'error': function (xhr, textStatus, errorThrown) {
-            Swal.fire({
-               title: 'Error inesperado',
-               text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-               icon: 'error'
-            });
-         }
-      },
-      'columns': [
-         { 'data': 'numero' },
-         { 'data': 'fecha_recibo' },
-         { 'data': 'vencimiento' },
-         { 'data': 'prima_neta' },
-         { 'data': 'prima_total' },
-         { 'data': 'comision' },
-         {
-            'data': 'pagado',
-            'render': function (data, type, row) {
-               // Render a checkbox based on the value of 'pagado'
-               return data
-                  ? '<input type="checkbox" checked disabled>'
-                  : '<input type="checkbox" disabled>';
-            }
-         },
-         { 'data': 'fecha_pago' },
-         { 'data': 'comprobante' },
-         {
-            'data': 'cancelado',
-            'render': function (data, type, row) {
-               // Render a checkbox based on the value of 'pagado'
-               return data
-                  ? '<input type="checkbox" checked disabled>'
-                  : '<input type="checkbox" disabled>';
-            }
-         }
-      ]
-   });
 
-   table.on('click', '.edit', function () {
-      //var row = $(this).data('row');
-      var polizaId = $(this).data('id');
-      //var data = table.row(row).data();
-      $('#poliza_id').val(polizaId);
-      receiptsTable.ajax.reload();
-   });
 });
 
 $('#btnGenerarEndoso').on('click', function () {
@@ -624,7 +529,7 @@ const fillTable = async (data) => {
 
                <tr  class="tableOption" >
 
-                     <td><p class="td-clickable" id="td-clickable_${poliza.poliza}">${poliza.poliza}</p></td>
+                     <td><p class="td-clickable" id="td-clickable_${poliza.id}">${poliza.poliza}</p></td>
                      <td>${poliza.cliente}</td>
                      <td>${poliza.subramo}</td>
                      <td>${poliza.fecha_inicio}</td>

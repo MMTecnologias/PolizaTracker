@@ -28,7 +28,10 @@ def load_user(user_id):
 # Registro de blueprints
 from app.auth import auth
 from app.main import main
+from app.polizas import polizas_route
 
 app.register_blueprint(auth)
 app.register_blueprint(main)
+app.register_blueprint(polizas_route)
+
 
