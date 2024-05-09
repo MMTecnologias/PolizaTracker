@@ -13,6 +13,7 @@ from io import StringIO
 from . import main 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from sqlalchemy.orm import aliased
 
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
@@ -1675,10 +1676,47 @@ def create_multiple():
 
     return jsonify({"error":True,"record_id":new_record_id})
 
+#@main.route('/get_data_multiple', methods=['GET'])
+@main.route('/get_data_multiple', methods=['POST'])
+@login_required
+def get_data_multiple():
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+    #start = 0
+    #length = 2
+    clases={"Aseguradora":Aseguradora,
+            "Agente":Agente,
+            "Vendedor":Vendedor}
+    response={}
+    for key,tabla in clases.items():
+        query=tabla.query
+        total_records = query.count()
+        # Apply pagination
+        records = query.offset(start).limit(length).all()
+        # Format data
+        data = []
+        for record in records:
+            # Extracting all columns from the Poliza object
+            record_data = {}
+            # Iterate through each column in the Poliza table
+            for column in tabla.__table__.columns:
+                # Get the value of the column
+                value = getattr(record, column.name)
+                # Add column name and corresponding value to poliza_data dictionary
+                record_data[column.name] = value
+            # Append to data list
+            data.append(record_data)
+        # Prepare response
+        response[key] = {
+            'recordsTotal': total_records,  # Total records without filtering
+            'data': data  # Data to display
+        }
+
+    return jsonify(response)
+
 """
 Solicitudes para utilerias
 """
-from sqlalchemy.orm import aliased
 
 # Alias for the reviewed usuario
 
