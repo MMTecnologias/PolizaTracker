@@ -29,9 +29,11 @@ def load_user(user_id):
 from app.auth import auth
 from app.main import main
 from app.polizas import polizas_route
+from app.clientes import clientes_route
 
 app.register_blueprint(auth)
 app.register_blueprint(main)
 app.register_blueprint(polizas_route)
+app.register_blueprint(clientes_route)
 
 
