@@ -79,7 +79,9 @@ def get():
 @login_required
 def create():
     user_id = request.form.get('usuario_id')
-
+    if not user_id:
+        return jsonify({'error': True,
+                            'msg':"Hace falta enviar usuario_id"})
     # Si user_id es "New", entonces es una creación de usuario
     if user_id == "New":
         username = request.form.get('username')

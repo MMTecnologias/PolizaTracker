@@ -412,10 +412,6 @@ $(document).ready(function () {
       $('#cliente_id').val('New');
       // Change the text of the Save button back to "Crear"
       $('#Savebtn').text('Crear');
-      if ($.fn.DataTable.isDataTable('#myTable')) {
-         var table = $('#myTable').DataTable();
-         table.ajax.reload();
-      }
       $('#nuevo_grupo_div').hide(); // Corrected class name
    }
 
