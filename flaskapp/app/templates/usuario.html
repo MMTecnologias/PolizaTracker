@@ -1,66 +1,140 @@
-<!doctype html>
-<html class="no-js" lang="es-mx">
+<!DOCTYPE html>
+<html
+   class="no-js"
+   lang="es-mx"
+>
+   <head>
+      <meta charset="utf-8" />
+      <meta
+         http-equiv="x-ua-compatible"
+         content="ie=edge"
+      />
+      <title>Usuarios</title>
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1"
+      />
+      <link
+         rel="shortcut icon"
+         type="image/png"
+         href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}"
+      />
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>Usuarios</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
-    <link rel="shortcut icon" type="image/png"
-        href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}" />
+      <script
+         defer
+         src="https://cdn.tailwindcss.com"
+      ></script>
 
-    <!-- amchart css -->
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css"
-        media="all" />
-    <!-- others css -->
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}">
-    <!--link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}"/-->
-    <!-- DataTables FORMATO TABLAS-->
-    <link rel="stylesheet"
-        href="{{ url_for('static',filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}" />
-    <link rel="stylesheet"
-        href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}" />
-    <link rel="stylesheet"
-        href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}" />
-    <!-- modernizr css -->
-    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
-    <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
-    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
-    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
-    <script defer src="https://cdn.tailwindcss.com"></script>
-</head>
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/themify-icons.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/metisMenu.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}"
+      />
+      <!-- amchart css -->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/export.css') }}"
+         type="text/css"
+         media="all"
+      />
+      <!-- others css -->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/typography.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/default-css.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/styles.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/responsive.css') }}"
+      />
 
-<body class="noScroll">
+      <!-- DataTables FORMATO TABLAS-->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}"
+      />
+      <!-- modernizr css -->
+      <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+      <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+      <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/brc-styles.css') }}"
+      />
+   </head>
 
-    <nav class="navbar">
-        <a class="app-section" href="{{ url_for('main.index') }}">
+   <body class="noScroll">
+      <nav class="navbar">
+         <a
+            class="app-section"
+            href="{{ url_for('main.index') }}"
+         >
             <h2 class="name-app">Póliza Tracker</h2>
-            <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" class="logo-ggc" />
-        </a>
+            <img
+               src="{{ url_for('static',filename='assets/images/GGGC.png') }}"
+               class="logo-ggc"
+            />
+         </a>
 
-        <div class="user-profile pull-right">
-            <h6 class="user-name dropdown-toggle" data-toggle="dropdown">
-                {{ current_user.username }}<i class="fa fa-angle-down"></i>
+         <div class="user-profile pull-right">
+            <h6
+               class="user-name dropdown-toggle"
+               data-toggle="dropdown"
+            >
+               {{ current_user.username }}<i class="fa fa-angle-down"></i>
             </h6>
             <div class="dropdown-menu">
-                <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
-                <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
+               <a
+                  class="dropdown-item"
+                  href="{{ url_for('auth.logout') }}"
+                  >Cerrar Sesión</a
+               >
+               <a
+                  class="dropdown-item"
+                  href="{{ url_for('auth.cambiar_contrasena') }}"
+                  >Cambiar Contraseña</a
+               >
             </div>
-        </div>
-    </nav>
+         </div>
+      </nav>
 
-    <!-- page container area start -->
+      
+                     <!-- page container area start -->
+    <div class="col-12">
     <div class="tables-container">
         <div class="form__container form_polizas">
             <h4 class="header-title">Captura de Usuarios</h4>
@@ -88,45 +162,13 @@
                         <p class="invalid-feedback">Ingresa un apellido válido.</p>
                     </div>
                 </div>
-                <div class="form__input-data">
-                    <label for="rfc" class="label-input-data">RFC</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="rfc" name="rfc" placeholder="" minlength="12"
-                            maxlength="13" required />
-                        <p class="invalid-feedback">Ingresa un RFC válido.</p>
-                    </div>
-                </div>
 
                 <div class="form__input-data">
-                    <label for="telefono_movil" class="label-input-data">Teléfonos Móviles</label>
+                    <label for="telefono_movil" class="label-input-data">Teléfono</label>
                     <div class="input-group">
                         <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder=""
                             minlength="10" maxlength="10" required />
                         <p class="invalid-feedback">Ingresa un teléfono válido.</p>
-                    </div>
-                </div>
-
-                <div class="input-sibling">
-                    <div class="form__input-data input-sibling-child">
-                        <label for="telefono_casa" class="label-input-data">
-                            Teléfonos Casa</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="telefono_casa" name="telefono_casa"
-                                placeholder="" minlength="10" maxlength="10" required />
-                            <p class="invalid-feedback">
-                                Ingresa un teléfono válido.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="form__input-data input-sibling-child">
-                        <label for="telefono_oficina" class="label-input-data">Teléfonos Oficina</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="telefono_oficina" name="telefono_oficina"
-                                placeholder="" minlength="10" maxlength="10" required />
-                            <p class="invalid-feedback">
-                                Ingresa un teléfono válido.
-                            </p>
-                        </div>
                     </div>
                 </div>
 
@@ -140,82 +182,33 @@
                         </p>
                     </div>
                 </div>
-                <div class="form__input-data">
-                    <label for="direccion_fiscal" class="label-input-data">Dirección Fiscal</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="direccion_fiscal" name="direccion_fiscal"
-                            placeholder="" minlength="5" maxlength="125" required />
-                        <p class="invalid-feedback">
-                            Ingresa una dirección válida.
-                        </p>
-                    </div>
-                </div>
-                <div class="input-sibling">
-                    <div class="form__input-data input-sibling-child">
-                        <label for="fecha_nacimiento" class="label-input-data">Fecha de Nacimiento</label>
-                        <div class="input-group">
-                            <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
-                                placeholder="" required />
-                            <p class="invalid-feedback">
-                                Ingresa una fecha válida.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="form__input-data input-sibling-child">
-                        <label for="sexo" class="label-input-data">Sexo</label>
-                        <select class="custom-select" id="sexo" name="sexo" required>
-                            <option value="">Selecciona...</option>
-                            <option value="Mujer">Mujer</option>
-                            <option value="Hombre">Hombre</option>
-                        </select>
-                        <p class="invalid-feedback">Selecciona un sexo válido.</p>
-                    </div>
-                </div>
-                <div class="input-sibling">
-                    <div class="form__input-data input-sibling-child">
-                        <label for="ocupacion" class="label-input-data">Ocupación</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="ocupacion" name="ocupacion" placeholder=""
-                                minlength="2" maxlength="30" required />
-                            <p class="invalid-feedback">
-                                Ingresa una ocupación válida.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="form__input-data input-sibling-child">
-                        <label for="giro_actividad" class="label-input-data">Giro o Actividad</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="giro_actividad" name="giro_actividad"
-                                placeholder="" minlength="2" maxlength="30" required />
-                            <p class="invalid-feedback">
-                                Ingresa un giro o actividad válido.
-                            </p>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="form__input-data">
-                    <label for="grupo" class="label-input-data">Grupo</label>
+                    <label for="grupo" class="label-input-data">Nivel (Tipo de Usuario)</label>
                     <select class="custom-select" id="grupo" name="grupo" required>
-                        <option value="">Selecciona...</option>
-                        {% for grupo in grupos %}
-                        <option value="{{ grupo.id }}">{{ grupo.grupo }}</option>
-                        {% endfor %}
-                        <option value="New">Nuevo Grupo</option>
+                        <option>Gerente</option>
+                        <option>Usuario</option>
+                        <option>Administrador</option>
+
                     </select>
                     <p class="invalid-feedback">Selecciona un grupo válido.</p>
                 </div>
-                <div class="form__input-data" style="display: none" id="nuevo_grupo_div">
-                    <label for="nuevo_grupo" class="label-input-data">Nuevo Grupo</label>
+                
+
+                <div class="form__input-data">
+                    <label class="label-input-data" for="correo">Username</label>
                     <div class="input-group">
-                        <input type="text" class="form-control" name="nuevo_grupo" id="nuevo_grupo" placeholder=""
-                            minlength="2" maxlength="30" />
-                        <p class="invalid-feedback">Ingresa un nuevo grupo</p>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="" minlength="5"
+                            maxlength="50" required />
+                        <p class="invalid-feedback">
+                            Ingresa un correo electrónico válido.
+                        </p>
                     </div>
                 </div>
                 <div class="button-container">
                     <button id="Savebtn" type="submit" class="btn">
-                        Crear
+                        
+                        
                     </button>
                     <button id="Resetbtn" type="reset" class="btn">
                         Cancelar
@@ -223,20 +216,119 @@
                 </div>
             </form>
         </div>
-        <!-- Server side end -->
-        <div class="tables-sibling">
-            <div class="table-polizas" id="table-polizas">
-                <h4 class="header-title">Tabla de Usuarios</h4>
-                <form class="d-flex" role="search">
-                    <input class="form-control my-2" type="search" placeholder="Buscar Usuario" aria-label="Search"
-                        id="searchClient" />
-                </form>
 
+         <!-- Server side end -->
+
+         <div class="tables-sibling">
+            <div
+               class="table-polizas"
+               id="table-polizas"
+            >
+               <h4 class="header-title">Tabla de Usuarios</h4>
+               <form
+                  class="d-flex"
+                  role="search"
+               >
+                  <input
+                     class="form-control my-2"
+                     type="search"
+                     placeholder="Buscar Cliente"
+                     aria-label="Search"
+                     id="searchClient"
+                  />
+               </form>
+
+               <table class="table">
+                  <thead class="tableHeader">
+                     <tr>
+                        <th
+                           class="table-name siblingContainerRow"
+                           scope="col"
+                        >
+                           Nombre
+
+                           <a
+                              href="#"
+                              class="btn__icon"
+                              id="sortByName"
+                           >
+                              <svg
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 height="24"
+                                 viewBox="0 -960 960 960"
+                                 width="24"
+                              >
+                                 <path
+                                    d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z"
+                                 />
+                              </svg>
+                           </a>
+                        </th>
+                        <th
+                           class="table-mail"
+                           scope="col"
+                        >
+                           Correo
+                        </th>
+                        <th
+                           class="table-phone"
+                           scope="col"
+                        >
+                           Teléfono
+                        </th>
+                        <th
+                           class="table-actions"
+                           scope="col"
+                        >
+                           Acción
+                        </th>
+                        <th
+                           class="table-actions"
+                           scope="col"
+                        >
+                           Acceso
+                        </th>
+                        <!-- <th scope="col">Vigencia</th> -->
+                        <!-- <th scope="col"></th> -->
+                     </tr>
+                  </thead>
+                  <tbody id="demo">
+                     <!-- Agregar la información de la tabla -->
+                  </tbody>
+               </table>
+            </div>
+            <ul
+               id="indexList"
+               class="paginationList"
+            >
+               <li
+                  class="paginationList__index"
+                  id="prev-index"
+               >
+               </li>
+               <li
+                  id="current-index"
+                  class="paginationList__current-index noClickable"
+               ></li>
+               <li
+                  class="paginationList__index"
+                  id="next-index"
+               >
+                  >
+               </li>
+            </ul>
+         </div>
+       
+
+         <!-- Tabla de cambio de contraseña -->
+         <div class="user-container user__container col-2">
+            <div class="container_table">
+                <h4 class="header-title">Cambio de Contraseña</h4>
                 <table class="table">
                     <thead class="tableHeader">
                         <tr>
                             <th class="table-name siblingContainerRow" scope="col">
-                                Nombre
+                                Username
 
                                 <a href="#" class="btn__icon" id="sortByName">
                                     <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960"
@@ -247,19 +339,8 @@
                                 </a>
                             </th>
                             <th class="table-mail" scope="col">
-                                Correo
+                                Status
                             </th>
-                            <th class="table-phone" scope="col">
-                                Celular
-                            </th>
-                            <th class="table-user" scope="col">
-                                Tipo de Usuario
-                            </th>
-                            <th class="table-actions" scope="col">
-                                Acción
-                            </th>
-                            <!-- <th scope="col">Vigencia</th> -->
-                            <!-- <th scope="col"></th> -->
                         </tr>
                     </thead>
                     <tbody id="demo">
@@ -267,145 +348,133 @@
                     </tbody>
                 </table>
             </div>
-            <ul id="indexList" class="paginationList">
-                <li class="paginationList__index" id="prev-index">
-                    < </li>
-                <li id="current-index" class="paginationList__current-index noClickable"></li>
-                <li class="paginationList__index" id="next-index">
-                    >
-                </li>
-            </ul>
-        </div>
-
-
-
-        <!-- main content area end -->
+        </div> 
     </div>
-    <!-- page container area end -->
 
-    <!-- jquery latest version -->
-    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
-    <!-- bootstrap 4 js -->
-    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
 
-    <!-- DataTables  & Plugins FORMATO TABLAS-->
-    <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
-    <!-- DataTables  & Plugins FORMATO TABLAS-->
-    <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
-    <script
-        src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+         <!-- main content area end -->
+      </div>
+      <!-- page container area end -->
 
-    <!-- others plugins -->
-    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-    <!-- others plugins -->
-    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
-    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+      <!-- jquery latest version -->
+      <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+      <!-- bootstrap 4 js -->
+      <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
 
-    <script>
-        var editicon =
+      <!-- DataTables  & Plugins FORMATO TABLAS-->
+      <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+      <!-- DataTables  & Plugins FORMATO TABLAS-->
+      <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+
+      <!-- others plugins -->
+      <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+      <!-- others plugins -->
+      <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+
+      <script>
+         var editicon =
             "{{ url_for('static', filename='assets/images/icon/edit.png') }}";
-        var deleteicon =
+         var deleteicon =
             "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
-    </script>
-    <script type="module" src="{{ url_for('static', filename='assets/controladores/clientes.js') }}"></script>
-</body>
+      </script>
+      <script
+         type="module"
+         src="{{ url_for('static', filename='assets/controladores/usuario.js') }}"
+      ></script>
+   </body>
 
-<!-- modal ver Pólizas -->
-<div class="container__modal">
-    <div class="form__modal form__modal-table" id="polizasModal">
-        <div class="table-polizas" id="table-polizas">
-            <div id="btn_close-modal" class="btn_close-modal">
-                Cerrar
+   <!-- modal ver Pólizas -->
+   <div class="container__modal">
+      <div
+         class="form__modal form__modal-table"
+         id="polizasModal"
+      >
+         <div
+            class="table-polizas"
+            id="table-polizas"
+         >
+            <div
+               id="btn_close-modal"
+               class="btn_close-modal"
+            >
+               Cerrar
             </div>
-            <h4 class="header-title">Tabla de Pólizas</h4>
+            <h4 class="header-title">Historial de Acciones</h4>
 
             <table class="table">
-                <thead class="tableHeader">
-                    <tr>
-                        <th class="table-poliza" scope="col">
-                            Póliza
-                        </th>
-                        <th class="table-ramo" scope="col">
-                            Ramo
-                        </th>
-                        <th class="table-subramo" scope="col">
-                            Subramo
-                        </th>
-                        <th class="table-primaNeta" scope="col">
-                            Prima Neta
-                        </th>
-                        <th class="table-primaTotal" scope="col">
-                            Prima Total
-                        </th>
-                        <th class="table-vigencia" scope="col">
-                            Vigencia
-                        </th>
-                        <th class="table-estatus" scope="col">
-                            Estatus
-                        </th>
-
-                        <!-- <th scope="col">Vigencia</th> -->
-                        <!-- <th scope="col"></th> -->
-                    </tr>
-                </thead>
-                <tbody id="table__modal">
-                    <!-- Agregar la información de la tabla -->
-                    <tr class="tableOption">
-                        <!-- póliza, ramo, subramo, prima neta, prima total, vigencia, status -->
-                        <td>Póliza</td>
-                        <td>Ramo</td>
-                        <td>Subramo</td>
-                        <td>Prima Neta</td>
-                        <td>Prima Total</td>
-                        <td>Vigencia</td>
-                        <td>Status</td>
-                    </tr>
-                </tbody>
+               <thead class="tableHeader">
+                  <tr>
+                     <th
+                        class="table-poliza"
+                        scope="col"
+                     >
+                        Nombre Usuario
+                     </th>
+                     <th
+                        class="table-ramo"
+                        scope="col"
+                     >
+                        Acción
+                     </th>
+                     <th
+                        class="table-subramo"
+                        scope="col"
+                     >
+                        Fecha
+                     </th>
+                     <th
+                        class="table-primaNeta"
+                        scope="col"
+                     >
+                        Entidad a la que afecto
+                     </th>
+                
+                  </tr>
+               </thead>
+               <tbody id="table__modal">
+                  <!-- Agregar la información de la tabla -->
+                  <tr class="tableOption">
+                     <!-- póliza, ramo, subramo, prima neta, prima total, vigencia, status -->
+                     <th>Póliza</th>
+                     <th>Ramo</th>
+                     <th>Subramo</th>
+                     <th>Prima Neta</th>
+                     <th>Prima Total</th>
+                     <th>Vigencia</th>
+                     <th>Status</th>
+                  </tr>
+               </tbody>
             </table>
-        </div>
-    </div>
-</div>
-
+         </div>
+      </div>
+   </div>
 </html>
