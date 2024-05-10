@@ -94,6 +94,39 @@ def cliente():
     grupos=Grupo.query.all()
     return render_template('clientes.html', user=current_user,grupos=grupos)
 
+#Polizas
+@main.route('/polizas', methods=['GET'])
+@login_required
+def polizas():
+    ramos=Ramo.query.all()
+    subramos=Subramo.query.all()
+    pagos=TipoPago.query.all()
+    aseguradoras=Aseguradora.query.all()
+    agentes=Agente.query.all()
+    vendedores=Vendedor.query.all()
+    return render_template('polizas.html', user=current_user,ramos=ramos,subramos=subramos,pagos=pagos,aseguradoras=aseguradoras,agentes=agentes,vendedores=vendedores)
+
+
+# Ruta principal del sistema
+@main.route('/')
+@login_required
+def index():
+    acceso=NivelAcceso.query.get_or_404(current_user.nivel_id)
+
+    return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
+
+#Solicitudes
+@main.route('/solicitudes', methods=['GET'])
+@login_required
+def solicitudes():
+    if not check_access("Admin usuarios"):
+        return redirect(url_for('main.index'))
+    grupos=Grupo.query.all()
+    return render_template('solicitudes.html', user=current_user,grupos=grupos)
+
+
+"""Rutas simples"""
+#Ruta de grupos
 @main.route('/grupo', methods=['GET'])
 @login_required
 def grupo():
@@ -108,68 +141,6 @@ def grupo():
             'nombre': grupo.grupo,
         })
     return jsonify(data)
-
-
-
-def revert_log_entry(request_id):
-    """
-    Apply changes to the database based on the information in the log entry.
-    """
-    log_entries = Log.query.filter_by(request_id=request_id).all()
-
-    a=0
-    for log_entry in log_entries:
-        if a==0:
-            # Get the table class dynamically
-            table_class = globals()[log_entry.table_name]
-            # Retrieve the record based on the row ID
-            record = table_class.query.get(log_entry.row_id)
-            a=1
-        # Update the corresponding attribute with the new value
-        setattr(record, log_entry.column_name, log_entry.old_value)
-        # Commit the changes to the database
-    db.session.commit()
-
-
-#Para pasar de GET a POST descomente las lineas con ##
-# # @app.route('/process-request/<int:request_id>/<action>', methods=['GET'])
-@app.route('/process-request', methods=['POST'])
-@login_required
-def process_request():
-# # def process_request(request_id, action):
-# # sugar comment
-
-    request_id = request.form.get('request_id')
-    action = request.form.get('action')
-
-    # Get the request
-    request_entry = Request.query.get(request_id)
-    if not request_entry:
-        return  jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró la solicitud.'})
-
-    if request_entry.status!="Pendiente":
-        return  jsonify({'error': True, 'title': 'Error', 'msg': 'Esta solicitud ya fue revisada.'})
-    
-    # Check if the action is valid
-    if action not in ['Aceptada', 'Rechazada']:
-        return jsonify({'error': True, 'title': 'Error', 'msg': 'Accion invalida.'})
-
-    if action == 'Aceptada':
-        # Update the status of the request to 'Aceptada'
-        request_entry.status = 'Aceptada'
-        request_entry.usuario_review_id = current_user.id
-        db.session.commit()
-
-        return jsonify({'error': False, 'title': 'Solicitud Aceptada', 'msg': ''})
-
-    elif action == 'Rechazada':
-        # Update the status of the request to 'Rechazada'
-            # Apply the changes based on the log entries
-        revert_log_entry(request_id)
-        request_entry.status = 'Rechazada'
-        request_entry.usuario_review_id = current_user.id
-        db.session.commit()
-        return jsonify({'error': False, 'title': 'Solicitud Rechazada', 'msg': 'Cambios revertidos'})
 
 
 
@@ -390,82 +361,6 @@ def delete_user():
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el usuario.'})
 
 
-"""Polizas"""
-@main.route('/polizas', methods=['GET'])
-@login_required
-def polizas():
-    ramos=Ramo.query.all()
-    subramos=Subramo.query.all()
-    pagos=TipoPago.query.all()
-    aseguradoras=Aseguradora.query.all()
-    agentes=Agente.query.all()
-    vendedores=Vendedor.query.all()
-    return render_template('polizas.html', user=current_user,ramos=ramos,subramos=subramos,pagos=pagos,aseguradoras=aseguradoras,agentes=agentes,vendedores=vendedores)
-
-
-"""Menu"""
-# Ruta principal del sistema
-@main.route('/')
-@login_required
-def index():
-    acceso=NivelAcceso.query.get_or_404(current_user.nivel_id)
-
-    return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
-
-
-
-
-
-
-
-"""Solicitudes"""
-
-@main.route('/solicitudes', methods=['GET'])
-@login_required
-def solicitudes():
-    if not check_access("Admin usuarios"):
-        return redirect(url_for('main.index'))
-    grupos=Grupo.query.all()
-    return render_template('solicitudes.html', user=current_user,grupos=grupos)
-
-@main.route('/get_requests_data', methods=['GET'])
-@login_required
-def requests_data():
-    # Estos datos los recibe desde la función en JS
-    #start = int(request.form.get('start'))
-    #length = int(request.form.get('length'))
-    start = 0
-    length = 50
-
-    # Query to fetch clientes data from the database 
-    request_query = db.session.query(Request, 
-                                     Usuario.nombre.label('usuario_nombre'),
-                                     Usuario.apellido.label('usuario_apellido')).join(
-                                         Usuario, Request.usuario_id == Usuario.id).filter(Request.status == 'Pendiente')
-
-    # Get total count of records without filtering
-    total_records = request_query.count()
-    # Apply pagination
-    requests = request_query.offset(start).limit(length).all()
-
-    # Format data
-    data = []
-    for request, usuario_nombre,usuario_apellido in requests:
-        data.append({
-            'id': request.id,
-            'usuario': f"{usuario_nombre} {usuario_apellido}",
-            'timestamp': request.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'descripcion': request.description
-        })
-
-    # Prepare response
-    response = {
-        'recordsTotal': total_records,  # Total records without filtering
-        'data': data  # Data to display
-    }
-
-    return jsonify(response)
-
 
 @main.route('/create_multiple', methods=['POST'])
 @login_required
@@ -522,104 +417,4 @@ def get_data_multiple():
         }
 
     return jsonify(response)
-
-"""
-Solicitudes para utilerias
-"""
-
-# Alias for the reviewed usuario
-
-#@main.route('/get_requests_data_all', methods=['GET'])
-@main.route('/get_requests_data_all', methods=['POST'])
-@login_required
-def requests_data_all():
-    # Estos datos los recibe desde la función en JS
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
-    #start = 0
-    #length = 50
-    UsuarioReview = aliased(Usuario)
-    # Query to fetch clientes data from the database 
-    request_query = db.session.query(Request, 
-                                     Usuario.nombre.label('usuario_nombre'),
-                                     Usuario.apellido.label('usuario_apellido'),
-                                     UsuarioReview.nombre.label('reviso_nombre'),
-                                     UsuarioReview.apellido.label('reviso_apellido'))\
-                                .join(Usuario, Request.usuario_id == Usuario.id)\
-                                .join(UsuarioReview, Request.usuario_review_id == UsuarioReview.id)
-
-    # Get total count of records without filtering
-    total_records = request_query.count()
-    # Apply pagination
-    requests = request_query.offset(start).limit(length).all()
-
-    # Format data
-    data = []
-    for request, usuario_nombre,usuario_apellido,reviso_nombre,reviso_apellido in requests:
-        data.append({
-            'id': request.id,
-            'usuario': f"{usuario_nombre} {usuario_apellido}",
-            'reviso': f"{reviso_nombre} {reviso_apellido}",
-            'timestamp': request.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'descripcion': request.description,
-            'status':request.status
-        })
-
-    # Prepare response
-    response = {
-        'recordsTotal': total_records,  # Total records without filtering
-        'data': data  # Data to display
-    }
-
-    return jsonify(response)
-
-
-@main.route('/get_log_by_request_id', methods=['POST'])
-#@main.route('/get_log_by_request_id/<int:request_id>', methods=['GET'])
-@login_required
-#def get_log_by_request_id(request_id):
-def get_log_by_request_id():
-    # Estos datos los recibe desde la función en JS
-    #start = int(request.form.get('start'))
-    #length = int(request.form.get('length'))
-    
-    start = 0
-    length = 50
-    request_id = int(request.form.get('request_id'))
-
-    log_query=Log.query.filter_by(request_id=request_id)
-
-    # Get total count of records without filtering
-    total_records = log_query.count()
-    # Apply pagination
-    logs = log_query.offset(start).limit(length).all()
-
-    # Format data
-    data = []
-
-    for log in logs:
-        # Extracting all columns from the Poliza object
-        log_data = {}
-        # Iterate through each column in the Poliza table
-        for column in Log.__table__.columns:
-            # Get the value of the column
-            value = getattr(log, column.name)
-            # Add column name and corresponding value to poliza_data dictionary
-            log_data[column.name] = value
-
-        # Append additional information
-        #log_data.update({})
-
-        # Append to data list
-        data.append(log_data)
-
-  
-    # Prepare response
-    response = {
-        'recordsTotal': total_records,  # Total records without filtering
-        'data': data  # Data to display
-    }
-
-    return jsonify(response)
-
 
