@@ -139,7 +139,7 @@
         <div class="form__container form_polizas">
             <h4 class="header-title">Captura de Usuarios</h4>
 
-            <form id="userForm" method="POST" action="{{ url_for('main.create_user') }}"
+            <form id="userForm" method="POST" action="{{ url_for('usuarios.create') }}"
                 class="needs-validation form-data" novalidate>
 
                 <div class="form__input-data">
@@ -232,9 +232,9 @@
                   <input
                      class="form-control my-2"
                      type="search"
-                     placeholder="Buscar Cliente"
+                     placeholder="Buscar Usuario"
                      aria-label="Search"
-                     id="searchClient"
+                     id="searchUser"
                   />
                </form>
 
@@ -478,3 +478,4 @@
       </div>
    </div>
 </html>
+

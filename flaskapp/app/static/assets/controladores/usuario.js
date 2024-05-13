@@ -16,31 +16,30 @@ const currentPageData = async () => {
    const index = currentIndex;
 
    //Solicitamos los datos
-   currentData = await fetch('/get_usuarios_data2');
-   //Solicitamos los datos
-   // if (sorting === true) {
-   //    currentData = await fetch('/get_usuarios_data2', {
-   //       method: 'GET',
-   //       headers: {
-   //          'Content-Type': 'application/x-www-form-urlencoded'
-   //       },
-   //       body: new URLSearchParams({
-   //          start: `${index === undefined ? 0 : index * userPerPage}`,
-   //          length: userPerPage
-   //       })
-   //    });
-   // } else {
-   //    currentData = await fetch('/get_usuarios_data2', {
-   //       method: 'GET',
-   //       headers: {
-   //          'Content-Type': 'application/x-www-form-urlencoded'
-   //       },
-   //       body: new URLSearchParams({
-   //          start: `${index === undefined ? 0 : index * userPerPage}`,
-   //          length: userPerPage
-   //       })
-   //    });
-   // }
+   if (sorting == true) {
+        currentData = await fetch('/usuarios/get', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    start: `${index === undefined ? 0 : index * userPerPage}`,
+                    length: userPerPage,
+                    order: true
+                })
+                });
+   } else{
+        currentData = await fetch('/usuarios/get', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                start: `${index === undefined ? 0 : index * userPerPage}`,
+                length: userPerPage
+            })
+            });
+   }
 
    //Convertimos los datos a JSON
    let data = await currentData.json();
@@ -55,7 +54,8 @@ const currentPageData = async () => {
    data.data.forEach((usuario) => {
       userData.push({
          'id': usuario.id,
-         'fullname': usuario.nombre,
+
+         'fullname': usuario.fullname,
          'mail': usuario.correo,
          'phone': usuario.telefono
       });
@@ -64,57 +64,19 @@ const currentPageData = async () => {
    return userData;
 };
 
-const polizasByClientId = async (id) => {
-   let polizas = [];
-   // const index = currentIndex;
-   //Solicitamos los datos
-   const polizaData = await fetch('/get_poliza_byClientID', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-         start: 0,
-         length: userPerPage,
-         search_value: id
-      })
-   });
-   console.log(`ID recibido ${id}`);
-   //Convertimos los datos a JSON
-   let data = await polizaData.json();
-   console.log(data);
-
-   //Creamos un objeto llamado userData y lo llenamos iterando en la data JSON
-
-   //Rellenamos el arreglo "userData" con los datos del servidor
-   data.data.forEach((poliza) => {
-      polizas.push({
-         'poliza': poliza.poliza,
-         'cliente': poliza.cliente,
-         'aseguradora': poliza.aseguradora,
-         'vigencia': poliza.vigencia,
-         'ramo': poliza.ramo,
-         'subramo': poliza.subramo,
-         'primaNeta': poliza.primaNeta,
-         'primaTotal': poliza.primaTotal,
-         'fechaFin': poliza.fechaFin,
-         'status': poliza.status
-      });
-   });
-   console.log(data);
-
-   return polizas;
-};
-
 const updateTable = async (userData) => {
    let iterator = 0;
    const rows = document.querySelectorAll('#demo>tr.tableOption');
-   console.log(`estoy imprimiendo desde updateTable ${userData}`);
+
+   console.log(`estoy imprimiendo desde updateTable`);
+   console.log(userData)
+
 
    userData.forEach((usuario) => {
       rows[
          iterator
-      ].innerHTML = `<td>${usuario.nombre}</td><td>${usuario.correo}</td><td>${usuario.telefono}</td><td><ul class="btn_table_options">
+      ].innerHTML = `<td>${usuario.fullname}</td><td>${usuario.mail}</td><td>${usuario.phone}</td><td><ul class="btn_table_options">
+
                               <li>
                                  <a href="#" class="btn__icon_delete" id="btnDelete_${usuario.id}">
                                     <svg class="noClickable" xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M292.309-140.001q-29.923 0-51.115-21.193-21.193-21.192-21.193-51.115V-720h-40v-59.999H360v-35.384h240v35.384h179.999V-720h-40v507.691q0 30.308-21 51.308t-51.308 21H292.309ZM680-720H280v507.691q0 5.385 3.462 8.847 3.462 3.462 8.847 3.462h375.382q4.616 0 8.463-3.846 3.846-3.847 3.846-8.463V-720ZM376.155-280h59.999v-360h-59.999v360Zm147.691 0h59.999v-360h-59.999v360ZM280-720v520-520Z"/></svg>
@@ -135,7 +97,8 @@ const updateTable = async (userData) => {
    });
    await addBtnDelete();
    await addBtnEdit();
-   await addBtnShow();
+   //await addBtnShow();
+
 };
 
 //Eliminar usuario desde la tabla
@@ -154,16 +117,45 @@ const addBtnDelete = async () => {
 //Función para eliminar usuario
 const deleteClient = async (id) => {
    //insertar función eliminar
-
-   await fetch('/delete_user', {
+   try {
+    const response =await fetch('/usuarios/delete', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-         usuarios_id: id
+        user_id: id
       })
    });
+   const responseData = await response.json();
+   if (!responseData.error) {
+    // Success response
+    Swal.fire({
+       title: responseData.title,
+       text: responseData.msg,
+       icon: 'success'
+    });
+    } else {
+        // Error response
+        Swal.fire({
+        title: 'Error',
+        text: responseData.msg,
+        icon: 'error'
+        });
+    }
+
+
+    } catch (error) {
+        // Fetch error
+        Swal.fire({
+        title: 'Error inesperado',
+        text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+        icon: 'error'
+        }).then(function () {
+        resetPage();
+        });
+    }
+
 };
 
 //Editar usuario desde la tabla
@@ -186,55 +178,30 @@ const addBtnEdit = async () => {
 const editClient = async (id) => {
    //insertar función eliminar
 
-   const response = await fetch('/get_clients_filtered', {
+   const response = await fetch('/usuarios/get', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-         search_value: id
+        start:0,
+        length:1,
+        usuario_id: id
       })
    });
    console.log(`imprime desde editClient ${id}`);
    const data = await response.json();
    console.log(data.data[0]);
-   $('#usuarios_id').val(data.data[0].id);
-   $('#nombre').val(data.data[0].nombre);
-   $('#apellido').val(data.data[0].apellido);
-   $('#rfc').val(data.data[0].rfc);
-   $('#telefono_oficina').val(data.data[0].tel_oficina);
-   $('#telefono_movil').val(data.data[0].tel_movil);
-   $('#telefono_casa').val(data.data[0].tel_casa);
-   $('#correo').val(data.data[0].correo);
-   $('#direccion_fiscal').val(data.data[0].direccion);
-   $('#fecha_nacimiento').val(data.data[0].fecha_nacimiento);
-   $('#sexo').html(`<option value='${data.data[0].sexo}'>
-         ${data.data[0].sexo}
-         </option>
-         <option value="Mujer">Mujer</option>
-         <option value="Hombre">Hombre</option>
-         <option value="Otro">Otro</option>
 
-         `);
-   $('#ocupacion').val(data.data[0].ocupacion);
-   $('#giro_actividad').val(data.data[0].actividad);
-   $('#grupo').html(`<option value='${data.data[0].grupo_id}'> ${
-      data.data[0].grupo
-   }</option>
-         <!-- pintar todas las opciones -->
-         ${fetch('/grupo')
-            .then((response) => response.json())
-            .then((data) => {
-               data.forEach((grupo) => {
-                  document.querySelector('#grupo').innerHTML += `
-               <option value='${grupo.id}'>${grupo.nombre}</option>
-               `;
-               });
-            })}
-         `);
+   Swal.fire({
+    title: "En proceso",
+    text: "Tenia logica de clientes",
+    icon: 'error'
+    });
+   
 };
 
-const addBtnShow = async () => {
+/* const addBtnShow = async () => {
    const btnShow = document.querySelectorAll('.btn__icon_show');
 
    btnShow.forEach((btn) => {
@@ -244,56 +211,20 @@ const addBtnShow = async () => {
          $('.container__modal').addClass('modal-active');
       });
    });
-};
+}; */
 
-const showPoliza = async (id) => {
-   //Solicitamos los datos
-   const data = await polizasByClientId(id);
-   console.log(data);
-   //Llenar Tabla modal
-   const modalTable = document.querySelector('#table__modal');
-   modalTable.innerHTML = '';
-   console.log(`Datos solicitados para el id ${id}`);
-   if (data.length === 0) {
-      modalTable.innerHTML = `<tr>
-         <td>No hay polizas registradas</td>
-         <td></td>
-         <td></td>
-      </tr>`;
-   } else
-      data.forEach((poliza) => {
-         modalTable.innerHTML += `
-                  <tr  class="tableOption">
-                        <td>${poliza.poliza}</td>
-                        <td>${poliza.ramo}</td>
-                        <td>${poliza.subramo}</td>
-                        <td>${poliza.primaNeta}</td>
-                        <td>${poliza.primaTotal}</td>
-                        <td>${poliza.fechaFin}</td>
-                        <td>${poliza.status}</td>
-                  </tr>`;
-      });
-};
-
-const verGrupos = async () => {
-   fetch('/grupo')
-      .then((response) => response.json())
-      .then((data) => {
-         console.log(data);
-      });
-};
 
 const pintarPaginacion = async () => {
-   await fetch('/get_usuarios_data2') //, {
-   //    method: 'GET',
-   //    headers: {
-   //       'Content-Type': 'application/x-www-form-urlencoded'
-   //    },
-   //    body: new URLSearchParams({
-   //       start: 0,
-   //       length: 1
-   //    })
-   // })
+   await fetch('/usuarios/get', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                start: 0,
+                length: 1
+            })
+            })
       .then((response) => response.json())
       .then((data) => {
          document.querySelector(
@@ -357,17 +288,7 @@ sortButton.addEventListener('click', async () => {
 });
 
 $(document).ready(function () {
-   //Funcion para mostrar nuevo grupo input
-   $('#grupo').change(function () {
-      var selectedOption = $(this).val();
-      if (selectedOption === 'New') {
-         $('#nuevo_grupo_div').show(); // Corrected class name
-         $('#nuevo_grupo').prop('required', true);
-      } else {
-         $('#nuevo_grupo_div').hide(); // Corrected class name
-         $('#nuevo_grupo').prop('required', false);
-      }
-   });
+
    // Funcion para recargar tabla y regresar form a status inicial
    function resetPage() {
       // Reset the form values
@@ -381,77 +302,12 @@ $(document).ready(function () {
       $('#usuarios_id').val('New');
       // Change the text of the Save button back to "Crear"
       $('#Savebtn').text('Crear');
-      if ($.fn.DataTable.isDataTable('#myTable')) {
-         var table = $('#myTable').DataTable();
-         table.ajax.reload();
-      }
+
+
       $('#nuevo_grupo_div').hide(); // Corrected class name
    }
 
    // Configuracion de Tabla de usuarios
-
-   var table = $('#myTable').DataTable({
-      ...datatableConfig,
-      'ajax': {
-         'url': '/get_usuarios_data2',
-         'type': 'GET',
-         'dataSrc': 'data',
-         'error': function (xhr, textStatus, errorThrown) {
-            Swal.fire({
-               title: 'Error inesperado',
-               text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-               icon: 'error'
-            });
-         }
-      },
-      'columns': [
-         { 'data': 'nombre' },
-         { 'data': 'correo' },
-         { 'data': 'telefono' },
-         {
-            'data': null,
-            'render': function (data, type, row, meta) {
-               return (
-                  '<a href="#" class="edit" data-id="' +
-                  row.id +
-                  '" data-row="' +
-                  meta.row +
-                  '"><img src="' +
-                  editicon +
-                  '" width="15" height="15" /><i class="material-icons" data-toggle="tooltip" title="Edit"></i></a>' +
-                  '<a href="#" class="delete" data-id="' +
-                  row.id +
-                  '" data-row="' +
-                  meta.row +
-                  '"><img src="' +
-                  deleteicon +
-                  '" width="20" height="20" /><i class="material-icons" data-toggle="tooltip" title="Delete"></i></a>'
-               );
-            }
-         },
-         { 'data': 'id', 'visible': false, 'title': 'Id' },
-         { 'data': 'username', 'visible': false, 'title': 'Username' },
-         { 'data': 'password', 'visible': false, 'title': 'Contraseña' },
-         { 'data': 'nivel_id', 'visible': false, 'title': 'Nivel' },
-         { 'data': 'nombre', 'visible': false, 'title': 'Nombre' },
-         { 'data': 'correo', 'visible': false, 'title': 'Correo' },
-         {
-            'data': 'telefono',
-            'visible': false,
-            'title': 'Teléfono'
-         },
-         { 'data': 'status', 'visible': false, 'title': 'Status' }
-         //{"data": "status", "visible": false, "title": "Status"}
-      ]
-   });
-
-   $('#myTable_wrapper .col-md-6:eq(0)').append(
-      $('#myTable_wrapper .dt-buttons')
-   );
-   $('#myTable_length').appendTo('#LengthMenu');
-   $('#myTable_filter').appendTo('#Buscador');
-   $('#myTable_info').appendTo('#InfoEmpaty');
-   $('#myTable_paginate').appendTo('#Paginacion');
 
    // Ruta de AJAX para la creacion/edicion de usuarios
    $('#user-form').submit(function (e) {
@@ -467,7 +323,7 @@ $(document).ready(function () {
 
       $.ajax({
          type: 'POST',
-         url: '/create_user',
+         url: '/usuarios/create',
          data: formData,
          success: function (response) {
             if (response.error) {
@@ -484,18 +340,6 @@ $(document).ready(function () {
                   html: response.msg,
                   icon: 'success'
                }).then(function () {
-                  if (response.add_group_opt) {
-                     var option = $(
-                        '<option value="' +
-                           response.new_group_id +
-                           '">' +
-                           response.new_group_name +
-                           '</option>'
-                     );
-
-                     // Insert the new option before the existing "Nuevo Grupo" option
-                     $('#grupo').find('option[value="New"]').before(option);
-                  }
                   resetPage();
                });
             }
@@ -514,78 +358,6 @@ $(document).ready(function () {
       return false;
    });
 
-   // Llenado de formulario al presionar editar
-   $('#myTable').on('click', '.edit', function () {
-      var row = $(this).data('row');
-      var userId = $(this).data('id');
-      var data = table.row(row).data();
-      $('#usuarios_id').val(userId);
-      $('#nombre').val(data.nombre);
-      $('#apellido').val(data.apellido);
-      $('#cel').val(data.telefono);
-      $('#correo').val(data.correo);  
-      $('#username').val(data.username);
-
-      // Disable the RFC field
-      $('#rfc').prop('disabled', true);
-
-      $('#Savebtn').text('Guardar');
-      
-   });
-
-  //Funcion con AJAX para eliminacion de usuarios
-   $('#myTable').on('click', '.delete', function () {
-      var row = $(this).data('row');
-      var clienteId = $(this).data('id');
-      var data = table.row(row).data();
-
-      Swal.fire({
-         title: 'Deseas eliminar a ' + data.nombre + ' ' + data.apellido,
-         text: '¡No podrás revertir esto!',
-         icon: 'warning',
-         showCancelButton: true,
-         confirmButtonColor: '#3085d6',
-         cancelButtonColor: '#d33',
-         confirmButtonText: 'Eliminar'
-      }).then((result) => {
-         if (result.isConfirmed) {
-            $.ajax({
-               type: 'POST',
-               url: '/delete_client',
-               data: { client_id: clienteId },
-               success: function (response) {
-                  if (!response.error) {
-                     table.ajax.reload();
-                     Swal.fire({
-                        title: response.title,
-                        text: response.msg,
-                        icon: 'success'
-                     }).then(function () {
-                        resetPage();
-                     });
-                  } else {
-                     Swal.fire({
-                        title: 'Error',
-                        text: response.msg,
-                        icon: 'error'
-                     }).then(function () {
-                        resetPage();
-                     });
-                  }
-               },
-               error: function (xhr, status, error) {
-                  Swal.fire({
-                     title: 'Error inesperado',
-                     text: 'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-                     icon: 'error'
-                  }).then(function () {
-                     resetPage();
-                  });
-               }
-            });
-         }
-      });
-   });
 
    $('#Resetbtn').click(function () {
       resetPage();
@@ -606,22 +378,23 @@ btnCancelar.addEventListener('click', function (e) {
 //    $('.container__modal').removeClass('modal-active');
 // });
 
-//Buscar cliente
-const inputSearchClient = document.querySelector('#searchClient');
-inputSearchClient.addEventListener('keyup', async (e) => {
+//Buscar usuario
+const inputSearchUser = document.querySelector('#searchUser');
+inputSearchUser.addEventListener('keyup', async (e) => {
+
    let userData = [];
    let searchValue = e.target.value;
    if (searchValue.length >= 3) {
       console.log(searchValue);
-      const response = await fetch('/get_clients_filtered_byName', {
+      const response = await fetch('/usuarios/get', {
          method: 'POST',
          headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
          },
          body: new URLSearchParams({
             start: 0,
-            length: 5,
-            search_value: searchValue
+            length: 10,
+            searchValue: searchValue
          })
       });
       const data = await response.json();
@@ -631,9 +404,10 @@ inputSearchClient.addEventListener('keyup', async (e) => {
             'id': usuario.id,
             'fullname': usuario.fullname,
             'mail': usuario.correo,
-            'phone': usuario.tel_movil
+            'phone': usuario.telefono
          });
       });
+
       await fillTable(userData);
    } else {
       await fillTable(await currentPageData());
@@ -681,7 +455,26 @@ const fillTable = async (data) => {
    await pintarPaginacion();
    await addBtnDelete();
    await addBtnEdit();
-   await addBtnShow();
+   //await addBtnShow();
 };
 
 fillTable(await currentPageData());
+
+/* 
+$('#myTable').on('click', '.edit', function () {
+    var row = $(this).data('row');
+    var userId = $(this).data('id');
+    var data = table.row(row).data();
+    $('#usuarios_id').val(userId);
+    $('#nombre').val(data.nombre);
+    $('#apellido').val(data.apellido);
+    $('#cel').val(data.telefono);
+    $('#correo').val(data.correo);  
+    $('#username').val(data.username);
+
+    // Disable the RFC field
+    $('#rfc').prop('disabled', true);
+
+    $('#Savebtn').text('Guardar');
+    
+ }); */

@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 const numberOfRequests = async () => {
-   const response = await fetch('/get_requests_data');
+   const response = await fetch('/solicitudes/get_pending');
    const data = await response.json();
    const bubble = document.querySelector('.numberOfRequests');
    const bubbleTxt = document.querySelector('#numberOfRequests');

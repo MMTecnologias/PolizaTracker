@@ -143,16 +143,30 @@ class Request(db.Model):
     usuario_review_id = Column(Integer, ForeignKey('usuarios.id'))
     description = Column(String(400))
     status = Column(Enum('Pendiente', 'Aceptada', 'Rechazada'), default='Pendiente')
+    row_id = Column(Integer,nullable=False)
+    table_name = Column(String(50), nullable=False)
 
 class Log(db.Model):
     __tablename__ = 'log'
     id = Column(Integer, primary_key=True)
     request_id = Column(Integer, ForeignKey('requests.id'), nullable=False)
-    row_id = Column(Integer,nullable=False)
-    table_name = Column(String(50), nullable=False)
     column_name = Column(String(50), nullable=False)
     old_value = Column(String(400))
     new_value = Column(String(400))
 
 
 # Ahora debes ajustar cualquier lógica adicional que estés utilizando en tu aplicación para que funcione con estas clases de modelo. También, asegúrate de tener las importaciones necesarias en otros archivos de tu aplicación.
+def new_class(clase,form_id ,nuevo,columname):
+    if form_id=="New":
+        existente = clase.query.filter(getattr(clase,columname)== nuevo).first()
+        if existente:
+            id=existente.id
+        else:
+            kwargs = {columname: nuevo}
+            nuevo = clase(**kwargs)
+            db.session.add(nuevo)
+            db.session.commit()
+            id=nuevo.id
+    else:
+        id=int(form_id)
+    return id

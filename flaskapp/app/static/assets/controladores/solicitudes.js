@@ -1,5 +1,5 @@
 const data = async () => {
-   const response = await fetch('/get_requests_data');
+   const response = await fetch('/solicitudes/get_pending');
    const data = await response.json();
    console.log(data.data);
    const container = document.querySelector('.containerCards');
@@ -49,7 +49,7 @@ const addBtnDelete = async () => {
 };
 
 const deleteClient = async (id) => {
-   const response = await fetch('/process-request', {
+   const response = await fetch('/solicitudes/process', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -78,7 +78,7 @@ const addBtnDeny = async () => {
 };
 
 const denyRequest = async (id) => {
-   const response = await fetch('/process-request', {
+   const response = await fetch('/solicitudes/process', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
