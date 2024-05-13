@@ -41,7 +41,6 @@ const currentPageData = async () => {
             });
    }
 
-
    //Convertimos los datos a JSON
    let data = await currentData.json();
    console.log(data);
@@ -55,6 +54,7 @@ const currentPageData = async () => {
    data.data.forEach((usuario) => {
       userData.push({
          'id': usuario.id,
+
          'fullname': usuario.fullname,
          'mail': usuario.correo,
          'phone': usuario.telefono
@@ -64,18 +64,19 @@ const currentPageData = async () => {
    return userData;
 };
 
-
-
 const updateTable = async (userData) => {
    let iterator = 0;
    const rows = document.querySelectorAll('#demo>tr.tableOption');
+
    console.log(`estoy imprimiendo desde updateTable`);
    console.log(userData)
+
 
    userData.forEach((usuario) => {
       rows[
          iterator
       ].innerHTML = `<td>${usuario.fullname}</td><td>${usuario.mail}</td><td>${usuario.phone}</td><td><ul class="btn_table_options">
+
                               <li>
                                  <a href="#" class="btn__icon_delete" id="btnDelete_${usuario.id}">
                                     <svg class="noClickable" xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M292.309-140.001q-29.923 0-51.115-21.193-21.193-21.192-21.193-51.115V-720h-40v-59.999H360v-35.384h240v35.384h179.999V-720h-40v507.691q0 30.308-21 51.308t-51.308 21H292.309ZM680-720H280v507.691q0 5.385 3.462 8.847 3.462 3.462 8.847 3.462h375.382q4.616 0 8.463-3.846 3.846-3.847 3.846-8.463V-720ZM376.155-280h59.999v-360h-59.999v360Zm147.691 0h59.999v-360h-59.999v360ZM280-720v520-520Z"/></svg>
@@ -97,6 +98,7 @@ const updateTable = async (userData) => {
    await addBtnDelete();
    await addBtnEdit();
    //await addBtnShow();
+
 };
 
 //Eliminar usuario desde la tabla
@@ -300,6 +302,8 @@ $(document).ready(function () {
       $('#usuarios_id').val('New');
       // Change the text of the Save button back to "Crear"
       $('#Savebtn').text('Crear');
+
+
       $('#nuevo_grupo_div').hide(); // Corrected class name
    }
 
@@ -377,6 +381,7 @@ btnCancelar.addEventListener('click', function (e) {
 //Buscar usuario
 const inputSearchUser = document.querySelector('#searchUser');
 inputSearchUser.addEventListener('keyup', async (e) => {
+
    let userData = [];
    let searchValue = e.target.value;
    if (searchValue.length >= 3) {
