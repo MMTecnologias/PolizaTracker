@@ -62,7 +62,8 @@ def get():
             'telefono': usuario.telefono,
             'nombre': name,
             'apellido': lastname,
-            'acceso': usuario.nivel_id,
+            'acceso': NivelAcceso.query.get(usuario.nivel_id).nombre,
+            'nivel_id':usuario.nivel_id
             # Add more fields as needed
         })
 
