@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request,current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor, Request,Log,new_class
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor, Request,Log,new_class,SolicitudNewPass
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
@@ -190,4 +190,45 @@ def delete():
         return jsonify({'error': False, 'title': 'Usuario eliminado', 'msg': 'El usuario ha sido eliminado con éxito.'})
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el usuario.'})
+
+
+@usuarios_route.route('/get_solicitudes_contrasenas', methods=['POST'])
+@login_required
+def solicitudes_contrasenas():
+
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+
+
+    # Query to fetch clientes data from the database 
+    request_query = db.session.query(SolicitudNewPass, 
+                                     Usuario.nombre.label('usuario_nombre'),
+                                     Usuario.apellido.label('usuario_apellido'),
+                                     Usuario.correo.label('correo')).join(
+                                         Usuario, SolicitudNewPass.usuario_id == Usuario.id).filter(
+                                             SolicitudNewPass.status == 'Pendiente')
+
+    # Get total count of records without filtering
+    total_records = request_query.count()
+    # Apply pagination
+    requests = request_query.offset(start).limit(length).all()
+
+    # Format data
+    data = []
+    for request, usuario_nombre,usuario_apellido,correo in requests:
+        data.append({
+            'usuario_id': request.usuario_id,
+            'usuario': f"{usuario_nombre} {usuario_apellido}",
+            'correo': correo
+        })
+
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+
+    return jsonify(response)
+
+
 
