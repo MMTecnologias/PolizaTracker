@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request,current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor, Request,Log
+from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor, Request,Log,new_class
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
