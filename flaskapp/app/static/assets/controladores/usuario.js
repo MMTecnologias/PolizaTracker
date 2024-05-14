@@ -54,7 +54,7 @@ const currentPageData = async () => {
    data.data.forEach((usuario) => {
       userData.push({
          'id': usuario.id,
-
+         'acceso':usuario.acceso,
          'fullname': usuario.fullname,
          'mail': usuario.correo,
          'phone': usuario.telefono
@@ -75,7 +75,7 @@ const updateTable = async (userData) => {
    userData.forEach((usuario) => {
       rows[
          iterator
-      ].innerHTML = `<td>${usuario.fullname}</td><td>${usuario.mail}</td><td>${usuario.phone}</td><td><ul class="btn_table_options">
+      ].innerHTML = `<td>${usuario.fullname}</td><td>${usuario.mail}</td><td>${usuario.phone}</td><td>${usuario.acceso}</td><td><ul class="btn_table_options">
 
                               <li>
                                  <a href="#" class="btn__icon_delete" id="btnDelete_${usuario.id}">
@@ -402,6 +402,7 @@ inputSearchUser.addEventListener('keyup', async (e) => {
       data.data.forEach((usuario) => {
          userData.push({
             'id': usuario.id,
+            'acceso':usuario.acceso,
             'fullname': usuario.fullname,
             'mail': usuario.correo,
             'phone': usuario.telefono
@@ -429,6 +430,7 @@ const fillTable = async (data) => {
                         <td>${usuario.fullname}</td>
                         <td>${usuario.mail}</td>
                         <td>${usuario.phone}</td>
+                        <td>${usuario.acceso}</td>
                         <td>
                         <!-- Este solo se debe mostrar al genrente -->
                            <ul class="btn_table_options">
