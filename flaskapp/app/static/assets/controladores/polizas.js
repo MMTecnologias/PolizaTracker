@@ -275,7 +275,7 @@ const rellenarFormulario = async (id) => {
    $('#notas').val(coincidencia.notas);
    $('#polizaAnterior').val(coincidencia.poliza_anterior);
    $('#renovacion').val(coincidencia.renovacion);
-   
+
    //Falta Vendedor, Moneda, Agente, Poliza anterior
 
    mostrarRecibos(coincidencia.id);
@@ -333,8 +333,8 @@ const mostrarRecibos = async (id) => {
                         <td>${recibo.numero}</td>
                         <td>${recibo.fecha_recibo}</td>
                         <td>${recibo.vencimiento}</td>
+                        <td>${recibo.prima_neta}</td>
                         <td>${recibo.prima_total}</td>
-                        <td>${recibo.comision}</td>
                         <td>${recibo.pagado}</td>
                         <td>${recibo.fecha_pago}</td>
                         <td>${recibo.comprobante}</td>
@@ -505,10 +505,6 @@ $(document).ready(function () {
          $('#buscar-cliente')[0].setCustomValidity(''); // Reset custom validation message if input is valid
       }
    });
-
-
-
-
 });
 
 $('#btnGenerarEndoso').on('click', function () {
