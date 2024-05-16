@@ -337,7 +337,6 @@ const mostrarRecibos = async (id) => {
                         <td>${recibo.prima_total}</td>
                         <td>${recibo.pagado}</td>
                         <td>${recibo.fecha_pago}</td>
-                        <td>${recibo.comprobante}</td>
                         <td>${recibo.cancelado}</td>
                   </tr>`;
       });
