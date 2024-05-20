@@ -328,7 +328,9 @@ const mostrarRecibos = async (id) => {
    } else
       data.data.forEach((recibo) => {
          console.log(`llenando tabla de recibos `);
-         receiptsTable.innerHTML += `
+         let receiptStatus = recibo.cancelado;
+         receiptStatus === false
+            ? (receiptsTable.innerHTML += `
                   <tr  class="tableOption">
                         <td>${recibo.numero}</td>
                         <td>${recibo.fecha_recibo}</td>
@@ -337,8 +339,35 @@ const mostrarRecibos = async (id) => {
                         <td>${recibo.prima_total}</td>
                         <td>${recibo.pagado}</td>
                         <td>${recibo.fecha_pago}</td>
-                        <td>${recibo.cancelado}</td>
-                  </tr>`;
+                        <td class='checkboxPagado'>
+                                 <input
+                                 
+                                    type='checkbox'
+                                    id='checkbox_nopagado'
+                                    name='pagado'
+                                    
+                                 />
+                              </td>
+         </tr>`)
+            : (receiptsTable.innerHTML += `
+                  <tr  class="tableOption">
+                        <td>${recibo.numero}</td>
+                        <td>${recibo.fecha_recibo}</td>
+                        <td>${recibo.vencimiento}</td>
+                        <td>${recibo.prima_neta}</td>
+                        <td>${recibo.prima_total}</td>
+                        <td>${recibo.pagado}</td>
+                        <td>${recibo.fecha_pago}</td>
+                        <td class='checkboxPagado'>
+                        <input
+                        
+                                    type='checkbox'
+                                    id='checkbox_pagado'
+                                    name='pagado'
+                                    checked
+                                 /></td>
+         </tr>`);
+         console.log(`${recibo.cancelado}`);
       });
 };
 

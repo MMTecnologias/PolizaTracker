@@ -622,3 +622,7 @@ a .delete {
 .hidden {
    opacity: 0;
 }
+
+.checkboxPagado {
+   text-align: center;
+}
