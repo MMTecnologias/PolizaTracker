@@ -97,7 +97,7 @@
       />
    </head>
 
-   <body class="noScroll">
+   <body>
       <nav class="navbar">
          <a
             class="app-section"
@@ -134,9 +134,8 @@
 
       
                      <!-- page container area start -->
-    <div class="col-12">
-    <div class="tables-container">
-        <div class="form__container form_polizas">
+    <div class="containergeneral">
+        <div class="form__container1">
             <h4 class="header-title">Captura de Usuarios</h4>
 
             <form id="userForm" method="POST" action="{{ url_for('usuarios.create') }}"
@@ -207,18 +206,19 @@
                 </div>
                 <div class="button-container">
                     <button id="Savebtn" type="submit" class="btn">
-                     Crear
+                     Guardar
                     </button>
                     <button id="Resetbtn" type="reset" class="btn">
-                        Borrar
+                        Cancelar
                     </button>
                 </div>
             </form>
         </div>
+      
 
          <!-- Server side end -->
 
-         <div class="tables-sibling">
+         <div class="tables-user1">
             <div
                class="table-polizas"
                id="table-polizas"
@@ -317,11 +317,10 @@
                </li>
             </ul>
          </div>
-       
-
+      </div>
          <!-- Tabla de cambio de contraseña -->
-         <div class="user-container user__container col-2">
-            <div class="container_table">
+         <div class="containergeneral">
+         <div class="tables-user2">
                 <h4 class="header-title">Cambio de Contraseña</h4>
                 <table class="table">
                     <thead class="tableHeader">
@@ -343,16 +342,13 @@
                         </tr>
                     </thead>
                     <tbody id="demo">
-                        <!-- Agregar la información de la tabla -->
-                    </tbody>
+                        Agregar la información de la tabla
+                   </tbody>
                 </table>
-            </div>
         </div> 
-    </div>
-
-
+      </div> 
+     
          <!-- main content area end -->
-      </div>
       <!-- page container area end -->
 
       <!-- jquery latest version -->
