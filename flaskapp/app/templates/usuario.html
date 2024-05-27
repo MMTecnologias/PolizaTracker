@@ -138,8 +138,19 @@
         <div class="form__container1">
             <h4 class="header-title">Captura de Usuarios</h4>
 
-            <form id="userForm" method="POST" action="{{ url_for('usuarios.create') }}"
-                class="needs-validation form-data" novalidate>
+            <form 
+            id="userForm" 
+            method="POST" 
+            action="{{ url_for('usuarios.create') }}"
+            class="needs-validation form-data"
+            novalidate>
+
+            <input
+            type="hidden"
+            id="usuario_id"
+            name="usuario_id"
+            value="New"
+         />
 
                 <div class="form__input-data">
                     <label for="nombre" class="label-input-data">
@@ -184,10 +195,11 @@
 
                 <div class="form__input-data">
                     <label for="grupo" class="label-input-data">Nivel (Tipo de Usuario)</label>
-                    <select class="custom-select" id="grupo" name="grupo" required>
+                    <select class="custom-select" id="grupo" name="grupo" aria-placeholder="" required>
                         <option>Gerente</option>
                         <option>Usuario</option>
                         <option>Administrador</option>
+                        <option>Desarrollador</option>
 
                     </select>
                     <p class="invalid-feedback">Selecciona un grupo válido.</p>
@@ -318,40 +330,38 @@
             </ul>
          </div>
       </div>
-         <!-- Tabla de cambio de contraseña -->
-         <div class="containergeneral">
+
+      <div class="containergeneral">
          <div class="tables-user2">
                 <h4 class="header-title">Cambio de Contraseña</h4>
                 <table class="table">
-                    <thead class="tableHeader">
-                        <tr>
-                            <th class="table-name siblingContainerRow" scope="col">
-                                Username
-
-                                <a href="#" class="btn__icon" id="sortByName">
-                                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960"
-                                        width="24">
-                                        <path
-                                            d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
-                                    </svg>
-                                </a>
-                            </th>
-                            <th class="table-mail" scope="col">
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="demo">
-                        Agregar la información de la tabla
-                   </tbody>
-                </table>
-        </div> 
+                  <thead class="tableHeader">
+                   <tr class="tableOption1">
+                      <th class="table-name siblingContainerRow" scope="col" id="usuario_id">
+                          ID
+                      </th>
+                      <th class="table-mail" scope="col" id="usuario">
+                          Usuario
+                      </th>
+                      <th class="table-mail" scope="col" id="correo">
+                        Correo
+                    </th>
+                  </tr>
+               </thead>
+                  <tbody id="demo1"> 
+               </tbody>
+              </table>
       </div> 
+    </div>
      
          <!-- main content area end -->
       <!-- page container area end -->
 
       <!-- jquery latest version -->
+      <script
+      type="module"
+      src="{{ url_for('static', filename='assets/controladores/usuario.js') }}"
+   ></script>
       <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
       <!-- bootstrap 4 js -->
       <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
@@ -401,10 +411,6 @@
          var deleteicon =
             "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
       </script>
-      <script
-         type="module"
-         src="{{ url_for('static', filename='assets/controladores/usuario.js') }}"
-      ></script>
    </body>
 
    <!-- modal ver Pólizas -->
@@ -452,22 +458,26 @@
                      >
                         Entidad a la que afecto
                      </th>
+                     <th
+                        class="table-primaNeta"
+                        scope="col"
+                     >
+                        Status
+                     </th>
                 
                   </tr>
                </thead>
-               <tbody id="table__modal">
+               <!-- <tbody id="table__modal"> -->
                   <!-- Agregar la información de la tabla -->
-                  <tr class="tableOption">
+                  <!-- <tr class="tableOption"> -->
                      <!-- póliza, ramo, subramo, prima neta, prima total, vigencia, status -->
-                     <th>Póliza</th>
-                     <th>Ramo</th>
-                     <th>Subramo</th>
-                     <th>Prima Neta</th>
-                     <th>Prima Total</th>
-                     <th>Vigencia</th>
+                     <!-- <th>Nombre Usuario</th>
+                     <th>Acción</th>
+                     <th>Fecha</th>
+                     <th>Entidad a la que afecto</th>
                      <th>Status</th>
                   </tr>
-               </tbody>
+               </tbody> -->
             </table>
          </div>
       </div>
