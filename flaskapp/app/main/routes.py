@@ -77,6 +77,13 @@ def check_access(nombre_del_servicio):
 
 """Renderiza htmls"""
 
+#Utilerias
+@main.route('/utilerias', methods=['GET'])
+@login_required
+def utilerias():
+
+    return render_template('utilerias.html',user=current_user)
+
 #Recibos
 @main.route('/recibos', methods=['GET'])
 @login_required

@@ -331,34 +331,7 @@
          </div>
       </div>
 
-      <div class="containergeneral">
-         <div class="tables-user2">
-                <h4 class="header-title">Cambio de Contraseña</h4>
-                {% if (dataStatus) %}
-                <table class="table">
-                  <thead class="tableHeader">
-                   <tr>
-                      <th class="table-name siblingContainerRow" scope="col" id="username">
-                          Username
-                      </th>
-                      <th class="table-mail" scope="col" id="status">
-                          Status
-                      </th>
-                  </tr>
-                  
-                  <tbody> 
-                     {% for status in dataStatus %}
-                     <tr>
-                        <td> {{ status.usuario_id }} </td>
-                        <td>  {{ status.status }} </td>
-                    </tr>    
-                    {% endfor %}  
-               </tbody>
-            </thead>
-              </table>
-                {% endif %}
-      </div> 
-    </div>
+
      
          <!-- main content area end -->
       <!-- page container area end -->
