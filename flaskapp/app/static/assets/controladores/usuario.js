@@ -8,11 +8,14 @@ let sorting = false;
 
 let totalPages = 0;
 
+let userData = [];
+let userData1 = [];
 const currentIndexToShow = (currentIndex) => currentIndex + 1;
 
 const currentPageData = async () => {
    let currentData = {};
-   let userData = [];
+  
+   let C_Data = [];
    const index = currentIndex;
 
    //Solicitamos los datos
@@ -108,17 +111,17 @@ const addBtnDelete = async () => {
    btnDelete.forEach((btn) => {
       btn.addEventListener('click', async (e) => {
          //función eliminar
-         await deleteClient(e.target.id.split('_')[1]);
+         await deleteUser(e.target.id.split('_')[1]);
          await updateTable(await currentPageData());
       });
    });
 };
 
 //Función para eliminar usuario
-const deleteClient = async (id) => {
+const deleteUser = async (id) => {
    //insertar función eliminar
    try {
-    const response =await fetch('/usuarios/delete', {
+    const response =await fetch('/delete', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
@@ -143,7 +146,6 @@ const deleteClient = async (id) => {
         icon: 'error'
         });
     }
-
 
     } catch (error) {
         // Fetch error
@@ -192,12 +194,29 @@ const editClient = async (id) => {
    console.log(`imprime desde editClient ${id}`);
    const data = await response.json();
    console.log(data.data[0]);
+   $('#usuario_id').val(data.data[0].id);
+   $('#nombre').val(data.data[0].nombre);
+   $('#apellido').val(data.data[0].apellido);
+   $('#correo').val(data.data[0].correo);
+   $('#telefono_movil').val(data.data[0].telefono);
+   $('#username').val(data.data[0].username);
+   $('#grupo').html(`<option value='${data.data[0].acceso}'>
+   ${data.data[0].acceso}
+   </option>
+   <option value="1">Administrador</option>
+   <option value="4">Gerente</option>
+   <option value="2">Usuario</option>
+   <option value="3">Desarrollador</option>
 
-   Swal.fire({
-    title: "En proceso",
-    text: "Tenia logica de clientes",
-    icon: 'error'
-    });
+   `);
+
+
+
+//    Swal.fire({
+//     title: "En proceso",
+//     text: "Tenia logica de clientes",
+//     icon: 'error'
+//     });
    
 };
 
@@ -206,7 +225,7 @@ const editClient = async (id) => {
 
    btnShow.forEach((btn) => {
       btn.addEventListener('click', async (e) => {
-         await showPoliza(e.target.id.split('_')[1]);
+         await showHistorial(e.target.id.split('_')[1]);
          // Activa el modal
          $('.container__modal').addClass('modal-active');
       });
@@ -296,15 +315,14 @@ $(document).ready(function () {
       // Reset the form validation state
       $('#user-form').removeClass('was-validated');
       // Enable all form inputs
-      $('#user-form input').prop('disabled', false);
+      // $('#user-form input').prop('disabled', false);
       $('#user-form select').prop('disabled', false);
       // Set usuario_id value to "New"
-      $('#usuarios_id').val('New');
+      $('#usuario_id').val('New');
+
       // Change the text of the Save button back to "Crear"
       $('#Savebtn').text('Crear');
 
-
-      $('#nuevo_grupo_div').hide(); // Corrected class name
    }
 
    // Configuracion de Tabla de usuarios
@@ -480,3 +498,159 @@ $('#myTable').on('click', '.edit', function () {
     $('#Savebtn').text('Guardar');
     
  }); */
+
+ 
+//Cambio de Contraseña
+// const dataStatus = async (data)
+// dataStatus= data;
+
+//Historial de acciones
+const HistorialByUsuarioId = async (id) => {
+   let historial = [];
+   // const index = currentIndex;
+   //Solicitamos los datos
+   const historialData = await fetch('/requests', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         start: 0,
+         length: userPerPage,
+         search_value: id
+      })
+   });
+   console.log(`ID recibido ${id}`);
+   //Convertimos los datos a JSON
+   let data = await historialData.json();
+   console.log(data);
+
+   //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
+
+   //Rellenamos el arreglo "clientData" con los datos del servidor
+   data.data.forEach((historial) => {
+      historial.push({
+         'usuario_id': historial.usuario_id,
+         'accion': historial.description,
+         'fecha': historial.timestamp,
+         'entidad': historial.table_name,
+         'status': historial.status
+      });
+   });
+   console.log(data);
+
+   return historial;
+};
+
+//Agregar modal de historia de usuario
+const addBtnShow = async () => {
+   const btnShow = document.querySelectorAll('.btn__icon_show');
+
+   btnShow.forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+         await showHistorial(e.target.id.split('_')[1]);
+         // Activa el modal
+         $('.container__modal').addClass('modal-active');
+      });
+   });
+};
+
+
+const showHistorial = async (id) => {
+   //Solicitamos los datos
+   const data = await HistorialByUsuarioId(id);
+   console.log(data);
+   //Llenar Tabla modal
+   const modalTable = document.querySelector('#table__modal');
+   modalTable.innerHTML = '';
+   console.log(`Datos solicitados para el id ${id}`);
+   if (data.length === 0) {
+      modalTable.innerHTML = `<tr>
+         <td>No hay cambios para mostrar</td>
+         <td></td>
+         <td></td>
+      </tr>`;
+   } else
+      data.forEach((historial) => {
+         modalTable.innerHTML += `
+                  <tr  class="tableOption">
+                        <td>${historial.usuario_id}</td>
+                        <td>${historial.description}</td>
+                        <td>${poliza.timestamp}</td>
+                        <td>${poliza.table_name}</td>
+                        <td>${poliza.status}</td>
+                  </tr>`;
+      });
+};
+
+
+//Tabla de Contraseña
+
+const currentPageData1 = async () => {
+   let currentData1 = {};
+   const index = currentIndex;
+
+   //Solicitamos los datos
+   currentData1 = await fetch('/usuarios/get_solicitudes_contrasenas', {
+      method: 'POST', 
+      headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+         //  start: `${index === undefined ? 0 : index * userPerPage}`,
+         //  length: userPerPage
+      })
+      });
+
+
+   //Convertimos los datos a JSON
+   let data = await currentData1.json();
+   console.log(data);
+
+   totalPages = Math.floor(data.recordsTotal / userPerPage);
+   console.log(`numero total de página ${totalPages}`);
+
+   //Creamos un objeto y lo llenamos iterando en la data JSON
+
+   //Rellenamos el arreglo con los datos del servidor
+   data.data.forEach((contra) => {
+      userData1.push({
+         'usuario_id': contra.usuario_id,
+         'usuario':contra.usuario,
+         'correo': contra.correo
+      });
+   });
+   console.log(`Estoy imprimiendo desde currentPageData ${userData1}`);
+   return userData1;
+};
+const pintarPaginacion1 = async () => {
+   await fetch('/usuarios/get_solicitudes_contrasenas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                start: 0,
+                length: 1
+            })
+            })
+      .then((response) => response.json())
+};
+const fillTable1 = async (data) => {
+   document.querySelector('#demo1').innerHTML = '';
+
+   data.forEach((contra) => {
+      document.querySelector('#demo1').innerHTML += `
+               
+                  <tr  class="tableOption"> 
+                        <td>${contra.id}</td>
+                        <td>${contra.usuario}</td>
+                        <td>${contra.correo}</td>
+                     
+                  </tr>`;
+   });
+   await pintarPaginacion1();
+   //await addBtnShow();
+};
+
+fillTable1(await currentPageData1());
