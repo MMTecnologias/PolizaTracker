@@ -196,8 +196,8 @@ def delete():
 @login_required
 def solicitudes_contrasenas():
 
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
+    # start = int(request.form.get('start'))
+    # length = int(request.form.get('length'))
 
 
     # Query to fetch clientes data from the database 
@@ -211,7 +211,8 @@ def solicitudes_contrasenas():
     # Get total count of records without filtering
     total_records = request_query.count()
     # Apply pagination
-    requests = request_query.offset(start).limit(length).all()
+    requests = request_query.all()
+    #   requests = request_query.offset(start).limit(length).all()
 
     # Format data
     data = []
