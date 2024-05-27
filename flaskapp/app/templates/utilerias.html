@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html
+   class="no-js"
+   lang="es-mx"
+>
+   <head>
+      <meta charset="utf-8" />
+      <meta
+         http-equiv="x-ua-compatible"
+         content="ie=edge"
+      />
+      <title>Utilerias</title>
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1"
+      />
+      <link
+         rel="shortcut icon"
+         type="image/png"
+         href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}"
+      />
+
+      <script
+         defer
+         src="https://cdn.tailwindcss.com"
+      ></script>
+
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/themify-icons.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/metisMenu.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}"
+      />
+      <!-- amchart css -->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/export.css') }}"
+         type="text/css"
+         media="all"
+      />
+      <!-- others css -->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/typography.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/default-css.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/styles.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/responsive.css') }}"
+      />
+
+      <!-- DataTables FORMATO TABLAS-->
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}"
+      />
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}"
+      />
+      <!-- modernizr css -->
+      <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+      <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+      <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
+      <link
+         rel="stylesheet"
+         href="{{ url_for('static',filename='assets/css/brc-styles.css') }}"
+      />
+   </head>
+
+   <body>
+      <nav class="navbar">
+         <a
+            class="app-section"
+            href="{{ url_for('main.index') }}"
+         >
+            <h2 class="name-app">Póliza Tracker</h2>
+            <img
+               src="{{ url_for('static',filename='assets/images/GGGC.png') }}"
+               class="logo-ggc"
+            />
+         </a>
+
+         <div class="user-profile pull-right">
+            <h6
+               class="user-name dropdown-toggle"
+               data-toggle="dropdown"
+            >
+               {{ current_user.username }}<i class="fa fa-angle-down"></i>
+            </h6>
+            <div class="dropdown-menu">
+               <a
+                  class="dropdown-item"
+                  href="{{ url_for('auth.logout') }}"
+                  >Cerrar Sesión</a
+               >
+               <a
+                  class="dropdown-item"
+                  href="{{ url_for('auth.cambiar_contrasena') }}"
+                  >Cambiar Contraseña</a
+               >
+            </div>
+         </div>
+      </nav>
+
+      
+                     <!-- page container area start -->
+    <div class="containergeneral">
+        <div class="form__container1">
+            <h4 class="header-title">Nueva Aseguradora</h4>
+
+            <form 
+            id="userForm" 
+            method="POST" 
+            action="{{ url_for('usuarios.create') }}"
+            class="needs-validation form-data"
+            novalidate>
+
+            <input
+            type="hidden"
+            id="usuario_id"
+            name="usuario_id"
+            value="New"
+         />
+
+                <div class="form__input-data">
+                    <label for="nombre" class="label-input-data">
+                        Nombre Usuario
+                    </label>
+
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="nombre" name="nombre" placeholder="" minlength="2"
+                            maxlength="50" required />
+                        <p class="invalid-feedback">Ingresa un nombre válido.</p>
+                    </div>
+                </div>
+
+                <div class="form__input-data">
+                    <label for="apellido" class="label-input-data">Apellido</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="apellido" name="apellido" placeholder=""
+                            minlength="2" maxlength="50" required />
+                        <p class="invalid-feedback">Ingresa un apellido válido.</p>
+                    </div>
+                </div>
+
+                <div class="form__input-data">
+                    <label for="telefono_movil" class="label-input-data">Teléfono</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder=""
+                            minlength="10" maxlength="10" required />
+                        <p class="invalid-feedback">Ingresa un teléfono válido.</p>
+                    </div>
+                </div>
+
+                <div class="form__input-data">
+                    <label class="label-input-data" for="correo">Correo Electrónico</label>
+                    <div class="input-group">
+                        <input type="email" class="form-control" id="correo" name="correo" placeholder="" minlength="5"
+                            maxlength="50" required />
+                        <p class="invalid-feedback">
+                            Ingresa un correo electrónico válido.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form__input-data">
+                    <label for="grupo" class="label-input-data">Nivel (Tipo de Usuario)</label>
+                    <select class="custom-select" id="grupo" name="grupo" aria-placeholder="" required>
+                        <option>Gerente</option>
+                        <option>Usuario</option>
+                        <option>Administrador</option>
+                        <option>Desarrollador</option>
+
+                    </select>
+                    <p class="invalid-feedback">Selecciona un grupo válido.</p>
+                </div>
+                
+
+                <div class="form__input-data">
+                    <label class="label-input-data" for="username">Username</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="username" name="username" placeholder="" minlength="5"
+                            maxlength="50" required />
+                        <p class="invalid-feedback">
+                            Ingresa un usuario válido.
+                        </p>
+                    </div>
+                </div>
+                <div class="button-container">
+                    <button id="Savebtn" type="submit" class="btn">
+                     Guardar
+                    </button>
+                    <button id="Resetbtn" type="reset" class="btn">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+      
+
+         <!-- Server side end -->
+
+         <div class="tables-user1">
+            <div
+               class="table-polizas"
+               id="table-polizas"
+            >
+               <h4 class="header-title">Tabla de Usuarios</h4>
+               <form
+                  class="d-flex"
+                  role="search"
+               >
+                  <input
+                     class="form-control my-2"
+                     type="search"
+                     placeholder="Buscar Usuario"
+                     aria-label="Search"
+                     id="searchUser"
+                  />
+               </form>
+
+               <table class="table">
+                  <thead class="tableHeader">
+                     <tr>
+                        <th
+                           class="table-name siblingContainerRow"
+                           scope="col"
+                        >
+                           Nombre
+
+                           <a
+                              href="#"
+                              class="btn__icon"
+                              id="sortByName"
+                           >
+                              <svg
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 height="24"
+                                 viewBox="0 -960 960 960"
+                                 width="24"
+                              >
+                                 <path
+                                    d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z"
+                                 />
+                              </svg>
+                           </a>
+                        </th>
+                        <th
+                           class="table-mail"
+                           scope="col"
+                        >
+                           Correo
+                        </th>
+                        <th
+                           class="table-phone"
+                           scope="col"
+                        >
+                           Teléfono
+                        </th>
+                        <th
+                           class="table-actions"
+                           scope="col"
+                        >
+                           Acceso
+                        </th>
+                        <th
+                           class="table-actions"
+                           scope="col"
+                        >
+                           Acción
+                        </th>
+                        <!-- <th scope="col">Vigencia</th> -->
+                        <!-- <th scope="col"></th> -->
+                     </tr>
+                  </thead>
+                  <tbody id="demo">
+                     <!-- Agregar la información de la tabla -->
+                  </tbody>
+               </table>
+            </div>
+            <ul
+               id="indexList"
+               class="paginationList"
+            >
+               <li
+                  class="paginationList__index"
+                  id="prev-index"
+               >
+               </li>
+               <li
+                  id="current-index"
+                  class="paginationList__current-index noClickable"
+               ></li>
+               <li
+                  class="paginationList__index"
+                  id="next-index"
+               >
+                  >
+               </li>
+            </ul>
+         </div>
+      </div>
+
+      <div class="containergeneral">
+         <div class="tables-user2">
+                <h4 class="header-title">Cambio de Contraseña</h4>
+                {% if (dataStatus) %}
+                <table class="table">
+                  <thead class="tableHeader">
+                   <tr>
+                      <th class="table-name siblingContainerRow" scope="col" id="username">
+                          Username
+                      </th>
+                      <th class="table-mail" scope="col" id="status">
+                          Status
+                      </th>
+                  </tr>
+                  
+                  <tbody> 
+                     {% for status in dataStatus %}
+                     <tr>
+                        <td> {{ status.usuario_id }} </td>
+                        <td>  {{ status.status }} </td>
+                    </tr>    
+                    {% endfor %}  
+               </tbody>
+            </thead>
+              </table>
+                {% endif %}
+      </div> 
+    </div>
+     
+         <!-- main content area end -->
+      <!-- page container area end -->
+
+      <!-- jquery latest version -->
+      <script
+      type="module"
+      src="{{ url_for('static', filename='assets/controladores/usuario.js') }}"
+   ></script>
+      <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+      <!-- bootstrap 4 js -->
+      <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+
+      <!-- DataTables  & Plugins FORMATO TABLAS-->
+      <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+      <!-- DataTables  & Plugins FORMATO TABLAS-->
+      <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
+
+      <!-- others plugins -->
+      <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+      <!-- others plugins -->
+      <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+      <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+
+      <script>
+         var editicon =
+            "{{ url_for('static', filename='assets/images/icon/edit.png') }}";
+         var deleteicon =
+            "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
+      </script>
+   </body>
+
+   <!-- modal ver Pólizas -->
+   <div class="container__modal">
+      <div
+         class="form__modal form__modal-table"
+         id="polizasModal"
+      >
+         <div
+            class="table-polizas"
+            id="table-polizas"
+         >
+            <div
+               id="btn_close-modal"
+               class="btn_close-modal"
+            >
+               Cerrar
+            </div>
+            <h4 class="header-title">Historial de Acciones</h4>
+
+            <table class="table">
+               <thead class="tableHeader">
+                  <tr>
+                     <th
+                        class="table-poliza"
+                        scope="col"
+                     >
+                        Nombre Usuario
+                     </th>
+                     <th
+                        class="table-ramo"
+                        scope="col"
+                     >
+                        Acción
+                     </th>
+                     <th
+                        class="table-subramo"
+                        scope="col"
+                     >
+                        Fecha
+                     </th>
+                     <th
+                        class="table-primaNeta"
+                        scope="col"
+                     >
+                        Entidad a la que afecto
+                     </th>
+                
+                  </tr>
+               </thead>
+               <tbody id="table__modal">
+                  <!-- Agregar la información de la tabla -->
+                  <tr class="tableOption">
+                     <!-- póliza, ramo, subramo, prima neta, prima total, vigencia, status -->
+                     <th>Póliza</th>
+                     <th>Ramo</th>
+                     <th>Subramo</th>
+                     <th>Prima Neta</th>
+                     <th>Prima Total</th>
+                     <th>Vigencia</th>
+                     <th>Status</th>
+                  </tr>
+               </tbody>
+            </table>
+         </div>
+      </div>
+   </div>
+</html>
