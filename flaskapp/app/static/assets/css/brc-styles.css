@@ -38,6 +38,12 @@ h2 {
    font-weight: 600;
 }
 
+.card__shadow {
+   background-color: white;
+   border-radius: 14px;
+   box-shadow: 5px 2px 14px -9px var(--gris-medio);
+}
+
 .login__container {
    width: 100vw;
    height: 100%;
@@ -556,7 +562,7 @@ a .delete {
 }
 
 .table-name {
-   width: 30%;
+   width: 40%;
 }
 
 .table-mail {
@@ -564,7 +570,7 @@ a .delete {
 }
 
 .table-phone {
-   width: 30%;
+   width: 20%;
 }
 
 .table-actions {

@@ -36,6 +36,7 @@ flaskbabel*.pyc
 
 env/
 env
+venv
 
 
 flaskapp/app/config.py

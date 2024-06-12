@@ -8,10 +8,10 @@
     Version: 1.0
 
 ----------------------------------------------
-    
+
     CSS INDEX
     ===================
-  
+
     1. Core Css
     2. Dashboard One
         2.1 Sidebar Menu
@@ -3089,7 +3089,7 @@ table.table .avatar {
 
 /* Modal styles */
 .modal .modal-dialog {
-   max-width: 400px;
+   max-width: 900px;
 }
 
 .modal .modal-header,

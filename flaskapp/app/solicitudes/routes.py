@@ -7,7 +7,7 @@ from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Clien
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
-from . import solicitudes_route 
+from . import solicitudes_route
 from datetime import datetime,date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
@@ -44,7 +44,7 @@ def process():
 
     if request_entry.status!="Pendiente":
         return  jsonify({'error': True, 'title': 'Error', 'msg': 'Esta solicitud ya fue revisada.'})
-    
+
     # Check if the action is valid
     if action not in ['Aceptada', 'Rechazada']:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'Accion invalida.'})
@@ -79,11 +79,8 @@ def get_pending():
     start=0
     length=20
 
-    # Query to fetch clientes data from the database 
-    request_query = db.session.query(Request, 
-                                     Usuario.nombre.label('usuario_nombre'),
-                                     Usuario.apellido.label('usuario_apellido')).join(
-                                         Usuario, Request.usuario_id == Usuario.id).filter(Request.status == 'Pendiente')
+    # Query to fetch clientes data from the database
+    request_query = db.session.query(Request, Usuario.nombre.label('usuario_nombre'), Usuario.apellido.label('usuario_apellido')).join(Usuario, Request.usuario_id == Usuario.id).filter(Request.status == 'Pendiente')
 
     # Get total count of records without filtering
     total_records = request_query.count()
@@ -105,7 +102,6 @@ def get_pending():
         'recordsTotal': total_records,  # Total records without filtering
         'data': data  # Data to display
     }
-
     return jsonify(response)
 
 @solicitudes_route.route('/get_all', methods=['POST'])
@@ -117,8 +113,8 @@ def get_all():
     #start = 0
     #length = 50
     UsuarioReview = aliased(Usuario)
-    # Query to fetch clientes data from the database 
-    request_query = db.session.query(Request, 
+    # Query to fetch clientes data from the database
+    request_query = db.session.query(Request,
                                      Usuario.nombre.label('usuario_nombre'),
                                      Usuario.apellido.label('usuario_apellido'),
                                      UsuarioReview.nombre.label('reviso_nombre'),
@@ -199,7 +195,7 @@ def logs():
         # Append to data list
         data.append(log_data)
 
-    
+
     # Prepare response
     response = {
         'descripcion': request.description,

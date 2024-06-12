@@ -7,7 +7,7 @@ from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Clien
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
-from . import usuarios_route 
+from . import usuarios_route
 from datetime import datetime,date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
@@ -18,7 +18,7 @@ from sqlalchemy.orm import aliased
 @usuarios_route.route('/get', methods=['POST'])
 @login_required
 def get():
-    
+
     # Estos datos los recibe desde la función en JS
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
@@ -26,10 +26,11 @@ def get():
     order=bool(request.form.get('order'))
     usuario_id=request.form.get('usuario_id')
 
-    # Query to fetch clientes data from the database 
+    # Query to fetch clientes data from the database
     usuarios_query = Usuario.query.filter_by(status='Activo')
 
     # Implement search functionality
+    print(order)
     if order:
         usuarios_query = usuarios_query.order_by('nombre')
 
@@ -40,15 +41,18 @@ def get():
             Usuario.correo.ilike(f'%{search_value}%')
             # Add more fields for searching as needed
         ))
-    
+
     if usuario_id:
         usuarios_query = usuarios_query.filter(Usuario.id==int(usuario_id))
 
     # Get total count of records without filtering
     total_records = usuarios_query.count()
-    
+
     # Apply pagination
-    usuarios = usuarios_query.offset(start).limit(length).all()
+    if not length and not start:
+        usuarios = usuarios_query.all()
+    else:
+        usuarios = usuarios_query.offset(start).limit(length).all()
 
     data = []
     for usuario in usuarios:
@@ -74,7 +78,7 @@ def get():
     }
 
     return jsonify(response)
-    
+
 #modify log
 @usuarios_route.route('/create', methods=['POST'])
 @login_required
@@ -100,16 +104,15 @@ def create():
                 apellido=request.form.get('apellido'),
                 correo=request.form.get('email'),
                 telefono=request.form.get('cel'),
-                nivel_id=request.form.get('acceso')
+                nivel_id=int(request.form.get('acceso'))
             )
             # Guardar el nuevo usuario en la base de datos
             db.session.add(new_user)
             db.session.commit()
-
-            request_entry = Request(usuario_id=current_user.id, 
+            request_entry = Request(usuario_id=current_user.id,
                                     description=f"Crear Usuario {new_user.nombre} {new_user.apellido}",
                                     status="Aceptada",
-                                    table_name='Usuario', 
+                                    table_name='Usuario',
                                     row_id=new_user.id)
             db.session.add(request_entry)
             db.session.commit()
@@ -121,6 +124,7 @@ def create():
             msg += f"Usuario: {username}\n Contraseña: {request.form.get('password')}\n"
             msg += "Recuerda cambiar tu contraseña"
             title = "Usuario añadido, envia las credenciales al usuario"
+            return redirect(url_for('main.usuario'))
             return jsonify({'error': False, 'redirect': url_for('main.usuario'), 'msg': msg, 'title': title})
     else:
         # Si user_id no es "New", entonces es una edición de usuario
@@ -130,7 +134,7 @@ def create():
         if existing_user:
 
             old_dict={column.name : getattr(existing_user, column.name) for column in Usuario.__table__.columns}
-            
+
             existing_user.username = request.form.get('username')
             existing_user.nombre = request.form.get('nombre')
             existing_user.apellido = request.form.get('apellido')
@@ -140,11 +144,11 @@ def create():
             db.session.commit()
 
             new_dict={column.name : getattr(existing_user, column.name) for column in Usuario.__table__.columns}
-            
-            request_entry = Request(usuario_id=current_user.id, 
+
+            request_entry = Request(usuario_id=current_user.id,
                                     description=f"Editar Usuario {existing_user.nombre} {existing_user.apellido}",
                                     status="Aceptada",
-                                    table_name='Usuario', 
+                                    table_name='Usuario',
                                     row_id=existing_user.id)
             db.session.add(request_entry)
             db.session.commit()
@@ -152,14 +156,14 @@ def create():
             for col,value in new_dict.items():
                 if value!=old_dict[col]:
                     log_entry = Log(request_id=request_entry.id,
-                                    column_name=col, 
-                                    old_value=old_dict[col], 
+                                    column_name=col,
+                                    old_value=old_dict[col],
                                     new_value=value)
                     db.session.add(log_entry)
-            db.session.commit() 
-
+            db.session.commit()
 
             title = "Cambios realizados con éxito"
+            return redirect(url_for('main.usuario'))
             return jsonify({'error': False, 'redirect': url_for('main.usuario'), 'msg': '', 'title': title})
         else:
             # Manejar el caso en el que el usuario no exista
@@ -180,9 +184,9 @@ def delete():
         # Update the user's status to "Eliminado"
         user.status = "Eliminado"
         db.session.commit()
-        request_entry = Request(usuario_id=current_user.id, 
+        request_entry = Request(usuario_id=current_user.id,
                                 description=f"Eliminar usuario {user.nombre} {user.apellido}",
-                                table_name='Usuario', 
+                                table_name='Usuario',
                                 row_id=user.id,
                                 status="Aceptada")
         db.session.add(request_entry)
@@ -195,32 +199,56 @@ def delete():
 @usuarios_route.route('/get_solicitudes_contrasenas', methods=['POST'])
 @login_required
 def solicitudes_contrasenas():
-
     # start = int(request.form.get('start'))
     # length = int(request.form.get('length'))
-
-
-    # Query to fetch clientes data from the database 
-    request_query = db.session.query(SolicitudNewPass, 
+    # Query to fetch clientes data from the database
+    request_query = db.session.query(SolicitudNewPass,
                                      Usuario.nombre.label('usuario_nombre'),
                                      Usuario.apellido.label('usuario_apellido'),
                                      Usuario.correo.label('correo')).join(
                                          Usuario, SolicitudNewPass.usuario_id == Usuario.id).filter(
                                              SolicitudNewPass.status == 'Pendiente')
-
     # Get total count of records without filtering
     total_records = request_query.count()
     # Apply pagination
     requests = request_query.all()
     #   requests = request_query.offset(start).limit(length).all()
-
     # Format data
     data = []
     for request, usuario_nombre,usuario_apellido,correo in requests:
         data.append({
             'usuario_id': request.usuario_id,
             'usuario': f"{usuario_nombre} {usuario_apellido}",
-            'correo': correo
+            'correo': correo,
+            'status' : request.status
+        })
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
+    }
+    return jsonify(response)
+
+@usuarios_route.route('/get_requests', methods=['POST'])
+@login_required
+def get_requests():
+    user_id = request.form.get('user_id')
+    # Query to fetch clientes data from the database
+    requests_query = db.session.query(Request, Usuario.nombre.label('usuario_nombre'), Usuario.apellido.label('usuario_apellido')).join(Usuario, Request.usuario_id == Usuario.id).filter(Request.usuario_id == user_id)
+
+    # Get total count of records without filtering
+    total_records = requests_query.count()
+    # Apply pagination
+    requests = requests_query.all()
+    # Format data
+    data = []
+    for req, usuario_nombre,usuario_apellido in requests:
+        data.append({
+            'id': req.id,
+            'usuario': f"{usuario_nombre} {usuario_apellido}",
+            'timestamp': req.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'descripcion': req.description,
+            'status': req.status
         })
 
     # Prepare response
@@ -228,7 +256,6 @@ def solicitudes_contrasenas():
         'recordsTotal': total_records,  # Total records without filtering
         'data': data  # Data to display
     }
-
     return jsonify(response)
 
 
