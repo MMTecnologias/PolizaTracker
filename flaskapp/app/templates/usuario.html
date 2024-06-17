@@ -8,27 +8,14 @@
    <meta name="viewport" content="width=device-width, initial-scale=1" />
    <link rel="shortcut icon" type="image/png"
       href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}" />
-
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
-   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}" />
-   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}" />
-   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}" />
-   <!-- amchart css -->
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
-   <!-- others css -->
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
-   <!-- DataTables FORMATO TABLAS-->
-   <link rel="stylesheet"
-      href="{{ url_for('static',filename='assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}" />
-   <link rel="stylesheet"
-      href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}" />
-   <link rel="stylesheet"
-      href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
    <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
@@ -280,7 +267,8 @@
                               contraseña
                            </label>
                            <div class="input-group">
-                              <input type="text" class="form-control" id="pass" name="pass" minlength="6" maxlength="8" required />
+                              <input type="text" class="form-control" id="pass" name="pass" minlength="6" maxlength="8"
+                                 required />
                               <p class="invalid-feedback">
                                  Ingresa una contraseña válida.
                               </p>
@@ -292,7 +280,7 @@
                            </label>
                            <div class="input-group">
                               <input type="text" class="form-control" id="cpass" name="cpass" minlength="6"
-                                 maxlength="8" required/>
+                                 maxlength="8" required />
                               <p class="invalid-feedback">
                                  Ingresa una confirmación de constraseña
                               </p>
@@ -311,72 +299,17 @@
       </div>
    </div>
    <!-- main content area end -->
-   <!-- page container area end -->
 
-   <!-- jquery latest version -->
    <script type="module" src="{{ url_for('static', filename='assets/controladores/usuario.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
-   <!-- bootstrap 4 js -->
+   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
-   <!-- modernizr css -->
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
-   <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
-   <!-- DataTables  & Plugins FORMATO TABLAS-->
-   <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
-   <!-- DataTables  & Plugins FORMATO TABLAS-->
-   <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/dataTables.responsive.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/dataTables.buttons.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.bootstrap4.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/jszip/jszip.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/pdfmake/pdfmake.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/pdfmake/vfs_fonts.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
-   <script
-      src="{{ url_for('static', filename='assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
-   <!-- others plugins -->
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-   <!-- others plugins -->
-   <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-   <script>
-      var editicon =
-         "{{ url_for('static', filename='assets/images/icon/edit.png') }}";
-      var deleteicon =
-         "{{ url_for('static', filename='assets/images/icon/delete.png') }}";
-   </script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
 </body>
 
