@@ -7,18 +7,16 @@ from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Clien
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
-from . import clientes_route 
+from . import clientes_route
 from datetime import datetime,date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 
-
-
 @clientes_route.route('/get', methods=['POST'])
 @login_required
 def get():
-    
+
     # Estos datos los recibe desde la función en JS
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
@@ -26,14 +24,13 @@ def get():
     order=bool(request.form.get('order'))
     cliente_id=request.form.get('cliente_id')
 
-    # Query to fetch clientes data from the database 
+    # Query to fetch clientes data from the database
     clients_query = db.session.query(Cliente, Grupo.grupo.label('grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
-    
+
     # Implement search functionality
     if order:
         clients_query = clients_query.order_by('nombre')
 
-    
     if search_value:
         clients_query = clients_query.filter(or_(
             Cliente.nombre.ilike(f'%{search_value}%'),
@@ -41,15 +38,19 @@ def get():
             Cliente.correo.ilike(f'%{search_value}%'),
             # Add more fields for searching as needed
         ))
-    
+
     if cliente_id:
         clients_query = clients_query.filter(Cliente.id==int(cliente_id))
 
     # Get total count of records without filtering
     total_records = clients_query.count()
-    
+
     # Apply pagination
-    clients = clients_query.offset(start).limit(length).all()
+    if not length and not start:
+        clients = clients_query.all()
+    else:
+    # Apply pagination
+        clients = clients_query.offset(start).limit(length).all()
 
     # Format data as required by DataTables
     data = []
@@ -71,8 +72,8 @@ def get():
             'actividad': client.actividad,
             'apellido': client.apellido,
             'fullname': f"{client.nombre} {client.apellido}",
-            'cuenta': client.info_pago  
-            
+            'cuenta': client.info_pago
+
         })
 
     # Prepare response
@@ -82,16 +83,14 @@ def get():
         'recordsFiltered': total_records,  # Total records after filtering
         'data': data  # Data to display
     }
-    
-    return jsonify(response)
 
+    return jsonify(response)
 
 #modify log
 @clientes_route.route('/create', methods=['POST'])
 @login_required
 def create():
     #if not check_access("Clientes"):
-    #    return redirect(url_for('main.index'))
     cliente_id = request.form.get('cliente_id')
     rfc = request.form.get('rfc')
     add_group_opt=False
@@ -143,10 +142,10 @@ def create():
             db.session.add(new_client)
             db.session.commit()
 
-            request_entry = Request(usuario_id=current_user.id, 
+            request_entry = Request(usuario_id=current_user.id,
                                     description=f"Crear Cliente {new_client.nombre} {new_client.apellido}",
                                     status="Aceptada",
-                                    table_name='Cliente', 
+                                    table_name='Cliente',
                                     row_id=new_client.id)
             db.session.add(request_entry)
             db.session.commit()
@@ -183,7 +182,7 @@ def create():
                         new_group_name=nuevo_grupo.grupo
 
             old_dict={column.name : getattr(existing_client, column.name) for column in Cliente.__table__.columns}
-            
+
             existing_client.nombre = request.form.get('nombre')
             existing_client.apellido = request.form.get('apellido')
             existing_client.grupo_id = grupo_id
@@ -203,10 +202,10 @@ def create():
             new_dict={column.name : getattr(existing_client, column.name) for column in Cliente.__table__.columns}
 
             #aqui log
-            request_entry = Request(usuario_id=current_user.id, 
+            request_entry = Request(usuario_id=current_user.id,
                                     description=f"Editar Cliente {existing_client.nombre} {existing_client.apellido}",
                                     status="Aceptada",
-                                    table_name='Cliente', 
+                                    table_name='Cliente',
                                     row_id=existing_client.id)
             db.session.add(request_entry)
             db.session.commit()
@@ -214,12 +213,11 @@ def create():
             for col,value in new_dict.items():
                 if value!=old_dict[col]:
                     log_entry = Log(request_id=request_entry.id,
-                                    column_name=col, 
-                                    old_value=old_dict[col], 
+                                    column_name=col,
+                                    old_value=old_dict[col],
                                     new_value=value)
                     db.session.add(log_entry)
-            db.session.commit() 
-
+            db.session.commit()
 
             return jsonify({
                 'error': False,
@@ -233,7 +231,7 @@ def create():
         else:
             # Handle the case where the client does not exist
             return jsonify({'error': True, 'msg': 'Cliente no encontrado'})
- 
+
 @clientes_route.route('/delete', methods=['POST'])
 @login_required
 def delete():
@@ -242,17 +240,17 @@ def delete():
     client = Cliente.query.get(client_id)
     if client:
         # Update the user's status to "Eliminado"
-        request_entry = Request(usuario_id=current_user.id, 
+        request_entry = Request(usuario_id=current_user.id,
                                 description=f"Eliminar cliente {client.nombre} {client.apellido}",
-                                table_name='Cliente', 
+                                table_name='Cliente',
                                 row_id=client.id)
         db.session.add(request_entry)
         db.session.commit()
-        log_entry = Log(request_id=request_entry.id, 
-                        column_name='status', 
-                        old_value=client.status, 
+        log_entry = Log(request_id=request_entry.id,
+                        column_name='status',
+                        old_value=client.status,
                         new_value='Eliminado')
-    
+
         db.session.add(log_entry)
         client.status = "Eliminado"
         db.session.commit()
@@ -268,8 +266,7 @@ def poliza():
     length = int(request.form.get('length'))
     cliente_id = request.form.get('search_value')
 
-
-    polizas_query = db.session.query(Poliza, 
+    polizas_query = db.session.query(Poliza,
                                      Cliente.nombre.label("client_name"),
                                      Cliente.apellido.label("client_lastname"),
                                      Aseguradora.aseguradora.label("aseguradora"),
@@ -279,7 +276,7 @@ def poliza():
     .join(Cliente, Poliza.cliente_id == Cliente.id) \
     .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)  \
     .join(Ramo, Poliza.ramo_id == Ramo.id)  \
-    .join(Subramo, Poliza.subramo_id == Subramo.id) 
+    .join(Subramo, Poliza.subramo_id == Subramo.id)
 
     # Implement search functionality
     if cliente_id:
@@ -318,6 +315,6 @@ def poliza():
         'recordsTotal': total_records,  # Total records without filtering
         'data': data  # Data to display
     }
-   
+
     return jsonify(response)
 

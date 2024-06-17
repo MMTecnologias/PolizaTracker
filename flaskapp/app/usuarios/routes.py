@@ -124,7 +124,6 @@ def create():
             msg += f"Usuario: {username}\n Contraseña: {request.form.get('password')}\n"
             msg += "Recuerda cambiar tu contraseña"
             title = "Usuario añadido, envia las credenciales al usuario"
-            return redirect(url_for('main.usuario'))
             return jsonify({'error': False, 'redirect': url_for('main.usuario'), 'msg': msg, 'title': title})
     else:
         # Si user_id no es "New", entonces es una edición de usuario
@@ -163,7 +162,7 @@ def create():
             db.session.commit()
 
             title = "Cambios realizados con éxito"
-            return redirect(url_for('main.usuario'))
+            # return redirect(url_for('main.usuario'))
             return jsonify({'error': False, 'redirect': url_for('main.usuario'), 'msg': '', 'title': title})
         else:
             # Manejar el caso en el que el usuario no exista

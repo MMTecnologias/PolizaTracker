@@ -4,11 +4,11 @@
 <head>
    <meta charset="utf-8" />
    <meta http-equiv="x-ua-compatible" content="ie=edge" />
-   <title>Usuarios1</title>
+   <title>Usuarios</title>
    <meta name="viewport" content="width=device-width, initial-scale=1" />
    <link rel="shortcut icon" type="image/png"
       href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}" />
-   <script defer src="https://cdn.tailwindcss.com"></script>
+
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}" />
@@ -29,10 +29,6 @@
       href="{{ url_for('static',filename='assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css') }}" />
    <link rel="stylesheet"
       href="{{ url_for('static',filename='assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}" />
-   <!-- modernizr css -->
-   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
-   <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
-   <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
    <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
@@ -61,8 +57,7 @@
          <div class="col-3 p-3">
             <div class="w-100 card__shadow p-3">
                <h4 class="header-title">Captura de Usuarios</h4>
-               <form id="userForm" class="needs-validation form-data" method="POST"
-                  action="{{ url_for('usuarios.create') }}" novalidate>
+               <form id="userForm" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="usuario_id" name="usuario_id" value="New" />
                   <div class="form__input-data">
                      <label for="nombre" class="label-input-data">
@@ -202,7 +197,7 @@
                            Correo
                         </th>
                         <th class="table-mail" scope="col" id="correo">
-                           Estatus
+                           Acciones
                         </th>
                      </tr>
                   </thead>
@@ -233,16 +228,16 @@
                      <table class="table">
                         <thead class="tableHeader">
                            <tr class="tableOption1">
-                              <th class="table-name" scope="col">
+                              <th scope="col" style="width: 25%;">
                                  Usuario
                               </th>
-                              <th class="table-mail" scope="col">
+                              <th scope="col" style="width: 20%;">
                                  Fecha
                               </th>
-                              <th class="table-name" scope="col">
+                              <th scope="col" style="width: 45%;">
                                  Descripción
                               </th>
-                              <th class="table-mail" scope="col">
+                              <th scope="col" style="width: 10%;">
                                  Estatus
                               </th>
                            </tr>
@@ -257,7 +252,60 @@
                </div>
             </div>
             <div class="modal-footer">
-               <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+               <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Modal change password -->
+   <div class="modal fade bd-example-modal-lg" id="pass" tabindex="-1" role="dialog" aria-labelledby="pass">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+         <div class="modal-content">
+            <div class="modal-header">
+               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+               </button>
+            </div>
+            <div class="modal-body pt-1">
+               <div class="row pb-4">
+                  <div class="col-12">
+                     <h4 class="header-title">
+                        Cambiar contraseña
+                     </h4>
+                     <form id="passForm" class="needs-validation form-data" novalidate>
+                        <input type="hidden" id="user_id" name="user_id" value="" />
+                        <div class="form__input-data">
+                           <label for="pass" class="label-input-data">
+                              contraseña
+                           </label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="pass" name="pass" minlength="6" maxlength="8" required />
+                              <p class="invalid-feedback">
+                                 Ingresa una contraseña válida.
+                              </p>
+                           </div>
+                        </div>
+                        <div class="form__input-data">
+                           <label for="cpass" class="label-input-data">
+                              Confirmar contraseña
+                           </label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="cpass" name="cpass" minlength="6"
+                                 maxlength="8" required/>
+                              <p class="invalid-feedback">
+                                 Ingresa una confirmación de constraseña
+                              </p>
+                           </div>
+                        </div>
+                        <div class="button-container">
+                           <button id="save-btn" type="submit" class="btn">
+                              Guardar
+                           </button>
+                        </div>
+                     </form>
+                  </div>
+               </div>
             </div>
          </div>
       </div>
@@ -275,7 +323,10 @@
    <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
-
+   <!-- modernizr css -->
+   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+   <!-- Incluye SweetAlert mediante CDN en tu archivo HTML -->
+   <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
    <!-- DataTables  & Plugins FORMATO TABLAS-->
    <script src="{{ url_for('static', filename='assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
    <script
