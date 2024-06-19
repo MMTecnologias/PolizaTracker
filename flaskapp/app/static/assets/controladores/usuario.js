@@ -306,6 +306,7 @@ $(function () {
         } else {
           alert(resp.msg, "success", resp.title);
           getUsers();
+          resetForm()
         }
       },
       error: function (xhr, status, error) {

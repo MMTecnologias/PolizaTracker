@@ -7,7 +7,7 @@ from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Clien
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
-from . import polizas_route 
+from . import polizas_route
 from datetime import datetime,date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
@@ -18,12 +18,12 @@ from sqlalchemy.orm import aliased
 @login_required
 def get_receipts():
     #Recibe
-    poliza_id = request.form.get('poliza_id') 
+    poliza_id = request.form.get('poliza_id')
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
-    
-    # Query to fetch polizas data from the database 
-    recibos_query = Recibo.query.filter_by(poliza_id=poliza_id) 
+
+    # Query to fetch polizas data from the database
+    recibos_query = Recibo.query.filter_by(poliza_id=poliza_id)
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
@@ -86,12 +86,12 @@ def get():
     order=bool(request.form.get('order'))
     poliza_id=request.form.get('poliza_id')
 
-    polizas_query = db.session.query(Poliza, 
+    polizas_query = db.session.query(Poliza,
                                      Cliente.nombre.label("client_name"),
                                      Cliente.apellido.label("client_lastname"),
                                      Aseguradora.aseguradora.label("aseguradora"),
-                                     Ramo.ramo.label("ramo"), 
-                                     Subramo.subramo.label("subramo"), 
+                                     Ramo.ramo.label("ramo"),
+                                     Subramo.subramo.label("subramo"),
                                      TipoPago.tipo_pago.label("tipo_pago")) \
         .select_from(Poliza) \
         .join(Cliente, Poliza.cliente_id == Cliente.id) \
@@ -116,9 +116,12 @@ def get():
 
      # Get total count of records without filtering
     total_records = polizas_query.count()
-    
+
     # Apply pagination
-    polizas = polizas_query.offset(start).limit(length).all()
+    if not length and not start:
+        polizas = polizas_query.all()
+    else:
+        polizas = polizas_query.offset(start).limit(length).all()
 
     data = []
     # Iterate through the query results
@@ -170,7 +173,7 @@ def create():
     #    return redirect(url_for('main.index'))
     poliza_id = request.form.get('poliza_id')
 
-    def check_new_form():   
+    def check_new_form():
         argdict={}
 
         ramo = request.form.get('ramo')
@@ -237,17 +240,17 @@ def create():
         db.session.add(new_poliza)
         db.session.commit()
 
-        request_entry = Request(usuario_id=current_user.id, 
+        request_entry = Request(usuario_id=current_user.id,
                                 description=f"Crear poliza {new_poliza.poliza}",
                                 status="Aceptada",
-                                table_name='Poliza', 
+                                table_name='Poliza',
                                 row_id=new_poliza.id)
         db.session.add(request_entry)
         db.session.commit()
         """for col,value in arg_values.items():
             log_entry = Log(request_id=request_entry.id,
-                            column_name=col, 
-                            old_value="", 
+                            column_name=col,
+                            old_value="",
                             new_value=value)
             db.session.add(log_entry)
         db.session.commit() """
@@ -265,7 +268,7 @@ def create():
             'msg': 'Solo se puede editar poliza en endosos',
             'title':'Sin cambios'
         })
-    
+
 
 
 """Recibos aun sin uso"""
@@ -291,7 +294,7 @@ def get_policy_values(policy_id):
 
     # Obtener el número de pagos según el tipo de pago
     if tipo_pago.contado=="Si":
-        num_payments = 1  
+        num_payments = 1
     else:
         num_payments = tipo_pago.pagos_anuales*policy_duration  # De lo contrario, el número de pagos es igual a los pagos mensuales
 
@@ -330,7 +333,7 @@ def calcular_recibos():
     }
 
     # Calculate the values for the first payment
-    total_premium = (prima_neta +iva + recargo_por_pago) / nopagos 
+    total_premium = (prima_neta +iva + recargo_por_pago) / nopagos
     net_premium = prima_neta / nopagos
     commission_pp = commission / nopagos
 
@@ -356,10 +359,10 @@ def calcular_recibos():
 
 def add_months(start_date, num_months):
     # Convertir la cadena de fecha en un objeto datetime
-   
+
     start_date=str(start_date)
     start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    
+
     new_date = start_date + relativedelta(months=num_months)
     # Devolver la nueva fecha como cadena
     return new_date.strftime('%Y-%m-%d')

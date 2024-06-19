@@ -1,550 +1,445 @@
-import { datatableConfig } from './datatable-config.js';
-import { datatableConfig_plane } from './datatable-config.js';
+// @ts-ignore
+$(function () {
+  let ordered = false;
 
-const serie = document.getElementById('serie');
+  const ajaxConfig = {
+    url: "",
+    type: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    dataType: "json",
+  };
 
-let clientsPerPage = 10;
+  function getColor(status) {
+    if (!status) return "";
+    switch (status) {
+      case "Vigente":
+        // return "#46d139";
+        return "rgb(0 255 0 / 50%)";
+      case "Cancelada":
+        // return "#ff0000";
+        return "rgb(255 0 0 / 80%)";
+      case "Por vencer":
+        // return "#fff800";
+        return "rgb(255 255 0 / 80%)";
+      case status.includes("Cancel"):
+        return "#ff0000";
+      case status.includes("Vencer"):
+        return "#fff800";
+      default:
+        return "";
+    }
+  }
 
-let currentIndex = 0;
+  function alert(text = "", icon = "success", title = "") {
+    // @ts-ignore
+    Swal.fire({ title, text, icon });
+  }
 
-let sorting = false;
+  function alertConfirm(text = "") {
+    // @ts-ignore
+    return Swal.fire({
+      title: "",
+      text,
+      showCancelButton: true,
+      allowOutsideClick: false,
+      confirmButtonText: "Aceptar",
+      cancelButtonText: "Canelar",
+      icon: "warning",
+    });
+  }
 
-let totalPages = 0;
+  function resetForm() {
+    // @ts-ignore
+    $("#form-polizas")[0].reset();
+    // @ts-ignore
+    $("#form-polizas").removeClass("was-validated");
+    // @ts-ignore
+    $("#form-polizas select").prop("disabled", false);
+    // @ts-ignore
+    $("#poliza_id").val("New");
+    // @ts-ignore
+    $("#Savebtn").text("Crear");
+  }
 
-const currentIndexToShow = (currentIndex) => currentIndex + 1;
-
-const currentPageData = async () => {
-   let currentData = {};
-   let polizaData = [];
-   const index = currentIndex;
-   //Solicitamos los datos
-   if (sorting === true) {
-      currentData = await fetch('/polizas/get', {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-         },
-         body: new URLSearchParams({
-            start: `${index === undefined ? 0 : index * clientsPerPage}`,
-            length: clientsPerPage,
-            order: true
-         })
-      });
-   } else {
-      currentData = await fetch('/polizas/get', {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-         },
-         body: new URLSearchParams({
-            start: `${index === undefined ? 0 : index * clientsPerPage}`,
-            length: clientsPerPage
-         })
-      });
-   }
-
-   //Convertimos los datos a JSON
-   let data = await currentData.json();
-   console.log(data);
-
-   totalPages = Math.floor(data.recordsTotal / clientsPerPage);
-   console.log(`numero total de página ${totalPages}`);
-
-   //Creamos un objeto llamado polizaData y lo llenamos iterando en la data JSON
-
-   //Rellenamos el arreglo "polizaData" con los datos del servidor
-   data.data.forEach((poliza) => {
-      polizaData.push({
-         'poliza': poliza.poliza,
-         'cliente': poliza.cliente,
-         'aseguradora': poliza.aseguradora,
-         'vigencia': poliza.vigencia,
-         'id': poliza.id,
-         'subramo': poliza.subramo,
-         'fecha_inicio': poliza.fecha_inicio,
-         'fecha_termino': poliza.fecha_termino,
-         'prima_neta': poliza.prima_neta,
-         'prima_total': poliza.prima_total,
-         'tipoPago': poliza.tipoPago
-      });
-   });
-   // console.log(`Estoy imprimiendo desde currentPageData ${polizaData}`);
-
-   return polizaData;
-};
-
-const updateTable = async (polizaData) => {
-   let iterator = 0;
-   // const rows = document.querySelectorAll('#demo>tr.tableOption');
-   const rows = document.querySelectorAll('#demo>tr.tableOption');
-   polizaData.forEach((poliza) => {
-      rows[iterator].innerHTML = `
-
-               <tr  class="tableOption">
-
-                     <td><p class="td-clickable" id="td-clickable_${poliza.id}">${poliza.poliza}</p></td>
-                     <td>${poliza.cliente}</td>
-                     <td>${poliza.subramo}</td>
-                     <td>${poliza.fecha_inicio}</td>
-                     <td>${poliza.fecha_termino}</td>
-                     <td>${poliza.prima_neta}</td>
-                     <td>${poliza.prima_total}</td>
-                     <td>${poliza.aseguradora}</td>
-                     <td>${poliza.tipoPago}</td>
-
-               </tr>`;
-      iterator++;
-   });
-
-   await addBtnShow();
-};
-
-const addBtnShow = async () => {
-   const btnShow = document.querySelectorAll('.td-clickable');
-
-   btnShow.forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-         console.log(`id enviado: ${e.target.id.split('_')[1]}`);
-         await rellenarFormulario(e.target.id.split('_')[1]);
-         // await mostrarRecibos(e.target.id.split('_')[1]);
-         // Activa el modal
-         // $('.container__modal-endoso').addClass('modal-active');
-      });
-   });
-};
-
-const pintarPaginacion = async () => {
-   await fetch('/polizas/get', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/x-www-form-urlencoded'
+  function editPoliza(poliza_id) {
+    // @ts-ignore
+    $.ajax({
+      ...ajaxConfig,
+      url: "/polizas/get",
+      // @ts-ignore
+      data: $.param({ start: 0, length: 0, poliza_id }),
+      success: function (resp) {
+        // @ts-ignore
+        $("#poliza_id").val(poliza_id);
+        // @ts-ignore
+        $("#Poliza").val(resp.data[0].poliza);
+        // @ts-ignore
+        $("#serie").val(resp.data[0].serie);
+        // @ts-ignore
+        $("#ramo").html(`<option value='${resp.data[0].ramo}'>
+            ${resp.data[0].ramo}
+            </option>
+        `);
+        // @ts-ignore
+        $("#subramo").html(`<option value='${resp.data[0].subramo}'>
+            ${resp.data[0].subramo}
+            </option>
+        `);
+        // @ts-ignore
+        $("#VigenciaI").val(resp.data[0].fecha_inicio);
+        // @ts-ignore
+        $("#prima_neta").val(resp.data[0].prima_neta);
+        // @ts-ignore
+        $("#prima_total").val(resp.data[0].prima_total);
+        // @ts-ignore
+        $("#VigenciaF").val(resp.data[0].VigenciaF);
+        // @ts-ignore
+        $("#aseguradora").html(`<option value='${resp.data[0].aseguradora}'>
+            ${resp.data[0].aseguradora}
+            </option>
+        `);
+        // @ts-ignore
+        $("#Pago").html(`<option value='${resp.data[0].tipoPago}'>
+            ${resp.data[0].tipoPago}
+            </option>
+        `);
+        // @ts-ignore
+        $("#vendedor").val(resp.data[0].vendedor_id);
+        // @ts-ignore
+        $("#Moneda").val(resp.data[0].moneda);
+        // @ts-ignore
+        $("#agente").val(resp.data[0].agente_id);
+        // @ts-ignore
+        $("#notas").val(resp.data[0].notas);
+        // @ts-ignore
+        $("#polizaAnterior").val(resp.data[0].poliza_anterior);
+        // @ts-ignore
+        $("#renovacion").val(resp.data[0].renovacion);
       },
-      body: new URLSearchParams({
-         start: 0,
-         length: 1
-      })
-   })
-      .then((response) => response.json())
-      .then((data) => {
-         const btnPrev = document.querySelector('#prev-index');
-         const btnNext = document.querySelector('#next-index');
-         btnPrev.classList.remove('noClickable');
-         btnNext.classList.remove('noClickable');
-         document.querySelector(
-            '#current-index'
-         ).innerHTML = `<p>${currentIndexToShow(currentIndex)}</p>`;
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
 
-         if (
-            totalPages != 0 &&
-            currentIndex != 0 &&
-            currentIndex != totalPages
-         ) {
-            btnPrev.classList.remove('noClickable');
-            btnNext.classList.remove('noClickable');
-         } else if (currentIndex == 0) {
-            document.querySelector('#prev-index').classList.add('noClickable');
-         } else if (currentIndex == totalPages) {
-            document.querySelector('#next-index').classList.add('noClickable');
-            document
-               .querySelector('#prev-index')
-               .classList.remove('noClickable');
-         } else {
-            document
-               .querySelector('#prev-index')
-               .classList.remove('noClickable');
-            document
-               .querySelector('#next-index')
-               .classList.remove('noClickable');
-         }
-      });
-};
-
-const nextIndex = document.querySelector('#next-index');
-nextIndex.addEventListener('click', async () => {
-   ++currentIndex;
-   console.log(`el indice actual es ${currentIndex}`);
-   await pintarPaginacion();
-   if (currentIndex == totalPages) {
-      await fillTable(await currentPageData());
-   } else {
-      await updateTable(await currentPageData());
-   }
-});
-
-const prevIndex = document.querySelector('#prev-index');
-prevIndex.addEventListener('click', async () => {
-   --currentIndex;
-   console.log(`el indice actual es ${currentIndex}`);
-   await pintarPaginacion();
-   if (currentIndex == totalPages - 1) {
-      await fillTable(await currentPageData());
-   } else {
-      await updateTable(await currentPageData());
-   }
-});
-
-//Buscar póliza
-const inputSearchPoliza = document.querySelector('#searchPoliza');
-inputSearchPoliza.addEventListener('keyup', async (e) => {
-   let polizaData = [];
-   let searchValue = e.target.value;
-   if (searchValue.length >= 3) {
-      console.log(searchValue);
-      const response = await fetch('/polizas/get', {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-         },
-         body: new URLSearchParams({
-            start: 0,
-            length: 10,
-            searchValue: searchValue
-         })
-      });
-      const data = await response.json();
-      console.log(`data from inputSearchPoliza ${data.data.cliente}`);
-      data.data.forEach((poliza) => {
-         polizaData.push({
-            'poliza': poliza.poliza,
-            'cliente': poliza.cliente,
-            'aseguradora': poliza.aseguradora,
-            'vigencia': poliza.vigencia,
-            'id': poliza.id,
-            'subramo': poliza.subramo,
-            'fecha_inicio': poliza.fecha_inicio,
-            'fecha_termino': poliza.fecha_termino,
-            'prima_neta': poliza.prima_neta,
-            'prima_total': poliza.prima_total,
-            'tipoPago': poliza.tipoPago
-         });
-      });
-      await fillTable(polizaData);
-   } else {
-      await fillTable(await currentPageData());
-   }
-   //Enviamos el objeto/array para actualizar la tabla
-   // return updateTable(data);
-});
-
-const rellenarFormulario = async (id) => {
-   const response = await fetch('/polizas/get', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/x-www-form-urlencoded'
+  async function deletePoliza(poliza_id) {
+    const { isConfirmed } = await alertConfirm(
+      "¿Esta seguro de eliminar este usuario?"
+    );
+    if (!isConfirmed) return;
+    return;
+    // @ts-ignore
+    $.ajax({
+      ...ajaxConfig,
+      url: "/usuarios/delete",
+      // @ts-ignore
+      data: $.param({ poliza_id }),
+      success: function (resp) {
+        if (!resp.error) {
+          alert(resp.msg, undefined, resp.title);
+          getPolizas();
+        } else {
+          alert(resp.msg, "error");
+        }
       },
-      body: new URLSearchParams({
-         start: 0,
-         length: 2,
-         poliza_id: id
-      })
-   });
-   const data = await response.json();
-   const coincidencia = await data.data[0];
-   console.log(coincidencia);
-   document.getElementById('buscar-cliente').disabled = true;
-   document.getElementById('buscar-cliente').value = coincidencia.cliente;
-   document.getElementById('Poliza').value = coincidencia.poliza;
-   document.getElementById('serie').value = coincidencia.serie;
-   document.getElementById(
-      'ramo'
-   ).innerHTML = `<option value="${coincidencia.ramo}">
-        ${coincidencia.ramo}
-         </option>`;
-   document.getElementById(
-      'subramo'
-   ).innerHTML = `<option value="${coincidencia.subramo}">
-        ${coincidencia.subramo}
-         </option>`;
-   document.getElementById('VigenciaI').value = coincidencia.fecha_inicio;
-   document.getElementById('prima_neta').value = coincidencia.prima_neta;
-   document.getElementById('prima_total').value = coincidencia.prima_total;
-   document.getElementById('VigenciaF').value = coincidencia.fecha_termino;
-   document.getElementById(
-      'aseguradora'
-   ).innerHTML = `<option value="${coincidencia.aseguradora}">
-        ${coincidencia.aseguradora}
-         </option>`;
-   document.getElementById(
-      'Pago'
-   ).innerHTML = `<option value="${coincidencia.tipoPago}">
-        ${coincidencia.tipoPago}
-         </option>`;
-   $('#vendedor').val(coincidencia.vendedor_id);
-   $('#Moneda').val(coincidencia.moneda);
-   $('#agente').val(coincidencia.agente_id);
-   $('#notas').val(coincidencia.notas);
-   $('#polizaAnterior').val(coincidencia.poliza_anterior);
-   $('#renovacion').val(coincidencia.renovacion);
-   
-   //Falta Vendedor, Moneda, Agente, Poliza anterior
-
-   mostrarRecibos(coincidencia.id);
-};
-
-const mostrarRecibos = async (id) => {
-   let receipts = [];
-   const receiptsTable = document.querySelector('#receiptsTable');
-   const receiptData = await fetch('/polizas/get_receipts', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/x-www-form-urlencoded'
+      error: function (xhr, status, error) {
+        console.log(error);
+        alert(
+          "Lamentamos el inconveniente, por favor vuelve a intentarlo",
+          "error"
+        );
       },
-      body: new URLSearchParams({
-         start: 0,
-         length: 100,
-         poliza_id: id
-      })
-   });
-   console.log(`ID recibido ${id}`);
-   //Convertimos los datos a JSON
-   let data = await receiptData.json();
-   console.log(data);
+    });
+  }
 
-   //Creamos un objeto llamado ClientData y lo llenamos iterando en la data JSON
+  function getRecibos(poliza_id, order = false, start = 0, length = 100) {
+    // @ts-ignore
+    $.ajax({
+      ...ajaxConfig,
+      url: "/polizas/get_receipts",
+      // @ts-ignore
+      data: $.param(
+        order
+          ? { start, length, order, poliza_id }
+          : { start, length, poliza_id }
+      ),
+      success: fillTableRecibos,
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
 
-   //Rellenamos el arreglo "clientData" con los datos del servidor
-   data.data.forEach((recibo) => {
-      receipts.push({
-         'poliza': recibo.poliza,
-         'cliente': recibo.cliente,
-         'aseguradora': recibo.aseguradora,
-         'vigencia': recibo.vigencia,
-         'ramo': recibo.ramo,
-         'subramo': recibo.subramo,
-         'primaNeta': recibo.primaNeta,
-         'primaTotal': recibo.primaTotal,
-         'fechaFin': recibo.fechaFin,
-         'status': recibo.status
+  function fillTableRecibos(resp) {
+    const itemsOnPage = 10;
+    const { data, recordsTotal } = resp;
+    // @ts-ignore
+    const table = $("#receiptsTable");
+    table.html("");
+    console.log(data);
+    // @ts-ignore
+    $.each(data, function (idx, recibo) {
+      table.append(
+        `<tr class="tableOption-recibos">
+            <td>${recibo.numero}</td>
+            <td>${recibo.fecha_recibo}</td>
+            <td>${recibo.vencimiento}</td>
+            <td>${recibo.prima_neta}</td>
+            <td>${recibo.prima_total}</td>
+            <td>
+                <input type="checkbox" id="check_pagado${
+                  recibo.id
+                }" name="check_pagado${recibo.id}" />
+            </td>
+            <td>${recibo.fecha_pago}</td>
+            <td>${recibo.cancelado ? "Cancelado" : ""}</td>
+         </tr>`
+      );
+      if (recibo.pagado)
+        // @ts-ignore
+        $(`#check_pagado${recibo.id}`).prop("checked", true);
+      // @ts-ignore
+      $(`#check_pagado${recibo.id}`).on("click", function () {
+        // @ts-ignore
+        if ($(`#check_pagado${recibo.id}`).is(":checked") == true) {
+          console.log(`Actualizar recibo ${recibo.id} a Pagado`);
+        } else {
+          console.log(`Actualizar recibo ${recibo.id} a no Pagado`);
+        }
       });
-   });
+    });
+    // @ts-ignore
+    if (!data.length) return $("#pagination-recibos").html("");
+    // @ts-ignore
+    $(".tableOption-recibos").slice(10).hide();
+    // @ts-ignore
+    $("#pagination-recibos").pagination({
+      items: recordsTotal,
+      itemsOnPage: itemsOnPage,
+      onPageClick: (noofele) =>
+        // @ts-ignore
+        $(".tableOption-recibos")
+          .hide()
+          .slice(
+            itemsOnPage * (noofele - 1),
+            itemsOnPage + itemsOnPage * (noofele - 1)
+          )
+          .show(),
+    });
+  }
 
-   receiptsTable.innerHTML = '';
-   console.log(`Datos solicitados para el id ${id}`);
-   // receiptsTable.innerHTML = `<tr><td>Recibos</td></tr>`;
-   if (data.data.length === 0) {
-      receiptsTable.innerHTML = `<tr>
-         <td>No hay recibos registrados</td>
-      </tr>`;
-   } else
-      data.data.forEach((recibo) => {
-         console.log(`llenando tabla de recibos `);
-         receiptsTable.innerHTML += `
-                  <tr  class="tableOption">
-                        <td>${recibo.numero}</td>
-                        <td>${recibo.fecha_recibo}</td>
-                        <td>${recibo.vencimiento}</td>
-                        <td>${recibo.prima_total}</td>
-                        <td>${recibo.comision}</td>
-                        <td>${recibo.pagado}</td>
-                        <td>${recibo.fecha_pago}</td>
-                        <td>${recibo.comprobante}</td>
-                        <td>${recibo.cancelado}</td>
-                  </tr>`;
+  function fillTablePolizas(resp) {
+    const itemsOnPage = 8;
+    const { data, recordsTotal } = resp;
+    // @ts-ignore
+    const table = $("#polizas-table");
+    table.html("");
+    console.log(data);
+    // @ts-ignore
+    $.each(data, function (idx, poliza) {
+      table.append(
+        `<tr class="tableOption" style="background-color: ${getColor(poliza.status)}">
+          <td>
+            <p class="td-clickable" id="td-clickable_${poliza.id}">
+                ${poliza.poliza}
+            </p>
+          </td>
+          <td>${poliza.cliente}</td>
+          <td>${poliza.subramo}</td>
+          <td>${poliza.aseguradora}</td>
+          <td>${poliza.tipoPago}</td>
+          <td>
+            <ul class="btn_table_options">
+              <li>
+                <a class="btn__icon_delete pointer" id="btnDelete_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a class="btn__icon_edit pointer" id="btnEdit_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a class="btn__icon_show pointer" id="btnShow_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
+                </a>
+              </li>
+            </ul>
+          </td>
+        </tr>`
+      );
+      // @ts-ignore
+      $(`#td-clickable_${poliza.id}`).on("click", (e) => {
+        // @ts-ignore
+        $("#recib").modal();
+        getRecibos(poliza.id);
       });
-};
+      // @ts-ignore
+      $(`#btnEdit_${poliza.id}`).on("click", (e) => editPoliza(poliza.id));
+      // @ts-ignore
+      $(`#btnDelete_${poliza.id}`).on("click", (e) => deletePoliza(poliza.id));
+      // @ts-ignore
+      $(`#btnShow_${poliza.id}`).on("click", (e) => {
+        console.log("Ver endosos");
+      });
+    });
+    if (!data.length) return;
+    // @ts-ignore
+    $(".tableOption").slice(8).hide();
+    // @ts-ignore
+    $("#pagination").pagination({
+      items: recordsTotal,
+      itemsOnPage: itemsOnPage,
+      onPageClick: (noofele) =>
+        // @ts-ignore
+        $(".tableOption")
+          .hide()
+          .slice(
+            itemsOnPage * (noofele - 1),
+            itemsOnPage + itemsOnPage * (noofele - 1)
+          )
+          .show(),
+    });
+  }
 
-const sortButton = document.querySelector('#sortByPoliza');
-sortButton.addEventListener('click', async () => {
-   sorting = !sorting;
-   console.log(`el valor de sorting es ${sorting}`);
-   currentIndex = 0;
-   await updateTable(await currentPageData());
-   pintarPaginacion();
-});
+  function getPolizas(order = false, start = 0, length = 0) {
+    // @ts-ignore
+    $.ajax({
+      ...ajaxConfig,
+      url: "/polizas/get",
+      // @ts-ignore
+      data: $.param(order ? { start, length, order } : { start, length }),
+      success: fillTablePolizas,
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
 
-$(document).ready(function () {
-   // funcion para mostrar nuevo ramo/subramo
-   function cambioramosubramo(ramo, subramo) {
-      if (ramo == 'New' || subramo == 'New') {
-         $('#nuevo_ramo_subramo_div').show();
-         if (ramo == 'New') {
-            $('#nuevo_ramo_div').show();
-            $('#nuevo_ramo').prop('required', true);
-         } else {
-            $('#nuevo_ramo_div').hide();
-            $('#nuevo_ramo').prop('required', false);
-         }
-         if (subramo == 'New') {
-            $('#nuevo_subramo_div').show();
-            $('#nuevo_subramo').prop('required', true);
-         } else {
-            $('#nuevo_subramo_div').hide();
-            $('#nuevo_subramo').prop('required', false);
-         }
-      } else {
-         $('#nuevo_ramo_subramo_div').hide(); // Corrected class name
-         $('#nuevo_ramo_div').hide();
-         $('#nuevo_subramo_div').hide();
-         $('#nuevo_ramo').prop('required', false);
-         $('#nuevo_subramo').prop('required', false);
-      }
-   }
-   $('#ramo').change(function () {
-      var ramoopt = $('#ramo').val();
-      var subramoopt = $('#subramo').val();
-      cambioramosubramo(ramoopt, subramoopt);
-   });
-   $('#subramo').change(function () {
-      var ramoopt = $('#ramo').val();
-      var subramoopt = $('#subramo').val();
-      cambioramosubramo(ramoopt, subramoopt);
-   });
-
-   // funcion para mostrar nueva aseguradora
-   $('#aseguradora').change(function () {
-      var opt = $('#aseguradora').val();
-      if (opt == 'New') {
-         $('#nuevo_aseguradora_div').show();
-         $('#nuevo_aseguradora').prop('required', true);
-      } else {
-         $('#nuevo_aseguradora_div').hide();
-         $('#nuevo_aseguradora').prop('required', false);
-      }
-   });
-
-   $('#vendedor').change(function () {
-      var opt = $('#vendedor').val();
-      if (opt == 'New') {
-         $('#nuevo_vendedor_div').show();
-         $('#nuevo_vendedor').prop('required', true);
-      } else {
-         $('#nuevo_vendedor_div').hide();
-         $('#nuevo_vendedor').prop('required', false);
-      }
-   });
-
-   // funcion para mostrar nuevo agente
-   $('#agente').change(function () {
-      var opt = $('#agente').val();
-      if (opt == 'New') {
-         $('#nuevo_agente_div').show();
-         $('#nuevo_agente').prop('required', true);
-      } else {
-         $('#nuevo_agente_div').hide();
-         $('#nuevo_agente').prop('required', false);
-      }
-   });
-
-   // funcion para buscar clientes
-   function fetchClientOptions(inputValue) {
-      $.ajax({
-         url: 'polizas/search_clients', // Your server route to fetch client options
-         method: 'POST',
-         dataType: 'json',
-         data: { query: inputValue }, // Send the input value as data
-         success: function (response) {
-            var options = response.options;
-            var dropdownMenu = $('#client-options');
-            dropdownMenu.empty(); // Clear existing options
-            if (options.length === 0) {
-               dropdownMenu.append(
-                  '<p class="dropdown-item no-results" href="#">No hay coincidencias</p>'
-               );
-            } else {
-               options.forEach(function (option) {
-                  dropdownMenu.append(
-                     '<a class="dropdown-item" href="#" data-id="' +
-                        option.id +
-                        '">' +
-                        option.name +
-                        '</a>'
-                  );
-               });
-            }
-            dropdownMenu.show(); // Show the dropdown
-         },
-         error: function (xhr, textStatus, errorThrown) {
-            Swal.fire({
-               title: 'Error inesperado',
-               text: 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-               icon: 'error'
+  function fetchClientOptions(query) {
+    // @ts-ignore
+    $.ajax({
+      url: "polizas/search_clients",
+      method: "POST",
+      dataType: "json",
+      data: { query },
+      success: function (response) {
+        const options = response.options;
+        console.log(options);
+        // @ts-ignore
+        const dropdownMenu = $("#client-options");
+        dropdownMenu.empty();
+        if (options.length === 0) {
+          dropdownMenu.append(
+            '<p class="dropdown-item no-results">No hay coincidencias</p>'
+          );
+        } else {
+          // @ts-ignore
+          $.each(options, function (i,option) {
+            dropdownMenu.append(
+              `<a class="dropdown-item" id="client__${option.id}">
+                ${option.name}
+              </a>`
+            );
+            // @ts-ignore
+            $(`#client__${option.id}`).on("click", (e) => {
+              // @ts-ignore
+              $("#buscar-cliente").val(option.name);
+              // @ts-ignore
+              $("#selected-client-id").val(option.id);
+              // @ts-ignore
+              $("#client-options").hide();
+              // @ts-ignore
+              $("#buscar-cliente")[0].setCustomValidity("");
             });
-         }
+          });
+        }
+        dropdownMenu.show();
+      },
+      error: function (xhr, textStatus, error) {
+        console.log(error);
+        alert(
+          "Lamentamos el inconveniente, por favor vuelve a intentarlo",
+          "error"
+        );
+      },
+    });
+  }
+
+  // @ts-ignore
+  $("#form-polizas").submit(function (e) {
+    e.preventDefault();
+    // @ts-ignore
+    const formData = $(this).serialize();
+    if (!this.checkValidity()) {
+      // @ts-ignore
+      $(this).addClass("was-validated");
+      return;
+    }
+    // @ts-ignore
+    $.ajax({
+      type: "POST",
+      url: "/polizas/create",
+      data: formData,
+      success: function (resp) {
+        if (resp.error) {
+          alert(resp.msg, "error", resp.title);
+        } else {
+          alert(resp.msg, "success", resp.title);
+          getPolizas();
+          resetForm();
+        }
+      },
+      error: function (xhr, status, error) {
+        console.log(error);
+        alert(
+          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
+          "error"
+        );
+      },
+    });
+  });
+
+  // @ts-ignore
+  $("#reset-btn").click((e) => {
+    e.preventDefault();
+    resetForm();
+  });
+
+  // @ts-ignore
+  $("#sortByPoliza").click((e) => {
+    e.preventDefault();
+    ordered = !ordered;
+    getPolizas(ordered);
+  });
+
+  // @ts-ignore
+  $("#searchPoliza").on("keyup", function (e) {
+    e.preventDefault();
+    const searchValue = e.target.value;
+    if (searchValue == "") return getPolizas();
+    if (searchValue.length >= 3)
+      // @ts-ignore
+      $.ajax({
+        ...ajaxConfig,
+        url: "/polizas/get",
+        // @ts-ignore
+        data: $.param({ start: 0, length: 0, searchValue }),
+        success: fillTablePolizas,
+        error: (xhr, status, error) => console.error(error),
       });
-   }
-   //variables para guardar cliente seleccionado
-   var selectedName = '';
-   var selectedId = '';
-   // Buscar cliente si cambia el input
-   $('#buscar-cliente').on('keyup', function () {
-      var inputValue = $(this).val(); // Get the input value
-      if (inputValue.length >= 3) {
-         // Minimum characters to trigger search
-         fetchClientOptions(inputValue); // Fetch options based on input value
-      } else {
-         $('#client-options').hide();
-         $('#buscar-cliente')[0].setCustomValidity('');
-      }
-   });
+  });
 
-   // Seleccionar cliente de la lista
-   $('#client-options').on('click', '.dropdown-item', function (event) {
-      event.preventDefault(); // Prevent the default behavior of the click event
-      if ($(this).hasClass('no-results')) {
-         return; // Do nothing if it's a no results item
-      }
-      selectedId = $(this).data('id');
-      selectedName = $(this).text();
-      $('#buscar-cliente').val(selectedName);
-      $('#selected-client-id').val(selectedId); // Store selected client ID
-      $('#client-options').hide();
-      $('#buscar-cliente')[0].setCustomValidity('');
-   });
+  // @ts-ignore
+  $("#buscar-cliente").on("keyup", function (e) {
+    e.preventDefault();
+    const inputValue = e.target.value;
+    if (inputValue.length >= 3) {
+      fetchClientOptions(inputValue);
+    } else {
+      // @ts-ignore
+      $("#client-options").hide();
+      // @ts-ignore
+      $("#buscar-cliente")[0].setCustomValidity("");
+    }
+  });
 
-   // Enviar el form solo si se selecciono un clientes
-   $('#form-polizas').on('submit', function (event) {
-      var inputValue = $('#buscar-cliente').val();
-      if (
-         $('#client-options').is(':visible') ||
-         selectedName != inputValue ||
-         inputValue.length < 3
-      ) {
-         event.preventDefault(); // Prevent form submission if input value is not in dropdown
-         $('#buscar-cliente')[0].setCustomValidity('Ingresa un dato valido'); // Set custom validation message
-      } else {
-         $('#buscar-cliente')[0].setCustomValidity(''); // Reset custom validation message if input is valid
-      }
-   });
-
-
-
-
+  getPolizas();
 });
-
-$('#btnGenerarEndoso').on('click', function () {
-   $('.container__modal-endoso').addClass('modal-active');
-});
-
-const btnCancelar = document.querySelector('#btn_close-modal');
-btnCancelar.addEventListener('click', function (e) {
-   e.preventDefault();
-   $('.container__modal-endoso').removeClass('modal-active');
-});
-
-const fillTable = async (data) => {
-   document.querySelector('#demo').innerHTML = '';
-
-   data.forEach((poliza) => {
-      document.getElementById('demo').innerHTML += `
-
-               <tr  class="tableOption" >
-
-                     <td><p class="td-clickable" id="td-clickable_${poliza.id}">${poliza.poliza}</p></td>
-                     <td>${poliza.cliente}</td>
-                     <td>${poliza.subramo}</td>
-                     <td>${poliza.fecha_inicio}</td>
-                     <td>${poliza.fecha_termino}</td>
-                     <td>${poliza.prima_neta}</td>
-                     <td>${poliza.prima_total}</td>
-                     <td>${poliza.aseguradora}</td>
-                     <td>${poliza.tipoPago}</td>
-
-               </tr>
-
-            `;
-   });
-   await pintarPaginacion();
-   await addBtnShow();
-};
-
-fillTable(await currentPageData());

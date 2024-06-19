@@ -17,6 +17,8 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+   <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
 </head>
 
 <body>
@@ -35,305 +37,327 @@
          </div>
       </div>
    </nav>
-   <div class="tables-container">
-      <div class="form__container">
-         <h4 class="header-title">Pólizas</h4>
-         <form id="form-polizas" method="POST" action="{{ url_for('polizas.create') }}"
-            class="needs-validation form-data" novalidate="">
-            <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
-            <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" />
-            <div class="form__input-data">
-               <div class="label-option">
-                  <label class="label-input-data">Buscar cliente</label>
-                  <a href="{{ url_for('main.cliente') }}" class="search-icon">
-                     <img src="{{
-                        url_for('static',filename='assets/images/icon/mas.png')
-                        }}" class="search-icon" width="15" />
-                  </a>
-               </div>
-               <div class="input-group">
-                  <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
-                     aria-label="Search" aria-describedby="search-addon" autocomplete="off" required="" />
-                  <div class="dropdown-menu" id="client-options"></div>
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Póliza</label>
-                  <div class="input-group">
-                     <input type="text" class="form-control" id="Poliza" name="Poliza"
-                        aria-describedby="inputGroupPrepend" required="" />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
-                  </div>
-               </div>
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">No. Serie</label>
-                  <div class="input-group">
-                     <input type="text" class="form-control" id="serie" name="serie"
-                        aria-describedby="inputGroupPrepend" required="" />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
-                  </div>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Inicio de Vigencia</label>
-                  <div class="input-group">
-                     <input type="date" class="form-control" id="VigenciaI" name="VigenciaI"
-                        aria-describedby="inputGroupPrepend" required="" />
-                  </div>
-               </div>
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Fin de Vigencia</label>
-                  <div class="input-group">
-                     <input type="date" class="form-control" id="VigenciaF" name="VigenciaF"
-                        aria-describedby="inputGroupPrepend" required="" />
-                  </div>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Ramo</label>
-                  <select class="custom-select" id="ramo" name="ramo" required>
-                     <option value="">Selecciona...</option>
-                     {% for ramo in ramos %}
-                     <option value="{{ ramo.id }}">{{ ramo.ramo }}</option>
-                     {% endfor %}
-                     <option value="New">Nuevo Ramo</option>
-                  </select>
-               </div>
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Subramo</label>
-                  <select class="custom-select" id="subramo" name="subramo" required>
-                     <option value="">Selecciona...</option>
-                     {% for subramo in subramos %}
-                     <option value="{{ subramo.id }}">
-                        {{ subramo.subramo }}
-                     </option>
-                     {% endfor %}
-                     <option value="New">Nuevo Subramo</option>
-                  </select>
-               </div>
-            </div>
-            <div class="input-sibling" style="display: none" id="nuevo_ramo_subramo_div">
-               <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_ramo_div">
-                  <label class="label-input-data">Nuevo Ramo</label>
-                  <input type="text" class="form-control" id="nuevo_ramo" name="nuevo_ramo"
-                     aria-describedby="inputGroupPrepend" />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_subramo_div">
-                  <label class="label-input-data">Nuevo Subramo</label>
-                  <input type="text" class="form-control" id="nuevo_subramo" name="nuevo_subramo"
-                     aria-describedby="inputGroupPrepend" />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Moneda</label>
-                  <select class="custom-select" id="Moneda" name="Moneda" required>
-                     <option value="">Selecciona...</option>
-                     <option value="MXN">Nacional</option>
-                     <option value="USD">Dolares</option>
-                     <option value="Udis">Udis</option>
-                  </select>
-               </div>
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Forma de Pago</label>
-                  <select class="custom-select" id="Pago" name="Pago" required>
-                     <option value="">Selecciona...</option>
-                     {% for pago in pagos %}
-                     <option value="{{ pago.id }}">
-                        {{ pago.tipo_pago}}
-                     </option>
-                     {% endfor %}
-                  </select>
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Aseguradora</label>
-                  <select class="custom-select" id="aseguradora" name="aseguradora" required>
-                     <option value="">Selecciona...</option>
-                     {% for aseguradora in aseguradoras %}
-                     <option value="{{ aseguradora.id }}">
-                        {{ aseguradora.aseguradora }}
-                     </option>
-                     {% endfor %}
-                     <option value="New">Nueva Aseguradora</option>
-                  </select>
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_aseguradora_div">
-                  <label class="label-input-data">Nueva Aseguradora</label>
-                  <input type="text" class="form-control" id="nuevo_aseguradora" name="nuevo_aseguradora"
-                     aria-describedby="inputGroupPrepend" />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Vendedor</label>
-                  <select class="custom-select" id="vendedor" name="vendedor" required>
-                     <option value="">Selecciona...</option>
-                     {% for vendedor in vendedores %}
-                     <option value="{{ vendedor.id }}">
-                        {{ vendedor.nombre }}
-                     </option>
-                     {% endfor %}
-                     <option value="New">Nuevo Vendedor</option>
-                  </select>
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_vendedor_div">
-                  <label class="label-input-data">Nuevo Vendedor</label>
-                  <input type="text" class="form-control" id="nuevo_vendedor" name="nuevo_vendedor"
-                     aria-describedby="inputGroupPrepend" />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data">Agente</label>
-                  <select class="custom-select" id="agente" name="agente" required>
-                     <option value="">Selecciona...</option>
-                     {% for agente in agentes %}
-                     <option value="{{ agente.id }}">
-                        {{ agente.nombre }}
-                     </option>
-                     {% endfor %}
-                     <option value="New">Nuevo Agente</option>
-                  </select>
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-               <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_agente_div">
-                  <label class="label-input-data">Nuevo Agente</label>
-                  <input type="text" class="form-control" id="nuevo_agente" name="nuevo_agente"
-                     aria-describedby="inputGroupPrepend" />
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="input-sibling">
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data" for="polizaAnterior">Póliza Anterior</label>
-                  <div class="input-group">
-                     <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior"
-                        aria-describedby="inputGroupPrepend" />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
-                  </div>
-               </div>
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data" for="renovacion">Renovación</label>
-                  <div class="input-group">
-                     <input type="text" class="form-control" id="renovacion" name="renovacion"
-                        aria-describedby="inputGroupPrepend" />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
-                  </div>
-               </div>
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data" for="prima_neta">Prima Neta</label>
-                  <div class="input-group">
-                     <input type="text" class="form-control" id="prima_neta" name="prima_neta"
-                        aria-describedby="inputGroupPrepend" required="" />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
-                  </div>
-               </div>
-               <div class="form__input-data input-sibling-child">
-                  <label class="label-input-data" for="prima_total">Prima Total</label>
-                  <div class="input-group">
-                     <input type="text" class="form-control" id="prima_total" name="prima_total"
-                        aria-describedby="inputGroupPrepend" required="" />
-                     <p class="invalid-feedback">Ingresa un dato valido</p>
-                  </div>
-               </div>
-            </div>
-            <div class="form__input-data">
-               <label class="label-input-data" for="notas">Notas</label>
-               <div class="">
-                  <textarea form="form-polizas" class="form-control" id="notas" name="notas"
-                     placeholder="Insertar notas"></textarea>
-                  <p class="invalid-feedback">Ingresa un dato valido</p>
-               </div>
-            </div>
-            <div class="button-container">
-               <button class="btn" type="submit" value="Guardar Cambios" id="btnGuardar" name="btnGuardar">
-                  Guardar
-               </button>
 
-               <button id="btnGenerarEndoso" class="btn" type="submit" value="Generar Endoso">
-                  Generar Endoso
-               </button>
-               <button class="btn" type="reset" value="Cancelar">
-                  Cancelar
-               </button>
-            </div>
-         </form>
-      </div>
-
-      <div class="tables-sibling">
-         <div class="table-polizas" id="table-polizas">
-            <h4 class="header-title">Tabla de Pólizas</h4>
-            <form class="d-flex" role="search">
-               <input class="form-control my-2" type="search" placeholder="Buscar Póliza" aria-label="Search"
-                  id="searchPoliza" />
-            </form>
-            <table class="table">
-               <thead class="tableHeader">
-                  <tr>
-                     <th class="table-name siblingContainerRow" scope="col">
-                        Póliza
-                        <a href="#" class="btn__icon" id="sortByPoliza">
-                           <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-                              <path
-                                 d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
-                           </svg>
+   <div class="container-fluid">
+      <div class="row mt-3">
+         <div class="col-4 p-3">
+            <div class="w-100 card__shadow p-3">
+               <h4 class="header-title">Pólizas</h4>
+               <form id="form-polizas" class="needs-validation form-data" novalidate>
+                  <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
+                  <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" />
+                  <div class="form__input-data">
+                     <div class="label-option">
+                        <label class="label-input-data">Buscar cliente</label>
+                        <a href="{{ url_for('main.cliente') }}" class="search-icon">
+                           <img src="{{
+                              url_for('static',filename='assets/images/icon/mas.png')
+                              }}" class="search-icon" width="15" />
                         </a>
-                     </th>
-                     <th scope="col">Cliente</th>
-                     <th scope="col">Sub Ramo</th>
-                     <th scope="col">Fecha Inicio</th>
-                     <th scope="col">Fecha Fin</th>
-                     <th scope="col">Prima Neta</th>
-                     <th scope="col">Prima Total</th>
-                     <th scope="col">Aseguradora</th>
-                     <th scope="col">Forma de Pago</th>
-                  </tr>
-               </thead>
-               <tbody id="demo">
-                  <!-- Agregar la información de la tabla -->
-               </tbody>
-            </table>
+                     </div>
+                     <div class="input-group" style="background-color: aliceblue;">
+                        <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
+                           aria-label="Search" aria-describedby="search-addon" autocomplete="off" required="" />
+                        <div class="dropdown-menu" id="client-options"></div>
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Póliza</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="Poliza" name="Poliza"
+                              aria-describedby="inputGroupPrepend" required="" />
+                           <p class="invalid-feedback">Ingresa un dato valido</p>
+                        </div>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">No. Serie</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="serie" name="serie"
+                              aria-describedby="inputGroupPrepend" required="" />
+                           <p class="invalid-feedback">Ingresa un dato valido</p>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Inicio de Vigencia</label>
+                        <div class="input-group">
+                           <input type="date" class="form-control" id="VigenciaI" name="VigenciaI"
+                              aria-describedby="inputGroupPrepend" required="" />
+                        </div>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Fin de Vigencia</label>
+                        <div class="input-group">
+                           <input type="date" class="form-control" id="VigenciaF" name="VigenciaF"
+                              aria-describedby="inputGroupPrepend" required="" />
+                        </div>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Ramo</label>
+                        <select class="custom-select" id="ramo" name="ramo" required>
+                           <option value="">Selecciona...</option>
+                           {% for ramo in ramos %}
+                           <option value="{{ ramo.id }}">{{ ramo.ramo }}</option>
+                           {% endfor %}
+                           <option value="New">Nuevo Ramo</option>
+                        </select>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Subramo</label>
+                        <select class="custom-select" id="subramo" name="subramo" required>
+                           <option value="">Selecciona...</option>
+                           {% for subramo in subramos %}
+                           <option value="{{ subramo.id }}">
+                              {{ subramo.subramo }}
+                           </option>
+                           {% endfor %}
+                           <option value="New">Nuevo Subramo</option>
+                        </select>
+                     </div>
+                  </div>
+                  <div class="input-sibling" style="display: none" id="nuevo_ramo_subramo_div">
+                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_ramo_div">
+                        <label class="label-input-data">Nuevo Ramo</label>
+                        <input type="text" class="form-control" id="nuevo_ramo" name="nuevo_ramo"
+                           aria-describedby="inputGroupPrepend" />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_subramo_div">
+                        <label class="label-input-data">Nuevo Subramo</label>
+                        <input type="text" class="form-control" id="nuevo_subramo" name="nuevo_subramo"
+                           aria-describedby="inputGroupPrepend" />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Moneda</label>
+                        <select class="custom-select" id="Moneda" name="Moneda" required>
+                           <option value="">Selecciona...</option>
+                           <option value="MXN">Nacional</option>
+                           <option value="USD">Dolares</option>
+                           <option value="Udis">Udis</option>
+                        </select>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Forma de Pago</label>
+                        <select class="custom-select" id="Pago" name="Pago" required>
+                           <option value="">Selecciona...</option>
+                           {% for pago in pagos %}
+                           <option value="{{ pago.id }}">
+                              {{ pago.tipo_pago}}
+                           </option>
+                           {% endfor %}
+                        </select>
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Aseguradora</label>
+                        <select class="custom-select" id="aseguradora" name="aseguradora" required>
+                           <option value="">Selecciona...</option>
+                           {% for aseguradora in aseguradoras %}
+                           <option value="{{ aseguradora.id }}">
+                              {{ aseguradora.aseguradora }}
+                           </option>
+                           {% endfor %}
+                           <option value="New">Nueva Aseguradora</option>
+                        </select>
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_aseguradora_div">
+                        <label class="label-input-data">Nueva Aseguradora</label>
+                        <input type="text" class="form-control" id="nuevo_aseguradora" name="nuevo_aseguradora"
+                           aria-describedby="inputGroupPrepend" />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Vendedor</label>
+                        <select class="custom-select" id="vendedor" name="vendedor" required>
+                           <option value="">Selecciona...</option>
+                           {% for vendedor in vendedores %}
+                           <option value="{{ vendedor.id }}">
+                              {{ vendedor.nombre }}
+                           </option>
+                           {% endfor %}
+                           <option value="New">Nuevo Vendedor</option>
+                        </select>
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_vendedor_div">
+                        <label class="label-input-data">Nuevo Vendedor</label>
+                        <input type="text" class="form-control" id="nuevo_vendedor" name="nuevo_vendedor"
+                           aria-describedby="inputGroupPrepend" />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data">Agente</label>
+                        <select class="custom-select" id="agente" name="agente" required>
+                           <option value="">Selecciona...</option>
+                           {% for agente in agentes %}
+                           <option value="{{ agente.id }}">
+                              {{ agente.nombre }}
+                           </option>
+                           {% endfor %}
+                           <option value="New">Nuevo Agente</option>
+                        </select>
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_agente_div">
+                        <label class="label-input-data">Nuevo Agente</label>
+                        <input type="text" class="form-control" id="nuevo_agente" name="nuevo_agente"
+                           aria-describedby="inputGroupPrepend" />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data" for="polizaAnterior">Póliza Anterior</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior"
+                              aria-describedby="inputGroupPrepend" />
+                           <p class="invalid-feedback">Ingresa un dato valido</p>
+                        </div>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data" for="renovacion">Renovación</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="renovacion" name="renovacion"
+                              aria-describedby="inputGroupPrepend" />
+                           <p class="invalid-feedback">Ingresa un dato valido</p>
+                        </div>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data" for="prima_neta">Prima Neta</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="prima_neta" name="prima_neta"
+                              aria-describedby="inputGroupPrepend" required="" />
+                           <p class="invalid-feedback">Ingresa un dato valido</p>
+                        </div>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data" for="prima_total">Prima Total</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="prima_total" name="prima_total"
+                              aria-describedby="inputGroupPrepend" required="" />
+                           <p class="invalid-feedback">Ingresa un dato valido</p>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="form__input-data">
+                     <label class="label-input-data" for="notas">Notas</label>
+                     <div class="">
+                        <textarea form="form-polizas" class="form-control" id="notas" name="notas"
+                           placeholder="Insertar notas"></textarea>
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="button-container">
+                     <button class="btn" type="submit" value="Guardar Cambios" id="btnGuardar" name="btnGuardar">
+                        Guardar
+                     </button>
+                     <button id="btnGenerarEndoso" class="btn" type="submit" value="Generar Endoso">
+                        Generar Endoso
+                     </button>
+                     <button class="btn" type="reset" value="Cancelar" id="reset-btn">
+                        Cancelar
+                     </button>
+                  </div>
+               </form>
+            </div>
          </div>
-         <ul id="indexList" class="paginationList">
-            <li class="paginationList__index" id="prev-index"></li>
-            <li id="current-index" class="paginationList__current-index noClickable"></li>
-            <li class="paginationList__index" id="next-index"></li>
-         </ul>
-         <div class="table-recibos">
-            <h4 class="header-title">Listas de Recibos</h4>
-            <table class="table">
-               <thead class="tableHeader">
-                  <tr>
-                     <th scope="col">Número</th>
-                     <th scope="col">Fecha de Recibo</th>
-                     <th scope="col">Vencimiento</th>
-                     <th scope="col">Prima Neta</th>
-                     <th scope="col">Prima Total</th>
-                     <th scope="col">Comisión</th>
-                     <th scope="col">Pagado</th>
-                     <th scope="col">Fecha de Pago</th>
-                     <th scope="col">Comprobante</th>
-                     <th scope="col">Cancelado</th>
-                  </tr>
-               </thead>
-               <tbody id="receiptsTable">
-                  <tr class="tableOption">
-                  </tr>
-               </tbody>
-            </table>
+         <div class="col-8 p-3">
+            <div class="w-100 card__shadow p-3" style="max-height: 665.61px;min-height: 665.61px;position: relative">
+               <div class="table-polizas" id="table-polizas">
+                  <h4 class="header-title">Tabla de Pólizas</h4>
+                  <form class="d-flex" role="search">
+                     <input class="form-control my-2" type="search" placeholder="Buscar Póliza" aria-label="Search"
+                        id="searchPoliza" />
+                  </form>
+                  <table class="table">
+                     <thead class="tableHeader">
+                        <tr>
+                           <th class="table-name siblingContainerRow" scope="col">
+                              Póliza
+                              <a class="btn__icon" id="sortByPoliza">
+                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                                    <path
+                                       d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
+                                 </svg>
+                              </a>
+                           </th>
+                           <th scope="col">Cliente</th>
+                           <th scope="col">Sub Ramo</th>
+                           <!-- <th scope="col">Fecha Inicio</th>
+                           <th scope="col">Fecha Fin</th>
+                           <th scope="col">Prima Neta</th>
+                           <th scope="col">Prima Total</th> -->
+                           <th scope="col">Aseguradora</th>
+                           <th scope="col">Forma de Pago</th>
+                           <th scope="col">Acciones</th>
+                        </tr>
+                     </thead>
+                     <tbody id="polizas-table">
+                        <!-- Agregar la información de la tabla -->
+                     </tbody>
+                  </table>
+               </div>
+               <div class="w-100 d-flex justify-content-center">
+                  <div id="pagination" style="position: absolute;bottom: 10px;"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Modal recibos -->
+   <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+         <div class="modal-content">
+            <div class="modal-header">
+               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+               </button>
+            </div>
+            <div class="modal-body pt-1">
+               <div class="row pb-4">
+                  <div class="col-12">
+                     <h4 class="header-title">Listas de Recibos</h4>
+                     <table class="table">
+                        <thead class="tableHeader">
+                           <tr>
+                              <th scope="col">Número</th>
+                              <th scope="col">Fecha de Recibo</th>
+                              <th scope="col">Vencimiento</th>
+                              <th scope="col">Prima Neta</th>
+                              <th scope="col">Prima Total</th>
+                              <th scope="col">Pagado</th>
+                              <th scope="col">Fecha de Pago</th>
+                              <th scope="col">Cancelado</th>
+                           </tr>
+                        </thead>
+                        <tbody id="receiptsTable">
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+               <div class="w-100 d-flex justify-content-center">
+                  <div id="pagination-recibos" style="position: absolute;bottom: 10px;"></div>
+               </div>
+            </div>
+            <div class="modal-footer">
+               <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+            </div>
          </div>
       </div>
    </div>
@@ -351,7 +375,7 @@
    <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
-
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
 </body>
 
 </html>
