@@ -41,64 +41,26 @@
    <!-- page container area start -->
    <div class="containergeneral">
       <div class="form__container1">
-         <h4 class="header-title">Nueva Aseguradora</h4>
-         <form id="userForm" method="POST" action="{{ url_for('usuarios.create') }}" class="needs-validation form-data"
-            novalidate>
-            <input type="hidden" id="usuario_id" name="usuario_id" value="New" />
+         <h4 class="header-title" id="tipoTitle"></h4>
+         <form id="utileriasForm" class="needs-validation form-data" novalidate>
+            <input type="hidden" id="aseguradora_id" name="aseguradora_id" value="New" />
+            <div class="form__input-data">
+               <label for="tipo" class="label-input-data">Selecciona un tipo</label>
+               <select class="custom-select" id="tipo" name="tipo"  required>
+                  <option value="Aseguradora">Aseguradora</option>
+                  <option value="Agente">Agente</option>
+                  <option value="Vendedor">Vendedor</option>
+               </select>
+               <p class="invalid-feedback">Selecciona un tipo válido.</p>
+            </div>
             <div class="form__input-data">
                <label for="nombre" class="label-input-data">
-                  Nombre Usuario
+                  Nombre
                </label>
                <div class="input-group">
                   <input type="text" class="form-control" id="nombre" name="nombre" placeholder="" minlength="2"
                      maxlength="50" required />
                   <p class="invalid-feedback">Ingresa un nombre válido.</p>
-               </div>
-            </div>
-            <div class="form__input-data">
-               <label for="apellido" class="label-input-data">Apellido</label>
-               <div class="input-group">
-                  <input type="text" class="form-control" id="apellido" name="apellido" placeholder="" minlength="2"
-                     maxlength="50" required />
-                  <p class="invalid-feedback">Ingresa un apellido válido.</p>
-               </div>
-            </div>
-            <div class="form__input-data">
-               <label for="telefono_movil" class="label-input-data">Teléfono</label>
-               <div class="input-group">
-                  <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder=""
-                     minlength="10" maxlength="10" required />
-                  <p class="invalid-feedback">Ingresa un teléfono válido.</p>
-               </div>
-            </div>
-            <div class="form__input-data">
-               <label class="label-input-data" for="correo">Correo Electrónico</label>
-               <div class="input-group">
-                  <input type="email" class="form-control" id="correo" name="correo" placeholder="" minlength="5"
-                     maxlength="50" required />
-                  <p class="invalid-feedback">
-                     Ingresa un correo electrónico válido.
-                  </p>
-               </div>
-            </div>
-            <div class="form__input-data">
-               <label for="grupo" class="label-input-data">Nivel (Tipo de Usuario)</label>
-               <select class="custom-select" id="grupo" name="grupo" aria-placeholder="" required>
-                  <option>Gerente</option>
-                  <option>Usuario</option>
-                  <option>Administrador</option>
-                  <option>Desarrollador</option>
-               </select>
-               <p class="invalid-feedback">Selecciona un grupo válido.</p>
-            </div>
-            <div class="form__input-data">
-               <label class="label-input-data" for="username">Username</label>
-               <div class="input-group">
-                  <input type="text" class="form-control" id="username" name="username" placeholder="" minlength="5"
-                     maxlength="50" required />
-                  <p class="invalid-feedback">
-                     Ingresa un usuario válido.
-                  </p>
                </div>
             </div>
             <div class="button-container">
@@ -111,13 +73,12 @@
             </div>
          </form>
       </div>
-
-      <div class="tables-user1">
+      <div class="tables-user1" style="position: relative;">
          <div class="table-polizas" id="table-polizas">
             <h4 class="header-title">Tabla de Aseguradoras</h4>
             <form class="d-flex" role="search">
                <input class="form-control my-2" type="search" placeholder="Buscar Usuario" aria-label="Search"
-                  id="searchUser" />
+                  id="searchAseguradora" />
             </form>
             <table class="table">
                <thead class="tableHeader">
@@ -138,28 +99,20 @@
                         Teléfono
                      </th>
                      <th class="table-actions" scope="col">
-                        Acceso
-                     </th>
-                     <th class="table-actions" scope="col">
                         Acción
                      </th>
                      <!-- <th scope="col">Vigencia</th> -->
                      <!-- <th scope="col"></th> -->
                   </tr>
                </thead>
-               <tbody id="demo">
+               <tbody id="table-aseguradoras">
                   <!-- Agregar la información de la tabla -->
                </tbody>
             </table>
          </div>
-         <ul id="indexList" class="paginationList">
-            <li class="paginationList__index" id="prev-index">
-            </li>
-            <li id="current-index" class="paginationList__current-index noClickable"></li>
-            <li class="paginationList__index" id="next-index">
-               >
-            </li>
-         </ul>
+         <div class="w-100 d-flex justify-content-center">
+            <div id="pagination" style="position: absolute;bottom: 10px;"></div>
+         </div>
       </div>
    </div>
    <!-- main content area end -->
@@ -171,7 +124,8 @@
    <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
-   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>\
+   <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>

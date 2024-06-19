@@ -7,7 +7,7 @@ from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Clien
 from sqlalchemy import join, or_,desc,func,select
 import csv
 from io import StringIO
-from . import main 
+from . import main
 from datetime import datetime,date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
@@ -41,7 +41,7 @@ def see2():
     return route_access_counts_2
  """
 
-""" 
+"""
 # Base Code for Export
 def export_clients():
     headers = []
@@ -81,7 +81,6 @@ def check_access(nombre_del_servicio):
 @main.route('/utilerias', methods=['GET'])
 @login_required
 def utilerias():
-
     return render_template('utilerias.html',user=current_user)
 
 #Recibos
@@ -174,10 +173,10 @@ def create_multiple():
             "Vendedor":"nombre"}
     if tipo not in clases.keys():
         return jsonify({"error":True})
-    
+
     new_record_id=new_class(clases[tipo],"New" ,nombre,colnames[tipo])
 
-    return jsonify({"error":True,"record_id":new_record_id})
+    return jsonify({"error": False,"record_id":new_record_id, "msg": "Elemento creado correctamente" })
 
 #@main.route('/get_data_multiple', methods=['GET'])
 @main.route('/get_data_multiple', methods=['POST'])
