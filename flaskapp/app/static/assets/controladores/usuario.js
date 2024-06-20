@@ -24,7 +24,7 @@ $(function () {
       showCancelButton: true,
       allowOutsideClick: false,
       confirmButtonText: "Aceptar",
-      cancelButtonText: "Canelar",
+      cancelButtonText: "Cancelar",
       icon: "warning",
     });
   }
@@ -33,13 +33,19 @@ $(function () {
     // @ts-ignore
     $("#userForm")[0].reset();
     // @ts-ignore
+    $("#acceso").html(`
+      <option></option>
+      <option value="1">Administrador</option>
+      <option value="2">Usuario</option>
+      <option value="3">Desarrollador</option>
+      <option value="4">Gerente</option>
+    `);
+    // @ts-ignore
+    $("#userForm input").prop("disabled", false);
+    // @ts-ignore
     $("#userForm").removeClass("was-validated");
     // @ts-ignore
-    $("#userForm select").prop("disabled", false);
-    // @ts-ignore
     $("#usuario_id").val("New");
-    // @ts-ignore
-    $("#Savebtn").text("Crear");
   }
 
   function editUser(usuario_id) {
@@ -63,22 +69,30 @@ $(function () {
         // @ts-ignore
         $("#username").val(resp.data[0].username);
         // @ts-ignore
-        $("#acceso").html(`<option value='${resp.data[0].acceso}'>
+        $("#password").prop("disabled", true);
+        // @ts-ignore
+        $("#acceso").html(`<option value='${resp.data[0].nivel_id}'>
         ${resp.data[0].acceso}
         </option>
-        <option value="1">Administrador</option>
-        <option value="2">Usuario</option>
-        <option value="3">Desarrollador</option>
-        <option value="4">Gerente</option>
+        ${
+          resp.data[0].nivel_id !== 1 &&
+          '<option value="1">Administrador</option>'
+        }
+        ${resp.data[0].nivel_id !== 2 && '<option value="2">Usuario</option>'}
+        ${
+          resp.data[0].nivel_id !== 3 &&
+          '<option value="3">Desarrollador</option>'
+        }
+        ${resp.data[0].nivel_id !== 4 && '<option value="4">Gerente</option>'}
         `);
       },
       error: (xhr, status, error) => console.error(error),
     });
   }
 
-  async function deleteUser(user_id) {
+  async function deleteUser(user_id, name) {
     const { isConfirmed } = await alertConfirm(
-      "¿Esta seguro de eliminar este usuario?"
+      `¿Esta seguro de eliminar al usuario ${name}?`
     );
     if (!isConfirmed) return;
     // @ts-ignore
@@ -143,7 +157,9 @@ $(function () {
       // @ts-ignore
       $(`#btnEdit_${usuario.id}`).on("click", (e) => editUser(usuario.id));
       // @ts-ignore
-      $(`#btnDelete_${usuario.id}`).on("click", (e) => deleteUser(usuario.id));
+      $(`#btnDelete_${usuario.id}`).on("click", (e) =>
+        deleteUser(usuario.id, usuario.fullname)
+      );
       // @ts-ignore
       $(`#btnShow_${usuario.id}`).on("click", (e) => {
         // @ts-ignore
@@ -306,7 +322,7 @@ $(function () {
         } else {
           alert(resp.msg, "success", resp.title);
           getUsers();
-          resetForm()
+          resetForm();
         }
       },
       error: function (xhr, status, error) {
@@ -320,6 +336,29 @@ $(function () {
   });
 
   // @ts-ignore
+  $("#visibility_newpass").click(function () {
+    // @ts-ignore
+    if ($("#newpass").attr("type") === "password") {
+      // @ts-ignore
+      $("#newpass").attr("type", "text");
+    } else{
+      // @ts-ignore
+      $("#newpass").attr("type", "password");
+    }
+  });
+  // @ts-ignore
+  $("#visibility_cnewpass").click(function () {
+    // @ts-ignore
+    if ($("#cnewpass").attr("type") === "password") {
+      // @ts-ignore
+      $("#cnewpass").attr("type", "text");
+    } else {
+      // @ts-ignore
+      $("#cnewpass").attr("type", "password");
+    }
+  });
+
+  // @ts-ignore
   $("#passForm").submit(function (e) {
     e.preventDefault();
     // @ts-ignore
@@ -329,31 +368,33 @@ $(function () {
       $(this).addClass("was-validated");
       return;
     }
-    console.log(formData);
     // @ts-ignore
-    console.log($("#usuario_id").val());
-    alert("se cambio la contraseña correctamente");
+    if ($("#newpass").val() !== $("#cnewpass").val())
+      return alert("Las contraseñas deben ser iguales", "error");
     // @ts-ignore
-    // $.ajax({
-    //   type: "POST",
-    //   url: "/usuarios/create",
-    //   data: formData,
-    //   success: function (resp) {
-    //     if (resp.error) {
-    //       alert(resp.msg, "error", resp.title);
-    //     } else {
-    //       alert(resp.msg, "success", resp.title);
-    //       getUsers();
-    //     }
-    //   },
-    //   error: function (xhr, status, error) {
-    //     console.log(error);
-    //     alert(
-    //       "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
-    //       "error"
-    //     );
-    //   },
-    // });
+    $.ajax({
+      type: "POST",
+      url: "/usuarios/change_pass",
+      data: formData,
+      success: function (resp) {
+        if (resp.error) {
+          alert(resp.msg, "error", resp.title);
+        } else {
+          alert(resp.msg, "success", resp.title);
+          // @ts-ignore
+          $("#passForm")[0].reset();
+          // @ts-ignore
+          $("#pass").modal("toggle");
+        }
+      },
+      error: function (xhr, status, error) {
+        console.log(error);
+        alert(
+          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
+          "error"
+        );
+      },
+    });
   });
 
   // @ts-ignore

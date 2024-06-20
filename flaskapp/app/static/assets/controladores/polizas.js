@@ -45,7 +45,7 @@ $(function () {
       showCancelButton: true,
       allowOutsideClick: false,
       confirmButtonText: "Aceptar",
-      cancelButtonText: "Canelar",
+      cancelButtonText: "Cancelar",
       icon: "warning",
     });
   }

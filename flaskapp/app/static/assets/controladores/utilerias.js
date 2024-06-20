@@ -26,7 +26,7 @@ $(function () {
       showCancelButton: true,
       allowOutsideClick: false,
       confirmButtonText: "Aceptar",
-      cancelButtonText: "Canelar",
+      cancelButtonText: "Cancelar",
       icon: "warning",
     });
   }
@@ -38,8 +38,6 @@ $(function () {
     $("#utileriasForm").removeClass("was-validated");
     // @ts-ignore
     $("#aseguradora_id").val("New");
-    // @ts-ignore
-    $("#Savebtn").text("Crear");
   }
 
   function editAseguradora(aseguradora_id) {
@@ -183,7 +181,7 @@ $(function () {
       success: function (resp) {
         console.log(resp);
         if (resp.error) {
-          alert(resp.msg || "Ocuurio un error, intente de nuevo", "error");
+          alert(resp.msg || "Ocurrio un error, intente de nuevo", "error");
         } else {
           alert(resp.msg, "success");
           getAseguradoras();

@@ -13,8 +13,6 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 
-
-
 @usuarios_route.route('/get', methods=['POST'])
 @login_required
 def get():
@@ -257,5 +255,16 @@ def get_requests():
     }
     return jsonify(response)
 
-
+@usuarios_route.route('/change_pass', methods=['POST'])
+@login_required
+def change_pass():
+    user_id = request.form.get('user_id')
+    newpass=request.form.get('newpass')
+    if user_id and newpass:
+        existing_user = Usuario.query.get(user_id)
+        existing_user.password=generate_password_hash(newpass)
+        db.session.commit()
+        return jsonify({'error': False, 'redirect': url_for('main.index'), 'msg': 'Contraseña actualizada', 'title': ''})
+    else:
+        return jsonify({'error': True, 'msg': 'Ocurrio un error intente de nuevo', 'title': ''})
 

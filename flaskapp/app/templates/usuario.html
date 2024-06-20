@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html class="no-js" lang="es-mx">
 
 <head>
@@ -171,7 +172,7 @@
          </div>
       </div>
       <div class="row mb-3">
-         <div class="col-6 p-3">
+         <div class="col-6 p-3 offset-3">
             <div class="w-100 card__shadow p-3">
                <h4 class="header-title">Cambio de Contraseña</h4>
                <table class="table">
@@ -246,8 +247,8 @@
    </div>
 
    <!-- Modal change password -->
-   <div class="modal fade bd-example-modal-lg" id="pass" tabindex="-1" role="dialog" aria-labelledby="pass">
-      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+   <div class="modal fade bd-example-modal" id="pass" tabindex="-1" role="dialog" aria-labelledby="pass">
+      <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 400px;">
          <div class="modal-content">
             <div class="modal-header">
                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -263,31 +264,43 @@
                      <form id="passForm" class="needs-validation form-data" novalidate>
                         <input type="hidden" id="user_id" name="user_id" value="" />
                         <div class="form__input-data">
-                           <label for="pass" class="label-input-data">
+                           <label for="newpass" class="label-input-data">
                               contraseña
                            </label>
                            <div class="input-group">
-                              <input type="text" class="form-control" id="pass" name="pass" minlength="6" maxlength="8"
+                              <input type="password" class="form-control" id="newpass" name="newpass" minlength="6" maxlength="8"
                                  required />
+                              <a id="visibility_newpass">
+                                 <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000">
+                                    <path
+                                       d="M480-392q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q141 0 257.5 76T912-520h-91q-52-93-143-146.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280q20 0 40-2t40-6v81q-20 3-40 5t-40 2Zm0-120q22 0 42.5-5t38.5-14q5-50 31.5-90t67.5-64v-7q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm-5-180Zm205 380q-17 0-28.5-11.5T640-160v-120q0-17 11.5-28.5T680-320v-40q0-33 23.5-56.5T760-440q33 0 56.5 23.5T840-360v40q17 0 28.5 11.5T880-280v120q0 17-11.5 28.5T840-120H680Zm40-200h80v-40q0-17-11.5-28.5T760-400q-17 0-28.5 11.5T720-360v40Z" />
+                                 </svg>
+                              </a>
                               <p class="invalid-feedback">
                                  Ingresa una contraseña válida.
                               </p>
                            </div>
                         </div>
                         <div class="form__input-data">
-                           <label for="cpass" class="label-input-data">
+                           <label for="cnewpass" class="label-input-data">
                               Confirmar contraseña
                            </label>
                            <div class="input-group">
-                              <input type="text" class="form-control" id="cpass" name="cpass" minlength="6"
+                              <input type="password" class="form-control" id="cnewpass" name="cnewpass" minlength="6"
                                  maxlength="8" required />
+                              <a id="visibility_cnewpass">
+                                 <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000">
+                                    <path
+                                       d="M480-392q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q141 0 257.5 76T912-520h-91q-52-93-143-146.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280q20 0 40-2t40-6v81q-20 3-40 5t-40 2Zm0-120q22 0 42.5-5t38.5-14q5-50 31.5-90t67.5-64v-7q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm-5-180Zm205 380q-17 0-28.5-11.5T640-160v-120q0-17 11.5-28.5T680-320v-40q0-33 23.5-56.5T760-440q33 0 56.5 23.5T840-360v40q17 0 28.5 11.5T880-280v120q0 17-11.5 28.5T840-120H680Zm40-200h80v-40q0-17-11.5-28.5T760-400q-17 0-28.5 11.5T720-360v40Z" />
+                                 </svg>
+                              </a>
                               <p class="invalid-feedback">
-                                 Ingresa una confirmación de constraseña
+                                 Ingresa una confirmación de constraseña valida
                               </p>
                            </div>
                         </div>
                         <div class="button-container">
-                           <button id="save-btn" type="submit" class="btn">
+                           <button id="save-btn-pass" type="submit" class="btn">
                               Guardar
                            </button>
                         </div>

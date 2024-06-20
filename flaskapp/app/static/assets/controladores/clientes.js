@@ -24,7 +24,7 @@ $(function () {
       showCancelButton: true,
       allowOutsideClick: false,
       confirmButtonText: "Aceptar",
-      cancelButtonText: "Canelar",
+      cancelButtonText: "Cancelar",
       icon: "warning",
     });
   }
@@ -33,6 +33,12 @@ $(function () {
     // @ts-ignore
     $("#cliente-form")[0].reset();
     // @ts-ignore
+    $("#sexo").html(`
+      <option value="Mujer">Mujer</option>
+      <option value="Hombre">Hombre</option>
+      <option value="Otro">Otro</option>
+    `);
+    // @ts-ignore
     $("#cliente-form").removeClass("was-validated");
     // @ts-ignore
     $("#cliente-form input").prop("disabled", false);
@@ -40,8 +46,6 @@ $(function () {
     $("#cliente-form select").prop("disabled", false);
     // @ts-ignore
     $("#cliente_id").val("New");
-    // @ts-ignore
-    $("#Savebtn").text("Crear");
     // @ts-ignore
     $("#nuevo_grupo_div").hide();
   }
@@ -79,9 +83,15 @@ $(function () {
         $("#sexo").html(`<option value='${resp.data[0].sexo}'>
          ${resp.data[0].sexo}
          </option>
-         <option value="Mujer">Mujer</option>
-         <option value="Hombre">Hombre</option>
-         <option value="Otro">Otro</option>
+         ${
+           resp.data[0].sexo !== "Mujer" &&
+           '<option value="Mujer">Mujer</option>'
+         }
+         ${
+           resp.data[0].sexo !== "Hombre" &&
+           '<option value="Hombre">Hombre</option>'
+         }
+         ${resp.data[0].sexo !== "Otro" && '<option value="Otro">Otro</option>'}
          `);
         // @ts-ignore
         $("#ocupacion").val(resp.data[0].ocupacion);
@@ -94,7 +104,7 @@ $(function () {
          ${fetch("/grupo")
            .then((response) => response.json())
            .then((data) => {
-             resp.forEach((grupo) => {
+             data.forEach((grupo) => {
                // @ts-ignore
                document.querySelector("#grupo").innerHTML += `
                <option value='${grupo.id}'>${grupo.nombre}</option>
@@ -109,9 +119,9 @@ $(function () {
     });
   }
 
-  async function deleteClient(client_id) {
+  async function deleteClient(client_id, nombre) {
     const { isConfirmed } = await alertConfirm(
-      "¿Esta seguro de eliminar este cliente?"
+      `¿Esta seguro de eliminar este cliente ${nombre}?`
     );
     if (!isConfirmed) return;
     // @ts-ignore
@@ -162,11 +172,6 @@ $(function () {
                         <svg class="noClickable" xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
                      </a>
                   </li>
-                  <li>
-                     <a class="btn__icon_show pointer" id="btnShow_${client.id}">
-                        <svg class="noClickable" xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
-                     </a>
-                  </li>
                </ul>
             </td>
          </tr>`
@@ -174,12 +179,9 @@ $(function () {
       // @ts-ignore
       $(`#btnEdit_${client.id}`).on("click", (e) => editClient(client.id));
       // @ts-ignore
-      $(`#btnDelete_${client.id}`).on("click", (e) => deleteClient(client.id));
-      // @ts-ignore
-      $(`#btnShow_${client.id}`).on("click", (e) => {
-        // @ts-ignore
-        //   $("#hist").modal();
-      });
+      $(`#btnDelete_${client.id}`).on("click", (e) =>
+        deleteClient(client.id, client.fullname)
+      );
     });
     // @ts-ignore
     $(".tableOption").slice(11).hide();
