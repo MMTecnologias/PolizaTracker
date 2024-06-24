@@ -29,6 +29,7 @@ def get_receipts():
     # Apply pagination
     recibos = recibos_query.offset(start).limit(length).all()
 
+    poliza = Poliza.query.get(poliza_id)    
     # Format data as required by DataTables
     data = []
     for recibo in recibos:
@@ -42,7 +43,7 @@ def get_receipts():
             "pagado" : True if recibo.status=='Liquidado' else False,
             "fecha_pago" : "" if recibo.fecha_pago is None else  recibo.fecha_pago.strftime('%Y-%m-%d'),
             "comprobante" : "" if recibo.comprobante is None else  recibo.comprobante ,
-            "cancelado" : True if recibo.status=='Cancelado' else False,
+            "cancelado" : True if poliza.status=='Cancelada' else False,
             'id': recibo.id
             # Add more fields as needed
         })
@@ -102,6 +103,8 @@ def get():
 
     if order:
         polizas_query = polizas_query.order_by('poliza')
+    else:
+        polizas_query = polizas_query.order_by(desc(Poliza.id))
 
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id==int(poliza_id))
@@ -259,7 +262,8 @@ def create():
             'error': False,
             'redirect': url_for('main.polizas'),
             'msg': arg_values,
-            'title':'Poliza registrada exitosamente'
+            'title':'Poliza registrada exitosamente',
+            'poliza_id':new_poliza.id
         })
     else:
         return jsonify({
@@ -268,6 +272,32 @@ def create():
             'msg': 'Solo se puede editar poliza en endosos',
             'title':'Sin cambios'
         })
+
+@polizas_route.route('/delete', methods=['POST'])
+@login_required
+def delete():
+    poliza_id = int(request.form.get('poliza_id'))
+
+    poliza = Poliza.query.get(poliza_id)
+    if poliza:
+        # Update the poliza's status to "Eliminado"
+        request_entry = Request(usuario_id=current_user.id,
+                                description=f"Candelar póliza {poliza.poliza}",
+                                table_name='Poliza',
+                                row_id=poliza.id)
+        db.session.add(request_entry)
+        db.session.commit()
+        log_entry = Log(request_id=request_entry.id,
+                        column_name='status',
+                        old_value=poliza.status,
+                        new_value='Cancelada')
+
+        db.session.add(log_entry)
+        poliza.status = "Cancelada"
+        db.session.commit()
+        return jsonify({'error': False, 'title': 'Póliza eliminada', 'msg': 'La póliza ha sido eliminada con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
+    else:
+        return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró la póliza.'})
 
 
 
