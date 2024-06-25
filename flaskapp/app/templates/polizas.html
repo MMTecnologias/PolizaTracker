@@ -362,6 +362,48 @@
       </div>
    </div>
 
+   <!-- Modal create recibo -->
+   <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+         <div class="modal-content">
+            <div class="modal-header">
+               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+               </button>
+            </div>
+            <div class="modal-body pt-1">
+               <div class="row pb-4">
+                  <div class="col-12">
+                     <h4 class="header-title">Listas de Recibos</h4>
+                     <table class="table">
+                        <thead class="tableHeader">
+                           <tr>
+                              <th scope="col">Número</th>
+                              <th scope="col">Fecha de Recibo</th>
+                              <th scope="col">Vencimiento</th>
+                              <th scope="col">Prima Neta</th>
+                              <th scope="col">Prima Total</th>
+                              <th scope="col">Pagado</th>
+                              <th scope="col">Fecha de Pago</th>
+                              <th scope="col">Cancelado</th>
+                           </tr>
+                        </thead>
+                        <tbody id="receiptsTable">
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+               <div class="w-100 d-flex justify-content-center">
+                  <div id="pagination-recibos" style="position: absolute;bottom: 10px;"></div>
+               </div>
+            </div>
+            <div class="modal-footer">
+               <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+            </div>
+         </div>
+      </div>
+   </div>
+
    <!-- main content area end -->
    <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}"></script>
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>

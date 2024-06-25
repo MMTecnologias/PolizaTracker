@@ -1,23 +1,22 @@
 # app/main/routes.py
-from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort,Flask, Response
+from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash,generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso,Grupo,Poliza,Cliente,Grupo,TipoPago,Recibo,Ramo, Subramo, Aseguradora, Agente, Vendedor, Request,Log,new_class
-from sqlalchemy import join, or_,desc,func,select
+from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, new_class
+from sqlalchemy import join, or_, desc, func, select
 import csv
 from io import StringIO
 from . import polizas_route
-from datetime import datetime,date
+from datetime import datetime, date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 
-
 @polizas_route.route('/get_receipts', methods=['POST'])
 @login_required
 def get_receipts():
-    #Recibe
+    # Recibe
     poliza_id = request.form.get('poliza_id')
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
@@ -29,7 +28,7 @@ def get_receipts():
     # Apply pagination
     recibos = recibos_query.offset(start).limit(length).all()
 
-    poliza = Poliza.query.get(poliza_id)    
+    poliza = Poliza.query.get(poliza_id)
     # Format data as required by DataTables
     data = []
     for recibo in recibos:
@@ -47,7 +46,7 @@ def get_receipts():
             'id': recibo.id
             # Add more fields as needed
         })
-    #'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
+    # 'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
 
     # Prepare response
     response = {
@@ -64,18 +63,18 @@ def search_clients():
     # Get search query from request data
     search_query = request.form.get('query')
     clients_query = db.session.query(Cliente.id, Cliente.nombre, Cliente.apellido) \
-                            .filter(Cliente.status == 'Activo') \
-                            .filter(or_(
-                                func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(f'%{search_query}%')
-                            )) \
-                            .order_by(desc(Cliente.id)) \
-                            .limit(20)
+        .filter(Cliente.status == 'Activo') \
+        .filter(or_(
+            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
+                f'%{search_query}%')
+        )) \
+        .order_by(desc(Cliente.id)) \
+        .limit(20)
 
     # Fetch client options
     options = [{'id': client.id, 'name': f"{client.nombre} {client.apellido}"} for client in clients_query]
 
     return jsonify({'options': options})
-
 
 @polizas_route.route('/get', methods=['POST'])
 @login_required
@@ -84,13 +83,14 @@ def get():
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
     search_value = request.form.get('searchValue')
-    order=bool(request.form.get('order'))
-    poliza_id=request.form.get('poliza_id')
+    order = bool(request.form.get('order'))
+    poliza_id = request.form.get('poliza_id')
 
     polizas_query = db.session.query(Poliza,
                                      Cliente.nombre.label("client_name"),
                                      Cliente.apellido.label("client_lastname"),
-                                     Aseguradora.aseguradora.label("aseguradora"),
+                                     Aseguradora.aseguradora.label(
+                                         "aseguradora"),
                                      Ramo.ramo.label("ramo"),
                                      Subramo.subramo.label("subramo"),
                                      TipoPago.tipo_pago.label("tipo_pago")) \
@@ -107,7 +107,7 @@ def get():
         polizas_query = polizas_query.order_by(desc(Poliza.id))
 
     if poliza_id:
-        polizas_query = polizas_query.filter(Poliza.id==int(poliza_id))
+        polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
 
     # Implement search functionality
     if search_value:
@@ -159,7 +159,7 @@ def get():
         # Append to data list
         data.append(poliza_data)
 
-    #Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
+    # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response
     response = {
         # 'draw': draw,
@@ -168,16 +168,15 @@ def get():
     }
     return jsonify(response)
 
-
 @polizas_route.route('/create', methods=['POST'])
 @login_required
 def create():
-    #if not check_access("Clientes"):
+    # if not check_access("Clientes"):
     #    return redirect(url_for('main.index'))
     poliza_id = request.form.get('poliza_id')
 
     def check_new_form():
-        argdict={}
+        argdict = {}
 
         ramo = request.form.get('ramo')
         nuevo_ramo = request.form.get('nuevo_ramo')
@@ -185,19 +184,23 @@ def create():
 
         subramo = request.form.get('subramo')
         nuevo_subramo = request.form.get('nuevo_subramo')
-        argdict["subramo_id"] = new_class(Subramo, subramo, nuevo_subramo, "subramo")
+        argdict["subramo_id"] = new_class(
+            Subramo, subramo, nuevo_subramo, "subramo")
 
         aseguradora = request.form.get('aseguradora')
         nuevo_aseguradora = request.form.get('nuevo_aseguradora')
-        argdict["aseguradora_id"] = new_class(Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
+        argdict["aseguradora_id"] = new_class(
+            Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
         vendedor = request.form.get('vendedor')
         nuevo_vendedor = request.form.get('nuevo_vendedor')
-        argdict["vendedor_id"] = new_class(Vendedor, vendedor, nuevo_vendedor, "nombre")
+        argdict["vendedor_id"] = new_class(
+            Vendedor, vendedor, nuevo_vendedor, "nombre")
 
         agente = request.form.get('agente')
         nuevo_agente = request.form.get('nuevo_agente')
-        argdict["agente_id"] = new_class(Agente, agente, nuevo_agente, "nombre")
+        argdict["agente_id"] = new_class(
+            Agente, agente, nuevo_agente, "nombre")
         return argdict
 
     # fecha_captura
@@ -229,14 +232,15 @@ def create():
         'prima_total': request.form.get('prima_total'),
         'Poliza': request.form.get('Poliza')
     }
-    arg_values={col:form_value_mapping[map] for col,map in column_name_mapping.items() if form_value_mapping[map]}
-    #print(form_value_mapping)
-    #return arg_values
+    arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
+    ) if form_value_mapping[map]}
+    # print(form_value_mapping)
+    # return arg_values
 
     # If cliente_id is "New", then it's a new client creation
     if poliza_id == "New":
         arg_values.update(check_new_form())
-        arg_values["fecha_captura"]= datetime.now().strftime('%Y-%m-%d')
+        arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
         # Create a new client
         new_poliza = Poliza(**arg_values)
         # Save the new client to the database
@@ -244,7 +248,8 @@ def create():
         db.session.commit()
 
         request_entry = Request(usuario_id=current_user.id,
-                                description=f"Crear poliza {new_poliza.poliza}",
+                                description=f"Crear poliza {
+                                    new_poliza.poliza}",
                                 status="Aceptada",
                                 table_name='Poliza',
                                 row_id=new_poliza.id)
@@ -270,7 +275,7 @@ def create():
             'error': False,
             'redirect': url_for('main.polizas'),
             'msg': 'Solo se puede editar poliza en endosos',
-            'title':'Sin cambios'
+            'title': 'Sin cambios'
         })
 
 @polizas_route.route('/delete', methods=['POST'])
@@ -302,7 +307,6 @@ def delete():
 
 
 """Recibos aun sin uso"""
-
 # Ruta para obtener los valores de la póliza
 @polizas_route.route('/get_policy_values/<int:policy_id>', methods=['GET'])
 @login_required
@@ -311,22 +315,23 @@ def get_policy_values(policy_id):
     poliza = Poliza.query.get(policy_id)
 
     if not poliza:
-        return jsonify({'error': True, 'msg':'Poliza no encontrada'})
+        return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
 
     # Calcular la duración de la póliza en años, considerando años bisiestos
     start_date = poliza.fecha_inicio
     end_date = poliza.fecha_termino
-    policy_duration = int(round((end_date - start_date).days / 365.2425))  # Duración en años, considerando años bisiestos y redondeado a entero
+    # Duración en años, considerando años bisiestos y redondeado a entero
+    policy_duration = int(round((end_date - start_date).days / 365.2425))
 
     # Obtener el tipo de pago de la póliza
     tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
 
-
     # Obtener el número de pagos según el tipo de pago
-    if tipo_pago.contado=="Si":
+    if tipo_pago.contado == "Si":
         num_payments = 1
     else:
-        num_payments = tipo_pago.pagos_anuales*policy_duration  # De lo contrario, el número de pagos es igual a los pagos mensuales
+        # De lo contrario, el número de pagos es igual a los pagos mensuales
+        num_payments = tipo_pago.pagos_anuales*policy_duration
 
     # Devolver los valores como un objeto JSON
     return jsonify({
@@ -341,11 +346,12 @@ def calcular_recibos():
     prima_total = float(request.form.get('totalPremium'))
     prima_neta = float(request.form.get('netPremium'))
     iva = float(request.form.get('iva'))
-    derecho_poliza = float(request.form.get('insurance'))*(1+iva/ 100)
-    iva=prima_neta *iva / 100
+    derecho_poliza = float(request.form.get('insurance'))*(1+iva / 100)
+    iva = prima_neta * iva / 100
     commission = float(request.form.get('commission'))
     commission = prima_total * commission/100
-    nopagos = int(request.form.get('receipts'))  # Assuming this is the number of payments
+    # Assuming this is the number of payments
+    nopagos = int(request.form.get('receipts'))
     print(derecho_poliza)
     recargo_por_pago = prima_total - derecho_poliza - prima_neta - iva
     # Perform calculations
@@ -363,7 +369,7 @@ def calcular_recibos():
     }
 
     # Calculate the values for the first payment
-    total_premium = (prima_neta +iva + recargo_por_pago) / nopagos
+    total_premium = (prima_neta + iva + recargo_por_pago) / nopagos
     net_premium = prima_neta / nopagos
     commission_pp = commission / nopagos
 
@@ -377,85 +383,84 @@ def calcular_recibos():
         response['subspay']['totalPremium'] = total_premium
         response['subspay']['comision'] = commission_pp
 
-    response['derecho_poliza']=derecho_poliza
-    response['iva']=iva/prima_neta
-    response['rec_pago']=recargo_por_pago/prima_neta
-    response['comision']=commission/prima_total
-    response['poliza_id']=request.form.get('selectPoliza')
-    response['nopagos']=nopagos
-    #print(response)
+    response['derecho_poliza'] = derecho_poliza
+    response['iva'] = iva/prima_neta
+    response['rec_pago'] = recargo_por_pago/prima_neta
+    response['comision'] = commission/prima_total
+    response['poliza_id'] = request.form.get('selectPoliza')
+    response['nopagos'] = nopagos
+    # print(response)
     return response
-
 
 def add_months(start_date, num_months):
     # Convertir la cadena de fecha en un objeto datetime
 
-    start_date=str(start_date)
+    start_date = str(start_date)
     start_date = datetime.strptime(start_date, '%Y-%m-%d')
 
     new_date = start_date + relativedelta(months=num_months)
     # Devolver la nueva fecha como cadena
     return new_date.strftime('%Y-%m-%d')
 
-
 @polizas_route.route('/calculate_receipts', methods=['POST'])
 @login_required
 def calculate_receipts():
-    response=calcular_recibos()
+    response = calcular_recibos()
     return jsonify(response)
-
 
 @polizas_route.route('/save_receipts', methods=['POST'])
 @login_required
 def save_receipts():
-    response=calcular_recibos()
-    poliza_id=response['poliza_id']
+    response = calcular_recibos()
+    poliza_id = response['poliza_id']
     poliza = Poliza.query.get(poliza_id)
     if not poliza:
-        return jsonify({'error': True, 'msg':'Poliza no encontrada'})
-    if poliza.recibos=="Generados":
-        return jsonify({'error': True, 'msg':'Esta poliza ya tiene recibos generados'})
+        return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
+    if poliza.recibos == "Generados":
+        return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
     try:
         # Ejecuta el bucle para crear registros
         start_date = poliza.fecha_inicio
         end_date = poliza.fecha_termino
         tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
 
-        if tipo_pago.contado=="Si":
+        if tipo_pago.contado == "Si":
             print("done")
-            nuevo_recibo=Recibo(fecha_inicio =start_date,
-                                fecha_vencimiento =end_date,
-                                poliza_id=poliza_id,
-                                prima_neta=response['firstpay']['netPremium'],
-                                prima_total =response['firstpay']['totalPremium'],
-                                comision=response['firstpay']['comision']
-                                )
+            nuevo_recibo = Recibo(fecha_inicio=start_date,
+                                  fecha_vencimiento=end_date,
+                                  poliza_id=poliza_id,
+                                  prima_neta=response['firstpay']['netPremium'],
+                                  prima_total=response['firstpay']['totalPremium'],
+                                  comision=response['firstpay']['comision']
+                                  )
             db.session.add(nuevo_recibo)
         else:
-            num_months=int(12/tipo_pago.pagos_anuales)
-            fecha_inicio =start_date
-            fecha_vencimiento=add_months(fecha_inicio, num_months)
-            nopagos=response['nopagos']
-            nuevo_recibo=Recibo(fecha_inicio =fecha_inicio,
-                                fecha_vencimiento =fecha_vencimiento,
-                                poliza_id=poliza_id,
-                                prima_neta=response['firstpay']['netPremium'],
-                                prima_total =response['firstpay']['totalPremium'],
-                                comision=response['firstpay']['comision'],
-                                no_de_recibo="1 / "+str(nopagos)
-                                )
+            num_months = int(12/tipo_pago.pagos_anuales)
+            fecha_inicio = start_date
+            fecha_vencimiento = add_months(fecha_inicio, num_months)
+            nopagos = response['nopagos']
+            nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
+                                  fecha_vencimiento=fecha_vencimiento,
+                                  poliza_id=poliza_id,
+                                  prima_neta=response['firstpay']['netPremium'],
+                                  prima_total=response['firstpay']['totalPremium'],
+                                  comision=response['firstpay']['comision'],
+                                  no_de_recibo="1 / "+str(nopagos)
+                                  )
             db.session.add(nuevo_recibo)
-            for nopay in range(2,nopagos+1):
-                fecha_inicio =fecha_vencimiento
-                fecha_vencimiento=end_date if nopay == nopagos else add_months(fecha_inicio, num_months)
-                nuevo_recibo=Recibo(fecha_inicio =fecha_inicio,
-                                fecha_vencimiento =fecha_vencimiento,
-                                poliza_id=poliza_id,
-                                prima_neta=response['subspay']['netPremium'],
-                                prima_total =response['subspay']['totalPremium'],
-                                comision=response['subspay']['comision'],
-                                no_de_recibo=  str(nopay)+" / "+str(nopagos)
-                                )
+            for nopay in range(2, nopagos+1):
+                fecha_inicio = fecha_vencimiento
+                fecha_vencimiento = end_date if nopay == nopagos else add_months(
+                    fecha_inicio, num_months)
+                nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
+                                      fecha_vencimiento=fecha_vencimiento,
+                                      poliza_id=poliza_id,
+                                      prima_neta=response['subspay']['netPremium'],
+                                      prima_total=response['subspay']['totalPremium'],
+                                      comision=response['subspay']['comision'],
+                                      no_de_recibo=str(
+                                          nopay)+" / "+str(nopagos)
+                                      )
                 db.session.add(nuevo_recibo)
 
         poliza.derecho_poliza = response['derecho_poliza']
@@ -466,10 +471,8 @@ def save_receipts():
         # Realiza el commit después de completar las inserciones
         db.session.commit()
 
-        return jsonify({'error': False, 'msg':'Recibos generados con exito'})
+        return jsonify({'error': False, 'msg': 'Recibos generados con exito'})
     except:
         # Si ocurre algún error, realiza un rollback
         db.session.rollback()
-        return jsonify({'error': True, 'msg':'Error en la creación de recibos'})
-
-
+        return jsonify({'error': True, 'msg': 'Error en la creación de recibos'})
