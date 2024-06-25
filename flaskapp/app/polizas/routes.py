@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, new_class
+from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log,Endoso, new_class
 from sqlalchemy import join, or_, desc, func, select
 import csv
 from io import StringIO
@@ -475,3 +475,193 @@ def save_receipts():
         # Si ocurre algún error, realiza un rollback
         db.session.rollback()
         return jsonify({'error': True, 'msg': 'Error en la creación de recibos'})
+
+"""Endosos"""
+
+@polizas_route.route('/create_endoso', methods=['POST'])
+@login_required
+def create_endoso():
+    poliza_id = request.form.get('poliza_id')
+    tipo = request.form.get('tipo')
+    if tipo not in ("A", "B", "D"):
+        return jsonify({"error": True, "msg": "No se encuentra el tipo de endoso"})
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({"error": True, "msg": "No se encuentra la póliza"})
+    
+    def check_new_form():
+        argdict = {}
+
+        ramo = request.form.get('ramo')
+        nuevo_ramo = request.form.get('nuevo_ramo')
+        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+
+        subramo = request.form.get('subramo')
+        nuevo_subramo = request.form.get('nuevo_subramo')
+        argdict["subramo_id"] = new_class(
+            Subramo, subramo, nuevo_subramo, "subramo")
+
+        aseguradora = request.form.get('aseguradora')
+        nuevo_aseguradora = request.form.get('nuevo_aseguradora')
+        argdict["aseguradora_id"] = new_class(
+            Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
+
+        vendedor = request.form.get('vendedor')
+        nuevo_vendedor = request.form.get('nuevo_vendedor')
+        argdict["vendedor_id"] = new_class(
+            Vendedor, vendedor, nuevo_vendedor, "nombre")
+
+        agente = request.form.get('agente')
+        nuevo_agente = request.form.get('nuevo_agente')
+        argdict["agente_id"] = new_class(
+            Agente, agente, nuevo_agente, "nombre")
+        return argdict
+
+    # fecha_captura
+    column_name_mapping = {
+        'cliente_id': 'selected-client-id',
+        'fecha_inicio': 'VigenciaI',
+        'fecha_termino': 'VigenciaF',
+        'moneda': 'Moneda',
+        'tipo_pago_id': 'Pago',
+        'serie': 'serie',
+        'notas': 'notas',
+        'poliza_anterior': 'polizaAnterior',
+        'renovacion': 'renovacion',
+        'prima_neta': 'prima_neta',
+        'prima_total': 'prima_total',
+        'poliza': 'Poliza'
+    }
+    form_value_mapping = {
+        'selected-client-id': request.form.get('selected-client-id'),
+        'VigenciaI': request.form.get('VigenciaI'),
+        'VigenciaF': request.form.get('VigenciaF'),
+        'Moneda': request.form.get('Moneda'),
+        'Pago': request.form.get('Pago'),
+        'serie': request.form.get('serie'),
+        'notas': request.form.get('notas'),
+        'polizaAnterior': request.form.get('polizaAnterior'),
+        'renovacion': request.form.get('renovacion'),
+        'prima_neta': request.form.get('prima_neta'),
+        'prima_total': request.form.get('prima_total'),
+        'Poliza': request.form.get('Poliza')
+    }
+    arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
+    ) if form_value_mapping[map]}
+    # print(form_value_mapping)
+    # return arg_values
+
+    arg_values.update(check_new_form())
+    arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
+    arg_values['poliza_id'] = poliza.id
+    arg_values['tipo_endoso'] = tipo
+    
+    dict_to_keep={
+        "A":['prima_neta','prima_total','derecho_poliza','iva','rec_pago','comision','recibos'],
+        "B":['poliza'],
+        "D":['poliza']
+    }
+    for key in dict_to_keep[tipo]:
+        arg_values[key] = getattr(poliza, key)
+    #poliza_data = {column.name:getattr(poliza, column.name) for column in Poliza.__table__.columns}
+    #poliza_data.pop('rec_pago', None)
+    #poliza_data.pop('comision', None)
+    #poliza_data.pop('recibos', None)
+    #poliza_data['poliza_id'] = poliza.id
+    #poliza_data['tipo_endoso'] = tipo
+    
+    endoso = Endoso(**arg_values)
+    # Save the new endoso to the database
+    db.session.add(endoso)
+    db.session.commit()
+
+    request_entry = Request(usuario_id=current_user.id,
+                                description=f"Crear endoso {endoso.tipo_endoso} para la póliza {endoso.poliza}",
+                                status="Aceptada",
+                                table_name='Endoso',
+                                row_id=endoso.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+
+    return jsonify({
+        'error': False,
+        'msg': 'Endoso creado exitosamente',
+        'endoso_id': endoso.id
+    })
+
+
+@polizas_route.route('/get_endosos', methods=['POST'])
+@login_required
+def get_endosos():
+    # Recibe
+    poliza_id = request.form.get('poliza_id')
+    start = int(request.form.get('start'))
+    length = int(request.form.get('length'))
+
+    # Query to fetch endosos data from the database
+    endosos_query = db.session.query(Endoso,
+                                     Cliente.nombre.label("client_name"),
+                                     Cliente.apellido.label("client_lastname"),
+                                     Aseguradora.aseguradora.label(
+                                         "aseguradora"),
+                                     Ramo.ramo.label("ramo"),
+                                     Subramo.subramo.label("subramo"),
+                                     TipoPago.tipo_pago.label("tipo_pago")) \
+        .select_from(Endoso) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id)  \
+        .join(Subramo, Poliza.subramo_id == Subramo.id)  \
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+        .filter(Endoso.poliza_id == poliza_id)
+
+    # Get total count of records without filtering
+    total_records = endosos_query.count()
+
+    # Apply pagination
+    endosos = endosos_query.offset(start).limit(length).all()
+
+    data = []
+    # Iterate through the query results
+    for endoso, nombre, apellido, aseguradora, ramo, subramo, tipo_pago in endosos:
+        # Extracting all columns from the Endoso object
+        endoso_data = {}
+        # Iterate through each column in the Endoso table
+        for column in Endoso.__table__.columns:
+            # Get the value of the column
+            value = getattr(endoso, column.name)
+            # Convert date to string if it's a date type
+            if isinstance(value, date):
+                value = value.strftime('%Y-%m-%d')
+            # Convert Decimal to float if it's a Decimal type
+            elif isinstance(value, Decimal):
+                value = float(value)
+            # Add column name and corresponding value to endoso_data dictionary
+            endoso_data[column.name] = value
+
+        # endoso_data = {column.name: getattr(endoso, column.name) for column in Endoso.__table__.columns}
+
+        # Append additional information
+        endoso_data.update({
+            'cliente': f"{nombre} {apellido}",
+            'aseguradora': aseguradora,
+            'ramo': f"{ramo}",
+            'subramo': f"{subramo}",
+            'tipoPago': f"{tipo_pago}",
+        })
+
+        # Append to data list
+        data.append(endoso_data)
+
+    # Prepare response
+    response = {
+        'recordsTotal': total_records,  # Total records without filtering
+        'recordsFiltered': total_records,  # Total records after filtering
+        'data': data  # Data to display
+    }
+    return jsonify(response)
+
+
+
+

@@ -89,6 +89,39 @@ class Poliza(db.Model):
     vendedor_id = Column(Integer, ForeignKey('vendedores.id'), nullable=False)
     poliza = Column(String(30), nullable=False)
 
+
+class Endoso(db.Model):
+    __tablename__ = 'endosos'
+    id = Column(Integer, primary_key=True)
+    tipo_endoso = Column(Enum('A', 'B', 'D'), nullable=False)
+    cliente_id = Column(Integer, ForeignKey('clientes.id'), nullable=False)
+    poliza_id = Column(Integer, ForeignKey('polizas.id'), nullable=False)
+    fecha_captura = Column(Date, nullable=False)
+    endoso = Column(String(100))
+    ramo_id = Column(Integer, ForeignKey('ramos.id'), nullable=False)
+    subramo_id = Column(Integer, ForeignKey('subramos.id'), nullable=False)
+    fecha_inicio = Column(Date, nullable=False)
+    fecha_termino = Column(Date, nullable=False)
+    moneda = Column(Enum('MXN', 'USD', 'UDIS'), nullable=False)
+    tipo_pago_id = Column(Integer, ForeignKey('tipos_pagos.id'), nullable=False)
+    agente_id = Column(Integer, ForeignKey('agentes.id'), nullable=False)
+    aseguradora_id = Column(Integer, ForeignKey('aseguradoras.id'), nullable=False)
+    serie = Column(String(30), nullable=False)
+    notas = Column(String(400))
+    poliza_anterior = Column(String(30))
+    renovacion = Column(String(30))
+    prima_neta = Column(DECIMAL(12, 2), nullable=False)
+    prima_total = Column(DECIMAL(12, 2), nullable=False)
+    status = Column(Enum('Vigente', 'Pendiente', 'Cancelada', 'Finalizada'), nullable=False)
+    derecho_poliza = Column(DECIMAL(12, 2))
+    iva = Column(DECIMAL(5, 4), default=0.16)
+    rec_pago = Column(DECIMAL(5, 4))
+    comision = Column(DECIMAL(5, 4))
+    recibos = Column(Enum('Generados', 'Por generar'), default='Por generar')
+    vendedor_id = Column(Integer, ForeignKey('vendedores.id'), nullable=False)
+    poliza = Column(String(30), nullable=False)
+
+
 class Recibo(db.Model):
     __tablename__ = 'recibos'
     id = Column(Integer, primary_key=True)
