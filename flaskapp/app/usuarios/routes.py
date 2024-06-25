@@ -31,6 +31,8 @@ def get():
     print(order)
     if order:
         usuarios_query = usuarios_query.order_by('nombre')
+    else:
+        usuarios_query = usuarios_query.order_by(desc(Usuario.id))
 
     if search_value:
         usuarios_query = usuarios_query.filter(or_(

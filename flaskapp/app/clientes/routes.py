@@ -30,6 +30,8 @@ def get():
     # Implement search functionality
     if order:
         clients_query = clients_query.order_by('nombre')
+    else:
+        clients_query = clients_query.order_by(desc(Cliente.id))
 
     if search_value:
         clients_query = clients_query.filter(or_(

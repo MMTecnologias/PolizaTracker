@@ -170,3 +170,26 @@ def new_class(clase,form_id ,nuevo,columname):
     else:
         id=int(form_id)
     return id
+
+def new_class_edit(clase,form_id ,nuevo,columname):
+    if form_id=="New":
+        existente = clase.query.filter(getattr(clase,columname)== nuevo).first()
+        if existente:
+            id=existente.id
+            return {"error": True,"record_id":id, "msg": "Esta intentando crear un elemento que ya existe" }
+        else:
+            kwargs = {columname: nuevo}
+            nuevo = clase(**kwargs)
+            db.session.add(nuevo)
+            db.session.commit()
+            id=nuevo.id
+            return {"error": False,"record_id":id, "msg": "Elemento creado correctamente" }
+    else:
+        existente = clase.query.get(int(form_id))
+        if existente:
+            setattr(existente,columname, nuevo)
+            db.session.commit()
+            return {"error": False,"record_id":form_id, "msg": "Elemento editado correctamente" }
+        else:
+            return {"error": True,"record_id":"", "msg": "Esta intentando editar un elemento que no existe" }
+
