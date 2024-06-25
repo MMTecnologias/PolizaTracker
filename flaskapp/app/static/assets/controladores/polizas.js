@@ -63,7 +63,7 @@ $(function () {
     $("#Savebtn").text("Crear");
   }
 
-  function editPoliza(poliza_id) {
+  function createEndozo(poliza_id) {
     // @ts-ignore
     $.ajax({
       ...ajaxConfig,
@@ -122,16 +122,16 @@ $(function () {
     });
   }
 
-  async function deletePoliza(poliza_id) {
+  async function cancelPoliza(poliza_id) {
     const { isConfirmed } = await alertConfirm(
-      "¿Esta seguro de eliminar este usuario?"
+      "¿Esta seguro de cancelar esta poliza?"
     );
     if (!isConfirmed) return;
     return;
     // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/usuarios/delete",
+      url: "/polizas/cancel",
       // @ts-ignore
       data: $.param({ poliza_id }),
       success: function (resp) {
@@ -236,7 +236,9 @@ $(function () {
     // @ts-ignore
     $.each(data, function (idx, poliza) {
       table.append(
-        `<tr class="tableOption" style="background-color: ${getColor(poliza.status)}">
+        `<tr class="tableOption" style="background-color: ${getColor(
+          poliza.status
+        )}">
           <td>
             <p class="td-clickable" id="td-clickable_${poliza.id}">
                 ${poliza.poliza}
@@ -274,9 +276,9 @@ $(function () {
         getRecibos(poliza.id);
       });
       // @ts-ignore
-      $(`#btnEdit_${poliza.id}`).on("click", (e) => editPoliza(poliza.id));
+      $(`#btnEdit_${poliza.id}`).on("click", (e) => createEndozo(poliza.id));
       // @ts-ignore
-      $(`#btnDelete_${poliza.id}`).on("click", (e) => deletePoliza(poliza.id));
+      $(`#btnDelete_${poliza.id}`).on("click", (e) => cancelPoliza(poliza.id));
       // @ts-ignore
       $(`#btnShow_${poliza.id}`).on("click", (e) => {
         console.log("Ver endosos");
@@ -363,6 +365,10 @@ $(function () {
     });
   }
 
+  function createReceipts(id_poliza) {
+    throw new Error("Function not implemented.");
+  }
+
   // @ts-ignore
   $("#form-polizas").submit(function (e) {
     e.preventDefault();
@@ -378,10 +384,11 @@ $(function () {
       type: "POST",
       url: "/polizas/create",
       data: formData,
-      success: function (resp) {
+      success: async function (resp) {
         if (resp.error) {
           alert(resp.msg, "error", resp.title);
         } else {
+          await createReceipts(resp.id_poliza);
           alert(resp.msg, "success", resp.title);
           getPolizas();
           resetForm();
@@ -443,3 +450,4 @@ $(function () {
 
   getPolizas();
 });
+
