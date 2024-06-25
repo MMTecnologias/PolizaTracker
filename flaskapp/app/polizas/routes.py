@@ -248,8 +248,7 @@ def create():
         db.session.commit()
 
         request_entry = Request(usuario_id=current_user.id,
-                                description=f"Crear poliza {
-                                    new_poliza.poliza}",
+                                description=f"Crear poliza {new_poliza.poliza}",
                                 status="Aceptada",
                                 table_name='Poliza',
                                 row_id=new_poliza.id)
