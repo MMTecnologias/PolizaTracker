@@ -32,6 +32,24 @@ $(function () {
     }
   }
 
+  function getNoRecibos(pago) {
+    console.log(pago);
+    switch (pago) {
+      case 1:
+        return 1;
+      case 2:
+        return 12;
+      case 3:
+        return 4;
+      case 4:
+        return 2;
+      case 5:
+        return 24
+      default:
+        return 0
+    }
+  }
+
   function alert(text = "", icon = "success", title = "") {
     // @ts-ignore
     Swal.fire({ title, text, icon });
@@ -173,7 +191,6 @@ $(function () {
     // @ts-ignore
     const table = $("#receiptsTable");
     table.html("");
-    console.log(data);
     // @ts-ignore
     $.each(data, function (idx, recibo) {
       table.append(
@@ -231,7 +248,6 @@ $(function () {
     // @ts-ignore
     const table = $("#polizas-table");
     table.html("");
-    console.log(data);
     // @ts-ignore
     $.each(data, function (idx, poliza) {
       table.append(
@@ -323,7 +339,6 @@ $(function () {
       data: { query },
       success: function (response) {
         const options = response.options;
-        console.log(options);
         // @ts-ignore
         const dropdownMenu = $("#client-options");
         dropdownMenu.empty();
@@ -333,7 +348,7 @@ $(function () {
           );
         } else {
           // @ts-ignore
-          $.each(options, function (i,option) {
+          $.each(options, function (i, option) {
             dropdownMenu.append(
               `<a class="dropdown-item" id="client__${option.id}">
                 ${option.name}
@@ -365,24 +380,81 @@ $(function () {
   }
 
   function createReceipts(id_poliza) {
-    throw new Error("Function not implemented.");
+    // @ts-ignore
+    $.ajax({
+      type: "POST",
+      url: "/polizas/create",
+      data: { id_poliza },
+      success: async function (resp) {
+        if (resp.error) {
+          alert(resp.msg, "error", resp.title);
+        } else {
+          await createReceipts(resp.poliza_id);
+          alert(resp.msg, "success", resp.title);
+          getPolizas();
+          resetForm();
+        }
+      },
+      error: function (xhr, status, error) {
+        console.log(error);
+        alert(
+          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
+          "error"
+        );
+      },
+    });
   }
 
   // @ts-ignore
   $("#form-polizas").submit(function (e) {
     e.preventDefault();
     // @ts-ignore
-    const formData = $(this).serialize();
     if (!this.checkValidity()) {
       // @ts-ignore
       $(this).addClass("was-validated");
       return;
     }
     // @ts-ignore
+    const primaNeta = $("#prima_neta").val();
+    // @ts-ignore
+    const primaTotal = $("#prima_total").val();
+    // @ts-ignore
+    const pago = $("#Pago").val();
+    const noRecibos = getNoRecibos(pago);
+    const iva = primaTotal * 0.16
+    // @ts-ignore
+    $("#prima-neta").val(primaNeta);
+    // @ts-ignore
+    $("#prima-total").val(primaTotal);
+    // @ts-ignore
+    $("#no-recibos").val(noRecibos);
+    // @ts-ignore
+    $("iva-poliza").val(iva);
+
+    // @ts-ignore
+    $("#create-recib").modal();
+  });
+
+  // @ts-ignore
+  $("#form-recibo").submit(function (e) {
+    e.preventDefault();
+    if (!this.checkValidity()) {
+      // @ts-ignore
+      $(this).addClass("was-validated");
+      return;
+    }
+    // @ts-ignore
+    const formData = $(this).serialize();
+    // @ts-ignore
+    const formDataPoliza = $("#form-polizas").serialize();
+    console.log(formData);
+    console.log(formDataPoliza);
+    return;
+    // @ts-ignore
     $.ajax({
       type: "POST",
       url: "/polizas/create",
-      data: formData,
+      data: formDataPoliza,
       success: async function (resp) {
         if (resp.error) {
           alert(resp.msg, "error", resp.title);
@@ -449,4 +521,3 @@ $(function () {
 
   getPolizas();
 });
-
