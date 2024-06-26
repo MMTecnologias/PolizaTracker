@@ -286,7 +286,7 @@ def delete():
     if poliza:
         # Update the poliza's status to "Eliminado"
         request_entry = Request(usuario_id=current_user.id,
-                                description=f"Candelar póliza {poliza.poliza}",
+                                description=f"Cancelar póliza {poliza.poliza}",
                                 table_name='Poliza',
                                 row_id=poliza.id)
         db.session.add(request_entry)
@@ -302,8 +302,6 @@ def delete():
         return jsonify({'error': False, 'title': 'Póliza eliminada', 'msg': 'La póliza ha sido eliminada con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró la póliza.'})
-
-
 
 """Recibos aun sin uso"""
 # Ruta para obtener los valores de la póliza

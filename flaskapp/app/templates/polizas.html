@@ -320,7 +320,7 @@
       </div>
    </div>
 
-   <!-- Modal recibos -->
+   <!-- Modal ver recibos -->
    <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
       <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
          <div class="modal-content">
@@ -363,7 +363,7 @@
    </div>
 
    <!-- Modal create recibo -->
-   <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
+   <div class="modal fade bd-example-modal-lg" id="create-recib" tabindex="-1" role="dialog" aria-labelledby="recib">
       <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
          <div class="modal-content">
             <div class="modal-header">
@@ -374,32 +374,130 @@
             <div class="modal-body pt-1">
                <div class="row pb-4">
                   <div class="col-12">
-                     <h4 class="header-title">Listas de Recibos</h4>
-                     <table class="table">
-                        <thead class="tableHeader">
-                           <tr>
-                              <th scope="col">Número</th>
-                              <th scope="col">Fecha de Recibo</th>
-                              <th scope="col">Vencimiento</th>
-                              <th scope="col">Prima Neta</th>
-                              <th scope="col">Prima Total</th>
-                              <th scope="col">Pagado</th>
-                              <th scope="col">Fecha de Pago</th>
-                              <th scope="col">Cancelado</th>
-                           </tr>
-                        </thead>
-                        <tbody id="receiptsTable">
-                        </tbody>
-                     </table>
+                     <form id="form-polizas" class="needs-validation form-data" novalidate>
+                        <!-- <input type="hidden" id="poliza_id" name="poliza_id" value="New" /> -->
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">Prima neta</label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="prima-neta" name="prima-neta" required/>
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">Prima total</label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="prima-total" name="prima-total" required />
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">Número de recibos</label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="no-recibos" name="no-recibos" required />
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">Derecho de poliza</label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="derecho-poliza" name="derecho-poliza" required />
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">IVA de poliza</label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="iva-poliza" name="iva-poliza" required />
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">% comisión</label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="comision" name="comision" required />
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">Comisión s/derecho Póliza</label>
+                           <div class="input-group">
+                              <input type="text" class="form-control" id="comision_sin_derecho" name="comision_sin_derecho" required />
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="form__input-data input-sibling-child">
+                           <label class="label-input-data">Selecciona un opción</label>
+                           <div class="input-group">
+                              <select class="custom-select" id="monto_recibos" name="monto_recibos" required>
+                                 <option value="primer_recibo">Cargar derecho de póliza en 1er recibo</option>
+                                 <option value="dividir_recibos">Dividir en todos los recibos</option>
+                              </select>
+                              <p class="invalid-feedback">Ingresa un dato valido</p>
+                           </div>
+                        </div>
+                        <div class="input-sibling">
+                           <div class="form__input-data input-sibling-child">
+                              <label class="label-input-data">Prima neta 1er recibo</label>
+                              <div class="input-group">
+                                 <input type="text" class="form-control" id="prima_neta_1er" name="prima_neta_1er" required />
+                                 <p class="invalid-feedback">Ingresa un dato valido</p>
+                              </div>
+                           </div>
+                           <div class="form__input-data input-sibling-child">
+                              <label class="label-input-data">Prima neta subsecuentes</label>
+                              <div class="input-group">
+                                 <input type="text" class="form-control" id="prima_neta_subs" name="prima_neta_subs" required />
+                                 <p class="invalid-feedback">Ingresa un dato valido</p>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="input-sibling">
+                           <div class="form__input-data input-sibling-child">
+                              <label class="label-input-data">Prima total 1er recibo</label>
+                              <div class="input-group">
+                                 <input type="text" class="form-control" id="prima_total_1er" name="prima_total_1er" required />
+                                 <p class="invalid-feedback">Ingresa un dato valido</p>
+                              </div>
+                           </div>
+                           <div class="form__input-data input-sibling-child">
+                              <label class="label-input-data">Prima total subsecuentes</label>
+                              <div class="input-group">
+                                 <input type="text" class="form-control" id="prima_total_subs" name="prima_total_subs" required />
+                                 <p class="invalid-feedback">Ingresa un dato valido</p>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="input-sibling">
+                           <div class="form__input-data input-sibling-child">
+                              <label class="label-input-data">Comisión 1er recibo</label>
+                              <div class="input-group">
+                                 <input type="text" class="form-control" id="comision_1er" name="comision_1er" required />
+                                 <p class="invalid-feedback">Ingresa un dato valido</p>
+                              </div>
+                           </div>
+                           <div class="form__input-data input-sibling-child">
+                              <label class="label-input-data">Comisión subsecuentes</label>
+                              <div class="input-group">
+                                 <input type="text" class="form-control" id="comision_subs" name="comision_subs" required />
+                                 <p class="invalid-feedback">Ingresa un dato valido</p>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="button-container">
+                           <button class="btn" type="submit" value="Guardar Cambios" id="btnGuardar" name="btnGuardar">
+                              Guardar
+                           </button>
+                           <button class="btn" type="reset" value="Cancelar" id="reset-btn">
+                              Cancelar
+                           </button>
+                        </div>
+                     </form>
                   </div>
                </div>
-               <div class="w-100 d-flex justify-content-center">
-                  <div id="pagination-recibos" style="position: absolute;bottom: 10px;"></div>
-               </div>
             </div>
-            <div class="modal-footer">
+            <!-- <div class="modal-footer">
                <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
-            </div>
+            </div> -->
          </div>
       </div>
    </div>

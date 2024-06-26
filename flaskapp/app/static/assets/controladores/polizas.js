@@ -127,11 +127,10 @@ $(function () {
       "¿Esta seguro de cancelar esta poliza?"
     );
     if (!isConfirmed) return;
-    return;
     // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/polizas/cancel",
+      url: "/polizas/delete",
       // @ts-ignore
       data: $.param({ poliza_id }),
       success: function (resp) {
@@ -388,7 +387,7 @@ $(function () {
         if (resp.error) {
           alert(resp.msg, "error", resp.title);
         } else {
-          await createReceipts(resp.id_poliza);
+          await createReceipts(resp.poliza_id);
           alert(resp.msg, "success", resp.title);
           getPolizas();
           resetForm();
