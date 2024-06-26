@@ -45,8 +45,9 @@
                <h4 class="header-title">Pólizas</h4>
                <form id="form-polizas" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
+                  <input type="text" id="tipo" name="tipo" hidden />
                   <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" />
-                  <div class="form__input-data">
+                  <div class="form__input-data" id="div_search_client">
                      <div class="label-option">
                         <label class="label-input-data">Buscar cliente</label>
                         <a href="{{ url_for('main.cliente') }}" class="search-icon">
@@ -63,8 +64,8 @@
                      </div>
                   </div>
                   <div class="input-sibling">
-                     <div class="form__input-data input-sibling-child">
-                        <label class="label-input-data">Póliza</label>
+                     <div class="form__input-data input-sibling-child" id="div_poliza">
+                        <label class="label-input-data" id="title_poliza">Póliza</label>
                         <div class="input-group">
                            <input type="text" class="form-control" id="Poliza" name="Poliza" required />
                            <p class="invalid-feedback">Ingresa un dato valido</p>
@@ -250,10 +251,10 @@
                      </div>
                   </div>
                   <div class="button-container">
-                     <button class="btn" type="submit" value="Guardar Cambios" id="btnGuardar" name="btnGuardar">
+                     <button class="btn" type="submit" id="btnGuardar">
                         Guardar
                      </button>
-                     <button id="btnGenerarEndoso" class="btn" type="submit" value="Generar Endoso">
+                     <button id="btnGenerarEndoso" class="btn" type="submit" style="display: none;">
                         Generar Endoso
                      </button>
                      <button class="btn" type="reset" value="Cancelar" id="reset-btn">
@@ -302,7 +303,7 @@
       </div>
    </div>
 
-   <!-- Modal ver recibos -->
+   <!-- Modal listado recibos -->
    <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
       <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
          <div class="modal-content">
@@ -378,14 +379,14 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Número de recibos</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="no-recibos" name="no-recibos" required disabled/>
+                                 <input type="text" class="form-control" id="nopagos" name="nopagos" required disabled/>
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Derecho de poliza</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="derecho-poliza" name="derecho-poliza" required />
+                                 <input type="text" class="form-control" id="derecho_poliza" name="derecho_poliza" required />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -394,7 +395,7 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">IVA de poliza</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="iva-poliza" name="iva-poliza" required />
+                                 <input type="text" class="form-control" id="iva" name="iva" required />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -417,7 +418,7 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Selecciona un opción</label>
                               <div class="input-group">
-                                 <select class="custom-select" id="monto_recibos" name="monto_recibos" required>
+                                 <select class="custom-select" id="rec_pago" name="rec_pago" required>
                                     <option value="primer_recibo">Cargar derecho de póliza en 1er recibo</option>
                                     <option value="dividir_recibos">Dividir en todos los recibos</option>
                                  </select>
@@ -484,6 +485,71 @@
                      </form>
                   </div>
                </div>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Modal select endoso type -->
+   <div class="modal fade bd-example-modal-lg" id="endoso-type" tabindex="-1" role="dialog" aria-labelledby="endoso-type">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+         <div class="modal-content">
+            <div class="modal-header">
+               <h5 class="modal-title">Tipos de endoso</h5>
+               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+               </button>
+            </div>
+            <div class="modal-body pt-1">
+               <div class="row pb-4">
+                  <div class="col-12 d-flex justify-content-between">
+                     <button type="button" class="btn btn-default" id="endoso_tipo_a">Tipo A</button>
+                     <button type="button" class="btn btn-default" id="endoso_tipo_b">Tipo B</button>
+                     <button type="button" class="btn btn-default" id="endoso_tipo_d">Tipo D</button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Modal listado endosos -->
+   <div class="modal fade bd-example-modal-lg" id="endoso-list" tabindex="-1" role="dialog" aria-labelledby="endoso-list">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+         <div class="modal-content">
+            <div class="modal-header">
+               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+               </button>
+            </div>
+            <div class="modal-body pt-1">
+               <div class="row pb-4">
+                  <div class="col-12">
+                     <h4 class="header-title">Listas de Recibos</h4>
+                     <table class="table">
+                        <thead class="tableHeader">
+                           <tr>
+                              <th scope="col">Número</th>
+                              <th scope="col">Fecha de Recibo</th>
+                              <th scope="col">Vencimiento</th>
+                              <th scope="col">Prima Neta</th>
+                              <th scope="col">Prima Total</th>
+                              <th scope="col">Pagado</th>
+                              <th scope="col">Fecha de Pago</th>
+                              <th scope="col">Cancelado</th>
+                           </tr>
+                        </thead>
+                        <tbody id="receiptsTable">
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+               <div class="w-100 d-flex justify-content-center">
+                  <div id="pagination-recibos" style="position: absolute;bottom: 10px;"></div>
+               </div>
+            </div>
+            <div class="modal-footer">
+               <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
             </div>
          </div>
       </div>

@@ -1,6 +1,7 @@
-// @ts-ignore
+// @ts-nocheck
 $(function () {
   let ordered = false;
+  let crearEndoso = false;
 
   const ajaxConfig = {
     url: "",
@@ -33,7 +34,6 @@ $(function () {
   }
 
   function getNoRecibos(pago) {
-    console.log(pago);
     switch (pago) {
       case 1:
         return 1;
@@ -44,19 +44,17 @@ $(function () {
       case 4:
         return 2;
       case 5:
-        return 24
+        return 24;
       default:
-        return 0
+        return 0;
     }
   }
 
   function alert(text = "", icon = "success", title = "") {
-    // @ts-ignore
     Swal.fire({ title, text, icon });
   }
 
   function alertConfirm(text = "") {
-    // @ts-ignore
     return Swal.fire({
       title: "",
       text,
@@ -69,71 +67,69 @@ $(function () {
   }
 
   function resetForm() {
-    // @ts-ignore
     $("#form-polizas")[0].reset();
-    // @ts-ignore
     $("#form-polizas").removeClass("was-validated");
-    // @ts-ignore
     $("#form-polizas select").prop("disabled", false);
-    // @ts-ignore
     $("#poliza_id").val("New");
-    // @ts-ignore
-    $("#Savebtn").text("Crear");
+    $("#tipo").val("");
+    $("#btnGenerarEndoso").hide();
+    $("#btnGuardar").show();
+    $("#div_search_client").show();
+
+    $("#title_poliza").text("Póliza");
+    $("#prima_neta").prop("disabled", false);
+    $("#prima_total").prop("disabled", false);
   }
 
-  function createEndozo(poliza_id) {
-    // @ts-ignore
+  function createEndozo(poliza_id, tipo) {
+    resetForm()
+    $("#endoso-type").modal("toggle");
+    $("#tipo").val(tipo);
+    $("#btnGenerarEndoso").show();
+    $("#btnGuardar").hide();
+    if (tipo === "B" || tipo === "D") {
+      $("#poliza_id").val(poliza_id);
+      $("#title_poliza").text("Endoso");
+      $("#prima_neta").prop("disabled", false);
+      $("#prima_total").prop("disabled", false);
+      return;
+    }
+    $("#div_search_client").hide();
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/get",
-      // @ts-ignore
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
-        // @ts-ignore
         $("#poliza_id").val(poliza_id);
-        // @ts-ignore
         $("#Poliza").val(resp.data[0].poliza);
-        // @ts-ignore
         $("#serie").val(resp.data[0].serie);
-        // @ts-ignore
         $("#ramo").html(`<option value='${resp.data[0].ramo}'>
             ${resp.data[0].ramo}
             </option>
         `);
-        // @ts-ignore
         $("#subramo").html(`<option value='${resp.data[0].subramo}'>
             ${resp.data[0].subramo}
             </option>
         `);
-        // @ts-ignore
         $("#VigenciaI").val(resp.data[0].fecha_inicio);
-        // @ts-ignore
         $("#prima_neta").val(resp.data[0].prima_neta);
-        // @ts-ignore
         $("#prima_total").val(resp.data[0].prima_total);
-        // @ts-ignore
+        $("#prima_neta").prop("disabled", true);
+        $("#prima_total").prop("disabled", true);
         $("#VigenciaF").val(resp.data[0].VigenciaF);
-        // @ts-ignore
         $("#aseguradora").html(`<option value='${resp.data[0].aseguradora}'>
             ${resp.data[0].aseguradora}
             </option>
         `);
-        // @ts-ignore
         $("#Pago").html(`<option value='${resp.data[0].tipoPago}'>
             ${resp.data[0].tipoPago}
             </option>
         `);
-        // @ts-ignore
         $("#vendedor").val(resp.data[0].vendedor_id);
-        // @ts-ignore
         $("#Moneda").val(resp.data[0].moneda);
-        // @ts-ignore
         $("#agente").val(resp.data[0].agente_id);
-        // @ts-ignore
         $("#notas").val(resp.data[0].notas);
-        // @ts-ignore
         $("#polizaAnterior").val(resp.data[0].poliza_anterior);
-        // @ts-ignore
         $("#renovacion").val(resp.data[0].renovacion);
       },
       error: (xhr, status, error) => console.error(error),
@@ -145,11 +141,9 @@ $(function () {
       "¿Esta seguro de cancelar esta poliza?"
     );
     if (!isConfirmed) return;
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/delete",
-      // @ts-ignore
       data: $.param({ poliza_id }),
       success: function (resp) {
         if (!resp.error) {
@@ -170,11 +164,9 @@ $(function () {
   }
 
   function getRecibos(poliza_id, order = false, start = 0, length = 100) {
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/get_receipts",
-      // @ts-ignore
       data: $.param(
         order
           ? { start, length, order, poliza_id }
@@ -185,13 +177,29 @@ $(function () {
     });
   }
 
+  function getEndosos(poliza_id, order = false, start = 0, length = 100) {
+    $.ajax({
+      ...ajaxConfig,
+      url: "/polizas/get_endosos",
+      data: $.param(
+        order
+          ? { start, length, order, poliza_id }
+          : { start, length, poliza_id }
+      ),
+      success: fillTableEndosos,
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
+  function fillTableEndosos(resp){
+
+  }
+
   function fillTableRecibos(resp) {
     const itemsOnPage = 10;
     const { data, recordsTotal } = resp;
-    // @ts-ignore
     const table = $("#receiptsTable");
     table.html("");
-    // @ts-ignore
     $.each(data, function (idx, recibo) {
       table.append(
         `<tr class="tableOption-recibos">
@@ -209,12 +217,8 @@ $(function () {
             <td>${recibo.cancelado ? "Cancelado" : ""}</td>
          </tr>`
       );
-      if (recibo.pagado)
-        // @ts-ignore
-        $(`#check_pagado${recibo.id}`).prop("checked", true);
-      // @ts-ignore
+      if (recibo.pagado) $(`#check_pagado${recibo.id}`).prop("checked", true);
       $(`#check_pagado${recibo.id}`).on("click", function () {
-        // @ts-ignore
         if ($(`#check_pagado${recibo.id}`).is(":checked") == true) {
           console.log(`Actualizar recibo ${recibo.id} a Pagado`);
         } else {
@@ -222,16 +226,12 @@ $(function () {
         }
       });
     });
-    // @ts-ignore
     if (!data.length) return $("#pagination-recibos").html("");
-    // @ts-ignore
     $(".tableOption-recibos").slice(10).hide();
-    // @ts-ignore
     $("#pagination-recibos").pagination({
       items: recordsTotal,
       itemsOnPage: itemsOnPage,
       onPageClick: (noofele) =>
-        // @ts-ignore
         $(".tableOption-recibos")
           .hide()
           .slice(
@@ -245,10 +245,8 @@ $(function () {
   function fillTablePolizas(resp) {
     const itemsOnPage = 8;
     const { data, recordsTotal } = resp;
-    // @ts-ignore
     const table = $("#polizas-table");
     table.html("");
-    // @ts-ignore
     $.each(data, function (idx, poliza) {
       table.append(
         `<tr class="tableOption" style="background-color: ${getColor(
@@ -284,30 +282,26 @@ $(function () {
           </td>
         </tr>`
       );
-      // @ts-ignore
       $(`#td-clickable_${poliza.id}`).on("click", (e) => {
-        // @ts-ignore
         $("#recib").modal();
         getRecibos(poliza.id);
       });
-      // @ts-ignore
-      $(`#btnEdit_${poliza.id}`).on("click", (e) => createEndozo(poliza.id));
-      // @ts-ignore
+      $(`#btnEdit_${poliza.id}`).on("click", (e) => {
+        $("#poliza_id").val(poliza.id);
+        $("#endoso-type").modal()
+      });
       $(`#btnDelete_${poliza.id}`).on("click", (e) => cancelPoliza(poliza.id));
-      // @ts-ignore
       $(`#btnShow_${poliza.id}`).on("click", (e) => {
-        console.log("Ver endosos");
+        getEndosos(poliza.id);
+        $("#endoso-list").modal();
       });
     });
     if (!data.length) return;
-    // @ts-ignore
     $(".tableOption").slice(8).hide();
-    // @ts-ignore
     $("#pagination").pagination({
       items: recordsTotal,
       itemsOnPage: itemsOnPage,
       onPageClick: (noofele) =>
-        // @ts-ignore
         $(".tableOption")
           .hide()
           .slice(
@@ -319,11 +313,9 @@ $(function () {
   }
 
   function getPolizas(order = false, start = 0, length = 0) {
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/get",
-      // @ts-ignore
       data: $.param(order ? { start, length, order } : { start, length }),
       success: fillTablePolizas,
       error: (xhr, status, error) => console.error(error),
@@ -331,7 +323,6 @@ $(function () {
   }
 
   function fetchClientOptions(query) {
-    // @ts-ignore
     $.ajax({
       url: "polizas/search_clients",
       method: "POST",
@@ -339,7 +330,6 @@ $(function () {
       data: { query },
       success: function (response) {
         const options = response.options;
-        // @ts-ignore
         const dropdownMenu = $("#client-options");
         dropdownMenu.empty();
         if (options.length === 0) {
@@ -347,22 +337,16 @@ $(function () {
             '<p class="dropdown-item no-results">No hay coincidencias</p>'
           );
         } else {
-          // @ts-ignore
           $.each(options, function (i, option) {
             dropdownMenu.append(
               `<a class="dropdown-item" id="client__${option.id}">
                 ${option.name}
               </a>`
             );
-            // @ts-ignore
             $(`#client__${option.id}`).on("click", (e) => {
-              // @ts-ignore
               $("#buscar-cliente").val(option.name);
-              // @ts-ignore
               $("#selected-client-id").val(option.id);
-              // @ts-ignore
               $("#client-options").hide();
-              // @ts-ignore
               $("#buscar-cliente")[0].setCustomValidity("");
             });
           });
@@ -379,12 +363,26 @@ $(function () {
     });
   }
 
-  function createReceipts(id_poliza) {
-    // @ts-ignore
+  function createReceipts(poliza_id) {
     $.ajax({
       type: "POST",
-      url: "/polizas/create",
-      data: { id_poliza },
+      url: "/polizas/save_receipts",
+      data: {
+        poliza_id,
+        firstpay: {
+          netPremium: $("#prima_neta_1er").val(),
+          totalPremium: $("#prima_total_1er").val(),
+          comision: $("#comision_1er").val(),
+        },
+        subspay: {
+          netPremium: $("#prima_neta_subs").val(),
+          totalPremium: $("#prima_total_subs").val(),
+          comision: $("#comision_subs").val(),
+        },
+        derecho_poliza: $("#derecho_poliza").val(),
+        rec_pago: $("#rec_pago").val(),
+        comision: $("#comision").val(),
+      },
       success: async function (resp) {
         if (resp.error) {
           alert(resp.msg, "error", resp.title);
@@ -405,119 +403,120 @@ $(function () {
     });
   }
 
-  // @ts-ignore
+  $(".btnGenerarEndoso").hide();
+
   $("#form-polizas").submit(function (e) {
     e.preventDefault();
-    // @ts-ignore
     if (!this.checkValidity()) {
-      // @ts-ignore
       $(this).addClass("was-validated");
       return;
     }
-    // @ts-ignore
     const primaNeta = $("#prima_neta").val();
-    // @ts-ignore
     const primaTotal = $("#prima_total").val();
-    // @ts-ignore
     const pago = $("#Pago").val();
     const noRecibos = getNoRecibos(pago);
-    const iva = primaTotal * 0.16
-    // @ts-ignore
+    const iva = primaTotal * 0.16;
     $("#prima-neta").val(primaNeta);
-    // @ts-ignore
     $("#prima-total").val(primaTotal);
-    // @ts-ignore
-    $("#no-recibos").val(noRecibos);
-    // @ts-ignore
-    $("iva-poliza").val(iva);
-
-    // @ts-ignore
+    $("#nopagos").val(noRecibos);
+    $("iva").val(iva);
     $("#create-recib").modal();
   });
 
-  // @ts-ignore
   $("#form-recibo").submit(function (e) {
     e.preventDefault();
     if (!this.checkValidity()) {
-      // @ts-ignore
       $(this).addClass("was-validated");
       return;
     }
-    // @ts-ignore
-    const formData = $(this).serialize();
-    // @ts-ignore
     const formDataPoliza = $("#form-polizas").serialize();
-    console.log(formData);
-    console.log(formDataPoliza);
-    return;
-    // @ts-ignore
-    $.ajax({
-      type: "POST",
-      url: "/polizas/create",
-      data: formDataPoliza,
-      success: async function (resp) {
-        if (resp.error) {
-          alert(resp.msg, "error", resp.title);
-        } else {
-          await createReceipts(resp.poliza_id);
-          alert(resp.msg, "success", resp.title);
-          getPolizas();
-          resetForm();
-        }
-      },
-      error: function (xhr, status, error) {
-        console.log(error);
-        alert(
-          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
-          "error"
-        );
-      },
-    });
+    if ($("#tipo").val()) {
+      $.ajax({
+        type: "POST",
+        url: "/polizas/create_endoso",
+        data: formDataPoliza,
+        success: async function (resp) {
+          if (resp.error) {
+            alert(resp.msg, "error", resp.title);
+          } else {
+            await createReceipts(resp.poliza_id);
+            alert(resp.msg, "success", resp.title);
+            resetForm();
+          }
+        },
+        error: function (xhr, status, error) {
+          console.log(error);
+          alert(
+            "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
+            "error"
+          );
+        },
+      });
+    } else {
+      $.ajax({
+        type: "POST",
+        url: "/polizas/create",
+        data: formDataPoliza,
+        success: async function (resp) {
+          if (resp.error) {
+            alert(resp.msg, "error", resp.title);
+          } else {
+            await createReceipts(resp.poliza_id);
+            alert(resp.msg, "success", resp.title);
+            getPolizas();
+            resetForm();
+          }
+        },
+        error: function (xhr, status, error) {
+          console.log(error);
+          alert(
+            "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
+            "error"
+          );
+        },
+      });
+    }
   });
 
-  // @ts-ignore
   $("#reset-btn").click((e) => {
     e.preventDefault();
     resetForm();
   });
 
-  // @ts-ignore
   $("#sortByPoliza").click((e) => {
     e.preventDefault();
     ordered = !ordered;
     getPolizas(ordered);
   });
 
-  // @ts-ignore
   $("#searchPoliza").on("keyup", function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
     if (searchValue == "") return getPolizas();
     if (searchValue.length >= 3)
-      // @ts-ignore
       $.ajax({
         ...ajaxConfig,
         url: "/polizas/get",
-        // @ts-ignore
         data: $.param({ start: 0, length: 0, searchValue }),
         success: fillTablePolizas,
         error: (xhr, status, error) => console.error(error),
       });
   });
 
-  // @ts-ignore
   $("#buscar-cliente").on("keyup", function (e) {
     e.preventDefault();
     const inputValue = e.target.value;
     if (inputValue.length >= 3) {
       fetchClientOptions(inputValue);
     } else {
-      // @ts-ignore
       $("#client-options").hide();
-      // @ts-ignore
       $("#buscar-cliente")[0].setCustomValidity("");
     }
   });
+
+  $("#endoso_tipo_a").click((e) => createEndozo($("#poliza_id").val(), "A"));
+  $("#endoso_tipo_b").click((e) => createEndozo($("#poliza_id").val(), "B"));
+  $("#endoso_tipo_d").click((e) => createEndozo($("#poliza_id").val(), "D"));
 
   getPolizas();
 });

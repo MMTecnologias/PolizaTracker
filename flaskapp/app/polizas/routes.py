@@ -475,7 +475,6 @@ def save_receipts():
         return jsonify({'error': True, 'msg': 'Error en la creación de recibos'})
 
 """Endosos"""
-
 @polizas_route.route('/create_endoso', methods=['POST'])
 @login_required
 def create_endoso():
@@ -486,7 +485,7 @@ def create_endoso():
     poliza = Poliza.query.get(poliza_id)
     if not poliza:
         return jsonify({"error": True, "msg": "No se encuentra la póliza"})
-    
+
     def check_new_form():
         argdict = {}
 
@@ -553,7 +552,7 @@ def create_endoso():
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
     arg_values['poliza_id'] = poliza.id
     arg_values['tipo_endoso'] = tipo
-    
+
     dict_to_keep={
         "A":['prima_neta','prima_total','derecho_poliza','iva','rec_pago','comision','recibos'],
         "B":['poliza'],
@@ -567,7 +566,7 @@ def create_endoso():
     #poliza_data.pop('recibos', None)
     #poliza_data['poliza_id'] = poliza.id
     #poliza_data['tipo_endoso'] = tipo
-    
+
     endoso = Endoso(**arg_values)
     # Save the new endoso to the database
     db.session.add(endoso)
