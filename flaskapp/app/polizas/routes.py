@@ -661,5 +661,64 @@ def get_endosos():
     return jsonify(response)
 
 
+@polizas_route.route('/process_receipt', methods=['POST'])
+@login_required
+def process_receipt():
+    recibo_id = request.form.get('recibo_id')
+    accion = request.form.get('accion')
+    recibo = Recibo.query.get(recibo_id)
+    poliza=Poliza.query.get(recibo.poliza_id)
+    if not recibo:
+        return jsonify({
+            'error': True,
+            'msg': 'Recibo no encontrado'
+        })
+    if accion not in ("Pagar", 'Cancelar Pago'):
+        return jsonify({
+            'error': True,
+            'msg': 'Acción no válida'
+        })
 
+    if accion=="Pagar":
+        recibo.status = 'Liquidado'
+        recibo.fecha_pago = datetime.now().strftime('%Y-%m-%d')
 
+        request_entry = Request(usuario_id=current_user.id,
+                                description=f"Pagar recibo {recibo.no_de_recibo} de la poliza {poliza.poliza}",
+                                status="Aceptada",
+                                table_name='Recibo',
+                                row_id=recibo.id)
+        db.session.add(request_entry)
+        db.session.commit()
+
+        return jsonify({
+            'error': False,
+            'msg': 'Recibo pagado exitosamente'
+        })
+    else:
+        request_entry = Request(usuario_id=current_user.id,
+                                description=f"Cancelar pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza}",
+                                status="Aceptada",
+                                table_name='Recibo',
+                                row_id=recibo.id)
+        db.session.add(request_entry)
+        db.session.commit()
+        log_entry_1 = Log(request_id=request_entry.id,
+                        column_name='status',
+                        old_value=recibo.status,
+                        new_value='Pendiente')
+        log_entry_2 = Log(request_id=request_entry.id,
+                        column_name='fecha_pago',
+                        old_value=recibo.fecha_pago,
+                        new_value=None)
+
+        db.session.add(log_entry_1)
+        db.session.add(log_entry_2)
+        recibo.status = 'Pendiente'
+        recibo.fecha_pago = None
+        db.session.commit()
+
+        return jsonify({
+            'error': False,
+            'msg': 'Pago de recibo cancelado exitosamente, esta accion esta sujeta a revision'
+        })
