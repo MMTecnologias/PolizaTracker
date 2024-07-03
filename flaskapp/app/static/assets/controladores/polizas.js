@@ -35,15 +35,15 @@ $(function () {
 
   function getNoRecibos(pago) {
     switch (pago) {
-      case 1:
+      case "1":
         return 1;
-      case 2:
+      case "2":
         return 12;
-      case 3:
+      case "3":
         return 4;
-      case 4:
+      case "4":
         return 2;
-      case 5:
+      case "5":
         return 24;
       default:
         return 0;
@@ -66,48 +66,101 @@ $(function () {
     });
   }
 
-  function resetForm() {
-    $("#form-polizas")[0].reset();
-    $("#form-polizas").removeClass("was-validated");
-    $("#form-polizas select").prop("disabled", false);
-    $("#poliza_id").val("New");
-    $("#tipo").val("");
-    $("#btnGenerarEndoso").hide();
-    $("#btnGuardar").show();
-    $("#div_search_client").show();
-
-    $("#title_poliza").text("Póliza");
-    $("#prima_neta").prop("disabled", false);
-    $("#prima_total").prop("disabled", false);
+  async function resetForm() {
+    try {
+      const data = await getFormData();
+      $("#form-polizas")[0].reset();
+      $("#form-polizas").removeClass("was-validated");
+      $("#form-polizas select").prop("disabled", false);
+      $("#poliza_id").val("New");
+      $("#tipo").val("");
+      $("#btnGenerarEndoso").hide();
+      $("#div_poliza_id").hide();
+      $("#btnGuardar").show();
+      $("#div_search_client").show();
+      $("#div_renovacion").show();
+      $("#div_poliza_anterior").show();
+      $("#title_poliza").text("Póliza");
+      $("#prima_neta").prop("disabled", false);
+      $("#prima_total").prop("disabled", false);
+      $("#ramo").html("");
+      $("#subramo").html("");
+      $("#aseguradora").html("");
+      $("#Pago").html("");
+      $("#vendedor").html("");
+      $("#agente").html("");
+      for (const ramo of data.Ramo) {
+        $("#ramo").append(`<option value='${ramo.id}'>
+        ${ramo.ramo}
+        </option>
+        `);
+      }
+      for (const subramo of data.Subramo) {
+        $("#subramo").append(`<option value='${subramo.id}'>
+        ${subramo.subramo}
+        </option>
+        `);
+      }
+      for (const aseguradora of data.Aseguradora) {
+        $("#aseguradora").append(`<option value='${aseguradora.id}'>
+        ${aseguradora.aseguradora}
+        </option>
+        `);
+      }
+      for (const pago of data.TipoPago) {
+        $("#Pago").append(`<option value='${pago.id}'>
+        ${pago.tipo_pago}
+        </option>
+        `);
+      }
+      for (const vendedor of data.Vendedor) {
+        $("#vendedor").append(`<option value='${vendedor.id}'>
+        ${vendedor.nombre}
+        </option>
+        `);
+      }
+      for (const agente of data.Agente) {
+        $("#agente").append(`<option value='${agente.id}'>
+        ${agente.nombre}
+        </option>
+        `);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  function createEndozo(poliza_id, tipo) {
-    resetForm()
+  async function createEndozo(poliza_id, tipo) {
+    await resetForm();
     $("#endoso-type").modal("toggle");
     $("#tipo").val(tipo);
     $("#btnGenerarEndoso").show();
     $("#btnGuardar").hide();
-    if (tipo === "B" || tipo === "D") {
-      $("#poliza_id").val(poliza_id);
-      $("#title_poliza").text("Endoso");
-      $("#prima_neta").prop("disabled", false);
-      $("#prima_total").prop("disabled", false);
-      return;
-    }
+    $("#div_renovacion").hide();
+    $("#div_poliza_anterior").hide();
+    $("#poliza_id").val(poliza_id);
     $("#div_search_client").hide();
+    $("#title_poliza").text("Endoso");
+    $("#div_poliza_id").show();
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/get",
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
-        $("#poliza_id").val(poliza_id);
+        $("#id_poliza").val(resp.data[0].poliza);
+        $("#selected-client-id").val(resp.data[0].cliente_id);
+        if (tipo === "B" || tipo === "D") {
+          $("#prima_neta").prop("disabled", false);
+          $("#prima_total").prop("disabled", false);
+          return;
+        }
         $("#Poliza").val(resp.data[0].poliza);
         $("#serie").val(resp.data[0].serie);
-        $("#ramo").html(`<option value='${resp.data[0].ramo}'>
+        $("#ramo").html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
         `);
-        $("#subramo").html(`<option value='${resp.data[0].subramo}'>
+        $("#subramo").html(`<option value='${resp.data[0].subramo_id}'>
             ${resp.data[0].subramo}
             </option>
         `);
@@ -117,17 +170,23 @@ $(function () {
         $("#prima_neta").prop("disabled", true);
         $("#prima_total").prop("disabled", true);
         $("#VigenciaF").val(resp.data[0].VigenciaF);
-        $("#aseguradora").html(`<option value='${resp.data[0].aseguradora}'>
+        $("#aseguradora").html(`<option value='${resp.data[0].aseguradora_id}'>
             ${resp.data[0].aseguradora}
             </option>
         `);
-        $("#Pago").html(`<option value='${resp.data[0].tipoPago}'>
+        $("#Pago").html(`<option value='${resp.data[0].tipo_pago_id}'>
             ${resp.data[0].tipoPago}
             </option>
         `);
-        $("#vendedor").val(resp.data[0].vendedor_id);
+        $("#vendedor").html(`<option value='${resp.data[0].vendedor_id}'>
+            ${resp.data[0].vendedor_id}
+            </option>
+        `);
         $("#Moneda").val(resp.data[0].moneda);
-        $("#agente").val(resp.data[0].agente_id);
+        $("#agente").html(`<option value='${resp.data[0].agente_id}'>
+            ${resp.data[0].agente_id}
+            </option>
+        `);
         $("#notas").val(resp.data[0].notas);
         $("#polizaAnterior").val(resp.data[0].poliza_anterior);
         $("#renovacion").val(resp.data[0].renovacion);
@@ -154,7 +213,7 @@ $(function () {
         }
       },
       error: function (xhr, status, error) {
-        console.log(error);
+        console.error(error);
         alert(
           "Lamentamos el inconveniente, por favor vuelve a intentarlo",
           "error"
@@ -172,7 +231,7 @@ $(function () {
           ? { start, length, order, poliza_id }
           : { start, length, poliza_id }
       ),
-      success: fillTableRecibos,
+      success: (resp) => fillTableRecibos(resp, poliza_id),
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -191,11 +250,56 @@ $(function () {
     });
   }
 
-  function fillTableEndosos(resp){
-
+  function fillTableEndosos(resp) {
+    console.log(resp);
   }
 
-  function fillTableRecibos(resp) {
+  function changeReciboPagado(recibo_id, accion, poliza_id) {
+    $.ajax({
+      type: "POST",
+      url: "/polizas/process_receipt",
+      data: $.param({ recibo_id, accion }),
+      success: function (resp) {
+        if (resp.error) {
+          alert(resp.msg, "error");
+        } else {
+          alert(resp.msg, "success");
+          getRecibos(poliza_id);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error(error);
+        alert(
+          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
+          "error"
+        );
+      },
+    });
+  }
+
+  function getFormData() {
+    return new Promise((resolve, reject) => {
+      $.ajax({
+        type: "GET",
+        url: "/polizas/get_form_data",
+        data: {},
+        success: function (resp) {
+          resolve(resp);
+          console.log(resp);
+        },
+        error: function (xhr, status, error) {
+          reject(error);
+          console.error(error);
+          alert(
+            "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
+            "error"
+          );
+        },
+      });
+    });
+  }
+
+  function fillTableRecibos(resp, poliza_id) {
     const itemsOnPage = 10;
     const { data, recordsTotal } = resp;
     const table = $("#receiptsTable");
@@ -220,9 +324,9 @@ $(function () {
       if (recibo.pagado) $(`#check_pagado${recibo.id}`).prop("checked", true);
       $(`#check_pagado${recibo.id}`).on("click", function () {
         if ($(`#check_pagado${recibo.id}`).is(":checked") == true) {
-          console.log(`Actualizar recibo ${recibo.id} a Pagado`);
+          changeReciboPagado(recibo.id, "Pagar", poliza_id);
         } else {
-          console.log(`Actualizar recibo ${recibo.id} a no Pagado`);
+          changeReciboPagado(recibo.id, "Cancelar Pago", poliza_id);
         }
       });
     });
@@ -288,7 +392,7 @@ $(function () {
       });
       $(`#btnEdit_${poliza.id}`).on("click", (e) => {
         $("#poliza_id").val(poliza.id);
-        $("#endoso-type").modal()
+        $("#endoso-type").modal();
       });
       $(`#btnDelete_${poliza.id}`).on("click", (e) => cancelPoliza(poliza.id));
       $(`#btnShow_${poliza.id}`).on("click", (e) => {
@@ -354,7 +458,7 @@ $(function () {
         dropdownMenu.show();
       },
       error: function (xhr, textStatus, error) {
-        console.log(error);
+        console.error(error);
         alert(
           "Lamentamos el inconveniente, por favor vuelve a intentarlo",
           "error"
@@ -363,38 +467,36 @@ $(function () {
     });
   }
 
-  function createReceipts(poliza_id) {
+  function createReceipts(selectPoliza) {
+    const netPremium = $("#prima-neta").val();
+    const totalPremium = $("#prima-total").val();
+    const iva = $("#iva").val();
+    const insurance = $("#derecho_poliza").val();
+    const commission = $("#comision").val();
+    const receipts = $("#nopagos").val();
     $.ajax({
-      type: "POST",
+      ...ajaxConfig,
       url: "/polizas/save_receipts",
-      data: {
-        poliza_id,
-        firstpay: {
-          netPremium: $("#prima_neta_1er").val(),
-          totalPremium: $("#prima_total_1er").val(),
-          comision: $("#comision_1er").val(),
-        },
-        subspay: {
-          netPremium: $("#prima_neta_subs").val(),
-          totalPremium: $("#prima_total_subs").val(),
-          comision: $("#comision_subs").val(),
-        },
-        derecho_poliza: $("#derecho_poliza").val(),
-        rec_pago: $("#rec_pago").val(),
-        comision: $("#comision").val(),
-      },
-      success: async function (resp) {
+      data: $.param({
+        netPremium,
+        totalPremium,
+        iva,
+        insurance,
+        commission,
+        receipts,
+        selectPoliza,
+      }),
+      success: function (resp) {
         if (resp.error) {
-          alert(resp.msg, "error", resp.title);
+          // alert(resp.msg, "error", resp.title);
+          console.log("Error crear recibos", resp.error, resp.msg);
         } else {
-          await createReceipts(resp.poliza_id);
-          alert(resp.msg, "success", resp.title);
-          getPolizas();
-          resetForm();
+          // alert(resp.msg, "success", resp.title);
+          console.log("Recibos creados exitosamente");
         }
       },
       error: function (xhr, status, error) {
-        console.log(error);
+        console.error(error);
         alert(
           "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
           "error"
@@ -403,7 +505,8 @@ $(function () {
     });
   }
 
-  $(".btnGenerarEndoso").hide();
+  $("#btnGenerarEndoso").hide();
+  $("#div_poliza_id").hide();
 
   $("#form-polizas").submit(function (e) {
     e.preventDefault();
@@ -435,17 +538,19 @@ $(function () {
         type: "POST",
         url: "/polizas/create_endoso",
         data: formDataPoliza,
-        success: async function (resp) {
+        success: function (resp) {
           if (resp.error) {
             alert(resp.msg, "error", resp.title);
           } else {
-            await createReceipts(resp.poliza_id);
-            alert(resp.msg, "success", resp.title);
+            $("#create-recib").modal("toggle");
+            createReceipts(resp.poliza_id);
+            alert(resp.msg, "success");
+            getPolizas();
             resetForm();
           }
         },
         error: function (xhr, status, error) {
-          console.log(error);
+          console.error(error);
           alert(
             "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
             "error"
@@ -457,18 +562,23 @@ $(function () {
         type: "POST",
         url: "/polizas/create",
         data: formDataPoliza,
-        success: async function (resp) {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        dataType: "json",
+        success: function (resp) {
           if (resp.error) {
-            alert(resp.msg, "error", resp.title);
+            alert(resp.title, "error");
           } else {
-            await createReceipts(resp.poliza_id);
-            alert(resp.msg, "success", resp.title);
+            $("#create-recib").modal("toggle");
+            createReceipts(resp.poliza_id);
+            alert(resp.title, "success");
             getPolizas();
             resetForm();
           }
         },
         error: function (xhr, status, error) {
-          console.log(error);
+          console.error("Error al crear poliza", error);
           alert(
             "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
             "error"
@@ -481,6 +591,42 @@ $(function () {
   $("#reset-btn").click((e) => {
     e.preventDefault();
     resetForm();
+  });
+
+  $("#btnCalcular").click((e) => {
+    e.preventDefault();
+    const netPremium = $("#prima-neta").val();
+    const totalPremium = $("#prima-total").val();
+    const iva = $("#iva").val();
+    const insurance = $("#derecho_poliza").val();
+    const commission = $("#comision").val();
+    const receipts = $("#nopagos").val();
+    if (!iva || !insurance || !commission)
+      return alert(
+        "debe llenar los campos, derecho de póliza, iva y comisión",
+        "warning"
+      );
+    $.ajax({
+      ...ajaxConfig,
+      url: "/polizas/calculate_receipts",
+      data: $.param({
+        netPremium,
+        totalPremium,
+        iva,
+        insurance,
+        commission,
+        receipts,
+      }),
+      success: function (resp) {
+        $("#prima_neta_1er").val(resp.firstpay.netPremium);
+        $("#prima_neta_subs").val(resp.subspay.netPremium);
+        $("#prima_total_1er").val(resp.firstpay.totalPremium);
+        $("#prima_total_subs").val(resp.subspay.totalPremium);
+        $("#comision_1er").val(resp.firstpay.comision);
+        $("#comision_subs").val(resp.subspay.comision);
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
   });
 
   $("#sortByPoliza").click((e) => {

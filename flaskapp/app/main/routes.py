@@ -83,6 +83,12 @@ def check_access(nombre_del_servicio):
 def utilerias():
     return render_template('utilerias.html',user=current_user)
 
+#Utilerias
+@main.route('/vencimientos', methods=['GET'])
+@login_required
+def vencimientos():
+    return render_template('vencimientos.html',user=current_user)
+
 #Recibos
 @main.route('/recibos', methods=['GET'])
 @login_required
@@ -166,7 +172,7 @@ def create_multiple():
     tipo = request.form.get('tipo')
     nombre=request.form.get('nombre')
     form_id = request.form.get('form_id') if request.form.get('form_id') else "New"
-    
+
     clases={"Aseguradora":Aseguradora,
             "Agente":Agente,
             "Vendedor":Vendedor}
@@ -175,7 +181,7 @@ def create_multiple():
             "Vendedor":"nombre"}
     if tipo not in clases.keys():
         return jsonify({"error":True,"msg": "No se encuentra el tipo de elemento"})
-    
+
 
     dict_return=new_class_edit(clases[tipo],form_id ,nombre,colnames[tipo])
 

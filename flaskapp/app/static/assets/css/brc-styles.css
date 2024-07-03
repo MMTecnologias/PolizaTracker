@@ -365,15 +365,15 @@ p {
    color: var(--gris-medio);
 }
 
-tbody tr,
+/* tbody tr,
 tbody tr td {
    height: 10px;
-}
+} */
 
-tbody tr:nth-child(2n + 1) {
+/* tbody tr:nth-child(2n + 1) {
    color: var(--color-claro);
    background-color: var(--gris-medio);
-}
+} */
 
 .form-control,
 .custom-select {
@@ -621,7 +621,7 @@ a .delete {
 }
 
 .containerCards .card {
-   width: 100%;
+   width: 70%;
    display: flex;
    justify-content: space-between;
    align-items: center;

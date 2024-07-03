@@ -46,7 +46,7 @@
                <form id="form-polizas" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
                   <input type="text" id="tipo" name="tipo" hidden />
-                  <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" />
+                  <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
                   <div class="form__input-data" id="div_search_client">
                      <div class="label-option">
                         <label class="label-input-data">Buscar cliente</label>
@@ -58,9 +58,15 @@
                      </div>
                      <div class="input-group" style="background-color: aliceblue;">
                         <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
-                           aria-label="Search" aria-describedby="search-addon" autocomplete="off" required />
+                           aria-label="Search" aria-describedby="search-addon" autocomplete="off"/>
                         <div class="dropdown-menu" id="client-options"></div>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="form__input-data" id="div_poliza_id">
+                     <label class="label-input-data">Póliza</label>
+                     <div class="input-group">
+                        <input type="text" class="form-control" id="id_poliza" name="id_poliza" disabled/>
                      </div>
                   </div>
                   <div class="input-sibling">
@@ -213,14 +219,14 @@
                      </div>
                   </div>
                   <div class="input-sibling">
-                     <div class="form__input-data input-sibling-child">
+                     <div class="form__input-data input-sibling-child" id="div_poliza_anterior">
                         <label class="label-input-data" for="polizaAnterior">Póliza Anterior</label>
                         <div class="input-group">
                            <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" />
                            <p class="invalid-feedback">Ingresa un dato valido</p>
                         </div>
                      </div>
-                     <div class="form__input-data input-sibling-child">
+                     <div class="form__input-data input-sibling-child" id="div_renovacion">
                         <label class="label-input-data" for="renovacion">Renovación</label>
                         <div class="input-group">
                            <input type="text" class="form-control" id="renovacion" name="renovacion" />
@@ -254,7 +260,7 @@
                      <button class="btn" type="submit" id="btnGuardar">
                         Guardar
                      </button>
-                     <button id="btnGenerarEndoso" class="btn" type="submit" style="display: none;">
+                     <button id="btnGenerarEndoso" class="btn" type="submit">
                         Generar Endoso
                      </button>
                      <button class="btn" type="reset" value="Cancelar" id="reset-btn">
@@ -395,7 +401,7 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">IVA de poliza</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="iva" name="iva" required />
+                                 <input type="text" class="form-control" id="iva" name="iva" value="16" required />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -426,18 +432,23 @@
                               </div>
                            </div>
                         </div>
+                        <div class="w-100 py-3 d-flex justify-content-center">
+                           <button class="btn mx-5" type="button" id="btnCalcular" name="btnCalcular">
+                              Calcular totales
+                           </button>
+                        </div>
                         <div class="input-sibling">
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima neta 1er recibo</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_neta_1er" name="prima_neta_1er" required />
+                                 <input type="text" class="form-control" id="prima_neta_1er" name="prima_neta_1er" required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima neta subsecuentes</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_neta_subs" name="prima_neta_subs" required />
+                                 <input type="text" class="form-control" id="prima_neta_subs" name="prima_neta_subs" required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -446,14 +457,14 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima total 1er recibo</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_total_1er" name="prima_total_1er" required />
+                                 <input type="text" class="form-control" id="prima_total_1er" name="prima_total_1er" required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima total subsecuentes</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_total_subs" name="prima_total_subs" required />
+                                 <input type="text" class="form-control" id="prima_total_subs" name="prima_total_subs" required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -462,23 +473,23 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Comisión 1er recibo</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="comision_1er" name="comision_1er" required />
+                                 <input type="text" class="form-control" id="comision_1er" name="comision_1er" required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Comisión subsecuentes</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="comision_subs" name="comision_subs" required />
+                                 <input type="text" class="form-control" id="comision_subs" name="comision_subs" required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                         </div>
                         <div class="button-container">
-                           <button class="btn" type="submit" value="Guardar Cambios" id="btnGuardar" name="btnGuardar">
+                           <button class="btn" type="submit" id="btnGuardar-recibos" name="btnGuardar-recibos">
                               Guardar
                            </button>
-                           <button class="btn" type="reset" value="Cancelar" id="reset-btn">
+                           <button class="btn" type="reset" value="Cancelar" id="reset-btn-recibos">
                               Cancelar
                            </button>
                         </div>
@@ -525,7 +536,7 @@
             <div class="modal-body pt-1">
                <div class="row pb-4">
                   <div class="col-12">
-                     <h4 class="header-title">Listas de Recibos</h4>
+                     <h4 class="header-title">Listas de Endosos</h4>
                      <table class="table">
                         <thead class="tableHeader">
                            <tr>
@@ -539,7 +550,7 @@
                               <th scope="col">Cancelado</th>
                            </tr>
                         </thead>
-                        <tbody id="receiptsTable">
+                        <tbody id="endososTable">
                         </tbody>
                      </table>
                   </div>

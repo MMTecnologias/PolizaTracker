@@ -580,7 +580,6 @@ def create_endoso():
     db.session.add(request_entry)
     db.session.commit()
 
-
     return jsonify({
         'error': False,
         'msg': 'Endoso creado exitosamente',
