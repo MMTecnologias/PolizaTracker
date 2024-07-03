@@ -721,3 +721,39 @@ def process_receipt():
             'error': False,
             'msg': 'Pago de recibo cancelado exitosamente, esta accion esta sujeta a revision'
         })
+
+
+#@main.route('/get_data_multiple', methods=['GET'])
+@polizas_route.route('/get_form_data', methods=['GET'])
+@login_required
+def get_form_data():
+    clases = {
+        "Aseguradora": Aseguradora,
+        "Agente": Agente,
+        "Vendedor": Vendedor,
+        "Ramo": Ramo,
+        "Subramo": Subramo,
+        "TipoPago": TipoPago
+    }
+    response={}
+    for key,tabla in clases.items():
+        query=tabla.query.order_by(tabla.id.desc())  # Order by id in descending order
+        records = query.all()
+        # Format data
+        data = []
+        for record in records:
+            # Extracting all columns from the Poliza object
+            record_data = {}
+            # Iterate through each column in the Poliza table
+            for column in tabla.__table__.columns:
+                # Get the value of the column
+                value = getattr(record, column.name)
+                # Add column name and corresponding value to poliza_data dictionary
+                record_data[column.name] = value
+            # Append to data list
+            data.append(record_data)
+        # Prepare response
+        response[key] = data
+
+    return jsonify(response)
+
