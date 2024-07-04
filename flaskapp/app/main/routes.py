@@ -12,6 +12,7 @@ from datetime import datetime,date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+from app.vencimientos.routes import update_poliza_status
 
 
 #from sqlalchemy.exc import DataError, IntegrityError, OperationalError, SQLAlchemyError
@@ -87,6 +88,8 @@ def utilerias():
 @main.route('/vencimientos', methods=['GET'])
 @login_required
 def vencimientos():
+    no_months=1
+    update_poliza_status(no_months)
     return render_template('vencimientos.html',user=current_user)
 
 #Recibos

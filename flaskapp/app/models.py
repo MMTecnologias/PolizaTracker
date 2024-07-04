@@ -80,7 +80,7 @@ class Poliza(db.Model):
     renovacion = Column(String(30))
     prima_neta = Column(DECIMAL(12, 2), nullable=False)
     prima_total = Column(DECIMAL(12, 2), nullable=False)
-    status = Column(Enum('Vigente', 'Pendiente', 'Cancelada', 'Finalizada'), nullable=False)
+    status = Column(Enum('Vigente', 'Pendiente', 'Cancelada', 'Finalizada','Por Vencer'), nullable=False)
     derecho_poliza = Column(DECIMAL(12, 2))
     iva = Column(DECIMAL(5, 4), default=0.16)
     rec_pago = Column(DECIMAL(5, 4))

@@ -32,6 +32,7 @@ from app.polizas import polizas_route
 from app.clientes import clientes_route
 from app.solicitudes import solicitudes_route
 from app.usuarios import usuarios_route
+from app.vencimientos import vencimientos_route
 
 app.register_blueprint(auth)
 app.register_blueprint(main)
@@ -39,5 +40,6 @@ app.register_blueprint(polizas_route)
 app.register_blueprint(clientes_route)
 app.register_blueprint(solicitudes_route)
 app.register_blueprint(usuarios_route)
+app.register_blueprint(vencimientos_route)
 
 
