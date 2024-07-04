@@ -93,13 +93,17 @@ def get():
                                          "aseguradora"),
                                      Ramo.ramo.label("ramo"),
                                      Subramo.subramo.label("subramo"),
-                                     TipoPago.tipo_pago.label("tipo_pago")) \
+                                     TipoPago.tipo_pago.label("tipo_pago"),
+                                     Agente.nombre.label("agente"),
+                                     Vendedor.nombre.label("vendedor")) \
         .select_from(Poliza) \
         .join(Cliente, Poliza.cliente_id == Cliente.id) \
         .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
         .join(Ramo, Poliza.ramo_id == Ramo.id)  \
         .join(Subramo, Poliza.subramo_id == Subramo.id)  \
-        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+        .join(Agente, Poliza.agente_id == Agente.id) \
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
 
     if order:
         polizas_query = polizas_query.order_by('poliza')
@@ -128,7 +132,7 @@ def get():
 
     data = []
     # Iterate through the query results
-    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago in polizas:
+    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in polizas:
         # Extracting all columns from the Poliza object
         poliza_data = {}
         # Iterate through each column in the Poliza table
@@ -154,6 +158,8 @@ def get():
             'ramo': f"{ramo}",
             'subramo': f"{subramo}",
             'tipoPago': f"{tipo_pago}",
+            'agente': f"{agente}",
+            'vendedor': f"{vendedor}"
         })
 
         # Append to data list
