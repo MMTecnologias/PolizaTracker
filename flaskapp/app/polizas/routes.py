@@ -611,11 +611,11 @@ def get_endosos():
                                      Subramo.subramo.label("subramo"),
                                      TipoPago.tipo_pago.label("tipo_pago")) \
         .select_from(Endoso) \
-        .join(Cliente, Poliza.cliente_id == Cliente.id) \
-        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-        .join(Ramo, Poliza.ramo_id == Ramo.id)  \
-        .join(Subramo, Poliza.subramo_id == Subramo.id)  \
-        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+        .join(Cliente, Endoso.cliente_id == Cliente.id) \
+        .join(Aseguradora, Endoso.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Endoso.ramo_id == Ramo.id)  \
+        .join(Subramo, Endoso.subramo_id == Subramo.id)  \
+        .join(TipoPago, Endoso.tipo_pago_id == TipoPago.id) \
         .filter(Endoso.poliza_id == poliza_id)
 
     # Get total count of records without filtering
