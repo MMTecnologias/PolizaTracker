@@ -28,8 +28,8 @@ $(function () {
         return "rgb(255 255 0 / 80%)";
       case status.includes("Cancel"):
         return "#ff0000";
-      case status.includes("Vencer"):
-        return "#fff800";
+      case status.toLowerCase().includes("vencer"):
+        return "rgb(255 255 0 / 80%)";
       default:
         return "";
     }
@@ -94,7 +94,7 @@ $(function () {
   function getVencimientos(order = false, start = 0, length = 10) {
     $.ajax({
       ...ajaxConfig,
-      url: "/polizas/get",
+      url: "/vencimientos/get",
 
       data: $.param(order ? { start, length, order } : { start, length }),
       success: fillTableVencimientos,

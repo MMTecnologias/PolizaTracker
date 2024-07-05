@@ -15,19 +15,17 @@ $(function () {
   function getColor(status) {
     if (!status) return "";
     switch (status) {
-      case "Vigente":
+      // case "Vigente":
         // return "#46d139";
-        return "rgb(0 255 0 / 50%)";
+        // return "rgb(0 255 0 / 50%)";
       case "Cancelada":
         // return "#ff0000";
         return "rgb(255 0 0 / 80%)";
-      case "Por vencer":
+      case "vencidas":
         // return "#fff800";
-        return "rgb(255 255 0 / 80%)";
+        return "#4c4c4c";
       case status.includes("Cancel"):
         return "#ff0000";
-      case status.includes("Vencer"):
-        return "#fff800";
       default:
         return "";
     }
@@ -147,6 +145,7 @@ $(function () {
       url: "/polizas/get",
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
+        console.log(resp);
         $("#id_poliza").val(resp.data[0].poliza);
         $("#selected-client-id").val(resp.data[0].cliente_id);
         if (tipo === "B" || tipo === "D") {
@@ -154,7 +153,6 @@ $(function () {
           $("#prima_total").prop("disabled", false);
           return;
         }
-        $("#Poliza").val(resp.data[0].poliza);
         $("#serie").val(resp.data[0].serie);
         $("#ramo").html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
@@ -164,12 +162,10 @@ $(function () {
             ${resp.data[0].subramo}
             </option>
         `);
-        $("#VigenciaI").val(resp.data[0].fecha_inicio);
         $("#prima_neta").val(resp.data[0].prima_neta);
         $("#prima_total").val(resp.data[0].prima_total);
         $("#prima_neta").prop("disabled", true);
         $("#prima_total").prop("disabled", true);
-        $("#VigenciaF").val(resp.data[0].VigenciaF);
         $("#aseguradora").html(`<option value='${resp.data[0].aseguradora_id}'>
             ${resp.data[0].aseguradora}
             </option>
@@ -179,12 +175,12 @@ $(function () {
             </option>
         `);
         $("#vendedor").html(`<option value='${resp.data[0].vendedor_id}'>
-            ${resp.data[0].vendedor_id}
+            ${resp.data[0].vendedor}
             </option>
         `);
         $("#Moneda").val(resp.data[0].moneda);
         $("#agente").html(`<option value='${resp.data[0].agente_id}'>
-            ${resp.data[0].agente_id}
+            ${resp.data[0].agente}
             </option>
         `);
         $("#notas").val(resp.data[0].notas);
@@ -251,7 +247,51 @@ $(function () {
   }
 
   function fillTableEndosos(resp) {
-    console.log(resp);
+    const itemsOnPage = 8;
+    const { data, recordsTotal } = resp;
+    console.log(data);
+    const table = $("#endosos-table");
+    table.html("");
+    $.each(data, function (idx, endoso) {
+      table.append(
+        `<tr class="tableOption-endoso" style="background-color: ${getColor(
+          endoso.status
+        )}">
+          <td>
+            <p class="td-clickable" id="td-clickable_${endoso.id}">
+                ${endoso.poliza}
+            </p>
+          </td>
+          <td>${endoso.cliente}</td>
+          <td>${endoso.subramo}</td>
+          <td>${endoso.aseguradora}</td>
+          <td>${endoso.tipoPago}</td>
+          <td>
+            <ul class="btn_table_options">
+            </ul>
+          </td>
+        </tr>`
+      );
+      $(`#td-clickable_${endoso.id}`).on("click", (e) => {
+        console.log("Traer recibos de endosos");
+        // $("#recib").modal();
+        // getRecibos(endoso.id);
+      });
+    });
+    if (!data.length) return;
+    $(".tableOption-endoso").slice(8).hide();
+    $("#pagination-endosos").pagination({
+      items: recordsTotal,
+      itemsOnPage: itemsOnPage,
+      onPageClick: (noofele) =>
+        $(".tableOption-endoso")
+          .hide()
+          .slice(
+            itemsOnPage * (noofele - 1),
+            itemsOnPage + itemsOnPage * (noofele - 1)
+          )
+          .show(),
+    });
   }
 
   function changeReciboPagado(recibo_id, accion, poliza_id) {
@@ -285,7 +325,7 @@ $(function () {
         data: {},
         success: function (resp) {
           resolve(resp);
-          console.log(resp);
+          // console.log(resp);
         },
         error: function (xhr, status, error) {
           reject(error);
