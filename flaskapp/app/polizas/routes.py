@@ -21,8 +21,11 @@ def get_receipts():
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
 
-    # Query to fetch polizas data from the database
-    recibos_query = Recibo.query.filter_by(poliza_id=poliza_id)
+    endoso_id = request.form.get('endoso_id')
+    if endoso_id:
+        recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
+    else:
+        recibos_query = Recibo.query.filter_by(poliza_id=poliza_id, endoso_id=None)
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
@@ -417,8 +420,30 @@ def save_receipts():
     response = calcular_recibos()
     poliza_id = response['poliza_id']
     poliza = Poliza.query.get(poliza_id)
-    if not poliza:
+    endoso_id = request.form.get('endoso_id')
+    multiplier=1
+    if endoso_id:
+        endoso = Endoso.query.get(endoso_id)
+        if not endoso:
+            return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+        elif not poliza:
+            poliza = Poliza.query.get(endoso.poliza_id)
+            poliza_id = poliza.id
+        elif endoso.poliza_id != poliza.id:
+            return jsonify({'error': True, 'msg': 'Endoso no pertenece a esta poliza'})
+        
+        if endoso.tipo_endoso == "A":
+            return jsonify({'error': True, 'msg': 'Los Endosos tipo A no generan recibos'})
+        elif endoso.tipo_endoso == "D":
+            multiplier=-1
+        
+        if endoso.recibos == "Generados":
+            return jsonify({'error': True, 'msg': 'Estw endodoso ya tiene recibos generados'})
+
+    elif not poliza:
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
+
+
     if poliza.recibos == "Generados":
         return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
     try:
@@ -432,9 +457,10 @@ def save_receipts():
             nuevo_recibo = Recibo(fecha_inicio=start_date,
                                   fecha_vencimiento=end_date,
                                   poliza_id=poliza_id,
-                                  prima_neta=response['firstpay']['netPremium'],
-                                  prima_total=response['firstpay']['totalPremium'],
-                                  comision=response['firstpay']['comision']
+                                  endoso_id=endoso_id,
+                                  prima_neta=multiplier*response['firstpay']['netPremium'],
+                                  prima_total=multiplier*response['firstpay']['totalPremium'],
+                                  comision=multiplier*response['firstpay']['comision']
                                   )
             db.session.add(nuevo_recibo)
         else:
@@ -445,9 +471,10 @@ def save_receipts():
             nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
                                   fecha_vencimiento=fecha_vencimiento,
                                   poliza_id=poliza_id,
-                                  prima_neta=response['firstpay']['netPremium'],
-                                  prima_total=response['firstpay']['totalPremium'],
-                                  comision=response['firstpay']['comision'],
+                                  endoso_id=endoso_id,
+                                  prima_neta=multiplier*response['firstpay']['netPremium'],
+                                  prima_total=multiplier*response['firstpay']['totalPremium'],
+                                  comision=multiplier*response['firstpay']['comision'],
                                   no_de_recibo="1 / "+str(nopagos)
                                   )
             db.session.add(nuevo_recibo)
@@ -458,19 +485,27 @@ def save_receipts():
                 nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
                                       fecha_vencimiento=fecha_vencimiento,
                                       poliza_id=poliza_id,
-                                      prima_neta=response['subspay']['netPremium'],
-                                      prima_total=response['subspay']['totalPremium'],
-                                      comision=response['subspay']['comision'],
+                                      endoso_id=endoso_id,
+                                      prima_neta=multiplier*response['subspay']['netPremium'],
+                                      prima_total=multiplier*response['subspay']['totalPremium'],
+                                      comision=multiplier*response['subspay']['comision'],
                                       no_de_recibo=str(
                                           nopay)+" / "+str(nopagos)
                                       )
                 db.session.add(nuevo_recibo)
 
-        poliza.derecho_poliza = response['derecho_poliza']
-        poliza.iva = response['iva']
-        poliza.rec_pago = response['rec_pago']
-        poliza.comision = response['comision']
-        poliza.recibos = "Generados"
+        if not endoso:
+            poliza.derecho_poliza = response['derecho_poliza']
+            poliza.iva = response['iva']
+            poliza.rec_pago = response['rec_pago']
+            poliza.comision = response['comision']
+            poliza.recibos = "Generados"
+        else:
+            endoso.derecho_poliza = response['derecho_poliza']
+            endoso.iva = response['iva']
+            endoso.rec_pago = response['rec_pago']
+            endoso.comision = response['comision']
+            endoso.recibos = "Generados"
         # Realiza el commit después de completar las inserciones
         db.session.commit()
 
@@ -702,7 +737,7 @@ def process_receipt():
     else:
         request_entry = Request(usuario_id=current_user.id,
                                 description=f"Cancelar pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza}",
-                                status="Aceptada",
+                                #status="Aceptada",
                                 table_name='Recibo',
                                 row_id=recibo.id)
         db.session.add(request_entry)
