@@ -227,9 +227,77 @@ def get_upcoming_receipts():
         response.append(data)
 
     # Export to CSV
-    if not request.form.get('export_csv'):
+    if request.form.get('export_csv'):
         headers = ['poliza_id', 'poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
         return export_to_csv(headers, response,'upcoming_receipts.csv')
+
+    return jsonify(response)
+
+@vencimientos_route.route('/get_upcoming_policies', methods=['POST', 'GET'])
+@login_required
+def get_upcoming_policies():
+    days_tolerance = 30
+
+    # Retrieve the start and end dates for the report
+    start_date = datetime.now() if not request.form.get('start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
+    end_date = start_date + timedelta(days=days_tolerance) if not request.form.get('end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+    
+
+    # Calculate the policy due date range
+    policy_due_start = start_date 
+    policy_due_end = end_date + timedelta(days=days_tolerance)
+
+    # Query the database for upcoming policies
+    upcoming_policies_query = db.session.query(Poliza,
+                                               Cliente.nombre.label("client_name"),
+                                               Cliente.apellido.label("client_lastname"),
+                                               Aseguradora.aseguradora.label("aseguradora"),
+                                               Ramo.ramo.label("ramo"),
+                                               Subramo.subramo.label("subramo"),
+                                               TipoPago.tipo_pago.label("tipo_pago"),
+                                               Agente.nombre.label("agente"),
+                                               Vendedor.nombre.label("vendedor")) \
+        .select_from(Poliza) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id) \
+        .join(Subramo, Poliza.subramo_id == Subramo.id) \
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+        .join(Agente, Poliza.agente_id == Agente.id) \
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
+        .filter(Poliza.fecha_termino >= policy_due_start,
+                Poliza.fecha_termino <= policy_due_end,
+                Poliza.status == "Vigente") \
+        .order_by(Poliza.fecha_termino)
+
+    upcoming_policies = upcoming_policies_query.all()
+
+    # Prepare the response data
+    response = []
+    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_policies:
+
+        data = {
+            'poliza_id': poliza.id,
+            'poliza': poliza.poliza,
+            'cliente': f'{nombre} {apellido}',
+            'ramo': ramo,
+            'subramo': subramo,
+            'fecha_inicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
+            'fecha_fin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'prima_neta': poliza.prima_neta,
+            'prima_total': poliza.prima_total,
+            'forma_pago': tipo_pago,
+            'agente': f'{agente}',
+            'endoso': poliza.endoso,
+            'poliza_anterior': poliza.poliza_anterior
+        }
+
+        response.append(data)
+
+    # Export to CSV
+    if request.form.get('export_csv'):
+        headers = ['poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+        return export_to_csv(headers, response, 'upcoming_policies.csv')
 
     return jsonify(response)
 
