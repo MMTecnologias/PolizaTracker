@@ -536,27 +536,33 @@
             <div class="modal-body pt-1">
                <div class="row pb-4">
                   <div class="col-12">
-                     <h4 class="header-title">Listas de Endosos</h4>
+                     <h4 class="header-title">Lista de Endosos</h4>
                      <table class="table">
                         <thead class="tableHeader">
                            <tr>
-                              <th scope="col">Número</th>
-                              <th scope="col">Fecha de Recibo</th>
-                              <th scope="col">Vencimiento</th>
-                              <th scope="col">Prima Neta</th>
-                              <th scope="col">Prima Total</th>
-                              <th scope="col">Pagado</th>
-                              <th scope="col">Fecha de Pago</th>
-                              <th scope="col">Cancelado</th>
+                              <th class="table-name siblingContainerRow" scope="col">
+                                 Endoso
+                                 <!-- <a class="btn__icon" id="sortByPoliza">
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                                       <path
+                                          d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
+                                    </svg>
+                                 </a> -->
+                              </th>
+                              <th scope="col">Cliente</th>
+                              <th scope="col">Sub Ramo</th>
+                              <th scope="col">Aseguradora</th>
+                              <th scope="col">Forma de Pago</th>
+                              <th scope="col">Acciones</th>
                            </tr>
                         </thead>
-                        <tbody id="endososTable">
+                        <tbody id="endosos-table">
                         </tbody>
                      </table>
                   </div>
                </div>
                <div class="w-100 d-flex justify-content-center">
-                  <div id="pagination-recibos" style="position: absolute;bottom: 10px;"></div>
+                  <div id="pagination-endosos" style="position: absolute;bottom: 10px;"></div>
                </div>
             </div>
             <div class="modal-footer">
