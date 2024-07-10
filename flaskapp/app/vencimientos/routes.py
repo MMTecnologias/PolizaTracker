@@ -8,7 +8,7 @@ from sqlalchemy import join, or_, desc, func, select
 import csv
 from io import StringIO
 from . import vencimientos_route
-from datetime import datetime, date
+from datetime import datetime, date,timedelta
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
@@ -136,3 +136,119 @@ def get():
         'data': data  # Data to display
     }
     return jsonify(response)
+
+"""
+# Base Code for Export
+def export_clients():
+    headers = []
+    query=
+    def generate():
+        f = StringIO()
+        f.seek(0)
+        f.write(u'\uFEFF')
+        writer = csv.writer(f)
+        writer.writerow(tuple(headers))
+        # Write rows
+        for data in query:
+            row = []
+            writer.writerow(tuple(row))
+            yield f.getvalue()
+            f.seek(0)
+            f.truncate(0)
+
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename='.csv')
+    return response
+
+ """
+@vencimientos_route.route('/get_upcoming_receipts', methods=['POST', 'GET'])
+@login_required
+def get_upcoming_receipts():
+    days_tolerance = 30
+
+    # Retrieve the start and end dates for the report
+    start_date = datetime.now() if not request.form.get('start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
+    end_date = start_date + timedelta(days=days_tolerance//2) if not request.form.get('end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+    
+
+    # Calculate the payment due date range
+    payment_due_start = start_date - timedelta(days=days_tolerance)
+    payment_due_end = end_date - timedelta(days=days_tolerance//2)
+
+    # Query the database for upcoming receipts
+    upcoming_receipts_query = db.session.query(Recibo,
+                                               Poliza,
+                                               Cliente.nombre.label("client_name"),
+                                               Cliente.apellido.label("client_lastname"),
+                                               Aseguradora.aseguradora.label("aseguradora"),
+                                               Ramo.ramo.label("ramo"),
+                                               Subramo.subramo.label("subramo"),
+                                               TipoPago.tipo_pago.label("tipo_pago"),
+                                               Agente.nombre.label("agente"),
+                                               Vendedor.nombre.label("vendedor")) \
+        .select_from(Recibo) \
+        .join(Poliza, Recibo.poliza_id == Poliza.id) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id) \
+        .join(Subramo, Poliza.subramo_id == Subramo.id) \
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+        .join(Agente, Poliza.agente_id == Agente.id) \
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
+        .filter(Recibo.fecha_inicio >= payment_due_start,
+                Recibo.fecha_inicio <= payment_due_end,
+                Recibo.status == "Pendiente") \
+        .order_by(Recibo.fecha_inicio)
+
+    upcoming_receipts = upcoming_receipts_query.all()
+
+    # Prepare the response data
+    response = []
+    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_receipts:
+
+        data = {
+            'poliza_id': recibo.poliza_id,
+            'poliza': poliza.poliza,
+            'no_de_recibo': f"'{recibo.no_de_recibo}",  # Convert to string
+            'cliente': f'{nombre} {apellido}',
+            'notas': poliza.notas,
+            'ramo': ramo,
+            'subramo': subramo,
+            'fecha_inicio': recibo.fecha_inicio.strftime('%Y-%m-%d'),
+            'fecha_fin': recibo.fecha_vencimiento.strftime('%Y-%m-%d'),
+            'prima_neta': recibo.prima_neta,
+            'prima_total': recibo.prima_total,
+            'forma_pago': tipo_pago,
+            'agente': f'{agente}',
+            'endoso': poliza.endoso,
+            'poliza_anterior': poliza.poliza_anterior
+        }
+
+        response.append(data)
+
+    # Export to CSV
+    if not request.form.get('export_csv'):
+        headers = ['poliza_id', 'poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+        return export_to_csv(headers, response,'upcoming_receipts.csv')
+
+    return jsonify(response)
+
+
+def export_to_csv(headers, jsondic,filename):
+    def generate():
+        f = StringIO()
+        f.seek(0)
+        f.write(u'\uFEFF')
+        writer = csv.writer(f)
+        writer.writerow(tuple(headers))
+        # Write rows
+        print(jsondic)
+        for data in jsondic:
+            row = [data[header] for header in headers]
+            writer.writerow(tuple(row))
+            yield f.getvalue()
+            f.seek(0)
+
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename=filename)
+    return response
