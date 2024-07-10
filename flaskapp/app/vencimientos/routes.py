@@ -166,6 +166,10 @@ def export_clients():
 def get_upcoming_receipts():
     days_tolerance = 30
 
+
+    start = int(request.form.get('start')) if request.form.get('start') else None
+    length = int(request.form.get('length')) if request.form.get('length') else None
+
     # Retrieve the start and end dates for the report
     start_date = datetime.now() if not request.form.get('start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
     end_date = start_date + timedelta(days=days_tolerance//2) if not request.form.get('end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
@@ -199,8 +203,13 @@ def get_upcoming_receipts():
                 Recibo.fecha_inicio <= payment_due_end,
                 Recibo.status == "Pendiente") \
         .order_by(Recibo.fecha_inicio)
+    
+    total_records = upcoming_receipts_query.count()
 
-    upcoming_receipts = upcoming_receipts_query.all()
+    if start and length:
+        upcoming_receipts = upcoming_receipts_query.offset(start).limit(length).all()
+    else:
+        upcoming_receipts = upcoming_receipts_query.all()
 
     # Prepare the response data
     response = []
@@ -231,12 +240,19 @@ def get_upcoming_receipts():
         headers = ['poliza_id', 'poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
         return export_to_csv(headers, response,'upcoming_receipts.csv')
 
-    return jsonify(response)
+    return jsonify({
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': response  # Data to display
+    })
 
 @vencimientos_route.route('/get_upcoming_policies', methods=['POST', 'GET'])
 @login_required
 def get_upcoming_policies():
     days_tolerance = 30
+
+    
+    start = int(request.form.get('start')) if request.form.get('start') else None
+    length = int(request.form.get('length')) if request.form.get('length') else None
 
     # Retrieve the start and end dates for the report
     start_date = datetime.now() if not request.form.get('start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
@@ -270,7 +286,12 @@ def get_upcoming_policies():
                 Poliza.status == "Vigente") \
         .order_by(Poliza.fecha_termino)
 
-    upcoming_policies = upcoming_policies_query.all()
+    total_records = upcoming_policies_query.count()
+
+    if start and length:
+        upcoming_policies = upcoming_policies_query.offset(start).limit(length).all()
+    else:
+        upcoming_policies = upcoming_policies_query.all()
 
     # Prepare the response data
     response = []
@@ -299,7 +320,10 @@ def get_upcoming_policies():
         headers = ['poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
         return export_to_csv(headers, response, 'upcoming_policies.csv')
 
-    return jsonify(response)
+    return jsonify({
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': response  # Data to display
+    })
 
 
 def export_to_csv(headers, jsondic,filename):
