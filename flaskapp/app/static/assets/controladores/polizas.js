@@ -15,17 +15,10 @@ $(function () {
   function getColor(status) {
     if (!status) return "";
     switch (status) {
-      // case "Vigente":
-        // return "#46d139";
-        // return "rgb(0 255 0 / 50%)";
       case "Cancelada":
-        // return "#ff0000";
-        return "rgb(255 0 0 / 80%)";
-      case "vencidas":
-        // return "#fff800";
-        return "#4c4c4c";
-      case status.includes("Cancel"):
-        return "#ff0000";
+        return "#ee0e0e";
+      case "Finalizada":
+        return "#565656";
       default:
         return "";
     }
@@ -72,12 +65,8 @@ $(function () {
       $("#form-polizas select").prop("disabled", false);
       $("#poliza_id").val("New");
       $("#tipo").val("");
-      $("#btnGenerarEndoso").hide();
       $("#div_poliza_id").hide();
-      $("#btnGuardar").show();
       $("#div_search_client").show();
-      $("#div_renovacion").show();
-      $("#div_poliza_anterior").show();
       $("#title_poliza").text("Póliza");
       $("#prima_neta").prop("disabled", false);
       $("#prima_total").prop("disabled", false);
@@ -87,6 +76,8 @@ $(function () {
       $("#Pago").html("");
       $("#vendedor").html("");
       $("#agente").html("");
+      $("#btnGuardar").html("Guardar");
+      $("#div_poliza_anterior").hide();
       for (const ramo of data.Ramo) {
         $("#ramo").append(`<option value='${ramo.id}'>
         ${ramo.ramo}
@@ -132,10 +123,7 @@ $(function () {
     await resetForm();
     $("#endoso-type").modal("toggle");
     $("#tipo").val(tipo);
-    $("#btnGenerarEndoso").show();
-    $("#btnGuardar").hide();
-    $("#div_renovacion").hide();
-    $("#div_poliza_anterior").hide();
+    $("#btnGuardar").html("Generar endoso");
     $("#poliza_id").val(poliza_id);
     $("#div_search_client").hide();
     $("#title_poliza").text("Endoso");
@@ -184,8 +172,55 @@ $(function () {
             </option>
         `);
         $("#notas").val(resp.data[0].notas);
-        $("#polizaAnterior").val(resp.data[0].poliza_anterior);
-        $("#renovacion").val(resp.data[0].renovacion);
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
+  async function renewPoliza(poliza_id) {
+    await resetForm();
+    $("#btnGuardar").html("Renovar póliza");
+    $("#div_poliza_anterior").show();
+    $("#title_poliza").text("Renovacion");
+    $.ajax({
+      ...ajaxConfig,
+      url: "/polizas/get",
+      data: $.param({ start: 0, length: 0, poliza_id }),
+      success: function (resp) {
+        $("#id_poliza").val(resp.data[0].poliza);
+        $("#polizaAnterior").val(resp.data[0].poliza);
+        $("#poliza-anterior").val(resp.data[0].poliza).prop("disabled", true);
+        $("#buscar-cliente").val(resp.data[0].cliente);
+        $("#selected-client-id").val(resp.data[0].cliente_id);
+        $("#serie").val(resp.data[0].serie);
+        $("#ramo").html(`<option value='${resp.data[0].ramo_id}'>
+            ${resp.data[0].ramo}
+            </option>
+        `);
+        $("#subramo").html(`<option value='${resp.data[0].subramo_id}'>
+            ${resp.data[0].subramo}
+            </option>
+        `);
+        $("#prima_neta").val("");
+        $("#prima_total").val("");
+        $("#aseguradora").html(`<option value='${resp.data[0].aseguradora_id}'>
+            ${resp.data[0].aseguradora}
+            </option>
+        `);
+        $("#Pago").html(`<option value='${resp.data[0].tipo_pago_id}'>
+            ${resp.data[0].tipoPago}
+            </option>
+        `);
+        $("#vendedor").html(`<option value='${resp.data[0].vendedor_id}'>
+            ${resp.data[0].vendedor}
+            </option>
+        `);
+        $("#Moneda").val(resp.data[0].moneda);
+        $("#agente").html(`<option value='${resp.data[0].agente_id}'>
+            ${resp.data[0].agente}
+            </option>
+        `);
+        $("#notas").val(resp.data[0].notas);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -218,16 +253,26 @@ $(function () {
     });
   }
 
-  function getRecibos(poliza_id, order = false, start = 0, length = 100) {
+  function getRecibos(poliza_id, endoso_id = "", order = false, start = 0, length = 100) {
+    let sendObj;
+    if (order && endoso_id) {
+      sendObj = { start, length, order, poliza_id, endoso_id };
+    } else if (order && !endoso_id) {
+      sendObj = { start, length, order, poliza_id };
+    } else if (!order && endoso_id) {
+      sendObj = { start, length, poliza_id, endoso_id };
+    } else if (!order && !endoso_id) {
+      sendObj = { start, length, poliza_id };
+    }
+    console.log(poliza_id, endoso_id);
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/get_receipts",
-      data: $.param(
-        order
-          ? { start, length, order, poliza_id }
-          : { start, length, poliza_id }
-      ),
-      success: (resp) => fillTableRecibos(resp, poliza_id),
+      data: $.param(sendObj),
+      success: (resp) =>
+        endoso_id
+          ? fillTableRecibosEndosos(resp, poliza_id)
+          : fillTableRecibos(resp, poliza_id),
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -249,10 +294,10 @@ $(function () {
   function fillTableEndosos(resp) {
     const itemsOnPage = 8;
     const { data, recordsTotal } = resp;
-    console.log(data);
     const table = $("#endosos-table");
     table.html("");
     $.each(data, function (idx, endoso) {
+      console.log(endoso.id);
       table.append(
         `<tr class="tableOption-endoso" style="background-color: ${getColor(
           endoso.status
@@ -262,6 +307,7 @@ $(function () {
                 ${endoso.poliza}
             </p>
           </td>
+          <td>${endoso.tipo_endoso}</td>
           <td>${endoso.cliente}</td>
           <td>${endoso.subramo}</td>
           <td>${endoso.aseguradora}</td>
@@ -274,8 +320,7 @@ $(function () {
       );
       $(`#td-clickable_${endoso.id}`).on("click", (e) => {
         console.log("Traer recibos de endosos");
-        // $("#recib").modal();
-        // getRecibos(endoso.id);
+        getRecibos(null, endoso.id);
       });
     });
     if (!data.length) return;
@@ -386,6 +431,55 @@ $(function () {
     });
   }
 
+  function fillTableRecibosEndosos(resp, endoso_id) {
+    console.log('entro fill table recibos endosos');
+    const itemsOnPage = 10;
+    const { data, recordsTotal } = resp;
+    console.log(data, recordsTotal);
+    const table = $("#receiptsEndosoTable");
+    table.html("");
+    $.each(data, function (idx, recibo) {
+      table.append(
+        `<tr class="tableOption-recibos-endosos">
+            <td>${recibo.numero}</td>
+            <td>${recibo.fecha_recibo}</td>
+            <td>${recibo.vencimiento}</td>
+            <td>${recibo.prima_neta}</td>
+            <td>${recibo.prima_total}</td>
+            <td>
+                <input type="checkbox" id="check_pagado${
+                  recibo.id
+                }" name="check_pagado${recibo.id}" />
+            </td>
+            <td>${recibo.fecha_pago}</td>
+            <td>${recibo.cancelado ? "Cancelado" : ""}</td>
+         </tr>`
+      );
+      if (recibo.pagado) $(`#check_pagado${recibo.id}`).prop("checked", true);
+      $(`#check_pagado${recibo.id}`).on("click", function () {
+        if ($(`#check_pagado${recibo.id}`).is(":checked") == true) {
+          changeReciboPagado(recibo.id, "Pagar", endoso_id);
+        } else {
+          changeReciboPagado(recibo.id, "Cancelar Pago", endoso_id);
+        }
+      });
+    });
+    if (!data.length) return $("#pagination-recibos-endosos").html("");
+    $(".tableOption-recibos-endosos").slice(10).hide();
+    $("#pagination-recibos-endosos").pagination({
+      items: recordsTotal,
+      itemsOnPage: itemsOnPage,
+      onPageClick: (noofele) =>
+        $(".tableOption-recibos-endosos")
+          .hide()
+          .slice(
+            itemsOnPage * (noofele - 1),
+            itemsOnPage + itemsOnPage * (noofele - 1)
+          )
+          .show(),
+    });
+  }
+
   function fillTablePolizas(resp) {
     const itemsOnPage = 8;
     const { data, recordsTotal } = resp;
@@ -422,6 +516,11 @@ $(function () {
                   <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
                 </a>
               </li>
+              <li>
+                <a class="btn__icon_renew pointer" id="btnRenew_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v240h-80v-80H200v400h280v80H200ZM760 0q-73 0-127.5-45.5T564-160h62q13 44 49.5 72T760-60q58 0 99-41t41-99q0-58-41-99t-99-41q-29 0-54 10.5T662-300h58v60H560v-160h60v57q27-26 63-41.5t77-15.5q83 0 141.5 58.5T960-200q0 83-58.5 141.5T760 0ZM200-640h560v-80H200v80Zm0 0v-80 80Z"/></svg>
+                </a>
+              </li>
             </ul>
           </td>
         </tr>`
@@ -435,6 +534,7 @@ $(function () {
         $("#endoso-type").modal();
       });
       $(`#btnDelete_${poliza.id}`).on("click", (e) => cancelPoliza(poliza.id));
+      $(`#btnRenew_${poliza.id}`).on("click", (e) => renewPoliza(poliza.id));
       $(`#btnShow_${poliza.id}`).on("click", (e) => {
         getEndosos(poliza.id);
         $("#endoso-list").modal();
@@ -507,25 +607,27 @@ $(function () {
     });
   }
 
-  function createReceipts(selectPoliza) {
+  function createReceipts(selectPoliza, endoso_id = "") {
     const netPremium = $("#prima-neta").val();
     const totalPremium = $("#prima-total").val();
     const iva = $("#iva").val();
     const insurance = $("#derecho_poliza").val();
     const commission = $("#comision").val();
     const receipts = $("#nopagos").val();
+    const sendObj = {
+      netPremium,
+      totalPremium,
+      iva,
+      insurance,
+      commission,
+      receipts,
+      selectPoliza,
+    };
+    if (endoso_id) sendObj.endoso_id = endoso_id
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/save_receipts",
-      data: $.param({
-        netPremium,
-        totalPremium,
-        iva,
-        insurance,
-        commission,
-        receipts,
-        selectPoliza,
-      }),
+      data: $.param(sendObj),
       success: function (resp) {
         if (resp.error) {
           // alert(resp.msg, "error", resp.title);
@@ -544,9 +646,6 @@ $(function () {
       },
     });
   }
-
-  $("#btnGenerarEndoso").hide();
-  $("#div_poliza_id").hide();
 
   $("#form-polizas").submit(function (e) {
     e.preventDefault();
@@ -583,7 +682,7 @@ $(function () {
             alert(resp.msg, "error", resp.title);
           } else {
             $("#create-recib").modal("toggle");
-            createReceipts(resp.poliza_id);
+            createReceipts(null, resp.endoso_id);
             alert(resp.msg, "success");
             getPolizas();
             resetForm();
@@ -703,6 +802,9 @@ $(function () {
   $("#endoso_tipo_a").click((e) => createEndozo($("#poliza_id").val(), "A"));
   $("#endoso_tipo_b").click((e) => createEndozo($("#poliza_id").val(), "B"));
   $("#endoso_tipo_d").click((e) => createEndozo($("#poliza_id").val(), "D"));
+
+  $("#div_poliza_id").hide();
+  $("#div_poliza_anterior").hide();
 
   getPolizas();
 });

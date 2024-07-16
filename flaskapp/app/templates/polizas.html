@@ -46,6 +46,7 @@
                <form id="form-polizas" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
                   <input type="text" id="tipo" name="tipo" hidden />
+                  <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" hidden />
                   <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
                   <div class="form__input-data" id="div_search_client">
                      <div class="label-option">
@@ -61,6 +62,12 @@
                            aria-label="Search" aria-describedby="search-addon" autocomplete="off"/>
                         <div class="dropdown-menu" id="client-options"></div>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child" id="div_poliza_anterior">
+                     <label class="label-input-data" for="poliza-anterior">Póliza Anterior</label>
+                     <div class="input-group">
+                        <input type="text" class="form-control" id="poliza-anterior" name="poliza-anterior" />
                      </div>
                   </div>
                   <div class="form__input-data" id="div_poliza_id">
@@ -219,20 +226,6 @@
                      </div>
                   </div>
                   <div class="input-sibling">
-                     <div class="form__input-data input-sibling-child" id="div_poliza_anterior">
-                        <label class="label-input-data" for="polizaAnterior">Póliza Anterior</label>
-                        <div class="input-group">
-                           <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" />
-                           <p class="invalid-feedback">Ingresa un dato valido</p>
-                        </div>
-                     </div>
-                     <div class="form__input-data input-sibling-child" id="div_renovacion">
-                        <label class="label-input-data" for="renovacion">Renovación</label>
-                        <div class="input-group">
-                           <input type="text" class="form-control" id="renovacion" name="renovacion" />
-                           <p class="invalid-feedback">Ingresa un dato valido</p>
-                        </div>
-                     </div>
                      <div class="form__input-data input-sibling-child">
                         <label class="label-input-data" for="prima_neta">Prima Neta</label>
                         <div class="input-group">
@@ -259,9 +252,6 @@
                   <div class="button-container">
                      <button class="btn" type="submit" id="btnGuardar">
                         Guardar
-                     </button>
-                     <button id="btnGenerarEndoso" class="btn" type="submit">
-                        Generar Endoso
                      </button>
                      <button class="btn" type="reset" value="Cancelar" id="reset-btn">
                         Cancelar
@@ -534,35 +524,58 @@
                </button>
             </div>
             <div class="modal-body pt-1">
-               <div class="row pb-4">
-                  <div class="col-12">
-                     <h4 class="header-title">Lista de Endosos</h4>
-                     <table class="table">
-                        <thead class="tableHeader">
-                           <tr>
-                              <th class="table-name siblingContainerRow" scope="col">
-                                 Endoso
-                                 <!-- <a class="btn__icon" id="sortByPoliza">
-                                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-                                       <path
-                                          d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
-                                    </svg>
-                                 </a> -->
-                              </th>
-                              <th scope="col">Cliente</th>
-                              <th scope="col">Sub Ramo</th>
-                              <th scope="col">Aseguradora</th>
-                              <th scope="col">Forma de Pago</th>
-                              <th scope="col">Acciones</th>
-                           </tr>
-                        </thead>
-                        <tbody id="endosos-table">
-                        </tbody>
-                     </table>
+               <div class="container">
+                  <div class="row pb-4">
+                     <div class="col-12">
+                        <h4 class="header-title">Lista de Endosos</h4>
+                        <table class="table">
+                           <thead class="tableHeader">
+                              <tr>
+                                 <th class="table-name siblingContainerRow" scope="col">
+                                    Endoso
+                                 </th>
+                                 <th scope="col">Tipo endoso</th>
+                                 <th scope="col">Cliente</th>
+                                 <th scope="col">Sub Ramo</th>
+                                 <th scope="col">Aseguradora</th>
+                                 <th scope="col">Forma de Pago</th>
+                                 <th scope="col">Acciones</th>
+                              </tr>
+                           </thead>
+                           <tbody id="endosos-table">
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+                  <div class="w-100 d-flex justify-content-center">
+                     <div id="pagination-endosos" style="position: absolute;bottom: 10px;"></div>
                   </div>
                </div>
-               <div class="w-100 d-flex justify-content-center">
-                  <div id="pagination-endosos" style="position: absolute;bottom: 10px;"></div>
+               <div class="container">
+                  <div class="row pb-4" id="div-recibos-endosos">
+                     <div class="col-12">
+                        <h4 class="header-title">Recibos de endosos</h4>
+                        <table class="table">
+                           <thead class="tableHeader">
+                              <tr>
+                                 <th scope="col">Número</th>
+                                 <th scope="col">Fecha de Recibo</th>
+                                 <th scope="col">Vencimiento</th>
+                                 <th scope="col">Prima Neta</th>
+                                 <th scope="col">Prima Total</th>
+                                 <th scope="col">Pagado</th>
+                                 <th scope="col">Fecha de Pago</th>
+                                 <th scope="col">Cancelado</th>
+                              </tr>
+                           </thead>
+                           <tbody id="receiptsEndosoTable">
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+                  <div class="w-100 d-flex justify-content-center">
+                     <div id="pagination-recibos-endosos" style="position: absolute;bottom: 10px;"></div>
+                  </div>
                </div>
             </div>
             <div class="modal-footer">

@@ -431,14 +431,14 @@ def save_receipts():
             poliza_id = poliza.id
         elif endoso.poliza_id != poliza.id:
             return jsonify({'error': True, 'msg': 'Endoso no pertenece a esta poliza'})
-        
+
         if endoso.tipo_endoso == "A":
             return jsonify({'error': True, 'msg': 'Los Endosos tipo A no generan recibos'})
         elif endoso.tipo_endoso == "D":
             multiplier=-1
-        
+
         if endoso.recibos == "Generados":
-            return jsonify({'error': True, 'msg': 'Estw endodoso ya tiene recibos generados'})
+            return jsonify({'error': True, 'msg': 'Este endoso ya tiene recibos generados'})
 
     elif not poliza:
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})

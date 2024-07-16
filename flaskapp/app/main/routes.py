@@ -84,13 +84,31 @@ def check_access(nombre_del_servicio):
 def utilerias():
     return render_template('utilerias.html',user=current_user)
 
-#Utilerias
+#Vencimientos
 @main.route('/vencimientos', methods=['GET'])
 @login_required
 def vencimientos():
     no_months=1
     update_poliza_status(no_months)
     return render_template('vencimientos.html',user=current_user)
+
+#Reportes
+@main.route('/reportes', methods=['GET'])
+@login_required
+def reportes():
+    return render_template('reportes.html')
+
+#Reportes Renovaciones
+@main.route('/reportesRenovaciones', methods=['GET'])
+@login_required
+def reportesRenovaciones():
+    return render_template('reporteRenovaciones.html')
+
+#Reportes cobranza
+@main.route('/reportesCobranza', methods=['GET'])
+@login_required
+def reportesCobranza():
+    return render_template('reporteCobranza.html')
 
 #Recibos
 @main.route('/recibos', methods=['GET'])
