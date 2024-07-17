@@ -419,6 +419,7 @@ def calculate_receipts():
 def save_receipts():
     response = calcular_recibos()
     poliza_id = response['poliza_id']
+
     poliza = Poliza.query.get(poliza_id)
     endoso_id = request.form.get('endoso_id')
     multiplier=1
@@ -494,7 +495,7 @@ def save_receipts():
                                       )
                 db.session.add(nuevo_recibo)
 
-        if not endoso:
+        if not endoso_id:
             poliza.derecho_poliza = response['derecho_poliza']
             poliza.iva = response['iva']
             poliza.rec_pago = response['rec_pago']
@@ -510,10 +511,10 @@ def save_receipts():
         db.session.commit()
 
         return jsonify({'error': False, 'msg': 'Recibos generados con exito'})
-    except:
+    except Exception as e:
         # Si ocurre algún error, realiza un rollback
         db.session.rollback()
-        return jsonify({'error': True, 'msg': 'Error en la creación de recibos'})
+        return jsonify({'error': True, 'msg': 'Error en la creación de recibos '+str(e)})
 
 """Endosos"""
 @polizas_route.route('/create_endoso', methods=['POST'])
