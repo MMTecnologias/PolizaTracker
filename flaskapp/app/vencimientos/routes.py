@@ -283,7 +283,7 @@ def get_upcoming_policies():
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
         .filter(Poliza.fecha_termino >= policy_due_start,
                 Poliza.fecha_termino <= policy_due_end,
-                Poliza.status == "Vigente") \
+                Poliza.status.in_(["Vigente", "Por Vencer"])) \
         .order_by(Poliza.fecha_termino)
 
     total_records = upcoming_policies_query.count()
