@@ -423,6 +423,7 @@ def save_receipts():
     poliza = Poliza.query.get(poliza_id)
     endoso_id = request.form.get('endoso_id')
     multiplier=1
+    endoso_or_poliza = poliza
     if endoso_id:
         endoso = Endoso.query.get(endoso_id)
         if not endoso:
@@ -440,19 +441,19 @@ def save_receipts():
 
         if endoso.recibos == "Generados":
             return jsonify({'error': True, 'msg': 'Este endoso ya tiene recibos generados'})
+        endoso_or_poliza = endoso
 
     elif not poliza:
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
-
-
-    if poliza.recibos == "Generados":
+    elif poliza.recibos == "Generados":
         return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
+
     try:
         # Ejecuta el bucle para crear registros
-        start_date = poliza.fecha_inicio
-        end_date = poliza.fecha_termino
-        tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
-
+        start_date = endoso_or_poliza.fecha_inicio
+        end_date = endoso_or_poliza.fecha_termino
+        tipo_pago = TipoPago.query.get(endoso_or_poliza.tipo_pago_id)
+        print(tipo_pago.tipo_pago)
         if tipo_pago.contado == "Si":
             print("done")
             nuevo_recibo = Recibo(fecha_inicio=start_date,
@@ -469,6 +470,7 @@ def save_receipts():
             fecha_inicio = start_date
             fecha_vencimiento = add_months(fecha_inicio, num_months)
             nopagos = response['nopagos']
+            print(nopagos)
             nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
                                   fecha_vencimiento=fecha_vencimiento,
                                   poliza_id=poliza_id,
@@ -495,18 +497,12 @@ def save_receipts():
                                       )
                 db.session.add(nuevo_recibo)
 
-        if not endoso_id:
-            poliza.derecho_poliza = response['derecho_poliza']
-            poliza.iva = response['iva']
-            poliza.rec_pago = response['rec_pago']
-            poliza.comision = response['comision']
-            poliza.recibos = "Generados"
-        else:
-            endoso.derecho_poliza = response['derecho_poliza']
-            endoso.iva = response['iva']
-            endoso.rec_pago = response['rec_pago']
-            endoso.comision = response['comision']
-            endoso.recibos = "Generados"
+        endoso_or_poliza.derecho_poliza = response['derecho_poliza']
+        endoso_or_poliza.iva = response['iva']
+        endoso_or_poliza.rec_pago = response['rec_pago']
+        endoso_or_poliza.comision = response['comision']
+        endoso_or_poliza.recibos = "Generados"
+
         # Realiza el commit después de completar las inserciones
         db.session.commit()
 
