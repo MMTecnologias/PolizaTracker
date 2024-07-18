@@ -59,7 +59,6 @@ $(function () {
 
   async function resetForm() {
     try {
-      const data = await getFormData();
       $("#form-polizas")[0].reset();
       $("#form-polizas").removeClass("was-validated");
       $("#form-polizas select").prop("disabled", false);
@@ -78,6 +77,7 @@ $(function () {
       $("#agente").html("");
       $("#btnGuardar").html("Guardar");
       $("#div_poliza_anterior").hide();
+      const data = await getFormData();
       for (const ramo of data.Ramo) {
         $("#ramo").append(`<option value='${ramo.id}'>
         ${ramo.ramo}
@@ -114,13 +114,15 @@ $(function () {
         </option>
         `);
       }
+      return data;
     } catch (error) {
       console.log(error);
+      return null;
     }
   }
 
   async function createEndozo(poliza_id, tipo) {
-    await resetForm();
+    const data = await resetForm();
     $("#endoso-type").modal("toggle");
     $("#tipo").val(tipo);
     $("#btnGuardar").html("Generar endoso");
@@ -142,6 +144,12 @@ $(function () {
           return;
         }
         $("#serie").val(resp.data[0].serie);
+        $("#notas").val(resp.data[0].notas);
+        $("#Moneda").val(resp.data[0].moneda);
+        $("#prima_neta").val(resp.data[0].prima_neta);
+        $("#prima_total").val(resp.data[0].prima_total);
+        $("#prima_neta").prop("disabled", true);
+        $("#prima_total").prop("disabled", true);
         $("#ramo").html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -150,10 +158,6 @@ $(function () {
             ${resp.data[0].subramo}
             </option>
         `);
-        $("#prima_neta").val(resp.data[0].prima_neta);
-        $("#prima_total").val(resp.data[0].prima_total);
-        $("#prima_neta").prop("disabled", true);
-        $("#prima_total").prop("disabled", true);
         $("#aseguradora").html(`<option value='${resp.data[0].aseguradora_id}'>
             ${resp.data[0].aseguradora}
             </option>
@@ -166,19 +170,55 @@ $(function () {
             ${resp.data[0].vendedor}
             </option>
         `);
-        $("#Moneda").val(resp.data[0].moneda);
         $("#agente").html(`<option value='${resp.data[0].agente_id}'>
             ${resp.data[0].agente}
             </option>
         `);
-        $("#notas").val(resp.data[0].notas);
+        if (data) {
+          for (const ramo of data.Ramo) {
+            $("#ramo").append(`<option value='${ramo.id}'>
+        ${ramo.ramo}
+        </option>
+        `);
+          }
+          for (const subramo of data.Subramo) {
+            $("#subramo").append(`<option value='${subramo.id}'>
+        ${subramo.subramo}
+        </option>
+        `);
+          }
+          for (const aseguradora of data.Aseguradora) {
+            $("#aseguradora").append(`<option value='${aseguradora.id}'>
+        ${aseguradora.aseguradora}
+        </option>
+        `);
+          }
+          for (const pago of data.TipoPago) {
+            $("#Pago").append(`<option value='${pago.id}'>
+        ${pago.tipo_pago}
+        </option>
+        `);
+          }
+          for (const vendedor of data.Vendedor) {
+            $("#vendedor").append(`<option value='${vendedor.id}'>
+        ${vendedor.nombre}
+        </option>
+        `);
+          }
+          for (const agente of data.Agente) {
+            $("#agente").append(`<option value='${agente.id}'>
+        ${agente.nombre}
+        </option>
+        `);
+          }
+        }
       },
       error: (xhr, status, error) => console.error(error),
     });
   }
 
   async function renewPoliza(poliza_id) {
-    await resetForm();
+    const data = await resetForm();
     $("#btnGuardar").html("Renovar póliza");
     $("#div_poliza_anterior").show();
     $("#title_poliza").text("Renovacion");
@@ -193,6 +233,11 @@ $(function () {
         $("#buscar-cliente").val(resp.data[0].cliente);
         $("#selected-client-id").val(resp.data[0].cliente_id);
         $("#serie").val(resp.data[0].serie);
+        $("#prima_neta").val("");
+        $("#prima_total").val("");
+        $("#Moneda").val(resp.data[0].moneda);
+        $("#notas").val(resp.data[0].notas);
+
         $("#ramo").html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -201,8 +246,6 @@ $(function () {
             ${resp.data[0].subramo}
             </option>
         `);
-        $("#prima_neta").val("");
-        $("#prima_total").val("");
         $("#aseguradora").html(`<option value='${resp.data[0].aseguradora_id}'>
             ${resp.data[0].aseguradora}
             </option>
@@ -215,12 +258,48 @@ $(function () {
             ${resp.data[0].vendedor}
             </option>
         `);
-        $("#Moneda").val(resp.data[0].moneda);
         $("#agente").html(`<option value='${resp.data[0].agente_id}'>
             ${resp.data[0].agente}
             </option>
         `);
-        $("#notas").val(resp.data[0].notas);
+        if (data) {
+          for (const ramo of data.Ramo) {
+            $("#ramo").append(`<option value='${ramo.id}'>
+        ${ramo.ramo}
+        </option>
+        `);
+          }
+          for (const subramo of data.Subramo) {
+            $("#subramo").append(`<option value='${subramo.id}'>
+        ${subramo.subramo}
+        </option>
+        `);
+          }
+          for (const aseguradora of data.Aseguradora) {
+            $("#aseguradora").append(`<option value='${aseguradora.id}'>
+        ${aseguradora.aseguradora}
+        </option>
+        `);
+          }
+          for (const pago of data.TipoPago) {
+            $("#Pago").append(`<option value='${pago.id}'>
+        ${pago.tipo_pago}
+        </option>
+        `);
+          }
+          for (const vendedor of data.Vendedor) {
+            $("#vendedor").append(`<option value='${vendedor.id}'>
+        ${vendedor.nombre}
+        </option>
+        `);
+          }
+          for (const agente of data.Agente) {
+            $("#agente").append(`<option value='${agente.id}'>
+        ${agente.nombre}
+        </option>
+        `);
+          }
+        }
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -253,7 +332,13 @@ $(function () {
     });
   }
 
-  function getRecibos(poliza_id, endoso_id = "", order = false, start = 0, length = 100) {
+  function getRecibos(
+    poliza_id,
+    endoso_id = "",
+    order = false,
+    start = 0,
+    length = 100
+  ) {
     let sendObj;
     if (order && endoso_id) {
       sendObj = { start, length, order, poliza_id, endoso_id };
@@ -432,7 +517,7 @@ $(function () {
   }
 
   function fillTableRecibosEndosos(resp, endoso_id) {
-    console.log('entro fill table recibos endosos');
+    console.log("entro fill table recibos endosos");
     const itemsOnPage = 10;
     const { data, recordsTotal } = resp;
     console.log(data, recordsTotal);
@@ -623,7 +708,7 @@ $(function () {
       receipts,
       selectPoliza,
     };
-    if (endoso_id) sendObj.endoso_id = endoso_id
+    if (endoso_id) sendObj.endoso_id = endoso_id;
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/save_receipts",
@@ -653,16 +738,27 @@ $(function () {
       $(this).addClass("was-validated");
       return;
     }
-    const primaNeta = $("#prima_neta").val();
-    const primaTotal = $("#prima_total").val();
-    const pago = $("#Pago").val();
-    const noRecibos = getNoRecibos(pago);
-    const iva = primaTotal * 0.16;
-    $("#prima-neta").val(primaNeta);
-    $("#prima-total").val(primaTotal);
-    $("#nopagos").val(noRecibos);
-    $("iva").val(iva);
-    $("#create-recib").modal();
+    $.ajax({
+      url: `polizas/get_policy_values/${$("#poliza_id").val()}`,
+      method: "GET",
+      dataType: "json",
+      data: {},
+      success: function (resp) {
+        console.log(resp);
+        $("#prima-neta").val(resp.netPremium);
+        $("#prima-total").val(resp.totalPremium);
+        $("#nopagos").val(resp.numReceipts);
+        $("iva").val(Number(resp.totalPremium) * 0.16);
+         $("#create-recib").modal();
+      },
+      error: function (xhr, textStatus, error) {
+        console.error(error);
+        alert(
+          "Lamentamos el inconveniente, por favor vuelve a intentarlo",
+          "error"
+        );
+      },
+    });
   });
 
   $("#form-recibo").submit(function (e) {

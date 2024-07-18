@@ -42,7 +42,7 @@
     <!-- page container area start -->
     <div class="container">
         <form class="row mt-5" id="form-fechas" novalidate>
-            <div class="col-4">
+            <div class="col-3">
                 <div class="form__input-data input-sibling-child">
                     <label class="label-input-data" for="start_date">Fecha Inicio</label>
                     <div class="input-group">
@@ -50,7 +50,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-3">
                 <div class="form__input-data input-sibling-child">
                     <label class="label-input-data" for="end_date">Fecha Fin</label>
                     <div class="input-group">
@@ -58,9 +58,14 @@
                     </div>
                 </div>
             </div>
-            <div class="col-4 d-flex align-items-end">
+            <div class="col-3 d-flex align-items-end">
                 <button class="btn" type="submit" id="btnGuardar">
                     Filtrar por fechas
+                </button>
+            </div>
+            <div class="col-3 d-flex align-items-end">
+                <button class="btn" type="button" id="btnExportar">
+                    Exportar a Excel
                 </button>
             </div>
         </form>
@@ -78,7 +83,7 @@
                                 <th class="table-name siblingContainerRow" scope="col">
                                     Póliza
                                 </th>
-                                <th scope="col">Endoso</th>
+                                <th scope="col">Vencimiento</th>
                                 <th scope="col">Cliente</th>
                                 <th scope="col">Agente</th>
                                 <th scope="col">Ramo</th>

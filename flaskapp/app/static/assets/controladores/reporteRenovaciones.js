@@ -36,7 +36,6 @@ $(function () {
   }
 
   function fillTableVencimientos(resp) {
-    console.log(resp);
     const itemsOnPage = 5;
     const { data, recordsTotal } = resp;
     const table = $("#table-vencimientos");
@@ -49,7 +48,7 @@ $(function () {
                 ${poliza.poliza}
             </p>
           </td>
-          <td>${poliza.endoso}</td>
+          <td>${poliza.fecha_fin}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>
@@ -74,11 +73,9 @@ $(function () {
   }
 
   function getVencimientos(formDataFechas = null, start = 0, length = 10) {
-    console.log(formDataFechas);
     $.ajax({
       ...ajaxConfig,
       url: "/vencimientos/get_upcoming_policies",
-
       data: formDataFechas ? formDataFechas : $.param({ start, length }),
       success: fillTableVencimientos,
       error: (xhr, status, error) => console.error(error),
@@ -91,6 +88,19 @@ $(function () {
       return alert("Debes llenar los dos campos de fecha", "warning");
     const formDataFechas = $("#form-fechas").serialize();
     getVencimientos(formDataFechas);
+  });
+
+  $("#btnExportar").click((e) => {
+    e.preventDefault();
+    $.ajax({
+      ...ajaxConfig,
+      url: "/vencimientos/get_upcoming_policies",
+      data: $.param({ export_csv: true }),
+      success: function (resp) {
+        console.log(resp);
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
   });
 
 //   $("#searchPoliza").on("keyup", function (e) {

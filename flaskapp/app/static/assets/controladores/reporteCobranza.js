@@ -28,7 +28,7 @@ $(function () {
             </p>
           </td>
           <td>${poliza.poliza}</td>
-          <td>${poliza.endoso}</td>
+          <td>${poliza.fecha_fin}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>
@@ -56,7 +56,6 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: "/vencimientos/get_upcoming_receipts",
-
       data: formDataFechas ? formDataFechas : $.param({ start, length }),
       success: fillTableVencimientos,
       error: (xhr, status, error) => console.error(error),
@@ -69,6 +68,19 @@ $(function () {
       return alert("Debes llenar los dos campos de fecha", "warning");
     const formDataFechas = $("#form-fechas").serialize();
     getVencimientos(formDataFechas);
+  });
+
+  $("#btnExportar").click((e) => {
+    e.preventDefault();
+    $.ajax({
+      ...ajaxConfig,
+      url: "/vencimientos/get_upcoming_receipts",
+      data: $.param({ export_csv: true }),
+      success: function (resp) {
+        console.log(resp);
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
   });
 
   //   $("#searchPoliza").on("keyup", function (e) {
