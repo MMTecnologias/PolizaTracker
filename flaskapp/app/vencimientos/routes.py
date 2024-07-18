@@ -326,7 +326,28 @@ def get_upcoming_policies():
     })
 
 
-def export_to_csv(headers, jsondic,filename):
+def export_to_csv(headers, jsondic, filename):
+    def generate():
+        f = StringIO()
+        writer = csv.writer(f)
+        
+        # Escribir los encabezados solo una vez
+        writer.writerow(headers)
+        
+        for data in jsondic:
+            row = [data[header] for header in headers]
+            writer.writerow(row)
+        
+        f.seek(0)
+        yield f.read()
+        f.close()
+
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename=filename)
+    return response
+
+
+def export_to_csv2(headers, jsondic,filename):
     def generate():
         f = StringIO()
         f.seek(0)

@@ -90,18 +90,55 @@ $(function () {
     getVencimientos(formDataFechas);
   });
 
-  $("#btnExportar").click((e) => {
-    e.preventDefault();
-    $.ajax({
-      ...ajaxConfig,
+
+
+
+$("#btnExportar").click((e) => {
+  e.preventDefault();
+  $.ajax({
+      type: "POST",
       url: "/vencimientos/get_upcoming_policies",
-      data: $.param({ export_csv: true }),
-      success: function (resp) {
-        console.log(resp);
+      data: { export_csv: true },
+      xhrFields: {
+          responseType: 'blob' // Esto permite manejar la respuesta como un blob
       },
-      error: (xhr, status, error) => console.error(error),
-    });
+      success: function (blob, status, xhr) {
+          // Crear un enlace temporal para descargar el archivo
+          let a = document.createElement('a');
+          let url = window.URL.createObjectURL(blob);
+          a.href = url;
+          a.download = 'upcoming_policies.csv';
+          document.body.append(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+      },
+      error: function (xhr, status, error) {
+          console.error(error);
+      }
   });
+});
+
+ /* // Exportar a CSV al hacer click en el botón con formulario
+$("#btnExportar").click((e) => {
+  e.preventDefault();
+
+  // Crear un formulario oculto
+  let $form = $("<form>")
+      .attr("method", "POST")
+      .attr("action", "/vencimientos/get_upcoming_policies");
+
+  // Añadir el campo export_csv al formulario
+  let $input = $("<input>")
+      .attr("type", "hidden")
+      .attr("name", "export_csv")
+      .attr("value", "true");
+
+  $form.append($input);
+  $("body").append($form);
+  $form.submit();
+});
+*/
 
 //   $("#searchPoliza").on("keyup", function (e) {
 //     e.preventDefault();
