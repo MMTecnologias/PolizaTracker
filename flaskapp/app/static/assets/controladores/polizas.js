@@ -738,11 +738,22 @@ $(function () {
       $(this).addClass("was-validated");
       return;
     }
+    const prima_neta = $("#prima_neta").val();
+    const prima_total = $("#prima_total").val();
+    const fecha_inicio = $("#VigenciaI").val();
+    const fecha_termino = $("#VigenciaF").val();
+    const tipo_pago_id = $("#Pago").val();
     $.ajax({
-      url: `polizas/get_policy_values/${$("#poliza_id").val()}`,
-      method: "GET",
+      url: "polizas/get_policy_values",
+      method: "POST",
       dataType: "json",
-      data: {},
+      data: $.param({
+        prima_neta,
+        prima_total,
+        fecha_inicio,
+        fecha_termino,
+        tipo_pago_id,
+      }),
       success: function (resp) {
         console.log(resp);
         $("#prima-neta").val(resp.netPremium);
