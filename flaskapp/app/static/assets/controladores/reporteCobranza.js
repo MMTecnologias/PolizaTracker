@@ -73,15 +73,18 @@ $(function () {
   $("#btnExportar").click((e) => {
     e.preventDefault();
     $.ajax({
-      ...ajaxConfig,
+      type: "POST",
       url: "/vencimientos/get_upcoming_receipts",
-      data: $.param({ export_csv: true }),
+      data: { export_csv: true },
+      xhrFields: {
+        responseType: "blob",
+      },
       success: function (blob, status, xhr) {
         // Crear un enlace temporal para descargar el archivo
         let a = document.createElement("a");
         let url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = "upcoming_policies.csv";
+        a.download = "collection_report.csv";
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);

@@ -100,14 +100,14 @@ $("#btnExportar").click((e) => {
       url: "/vencimientos/get_upcoming_policies",
       data: { export_csv: true },
       xhrFields: {
-          responseType: 'blob' // Esto permite manejar la respuesta como un blob
+          responseType: 'blob'
       },
       success: function (blob, status, xhr) {
           // Crear un enlace temporal para descargar el archivo
           let a = document.createElement('a');
           let url = window.URL.createObjectURL(blob);
           a.href = url;
-          a.download = 'upcoming_policies.csv';
+          a.download = "renewal_report.csv";
           document.body.append(a);
           a.click();
           window.URL.revokeObjectURL(url);
