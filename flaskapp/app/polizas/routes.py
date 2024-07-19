@@ -314,23 +314,26 @@ def delete():
 
 """Recibos aun sin uso"""
 # Ruta para obtener los valores de la póliza
-@polizas_route.route('/get_policy_values/<int:policy_id>', methods=['GET'])
+@polizas_route.route('/get_policy_values', methods=['POST'])
 @login_required
-def get_policy_values(policy_id):
+def get_policy_values():
     # Buscar la póliza en la base de datos por su ID
-    poliza = Poliza.query.get(policy_id)
-
-    if not poliza:
-        return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
+    fecha_inicio = request.form.get('fecha_inicio')
+    fecha_termino = request.form.get('fecha_termino')
+    tipo_pago_id = request.form.get('tipo_pago_id')
+    prima_neta = request.form.get('prima_neta')
+    prima_total = request.form.get('prima_total')
 
     # Calcular la duración de la póliza en años, considerando años bisiestos
-    start_date = poliza.fecha_inicio
-    end_date = poliza.fecha_termino
+    start_date = fecha_inicio
+    end_date = fecha_termino
     # Duración en años, considerando años bisiestos y redondeado a entero
     policy_duration = int(round((end_date - start_date).days / 365.2425))
 
     # Obtener el tipo de pago de la póliza
-    tipo_pago = TipoPago.query.get(poliza.tipo_pago_id)
+    tipo_pago = TipoPago.query.get(tipo_pago_id)
+    if not tipo_pago:
+        return jsonify({'error': True, 'msg': 'Tipo de pago no encontrado'})
 
     # Obtener el número de pagos según el tipo de pago
     if tipo_pago.contado == "Si":
@@ -340,9 +343,9 @@ def get_policy_values(policy_id):
         num_payments = tipo_pago.pagos_anuales*policy_duration
 
     # Devolver los valores como un objeto JSON
-    return jsonify({
-        'netPremium': float(poliza.prima_neta),
-        'totalPremium': float(poliza.prima_total),
+    return jsonify({'error':False,
+        'netPremium': float(prima_neta),
+        'totalPremium': float(prima_total),
         'numReceipts': int(num_payments),
         'policyDuration': int(policy_duration),  # Convertir a entero
     })
