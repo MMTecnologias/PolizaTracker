@@ -325,8 +325,8 @@ def get_policy_values():
     prima_total = request.form.get('prima_total')
 
     # Calcular la duración de la póliza en años, considerando años bisiestos
-    start_date = fecha_inicio
-    end_date = fecha_termino
+    start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+    end_date = datetime.strptime(fecha_termino, '%Y-%m-%d')
     # Duración en años, considerando años bisiestos y redondeado a entero
     policy_duration = int(round((end_date - start_date).days / 365.2425))
 
