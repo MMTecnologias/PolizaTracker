@@ -749,7 +749,8 @@ $(function () {
         $("#prima-total").val(resp.totalPremium);
         $("#nopagos").val(resp.numReceipts);
         $("iva").val(Number(resp.totalPremium) * 0.16);
-         $("#create-recib").modal();
+        $("#create-recib").modal({ backdrop: "static", keyboard: false });
+        $("#receipts_created").val("no");
       },
       error: function (xhr, textStatus, error) {
         console.error(error);
@@ -778,6 +779,7 @@ $(function () {
             alert(resp.msg, "error", resp.title);
           } else {
             $("#create-recib").modal("toggle");
+            $("#receipts_created").val("si");
             createReceipts(null, resp.endoso_id);
             alert(resp.msg, "success");
             getPolizas();
@@ -806,6 +808,7 @@ $(function () {
             alert(resp.title, "error");
           } else {
             $("#create-recib").modal("toggle");
+            $("#receipts_created").val("si");
             createReceipts(resp.poliza_id);
             alert(resp.title, "success");
             getPolizas();
@@ -826,6 +829,19 @@ $(function () {
   $("#reset-btn").click((e) => {
     e.preventDefault();
     resetForm();
+  });
+
+  $("#closeModalCreateRecibos").click(async (e) => {
+    e.preventDefault();
+    try {
+      const resp = await alertConfirm(
+        "¿Esta seguro de que desea salir?, no se crearan la poliza y/o recibos"
+      );
+      if (!resp.isConfirmed) return;
+      $("#create-recib").modal("toggle");
+    } catch (error) {
+      console.log(error);
+    }
   });
 
   $("#btnCalcular").click((e) => {

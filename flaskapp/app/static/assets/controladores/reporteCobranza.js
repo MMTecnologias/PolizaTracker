@@ -76,8 +76,16 @@ $(function () {
       ...ajaxConfig,
       url: "/vencimientos/get_upcoming_receipts",
       data: $.param({ export_csv: true }),
-      success: function (resp) {
-        console.log(resp);
+      success: function (blob, status, xhr) {
+        // Crear un enlace temporal para descargar el archivo
+        let a = document.createElement("a");
+        let url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = "upcoming_policies.csv";
+        document.body.append(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
       },
       error: (xhr, status, error) => console.error(error),
     });
