@@ -119,6 +119,29 @@ $("#btnExportar").click((e) => {
   });
 });
 
+$("#btnImprimir").click((e) => {
+  e.preventDefault();
+  $.ajax({
+    type: "POST",
+    url: "/vencimientos/get_upcoming_policies",
+    data: { export_pdf: true },
+    xhrFields: {
+      responseType: 'blob'
+    },
+    success: function (blob, status, xhr) {
+      const fileURL = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = fileURL;
+      document.body.appendChild(iframe);
+      iframe.contentWindow.print();
+    },
+    error: function (xhr, status, error) {
+      console.error(error);
+    }
+  });
+});
+
  /* // Exportar a CSV al hacer click en el botón con formulario
 $("#btnExportar").click((e) => {
   e.preventDefault();

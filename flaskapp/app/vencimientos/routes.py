@@ -12,6 +12,11 @@ from datetime import datetime, date,timedelta
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+from io import BytesIO
+from reportlab.lib.pagesizes import letter,landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle,Paragraph
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
 
 
 def update_poliza_status(no_months):
@@ -235,10 +240,14 @@ def get_upcoming_receipts():
 
         response.append(data)
 
-    # Export to CSV
+    headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+    real_headers = ['poliza', 'Recibo', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
-        headers = ['poliza_id', 'poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
-        return export_to_csv(headers, response,'upcoming_receipts.csv')
+        return export_to_csv(headers, response, 'upcoming_policies.csv',real_headers)
+    if request.form.get('export_pdf'):
+        to_multiline=['cliente','notas']
+        return export_to_pdf(headers, response, 'upcoming_policies.pdf',real_headers,to_multiline)
+    
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
@@ -316,9 +325,14 @@ def get_upcoming_policies():
         response.append(data)
 
     # Export to CSV
+    headers = ['poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+    real_headers = ['id', 'poliza','Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
-        headers = ['poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
-        return export_to_csv(headers, response, 'upcoming_policies.csv')
+        return export_to_csv(headers, response, 'upcoming_policies.csv',real_headers)
+    if request.form.get('export_pdf'):
+        to_multiline=['cliente']
+        return export_to_pdf(headers, response, 'upcoming_policies.pdf',real_headers,to_multiline)
+    
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
@@ -326,13 +340,15 @@ def get_upcoming_policies():
     })
 
 
-def export_to_csv(headers, jsondic, filename):
+def export_to_csv(headers, jsondic, filename,real_headers=None):
+    if real_headers is None:
+        real_headers=headers
     def generate():
         f = StringIO()
         writer = csv.writer(f)
         
         # Escribir los encabezados solo una vez
-        writer.writerow(headers)
+        writer.writerow(real_headers)
         
         for data in jsondic:
             row = [data[header] for header in headers]
@@ -346,8 +362,59 @@ def export_to_csv(headers, jsondic, filename):
     response.headers.set("Content-Disposition", "attachment", filename=filename)
     return response
 
+def export_to_pdf(headers, jsondic, filename,real_headers=None,to_multiline=None):
+    if real_headers is None:
+        real_headers=headers
+    if to_multiline is None:
+        to_multiline=[]
+    # Create a buffer to hold the PDF data        
+    buffer = BytesIO()
+    # Set up the PDF document
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+    # Create the table data
+    style = getSampleStyleSheet()['Normal']
+    data = [real_headers] + [
+        [Paragraph(data[header], style) if header in to_multiline else data[header] for header in headers]
+        for data in jsondic
+    ]
 
-def export_to_csv2(headers, jsondic,filename):
+    # Create the table and set its style
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('WORDWRAP', (0, 1), (-1, -1), True),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+
+    # Build the PDF document
+    elements = [table]
+    doc.build(elements)
+
+    # Reset the buffer position
+    buffer.seek(0)
+
+    # Return the PDF data as a response
+    response = Response(buffer, mimetype='application/pdf')
+    response.headers.set("Content-Disposition", "attachment", filename=filename)
+    return response
+
+def print_to_pdf(headers, jsondic, filename,real_headers=None,to_multiline=None):
+    response = export_to_pdf(headers, jsondic, filename, real_headers, to_multiline)
+    # Open the print interface in the browser
+    response.headers.set("Content-Disposition", "inline")
+    return response
+
+def export_tocsv2(headers, jsondic,filename):
     def generate():
         f = StringIO()
         f.seek(0)
