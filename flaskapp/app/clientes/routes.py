@@ -126,7 +126,7 @@ def create():
             # Create a new client
             new_client = Cliente(
                 nombre=request.form.get('nombre'),
-                apellido=request.form.get('apellido'),
+                apellido=request.form.get('apellido') if request.form.get('sexo') != "Empresa" else "// "+request.form.get('apellido') ,
                 grupo_id=grupo_id,
                 rfc=rfc,
                 tel_oficina=request.form.get('telefono_oficina'),
@@ -187,7 +187,7 @@ def create():
             old_dict={column.name : getattr(existing_client, column.name) for column in Cliente.__table__.columns}
 
             existing_client.nombre = request.form.get('nombre')
-            existing_client.apellido = request.form.get('apellido')
+            existing_client.apellido = request.form.get('apellido') if request.form.get('sexo') != "Empresa" else "// " + request.form.get('apellido')
             existing_client.grupo_id = grupo_id
             existing_client.tel_oficina = request.form.get('telefono_oficina')
             existing_client.tel_movil = request.form.get('telefono_movil')
