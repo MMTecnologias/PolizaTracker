@@ -246,3 +246,35 @@ def get_data_multiple():
 
     return jsonify(response)
 
+
+@main.route('/load', methods=['GET'])
+@login_required
+def load():
+    # Load data from CSV file
+    bool_return,msg=load_data_from_csv(Cliente, 'C:/Users/luism/Downloads/clientes.csv')
+    return msg
+
+
+import csv
+from sqlalchemy.exc import SQLAlchemyError
+
+def load_data_from_csv(table, csv_file):
+    try:
+        with open(csv_file, 'r', encoding='utf-8-sig') as file:
+            reader = csv.reader(file)
+            headers = next(reader)  # Get the headers from the CSV file
+            records = []
+            for row in reader:
+                data = dict(zip(headers, row))  # Create a dictionary of column names and values
+                new_record = table(**data)  # Create a new record in the table using the dictionary
+                records.append(new_record)
+            db.session.bulk_save_objects(records)  # Bulk insert records
+            db.session.commit()  # Commit the changes to the database
+        return True,"Data loaded successfully"
+    except SQLAlchemyError as e:
+        db.session.rollback()  # Rollback in case of error
+        print(f"Database error: {str(e)}")
+        return False,f"Database error: {str(e)}"
+    except Exception as e:
+        print(f"Error loading data from CSV: {str(e)}")
+        return False,str(e),f"Error loading data from CSV: {str(e)}"

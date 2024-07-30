@@ -36,7 +36,7 @@ $(function () {
     $("#sexo").html(`
       <option value="Mujer">Mujer</option>
       <option value="Hombre">Hombre</option>
-      <option value="Otro">Otro</option>
+      <option value="Empresa">Empresa</option>
     `);
     // @ts-ignore
     $("#cliente-form").removeClass("was-validated");
@@ -80,19 +80,12 @@ $(function () {
         // @ts-ignore
         $("#fecha_nacimiento").val(resp.data[0].fecha_nacimiento);
         // @ts-ignore
-        $("#sexo").html(`<option value='${resp.data[0].sexo}'>
-         ${resp.data[0].sexo}
-         </option>
-         ${
-           resp.data[0].sexo !== "Mujer" &&
-           '<option value="Mujer">Mujer</option>'
-         }
-         ${
-           resp.data[0].sexo !== "Hombre" &&
-           '<option value="Hombre">Hombre</option>'
-         }
-         ${resp.data[0].sexo !== "Otro" && '<option value="Otro">Otro</option>'}
-         `);
+        $("#sexo").html(`
+          <option value="Mujer" ${resp.data[0].sexo === "Mujer" ? "selected" : ""}>Mujer</option>
+          <option value="Hombre" ${resp.data[0].sexo === "Hombre" ? "selected" : ""}>Hombre</option>
+          <option value="Empresa" ${resp.data[0].sexo === "Empresa" ? "selected" : ""}>Empresa</option>
+          <option value="Indefinido" ${resp.data[0].sexo === "Indefinido" ? "selected" : ""}>Indefinido</option>
+        `);
         // @ts-ignore
         $("#ocupacion").val(resp.data[0].ocupacion);
         // @ts-ignore

@@ -138,7 +138,8 @@ def create():
                 sexo=request.form.get('sexo'),
                 ocupacion=request.form.get('ocupacion'),
                 actividad=request.form.get('giro_actividad'),
-                info_pago=request.form.get('cuenta')
+                info_pago=request.form.get('cuenta'),
+                notas=request.form.get('notas')  # Add the 'notas' field
             )
             # Save the new client to the database
             db.session.add(new_client)
@@ -198,6 +199,7 @@ def create():
             existing_client.ocupacion = request.form.get('ocupacion')
             existing_client.actividad = request.form.get('giro_actividad')
             existing_client.info_pago=request.form.get('cuenta')
+            existing_client.notas=request.form.get('notas')  # Add the 'notas' field
             # Save the changes to the database
             db.session.commit()
 
