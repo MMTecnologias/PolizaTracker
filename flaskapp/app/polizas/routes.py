@@ -24,6 +24,7 @@ def get_receipts():
     endoso_id = request.form.get('endoso_id')
     if endoso_id:
         recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
+        poliza_id = Recibo.query.get(endoso_id).poliza_id
     else:
         recibos_query = Recibo.query.filter_by(poliza_id=poliza_id, endoso_id=None)
     # Get total count of records without filtering
@@ -568,7 +569,7 @@ def create_endoso():
         'renovacion': 'renovacion',
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
-        'poliza': 'Poliza'
+        'endoso': 'Poliza'
     }
     form_value_mapping = {
         'selected-client-id': request.form.get('selected-client-id'),
@@ -595,7 +596,7 @@ def create_endoso():
     arg_values['tipo_endoso'] = tipo
 
     dict_to_keep={
-        "A":['prima_neta','prima_total','derecho_poliza','iva','rec_pago','comision','recibos'],
+        "A":['poliza','prima_neta','prima_total','derecho_poliza','iva','rec_pago','comision','recibos'],
         "B":['poliza'],
         "D":['poliza']
     }

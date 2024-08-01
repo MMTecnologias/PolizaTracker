@@ -389,7 +389,7 @@ $(function () {
         )}">
           <td>
             <p class="td-clickable" id="td-clickable_${endoso.id}">
-                ${endoso.poliza}
+                ${endoso.endoso}
             </p>
           </td>
           <td>${endoso.tipo_endoso}</td>
