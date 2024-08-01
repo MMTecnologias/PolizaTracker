@@ -388,7 +388,7 @@ $(function () {
           endoso.status
         )}">
           <td>
-            <p class="td-clickable" id="td-clickable_${endoso.id}">
+            <p class="td-clickable" id="td-clickable-endoso_${endoso.id}">
                 ${endoso.endoso}
             </p>
           </td>
@@ -403,7 +403,7 @@ $(function () {
           </td>
         </tr>`
       );
-      $(`#td-clickable_${endoso.id}`).on("click", (e) => {
+      $(`#td-clickable-endoso_${endoso.id}`).on("click", (e) => {
         console.log("Traer recibos de endosos");
         getRecibos(null, endoso.id);
       });
