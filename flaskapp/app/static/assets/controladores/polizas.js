@@ -2,6 +2,7 @@
 $(function () {
   let ordered = false;
   let crearEndoso = false;
+  let razonInput = "";
 
   const ajaxConfig = {
     url: "",
@@ -54,6 +55,32 @@ $(function () {
       confirmButtonText: "Aceptar",
       cancelButtonText: "Cancelar",
       icon: "warning",
+    });
+  }
+
+  function alertInput(title = "") {
+    return Swal.fire({
+      title,
+      html: `<input type="text" id="razon" class="swal2-input" placeholder="Razon">`,
+      confirmButtonText: "Aceptar",
+      focusConfirm: false,
+      cancelButtonText: "Cancelar",
+      showCancelButton: true,
+      allowOutsideClick: false,
+      icon: "warning",
+      didOpen: () => {
+        const popup = Swal.getPopup();
+        razonInput = popup.querySelector("#razon");
+        razonInput.onkeyup = (event) =>
+          event.key === "Enter" && Swal.clickConfirm();
+      },
+      preConfirm: () => {
+        const razon = razonInput.value;
+        if (!razon) {
+          Swal.showValidationMessage(`Por favor ingrese una razon para cancelar`);
+        }
+        return { razon };
+      },
     });
   }
 
@@ -306,14 +333,15 @@ $(function () {
   }
 
   async function cancelPoliza(poliza_id) {
-    const { isConfirmed } = await alertConfirm(
+    const { isConfirmed, value } = await alertInput(
       "¿Esta seguro de cancelar esta poliza?"
     );
     if (!isConfirmed) return;
+    if (!value.razon) return alert("Debe agregar una razón para cancelar", "error");
     $.ajax({
       ...ajaxConfig,
       url: "/polizas/delete",
-      data: $.param({ poliza_id }),
+      data: $.param({ poliza_id, razon: value.razon }),
       success: function (resp) {
         if (!resp.error) {
           alert(resp.msg, undefined, resp.title);
