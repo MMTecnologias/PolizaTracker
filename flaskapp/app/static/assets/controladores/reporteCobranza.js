@@ -75,7 +75,7 @@ $(function () {
     $.ajax({
       type: "POST",
       url: "/vencimientos/get_upcoming_receipts",
-      data: { export_csv: true },
+      data: $.param({ export_csv: true }),
       xhrFields: {
         responseType: "blob",
       },
@@ -85,6 +85,30 @@ $(function () {
         let url = window.URL.createObjectURL(blob);
         a.href = url;
         a.download = "collection_report.csv";
+        document.body.append(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  });
+
+  $("#btnPdf").click((e) => {
+    e.preventDefault();
+    $.ajax({
+      type: "POST",
+      url: "/vencimientos/get_upcoming_receipts",
+      data: $.param({ export_pdf: true }),
+      xhrFields: {
+        responseType: "blob",
+      },
+      success: function (blob, status, xhr) {
+        // Crear un enlace temporal para descargar el archivo
+        let a = document.createElement("a");
+        let url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = "reporte_cobranza.pdf";
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);

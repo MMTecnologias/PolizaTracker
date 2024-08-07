@@ -90,32 +90,55 @@ $(function () {
     getVencimientos(formDataFechas);
   });
 
-
-
-
 $("#btnExportar").click((e) => {
   e.preventDefault();
   $.ajax({
-      type: "POST",
-      url: "/vencimientos/get_upcoming_policies",
-      data: { export_csv: true },
-      xhrFields: {
-          responseType: 'blob'
-      },
-      success: function (blob, status, xhr) {
-          // Crear un enlace temporal para descargar el archivo
-          let a = document.createElement('a');
-          let url = window.URL.createObjectURL(blob);
-          a.href = url;
-          a.download = "renewal_report.csv";
-          document.body.append(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          a.remove();
-      },
-      error: function (xhr, status, error) {
-          console.error(error);
-      }
+    type: "POST",
+    url: "/vencimientos/get_upcoming_policies",
+    data: $.param({ export_csv: true }),
+    xhrFields: {
+      responseType: "blob",
+    },
+    success: function (blob, status, xhr) {
+      // Crear un enlace temporal para descargar el archivo
+      let a = document.createElement("a");
+      let url = window.URL.createObjectURL(blob);
+      a.href = url;
+      a.download = "renewal_report.csv";
+      document.body.append(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    },
+    error: function (xhr, status, error) {
+      console.error(error);
+    },
+  });
+});
+
+$("#btnPdf").click((e) => {
+  e.preventDefault();
+  $.ajax({
+    type: "POST",
+    url: "/vencimientos/get_upcoming_policies",
+    data: $.param({ export_pdf: true }),
+    xhrFields: {
+      responseType: "blob",
+    },
+    success: function (blob, status, xhr) {
+      // Crear un enlace temporal para descargar el archivo
+      let a = document.createElement("a");
+      let url = window.URL.createObjectURL(blob);
+      a.href = url;
+      a.download = "reporte-renovaciones.pdf";
+      document.body.append(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    },
+    error: function (xhr, status, error) {
+      console.error(error);
+    },
   });
 });
 

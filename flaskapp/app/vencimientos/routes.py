@@ -178,7 +178,7 @@ def get_upcoming_receipts():
     # Retrieve the start and end dates for the report
     start_date = datetime.now() if not request.form.get('start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
     end_date = start_date + timedelta(days=days_tolerance//2) if not request.form.get('end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
-    
+
 
     # Calculate the payment due date range
     payment_due_start = start_date - timedelta(days=days_tolerance)
@@ -208,7 +208,7 @@ def get_upcoming_receipts():
                 Recibo.fecha_inicio <= payment_due_end,
                 Recibo.status == "Pendiente") \
         .order_by(Recibo.fecha_inicio)
-    
+
     total_records = upcoming_receipts_query.count()
 
     if start and length:
@@ -243,11 +243,11 @@ def get_upcoming_receipts():
     headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
     real_headers = ['poliza', 'Recibo', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
-        return export_to_csv(headers, response, 'upcoming_policies.csv',real_headers)
+        return export_to_csv(headers, response, 'upcoming_receipts.csv',real_headers)
     if request.form.get('export_pdf'):
         to_multiline=['cliente','notas']
-        return export_to_pdf(headers, response, 'upcoming_policies.pdf',real_headers,to_multiline)
-    
+        return export_to_pdf(headers, response, 'upcoming_receipts.pdf',real_headers,to_multiline)
+
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
@@ -259,17 +259,17 @@ def get_upcoming_receipts():
 def get_upcoming_policies():
     days_tolerance = 30
 
-    
+
     start = int(request.form.get('start')) if request.form.get('start') else None
     length = int(request.form.get('length')) if request.form.get('length') else None
 
     # Retrieve the start and end dates for the report
     start_date = datetime.now() if not request.form.get('start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
     end_date = start_date + timedelta(days=days_tolerance) if not request.form.get('end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
-    
+
 
     # Calculate the policy due date range
-    policy_due_start = start_date 
+    policy_due_start = start_date
     policy_due_end = end_date + timedelta(days=days_tolerance)
 
     # Query the database for upcoming policies
@@ -332,7 +332,7 @@ def get_upcoming_policies():
     if request.form.get('export_pdf'):
         to_multiline=['cliente']
         return export_to_pdf(headers, response, 'upcoming_policies.pdf',real_headers,to_multiline)
-    
+
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
@@ -346,14 +346,14 @@ def export_to_csv(headers, jsondic, filename,real_headers=None):
     def generate():
         f = StringIO()
         writer = csv.writer(f)
-        
+
         # Escribir los encabezados solo una vez
         writer.writerow(real_headers)
-        
+
         for data in jsondic:
             row = [data[header] for header in headers]
             writer.writerow(row)
-        
+
         f.seek(0)
         yield f.read()
         f.close()
@@ -367,7 +367,7 @@ def export_to_pdf(headers, jsondic, filename,real_headers=None,to_multiline=None
         real_headers=headers
     if to_multiline is None:
         to_multiline=[]
-    # Create a buffer to hold the PDF data        
+    # Create a buffer to hold the PDF data
     buffer = BytesIO()
     # Set up the PDF document
     doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
