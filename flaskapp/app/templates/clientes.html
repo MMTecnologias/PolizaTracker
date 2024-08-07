@@ -74,52 +74,19 @@
                   <div class="form__input-data">
                      <label for="telefono_movil" class="label-input-data">Teléfonos Móviles</label>
                      <div class="input-group">
-                        <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder=""
-                           minlength="10" maxlength="10" required />
-                        <p class="invalid-feedback">Ingresa un teléfono válido.</p>
-                     </div>
-                  </div>
-                  <div class="input-sibling">
-                     <div class="form__input-data input-sibling-child">
-                        <label for="telefono_casa" class="label-input-data">
-                           Teléfonos Casa</label>
-                        <div class="input-group">
-                           <input type="text" class="form-control" id="telefono_casa" name="telefono_casa" placeholder=""
-                              minlength="10" maxlength="10" required />
-                           <p class="invalid-feedback">
-                              Ingresa un teléfono válido.
-                           </p>
-                        </div>
-                     </div>
-                     <div class="form__input-data input-sibling-child">
-                        <label for="telefono_oficina" class="label-input-data">Teléfonos Oficina</label>
-                        <div class="input-group">
-                           <input type="text" class="form-control" id="telefono_oficina" name="telefono_oficina"
-                              placeholder="" minlength="10" maxlength="10" required />
-                           <p class="invalid-feedback">
-                              Ingresa un teléfono válido.
-                           </p>
-                        </div>
+                        <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder="" minlength="10" maxlength="10" />
                      </div>
                   </div>
                   <div class="form__input-data">
                      <label class="label-input-data" for="correo">Correo Electrónico</label>
                      <div class="input-group">
-                        <input type="email" class="form-control" id="correo" name="correo" placeholder="" minlength="5"
-                           maxlength="50" required />
-                        <p class="invalid-feedback">
-                           Ingresa un correo electrónico válido.
-                        </p>
+                        <input type="email" class="form-control" id="correo" name="correo" placeholder="" minlength="5" maxlength="50" />
                      </div>
                   </div>
                   <div class="form__input-data">
                      <label for="direccion_fiscal" class="label-input-data">Dirección Fiscal</label>
                      <div class="input-group">
-                        <input type="text" class="form-control" id="direccion_fiscal" name="direccion_fiscal" placeholder=""
-                           minlength="5" maxlength="125" required />
-                        <p class="invalid-feedback">
-                           Ingresa una dirección válida.
-                        </p>
+                        <input type="text" class="form-control" id="direccion_fiscal" name="direccion_fiscal" placeholder="" minlength="5" maxlength="125" />
                      </div>
                   </div>
                   <div class="input-sibling">
@@ -127,21 +94,17 @@
                         <label for="fecha_nacimiento" class="label-input-data">Fecha de Nacimiento</label>
                         <div class="input-group">
                            <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
-                              placeholder="" required />
-                           <p class="invalid-feedback">
-                              Ingresa una fecha válida.
-                           </p>
+                              placeholder=""/>
                         </div>
                      </div>
                      <div class="form__input-data input-sibling-child">
                         <label for="sexo" class="label-input-data">Sexo</label>
-                        <select class="custom-select" id="sexo" name="sexo" required>
+                        <select class="custom-select" id="sexo" name="sexo">
                            <option value="">Selecciona...</option>
                            <option value="Mujer">Mujer</option>
                            <option value="Hombre">Hombre</option>
                            <option value="Empresa">Empresa</option>
                         </select>
-                        <p class="invalid-feedback">Selecciona un sexo válido.</p>
                      </div>
                   </div>
                   <div class="input-sibling">
@@ -149,20 +112,13 @@
                         <label for="ocupacion" class="label-input-data">Ocupación</label>
                         <div class="input-group">
                            <input type="text" class="form-control" id="ocupacion" name="ocupacion" placeholder=""
-                              minlength="2" maxlength="30" required />
-                           <p class="invalid-feedback">
-                              Ingresa una ocupación válida.
-                           </p>
+                              minlength="2" maxlength="30"/>
                         </div>
                      </div>
                      <div class="form__input-data input-sibling-child">
                         <label for="giro_actividad" class="label-input-data">Giro o Actividad</label>
                         <div class="input-group">
-                           <input type="text" class="form-control" id="giro_actividad" name="giro_actividad" placeholder=""
-                              minlength="2" maxlength="30" required />
-                           <p class="invalid-feedback">
-                              Ingresa un giro o actividad válido.
-                           </p>
+                           <input type="text" class="form-control" id="giro_actividad" name="giro_actividad" placeholder="" minlength="2" maxlength="30"/>
                         </div>
                      </div>
                   </div>
@@ -186,13 +142,33 @@
                      </div>
                   </div>
                   <div class="form__input-data">
+                     <label for="notas" class="label-input-data">Notas</label>
+                     <div class="input-group">
+                        <input type="text" class="form-control" id="notas" name="notas" placeholder="" minlength="5"
+                           maxlength="125" />
+                     </div>
+                  </div>
+                  <div class="form__input-data">
                      <label for="cuenta" class="label-input-data">
                         Número de Cuenta/Tarjeta
                      </label>
                      <div class="input-group">
                         <input type="tel" inputmode="numeric" pattern="[0-9\s]{16,18}" autocomplete="cc-number" maxlength="19"
-                           class="form-control" id="cuenta" name="cuenta" placeholder="xxxx xxxx xxxx xxxx" required />
-                        <p class="invalid-feedback">Ingresa una cuenta válida.</p>
+                           class="form-control" id="cuenta" name="cuenta" placeholder="xxxx xxxx xxxx xxxx"/>
+                     </div>
+                  </div>
+                  <div class="input-sibling">
+                     <div class="form__input-data input-sibling-child">
+                        <label for="fecha_vencimiento" class="label-input-data">Fecha vencimiento</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento" placeholder="" minlength="5" maxlength="5" />
+                        </div>
+                     </div>
+                     <div class="form__input-data input-sibling-child">
+                        <label for="cvv" class="label-input-data">Cvv</label>
+                        <div class="input-group">
+                           <input type="text" class="form-control" id="cvv" name="cvv" placeholder="" minlength="3" maxlength="3" />
+                        </div>
                      </div>
                   </div>
                   <div class="button-container">
