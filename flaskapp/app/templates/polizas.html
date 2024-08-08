@@ -130,13 +130,13 @@
                         </select>
                      </div>
                   </div>
-                  <div class="input-sibling" style="display: none" id="nuevo_ramo_subramo_div">
-                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_ramo_div">
+                  <div class="input-sibling" id="nuevo_ramo_subramo_div">
+                     <div class="form__input-data input-sibling-child" id="nuevo_ramo_div">
                         <label class="label-input-data">Nuevo Ramo</label>
                         <input type="text" class="form-control" id="nuevo_ramo" name="nuevo_ramo" />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
-                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_subramo_div">
+                     <div class="form__input-data input-sibling-child" id="nuevo_subramo_div">
                         <label class="label-input-data">Nuevo Subramo</label>
                         <input type="text" class="form-control" id="nuevo_subramo" name="nuevo_subramo" />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
@@ -165,6 +165,13 @@
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
                   </div>
+                  <div class="form__input-data">
+                     <label class="label-input-data" for="conducto_pago">Conducto de pago</label>
+                     <div class="">
+                        <input type="text" class="form-control" id="conducto_pago" name="conducto_pago" />
+                        <p class="invalid-feedback">Ingresa un dato valido</p>
+                     </div>
+                  </div>
                   <div class="input-sibling">
                      <div class="form__input-data input-sibling-child">
                         <label class="label-input-data">Aseguradora</label>
@@ -179,7 +186,7 @@
                         </select>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
-                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_aseguradora_div">
+                     <div class="form__input-data input-sibling-child" id="nuevo_aseguradora_div">
                         <label class="label-input-data">Nueva Aseguradora</label>
                         <input type="text" class="form-control" id="nuevo_aseguradora" name="nuevo_aseguradora" />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
@@ -199,7 +206,7 @@
                         </select>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
-                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_vendedor_div">
+                     <div class="form__input-data input-sibling-child" id="nuevo_vendedor_div">
                         <label class="label-input-data">Nuevo Vendedor</label>
                         <input type="text" class="form-control" id="nuevo_vendedor" name="nuevo_vendedor" />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
@@ -219,7 +226,7 @@
                         </select>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
-                     <div class="form__input-data input-sibling-child" style="display: none" id="nuevo_agente_div">
+                     <div class="form__input-data input-sibling-child" id="nuevo_agente_div">
                         <label class="label-input-data">Nuevo Agente</label>
                         <input type="text" class="form-control" id="nuevo_agente" name="nuevo_agente" />
                         <p class="invalid-feedback">Ingresa un dato valido</p>
@@ -229,14 +236,14 @@
                      <div class="form__input-data input-sibling-child">
                         <label class="label-input-data" for="prima_neta">Prima Neta</label>
                         <div class="input-group">
-                           <input type="number" class="form-control" id="prima_neta" name="prima_neta" required />
+                           <input type="number" class="form-control" id="prima_neta" name="prima_neta" step=".01" required />
                            <p class="invalid-feedback">Ingresa un dato valido</p>
                         </div>
                      </div>
                      <div class="form__input-data input-sibling-child">
                         <label class="label-input-data" for="prima_total">Prima Total</label>
                         <div class="input-group">
-                           <input type="number" class="form-control" id="prima_total" name="prima_total" required />
+                           <input type="number" class="form-control" id="prima_total" name="prima_total" step=".01" required />
                            <p class="invalid-feedback">Ingresa un dato valido</p>
                         </div>
                      </div>
@@ -405,13 +412,6 @@
                            </div>
                         </div>
                         <div class="input-sibling">
-                           <div class="form__input-data input-sibling-child">
-                              <label class="label-input-data">Comisión s/derecho Póliza</label>
-                              <div class="input-group">
-                                 <input type="text" class="form-control" id="comision_sin_derecho" name="comision_sin_derecho" required />
-                                 <p class="invalid-feedback">Ingresa un dato valido</p>
-                              </div>
-                           </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Selecciona un opción</label>
                               <div class="input-group">

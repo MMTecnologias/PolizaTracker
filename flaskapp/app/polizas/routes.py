@@ -163,7 +163,8 @@ def get():
             'subramo': f"{subramo}",
             'tipoPago': f"{tipo_pago}",
             'agente': f"{agente}",
-            'vendedor': f"{vendedor}"
+            'vendedor': f"{vendedor}",
+            'fecha_termino': poliza.fecha_termino.strftime('%Y-%m-%d')
         })
 
         # Append to data list

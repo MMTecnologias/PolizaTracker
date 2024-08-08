@@ -104,6 +104,10 @@ $(function () {
       $("#agente").html("");
       $("#btnGuardar").html("Guardar");
       $("#div_poliza_anterior").hide();
+      $("#nuevo_ramo_subramo_div").hide();
+      $("#nuevo_aseguradora_div").hide();
+      $("#nuevo_vendedor_div").hide();
+      $("#nuevo_agente_div").hide();
       const data = await getFormData();
       for (const ramo of data.Ramo) {
         $("#ramo").append(`<option value='${ramo.id}'>
@@ -111,18 +115,23 @@ $(function () {
         </option>
         `);
       }
+      $("#ramo").append(`<option value="New">Nuevo Ramo</option>`);
       for (const subramo of data.Subramo) {
         $("#subramo").append(`<option value='${subramo.id}'>
-        ${subramo.subramo}
-        </option>
-        `);
+          ${subramo.subramo}
+          </option>
+          `);
       }
+      $("#subramo").append(`<option value="New">Nuevo Subramo</option>`);
       for (const aseguradora of data.Aseguradora) {
         $("#aseguradora").append(`<option value='${aseguradora.id}'>
         ${aseguradora.aseguradora}
         </option>
         `);
       }
+      $("#aseguradora").append(
+        `<option value="New">Nueva Aseguradora</option>`
+      );
       for (const pago of data.TipoPago) {
         $("#Pago").append(`<option value='${pago.id}'>
         ${pago.tipo_pago}
@@ -135,12 +144,14 @@ $(function () {
         </option>
         `);
       }
+      $("#vendedor").append(`<option value="New">Nuevo Vendedor</option>`);
       for (const agente of data.Agente) {
         $("#agente").append(`<option value='${agente.id}'>
         ${agente.nombre}
         </option>
         `);
       }
+      $("#agente").append(`<option value="New">Nuevo Agente</option>`);
       return data;
     } catch (error) {
       console.log(error);
@@ -165,6 +176,7 @@ $(function () {
         console.log(resp);
         $("#id_poliza").val(resp.data[0].poliza);
         $("#selected-client-id").val(resp.data[0].cliente_id);
+        $("#VigenciaF").val(resp.data[0].fecha_termino);
         if (tipo === "B" || tipo === "D") {
           $("#prima_neta").prop("disabled", false);
           $("#prima_total").prop("disabled", false);
@@ -208,18 +220,23 @@ $(function () {
         </option>
         `);
           }
+          $("#ramo").append(`<option value="New">Nuevo Ramo</option>`);
           for (const subramo of data.Subramo) {
             $("#subramo").append(`<option value='${subramo.id}'>
         ${subramo.subramo}
         </option>
         `);
           }
+          $("#subramo").append(`<option value="New">Nuevo Subramo</option>`);
           for (const aseguradora of data.Aseguradora) {
             $("#aseguradora").append(`<option value='${aseguradora.id}'>
         ${aseguradora.aseguradora}
         </option>
         `);
           }
+          $("#aseguradora").append(
+            `<option value="New">Nueva Aseguradora</option>`
+          );
           for (const pago of data.TipoPago) {
             $("#Pago").append(`<option value='${pago.id}'>
         ${pago.tipo_pago}
@@ -232,12 +249,14 @@ $(function () {
         </option>
         `);
           }
+          $("#vendedor").append(`<option value="New">Nuevo Vendedor</option>`);
           for (const agente of data.Agente) {
             $("#agente").append(`<option value='${agente.id}'>
         ${agente.nombre}
         </option>
         `);
           }
+          $("#agente").append(`<option value="New">Nuevo Agente</option>`);
         }
       },
       error: (xhr, status, error) => console.error(error),
@@ -260,11 +279,11 @@ $(function () {
         $("#buscar-cliente").val(resp.data[0].cliente);
         $("#selected-client-id").val(resp.data[0].cliente_id);
         $("#serie").val(resp.data[0].serie);
+        $("#VigenciaI").val(resp.data[0].fecha_termino);
         $("#prima_neta").val("");
         $("#prima_total").val("");
         $("#Moneda").val(resp.data[0].moneda);
         $("#notas").val(resp.data[0].notas);
-
         $("#ramo").html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -296,18 +315,23 @@ $(function () {
         </option>
         `);
           }
+          $("#ramo").append(`<option value="New">Nuevo Ramo</option>`);
           for (const subramo of data.Subramo) {
             $("#subramo").append(`<option value='${subramo.id}'>
         ${subramo.subramo}
         </option>
         `);
           }
+          $("#subramo").append(`<option value="New">Nuevo Subramo</option>`);
           for (const aseguradora of data.Aseguradora) {
             $("#aseguradora").append(`<option value='${aseguradora.id}'>
         ${aseguradora.aseguradora}
         </option>
         `);
           }
+          $("#aseguradora").append(
+            `<option value="New">Nueva Aseguradora</option>`
+          );
           for (const pago of data.TipoPago) {
             $("#Pago").append(`<option value='${pago.id}'>
         ${pago.tipo_pago}
@@ -320,12 +344,14 @@ $(function () {
         </option>
         `);
           }
+          $("#vendedor").append(`<option value="New">Nuevo Vendedor</option>`);
           for (const agente of data.Agente) {
             $("#agente").append(`<option value='${agente.id}'>
         ${agente.nombre}
         </option>
         `);
           }
+          $("#agente").append(`<option value="New">Nuevo Agente</option>`);
         }
       },
       error: (xhr, status, error) => console.error(error),
@@ -950,12 +976,46 @@ $(function () {
     }
   });
 
+  $("#ramo").on("change", function (e) {
+    if (this.value === "New") {
+      $("#nuevo_ramo_subramo_div").show();
+    }
+  });
+
+  $("#subramo").on("change", function (e) {
+    if (this.value === "New") {
+      $("#nuevo_ramo_subramo_div").show();
+    }
+  });
+
+  $("#aseguradora").on("change", function (e) {
+    if (this.value === "New") {
+      $("#nuevo_aseguradora_div").show();
+    }
+  });
+
+  $("#vendedor").on("change", function (e) {
+    if (this.value === "New") {
+      $("#nuevo_vendedor_div").show();
+    }
+  });
+
+  $("#agente").on("change", function (e) {
+    if (this.value === "New") {
+      $("#nuevo_agente_div").show();
+    }
+  });
+
   $("#endoso_tipo_a").click((e) => createEndozo($("#poliza_id").val(), "A"));
   $("#endoso_tipo_b").click((e) => createEndozo($("#poliza_id").val(), "B"));
   $("#endoso_tipo_d").click((e) => createEndozo($("#poliza_id").val(), "D"));
 
   $("#div_poliza_id").hide();
   $("#div_poliza_anterior").hide();
+  $("#nuevo_ramo_subramo_div").hide();
+  $("#nuevo_aseguradora_div").hide();
+  $("#nuevo_vendedor_div").hide();
+  $("#nuevo_agente_div").hide();
 
   getPolizas();
 });
