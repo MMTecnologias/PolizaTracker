@@ -63,9 +63,9 @@ def get():
             'grupo_id': client.grupo_id,
             'grupo': grupo_name,
             'rfc': client.rfc,
-            'tel_oficina': client.tel_oficina,
+            #'tel_oficina': client.tel_oficina,
             'tel_movil': client.tel_movil,
-            'tel_casa': client.tel_casa,
+            #'tel_casa': client.tel_casa,
             'correo': client.correo,
             'direccion': client.direccion,
             'fecha_nacimiento': client.fecha_nacimiento.strftime('%Y-%m-%d'), # Format date as string
@@ -129,9 +129,9 @@ def create():
                 apellido=request.form.get('apellido') if request.form.get('sexo') != "Empresa" else "// "+request.form.get('apellido') ,
                 grupo_id=grupo_id,
                 rfc=rfc,
-                tel_oficina=request.form.get('telefono_oficina'),
+                #tel_oficina=request.form.get('telefono_oficina'),
                 tel_movil=request.form.get('telefono_movil'),
-                tel_casa=request.form.get('telefono_casa'),
+                #tel_casa=request.form.get('telefono_casa'),
                 correo=request.form.get('correo'),
                 direccion=request.form.get('direccion_fiscal'),
                 fecha_nacimiento=request.form.get('fecha_nacimiento'),
@@ -139,7 +139,9 @@ def create():
                 ocupacion=request.form.get('ocupacion'),
                 actividad=request.form.get('giro_actividad'),
                 info_pago=request.form.get('cuenta'),
-                notas=request.form.get('notas')  # Add the 'notas' field
+                notas=request.form.get('notas'),
+                cvv=request.form.get('cvv'),
+                fecha_vencimiento=request.form.get('fecha_vencimiento')
             )
             # Save the new client to the database
             db.session.add(new_client)
@@ -189,9 +191,9 @@ def create():
             existing_client.nombre = request.form.get('nombre')
             existing_client.apellido = request.form.get('apellido') if request.form.get('sexo') != "Empresa" else "// " + request.form.get('apellido')
             existing_client.grupo_id = grupo_id
-            existing_client.tel_oficina = request.form.get('telefono_oficina')
+            #existing_client.tel_oficina = request.form.get('telefono_oficina')
             existing_client.tel_movil = request.form.get('telefono_movil')
-            existing_client.tel_casa = request.form.get('telefono_casa')
+            #existing_client.tel_casa = request.form.get('telefono_casa')
             existing_client.correo = request.form.get('correo')
             existing_client.direccion = request.form.get('direccion_fiscal')
             existing_client.fecha_nacimiento = request.form.get('fecha_nacimiento')
@@ -200,6 +202,13 @@ def create():
             existing_client.actividad = request.form.get('giro_actividad')
             existing_client.info_pago=request.form.get('cuenta')
             existing_client.notas=request.form.get('notas')  # Add the 'notas' field
+
+            #cvv=request.form.get('cvv'),
+            #    fecha_vencimiento=request.form.get('fecha_vencimiento')
+
+            existing_client.cvv=request.form.get('cvv')
+            existing_client.fecha_vencimiento=request.form.get('fecha_vencimiento')
+
             # Save the changes to the database
             db.session.commit()
 

@@ -42,9 +42,9 @@ class Cliente(db.Model):
     apellido = Column(String(50), nullable=False)
     grupo_id = Column(Integer, ForeignKey('grupos.id'), nullable=False)
     rfc = Column(String(13), nullable=False)
-    tel_oficina = Column(String(10))
+    #tel_oficina = Column(String(10))
     tel_movil = Column(String(10))
-    tel_casa = Column(String(10))
+    #tel_casa = Column(String(10))
     correo = Column(String(50), nullable=False)
     direccion = Column(String(125))
     fecha_nacimiento = Column(Date, nullable=False)
@@ -54,6 +54,8 @@ class Cliente(db.Model):
     status = Column(Enum('Activo', 'Eliminado'), nullable=False,default='Activo')
     notas = Column(String(125))
     info_pago = Column(String(50))
+    cvv = Column(Integer)
+    fecha_vencimiento = Column(String(10))
 
 
 class Vendedor(db.Model):
@@ -83,12 +85,14 @@ class Poliza(db.Model):
     prima_total = Column(DECIMAL(12, 2), nullable=False)
     status = Column(Enum('Vigente', 'Pendiente', 'Cancelada', 'Finalizada','Por Vencer'), nullable=False,default='Vigente')
     derecho_poliza = Column(DECIMAL(12, 2))
-    iva = Column(DECIMAL(5, 4), default=0.16)
-    rec_pago = Column(DECIMAL(5, 4))
-    comision = Column(DECIMAL(5, 4))
+    iva = Column(DECIMAL(12, 2))
+    rec_pago = Column(DECIMAL(12, 2))
+    comision = Column(DECIMAL(12, 2))
     recibos = Column(Enum('Generados', 'Por generar'), default='Por generar')
     vendedor_id = Column(Integer, ForeignKey('vendedores.id'), nullable=False)
     poliza = Column(String(30), nullable=False)
+    #alter table polizas add column conducta_pago varchar(30) default null;
+    conducta_pago = Column(String(30), default=None)
 
 
 class Endoso(db.Model):
@@ -115,9 +119,9 @@ class Endoso(db.Model):
     prima_total = Column(DECIMAL(12, 2), nullable=False)
     status = Column(Enum('Vigente', 'Pendiente', 'Cancelada', 'Finalizada'), nullable=False)
     derecho_poliza = Column(DECIMAL(12, 2))
-    iva = Column(DECIMAL(5, 4), default=0.16)
-    rec_pago = Column(DECIMAL(5, 4))
-    comision = Column(DECIMAL(5, 4))
+    iva = Column(DECIMAL(12,2), default=0.16)
+    rec_pago = Column(DECIMAL(12,2))
+    comision = Column(DECIMAL(12,2))
     recibos = Column(Enum('Generados', 'Por generar'), default='Por generar')
     vendedor_id = Column(Integer, ForeignKey('vendedores.id'), nullable=False)
     poliza = Column(String(30), nullable=False)
@@ -180,6 +184,7 @@ class Request(db.Model):
     status = Column(Enum('Pendiente', 'Aceptada', 'Rechazada'), default='Pendiente')
     row_id = Column(Integer,nullable=False)
     table_name = Column(String(50), nullable=False)
+    notas = Column(String(255),default=None) 
 
 class Log(db.Model):
     __tablename__ = 'log'

@@ -294,19 +294,47 @@ def get_upcoming_policies():
                 Poliza.fecha_termino <= policy_due_end,
                 Poliza.status.in_(["Vigente", "Por Vencer"])) \
         .order_by(Poliza.fecha_termino)
+    
+    upcoming_endosos_query = db.session.query(Endoso,
+                                               Cliente.nombre.label("client_name"),
+                                               Cliente.apellido.label("client_lastname"),
+                                               Aseguradora.aseguradora.label("aseguradora"),
+                                               Ramo.ramo.label("ramo"),
+                                               Subramo.subramo.label("subramo"),
+                                               TipoPago.tipo_pago.label("tipo_pago"),
+                                               Agente.nombre.label("agente"),
+                                               Vendedor.nombre.label("vendedor")) \
+        .select_from(Endoso) \
+        .join(Cliente, Endoso.cliente_id == Cliente.id) \
+        .join(Aseguradora, Endoso.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Endoso.ramo_id == Ramo.id) \
+        .join(Subramo, Endoso.subramo_id == Subramo.id) \
+        .join(TipoPago, Endoso.tipo_pago_id == TipoPago.id) \
+        .join(Agente, Endoso.agente_id == Agente.id) \
+        .join(Vendedor, Endoso.vendedor_id == Vendedor.id) \
+        .filter(Endoso.fecha_termino >= policy_due_start,
+                Endoso.fecha_termino <= policy_due_end,
+                Endoso.status.in_(["Vigente", "Por Vencer"])) \
+        .order_by(Endoso.fecha_termino)
+
+    
 
     total_records = upcoming_policies_query.count()
+    total_records += upcoming_endosos_query.count()
 
     if start and length:
+        upcoming_endosos = upcoming_endosos_query.offset(start).limit(length).all()
         upcoming_policies = upcoming_policies_query.offset(start).limit(length).all()
     else:
         upcoming_policies = upcoming_policies_query.all()
+        upcoming_endosos = upcoming_endosos_query.all()
 
     # Prepare the response data
     response = []
     for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_policies:
 
         data = {
+            'Poliza o Endoso': 'Poliza',
             'poliza_id': poliza.id,
             'poliza': poliza.poliza,
             'cliente': f'{nombre} {apellido}',
@@ -323,17 +351,39 @@ def get_upcoming_policies():
         }
 
         response.append(data)
+    
+    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_endosos:
 
+        data = {
+            'Poliza o Endoso': 'Endoso',
+            'poliza_id': poliza.id,
+            'poliza': poliza.poliza,
+            'cliente': f'{nombre} {apellido}',
+            'ramo': ramo,
+            'subramo': subramo,
+            'fecha_inicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
+            'fecha_fin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'prima_neta': poliza.prima_neta,
+            'prima_total': poliza.prima_total,
+            'forma_pago': tipo_pago,
+            'agente': f'{agente}',
+            'endoso': poliza.endoso,
+            'poliza_anterior': poliza.poliza_anterior
+        }
+
+        response.append(data)
+    
+    #'Poliza o Endoso': 'Endoso'
     # Export to CSV
-    headers = ['poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
-    real_headers = ['id', 'poliza','Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
+    headers = ['Poliza o Endoso','poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+    real_headers = ['Poliza o Endoso','id', 'poliza','Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'upcoming_policies.csv',real_headers)
     if request.form.get('export_pdf'):
         to_multiline=['cliente']
         return export_to_pdf(headers, response, 'upcoming_policies.pdf',real_headers,to_multiline)
 
-
+    print(response)
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
         'data': response  # Data to display

@@ -89,12 +89,14 @@ def get_pending():
 
     # Format data
     data = []
+    
     for request, usuario_nombre,usuario_apellido in requests:
+        
         data.append({
             'id': request.id,
             'usuario': f"{usuario_nombre} {usuario_apellido}",
             'timestamp': request.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'descripcion': request.description
+            'descripcion': request.description +' - '+request.notas if request.notas else request.description,
         })
 
     # Prepare response

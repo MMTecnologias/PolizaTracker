@@ -809,13 +809,17 @@ $(function () {
         tipo_pago_id,
       }),
       success: function (resp) {
+        if (resp.error) {
+          alert(resp.msg, "error", resp.title);
+          $("#create-recib").modal("hide");
+        } else {
         console.log(resp);
         $("#prima-neta").val(resp.netPremium);
         $("#prima-total").val(resp.totalPremium);
         $("#nopagos").val(resp.numReceipts);
         $("iva").val(Number(resp.totalPremium) * 0.16);
         $("#create-recib").modal({ backdrop: "static", keyboard: false });
-        $("#receipts_created").val("no");
+        $("#receipts_created").val("no");}
       },
       error: function (xhr, textStatus, error) {
         console.error(error);
@@ -917,6 +921,7 @@ $(function () {
     const insurance = $("#derecho_poliza").val();
     const commission = $("#comision").val();
     const receipts = $("#nopagos").val();
+    const rec_pago = $("#rec_pago").val();
     if (!iva || !insurance || !commission)
       return alert(
         "debe llenar los campos, derecho de póliza, iva y comisión",
@@ -932,6 +937,7 @@ $(function () {
         insurance,
         commission,
         receipts,
+        rec_pago
       }),
       success: function (resp) {
         $("#prima_neta_1er").val(resp.firstpay.netPremium);

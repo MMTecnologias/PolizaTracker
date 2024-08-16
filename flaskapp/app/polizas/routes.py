@@ -215,6 +215,7 @@ def create():
         return argdict
 
     # fecha_captura
+    #alter table polizas add column conducta_pago varchar(30) default null;
     column_name_mapping = {
         'cliente_id': 'selected-client-id',
         'fecha_inicio': 'VigenciaI',
@@ -227,7 +228,8 @@ def create():
         'renovacion': 'renovacion',
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
-        'poliza': 'Poliza'
+        'poliza': 'Poliza',
+        'conducta_pago':'conducto_pago'
     }
     form_value_mapping = {
         'selected-client-id': request.form.get('selected-client-id'),
@@ -241,7 +243,8 @@ def create():
         'renovacion': request.form.get('renovacion'),
         'prima_neta': request.form.get('prima_neta'),
         'prima_total': request.form.get('prima_total'),
-        'Poliza': request.form.get('Poliza')
+        'Poliza': request.form.get('Poliza'),
+        'conducto_pago': request.form.get('conducto_pago')
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
@@ -292,14 +295,15 @@ def create():
 @login_required
 def delete():
     poliza_id = int(request.form.get('poliza_id'))
-
+    razon = request.form.get('razon')
     poliza = Poliza.query.get(poliza_id)
     if poliza:
         # Update the poliza's status to "Eliminado"
         request_entry = Request(usuario_id=current_user.id,
                                 description=f"Cancelar póliza {poliza.poliza}",
                                 table_name='Poliza',
-                                row_id=poliza.id)
+                                row_id=poliza.id,
+                                notas=razon)
         db.session.add(request_entry)
         db.session.commit()
         log_entry = Log(request_id=request_entry.id,
@@ -310,7 +314,7 @@ def delete():
         db.session.add(log_entry)
         poliza.status = "Cancelada"
         db.session.commit()
-        return jsonify({'error': False, 'title': 'Póliza eliminada', 'msg': 'La póliza ha sido eliminada con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
+        return jsonify({'error': False, 'title': 'Póliza cancelada', 'msg': 'La póliza ha sido cancelada con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró la póliza.'})
 
@@ -329,8 +333,15 @@ def get_policy_values():
     # Calcular la duración de la póliza en años, considerando años bisiestos
     start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d')
     end_date = datetime.strptime(fecha_termino, '%Y-%m-%d')
+
+    #Calcular la duracion en meses con funcion de floor
+    def diff_month(d1, d2):
+        return (d1.year - d2.year) * 12 + d1.month - d2.month
+    
+    policy_duration_months = diff_month(end_date,start_date)
+
     # Duración en años, considerando años bisiestos y redondeado a entero
-    policy_duration = int(round((end_date - start_date).days / 365.2425))
+    #policy_duration = int(round((end_date - start_date).days / 365.2425))
 
     # Obtener el tipo de pago de la póliza
     tipo_pago = TipoPago.query.get(tipo_pago_id)
@@ -342,14 +353,21 @@ def get_policy_values():
         num_payments = 1
     else:
         # De lo contrario, el número de pagos es igual a los pagos mensuales
-        num_payments = tipo_pago.pagos_anuales*policy_duration
+        deltames=12/tipo_pago.pagos_anuales
+        if deltames>policy_duration_months:
+            return jsonify({'error': True, 'msg': 'Este tipo de pago no es valido para la duracion de la poliza/endoso. Porfavor, intente con otro'}) 
+        if policy_duration_months % deltames == 0:
+            num_payments = policy_duration_months // deltames
+        else:
+            return jsonify({'error': True, 'msg': 'Este tipo de pago no es válido para la duración de la póliza/endoso. Por favor, intente con otro'})
+    
 
     # Devolver los valores como un objeto JSON
     return jsonify({'error':False,
         'netPremium': float(prima_neta),
         'totalPremium': float(prima_total),
         'numReceipts': int(num_payments),
-        'policyDuration': int(policy_duration),  # Convertir a entero
+        #'policyDuration': int(policy_duration),  # Convertir a entero
     })
 
 def calcular_recibos():
@@ -357,14 +375,21 @@ def calcular_recibos():
     prima_total = float(request.form.get('totalPremium'))
     prima_neta = float(request.form.get('netPremium'))
     iva = float(request.form.get('iva'))
-    derecho_poliza = float(request.form.get('insurance'))*(1+iva / 100)
-    iva = prima_neta * iva / 100
+    derecho_poliza = float(request.form.get('insurance'))
+    derecho_poliza_con_iva = derecho_poliza * (1+iva / 100)
+    iva = prima_total*iva /(100+iva) 
     commission = float(request.form.get('commission'))
-    commission = prima_total * commission/100
+    commission = prima_neta * commission/100
     # Assuming this is the number of payments
     nopagos = int(request.form.get('receipts'))
-    print(derecho_poliza)
-    recargo_por_pago = prima_total - derecho_poliza - prima_neta - iva
+    
+    recargo_por_pago = prima_total - iva-prima_neta-derecho_poliza
+    
+    rec_pago=request.form.get('rec_pago') #Es "primer_recibo" o "dividir_recibos"
+    print(rec_pago)
+    print(nopagos)
+    print(derecho_poliza_con_iva)
+    
     # Perform calculations
     response = {
         'firstpay': {
@@ -380,12 +405,12 @@ def calcular_recibos():
     }
 
     # Calculate the values for the first payment
-    total_premium = (prima_neta + iva + recargo_por_pago) / nopagos
+    total_premium = (prima_total-derecho_poliza_con_iva)/nopagos if rec_pago=="primer_recibo" else prima_total/nopagos
     net_premium = prima_neta / nopagos
     commission_pp = commission / nopagos
 
     response['firstpay']['netPremium'] = net_premium
-    response['firstpay']['totalPremium'] = total_premium + derecho_poliza
+    response['firstpay']['totalPremium'] = total_premium + derecho_poliza_con_iva if rec_pago=="primer_recibo" else total_premium
     response['firstpay']['comision'] = commission_pp
 
     # If there are subsequent payments, calculate their values as well
@@ -395,12 +420,13 @@ def calcular_recibos():
         response['subspay']['comision'] = commission_pp
 
     response['derecho_poliza'] = derecho_poliza
-    response['iva'] = iva/prima_neta
-    response['rec_pago'] = recargo_por_pago/prima_neta
-    response['comision'] = commission/prima_total
+    response['iva'] = iva
+    response['rec_pago'] = recargo_por_pago
+    response['comision'] = commission
     response['poliza_id'] = request.form.get('selectPoliza')
     response['nopagos'] = nopagos
-    # print(response)
+
+    print(response)
     return response
 
 def add_months(start_date, num_months):
@@ -452,7 +478,7 @@ def save_receipts():
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
     elif poliza.recibos == "Generados":
         return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
-
+    
     try:
         # Ejecuta el bucle para crear registros
         start_date = endoso_or_poliza.fecha_inicio
@@ -503,7 +529,7 @@ def save_receipts():
                 db.session.add(nuevo_recibo)
 
         endoso_or_poliza.derecho_poliza = response['derecho_poliza']
-        endoso_or_poliza.iva = response['iva']
+        endoso_or_poliza.iva = round(response['iva'],2)
         endoso_or_poliza.rec_pago = response['rec_pago']
         endoso_or_poliza.comision = response['comision']
         endoso_or_poliza.recibos = "Generados"
@@ -515,6 +541,7 @@ def save_receipts():
     except Exception as e:
         # Si ocurre algún error, realiza un rollback
         db.session.rollback()
+        print(e)
         return jsonify({'error': True, 'msg': 'Error en la creación de recibos '+str(e)})
 
 """Endosos"""
