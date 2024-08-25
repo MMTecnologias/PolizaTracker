@@ -228,8 +228,8 @@ def get_upcoming_receipts():
             'notas': poliza.notas,
             'ramo': ramo,
             'subramo': subramo,
-            'fecha_inicio': recibo.fecha_inicio.strftime('%Y-%m-%d'),
-            'fecha_fin': recibo.fecha_vencimiento.strftime('%Y-%m-%d'),
+            'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
+            'fecha_fin': recibo.fecha_vencimiento.strftime('%d/%m/%y'),
             'prima_neta': recibo.prima_neta,
             'prima_total': recibo.prima_total,
             'forma_pago': tipo_pago,
@@ -340,8 +340,8 @@ def get_upcoming_policies():
             'cliente': f'{nombre} {apellido}',
             'ramo': ramo,
             'subramo': subramo,
-            'fecha_inicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
-            'fecha_fin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'fecha_inicio': poliza.fecha_inicio.strftime('%d/%m/%y'),
+            'fecha_fin': poliza.fecha_termino.strftime('%d/%m/%y'),
             'prima_neta': poliza.prima_neta,
             'prima_total': poliza.prima_total,
             'forma_pago': tipo_pago,
@@ -361,8 +361,8 @@ def get_upcoming_policies():
             'cliente': f'{nombre} {apellido}',
             'ramo': ramo,
             'subramo': subramo,
-            'fecha_inicio': poliza.fecha_inicio.strftime('%Y-%m-%d'),
-            'fecha_fin': poliza.fecha_termino.strftime('%Y-%m-%d'),
+            'fecha_inicio': poliza.fecha_inicio.strftime('%d/%m/%y'),
+            'fecha_fin': poliza.fecha_termino.strftime('%d/%m/%y'),
             'prima_neta': poliza.prima_neta,
             'prima_total': poliza.prima_total,
             'forma_pago': tipo_pago,
@@ -376,7 +376,7 @@ def get_upcoming_policies():
     #'Poliza o Endoso': 'Endoso'
     # Export to CSV
     headers = ['Poliza o Endoso','poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
-    real_headers = ['Poliza o Endoso','id', 'poliza','Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
+    real_headers = ['Tipo','id', 'poliza','Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'upcoming_policies.csv',real_headers)
     if request.form.get('export_pdf'):
@@ -420,14 +420,28 @@ def export_to_pdf(headers, jsondic, filename,real_headers=None,to_multiline=None
     # Create a buffer to hold the PDF data
     buffer = BytesIO()
     # Set up the PDF document
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4)
     # Create the table data
     style = getSampleStyleSheet()['Normal']
+    style.fontName = 'Helvetica'
+    style.fontSize = 8
+    style.textColor = colors.black
+    style.wordWrap = True
+    style.alignment = 0
+    style.valign = 1
+    style.bottomPadding = 6
+
+
+    print(real_headers)
+    print(jsondic)  
     data = [real_headers] + [
-        [Paragraph(data[header], style) if header in to_multiline else data[header] for header in headers]
+        [Paragraph(
+            '' if not data[header] else data[header]
+            , style) if header in to_multiline else data[header] for header in headers]
         for data in jsondic
     ]
-
+    print("Porcessed")
+    print(data)
     # Create the table and set its style
     table = Table(data)
     table.setStyle(TableStyle([
@@ -435,12 +449,12 @@ def export_to_pdf(headers, jsondic, filename,real_headers=None,to_multiline=None
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('WORDWRAP', (0, 1), (-1, -1), True),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('FONTSIZE', (0, 1), (-1, -1), 7),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),

@@ -348,6 +348,28 @@ def get_policy_values():
     if not tipo_pago:
         return jsonify({'error': True, 'msg': 'Tipo de pago no encontrado'})
 
+    endoso=request.form.get('is_endoso')
+    msg=""
+    if endoso=="true":
+        poliza_id=request.form.get('poliza_id')
+        poliza=Poliza.query.get(poliza_id)
+        if not poliza: return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
+        if start_date>poliza.fecha_termino: return jsonify({'error': True, 'msg': 'El endoso no puede empezar una vez vencida la poliza'})
+        if tipo_pago.contado!="Si" and TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago and poliza.fecha_termino==end_date:
+            #Obtener el numero de pagos de la poliza que estan entre las fechas esocgidas
+            num_payments = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <= end_date, Recibo.endoso_id == None).count()
+            return jsonify({'error':False,
+                'netPremium': float(prima_neta),
+                'totalPremium': float(prima_total),
+                'numReceipts': int(num_payments),
+                'msg':msg
+                #'policyDuration': int(policy_duration),  # Convertir a entero
+            })
+        if tipo_pago.contado=="Si": msg=""
+        msg="Los recibos del endoso no coincidiran con los de la poliza, para esto seleccione el tipo de pago: %s y la fecha de termino de la poliza: %s" % (TipoPago.query.get(poliza.tipo_pago_id).tipo_pago,poliza.fecha_termino.strftime('%d/%m/%Y'))
+        print(msg)
+        
+
     # Obtener el número de pagos según el tipo de pago
     if tipo_pago.contado == "Si":
         num_payments = 1
@@ -367,6 +389,7 @@ def get_policy_values():
         'netPremium': float(prima_neta),
         'totalPremium': float(prima_total),
         'numReceipts': int(num_payments),
+        'msg':msg
         #'policyDuration': int(policy_duration),  # Convertir a entero
     })
 
@@ -455,6 +478,7 @@ def save_receipts():
     endoso_id = request.form.get('endoso_id')
     multiplier=1
     endoso_or_poliza = poliza
+    is_endoso = False
     if endoso_id:
         endoso = Endoso.query.get(endoso_id)
         if not endoso:
@@ -473,6 +497,7 @@ def save_receipts():
         if endoso.recibos == "Generados":
             return jsonify({'error': True, 'msg': 'Este endoso ya tiene recibos generados'})
         endoso_or_poliza = endoso
+        is_endoso = True
 
     elif not poliza:
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
@@ -500,6 +525,10 @@ def save_receipts():
             num_months = int(12/tipo_pago.pagos_anuales)
             fecha_inicio = start_date
             fecha_vencimiento = add_months(fecha_inicio, num_months)
+            if is_endoso:
+                if TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago and poliza.fecha_termino==end_date:
+                    recibo=Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <= end_date, Recibo.endoso_id == None).order_by(Recibo.id).first()
+                    fecha_vencimiento=recibo.fecha_vencimiento.strftime('%Y-%m-%d')
             nopagos = response['nopagos']
             print(nopagos)
             nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
