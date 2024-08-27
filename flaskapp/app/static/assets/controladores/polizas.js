@@ -87,6 +87,8 @@ $(function () {
   async function resetForm() {
     try {
       $("#form-polizas")[0].reset();
+      $("#btnGuardar").show();
+      $("#reset-btn").show();
       $("#form-polizas").removeClass("was-validated");
       $("#form-polizas select").prop("disabled", false);
       $("#poliza_id").val("New");
@@ -182,6 +184,104 @@ $(function () {
           $("#prima_total").prop("disabled", false);
           return;
         }
+        $("#serie").val(resp.data[0].serie);
+        $("#notas").val(resp.data[0].notas);
+        $("#Moneda").val(resp.data[0].moneda);
+        $("#prima_neta").val(resp.data[0].prima_neta);
+        $("#prima_total").val(resp.data[0].prima_total);
+        $("#prima_neta").prop("disabled", true);
+        $("#prima_total").prop("disabled", true);
+        $("#ramo").html(`<option value='${resp.data[0].ramo_id}'>
+            ${resp.data[0].ramo}
+            </option>
+        `);
+        $("#subramo").html(`<option value='${resp.data[0].subramo_id}'>
+            ${resp.data[0].subramo}
+            </option>
+        `);
+        $("#aseguradora").html(`<option value='${resp.data[0].aseguradora_id}'>
+            ${resp.data[0].aseguradora}
+            </option>
+        `);
+        $("#Pago").html(`<option value='${resp.data[0].tipo_pago_id}'>
+            ${resp.data[0].tipoPago}
+            </option>
+        `);
+        $("#vendedor").html(`<option value='${resp.data[0].vendedor_id}'>
+            ${resp.data[0].vendedor}
+            </option>
+        `);
+        $("#agente").html(`<option value='${resp.data[0].agente_id}'>
+            ${resp.data[0].agente}
+            </option>
+        `);
+        if (data) {
+          for (const ramo of data.Ramo) {
+            $("#ramo").append(`<option value='${ramo.id}'>
+        ${ramo.ramo}
+        </option>
+        `);
+          }
+          $("#ramo").append(`<option value="New">Nuevo Ramo</option>`);
+          for (const subramo of data.Subramo) {
+            $("#subramo").append(`<option value='${subramo.id}'>
+        ${subramo.subramo}
+        </option>
+        `);
+          }
+          $("#subramo").append(`<option value="New">Nuevo Subramo</option>`);
+          for (const aseguradora of data.Aseguradora) {
+            $("#aseguradora").append(`<option value='${aseguradora.id}'>
+        ${aseguradora.aseguradora}
+        </option>
+        `);
+          }
+          $("#aseguradora").append(
+            `<option value="New">Nueva Aseguradora</option>`
+          );
+          for (const pago of data.TipoPago) {
+            $("#Pago").append(`<option value='${pago.id}'>
+        ${pago.tipo_pago}
+        </option>
+        `);
+          }
+          for (const vendedor of data.Vendedor) {
+            $("#vendedor").append(`<option value='${vendedor.id}'>
+        ${vendedor.nombre}
+        </option>
+        `);
+          }
+          $("#vendedor").append(`<option value="New">Nuevo Vendedor</option>`);
+          for (const agente of data.Agente) {
+            $("#agente").append(`<option value='${agente.id}'>
+        ${agente.nombre}
+        </option>
+        `);
+          }
+          $("#agente").append(`<option value="New">Nuevo Agente</option>`);
+        }
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
+  async function showPoliza(poliza_id) {
+    const data = await resetForm();
+    $("#btnGuardar").hide();
+    $("#reset-btn").hide();
+    $("#poliza_id").val(poliza_id);
+    $("#div_search_client").hide();
+    $("#div_poliza_id").show();
+    $.ajax({
+      ...ajaxConfig,
+      url: "/polizas/get",
+      data: $.param({ start: 0, length: 0, poliza_id }),
+      success: function (resp) {
+        $("#id_poliza").val(resp.data[0].poliza);
+        $("#selected-client-id").val(resp.data[0].cliente_id);
+        $("#VigenciaF").val(resp.data[0].fecha_termino);
+        $("#prima_neta").prop("disabled", false);
+        $("#prima_total").prop("disabled", false);
         $("#serie").val(resp.data[0].serie);
         $("#notas").val(resp.data[0].notas);
         $("#Moneda").val(resp.data[0].moneda);
@@ -651,6 +751,11 @@ $(function () {
                 </a>
               </li>
               <li>
+                <a class="btn__icon_show pointer" id="btnEndoso_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M120-220v-80h80v80h-80Zm0-140v-80h80v80h-80Zm0-140v-80h80v80h-80ZM260-80v-80h80v80h-80Zm100-160q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480Zm40 240v-80h80v80h-80Zm-200 0q-33 0-56.5-23.5T120-160h80v80Zm340 0v-80h80q0 33-23.5 56.5T540-80ZM120-640q0-33 23.5-56.5T200-720v80h-80Zm420 80Z"/></svg>
+                </a>
+              </li>
+              <li>
                 <a class="btn__icon_show pointer" id="btnShow_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" class="btn_icon"><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
                 </a>
@@ -674,9 +779,12 @@ $(function () {
       });
       $(`#btnDelete_${poliza.id}`).on("click", (e) => cancelPoliza(poliza.id));
       $(`#btnRenew_${poliza.id}`).on("click", (e) => renewPoliza(poliza.id));
-      $(`#btnShow_${poliza.id}`).on("click", (e) => {
+      $(`#btnEndoso_${poliza.id}`).on("click", (e) => {
         getEndosos(poliza.id);
         $("#endoso-list").modal();
+      });
+      $(`#btnShow_${poliza.id}`).on("click", (e) => {
+
       });
     });
     if (!data.length) return;
@@ -1012,8 +1120,8 @@ $(function () {
     }
   });
 
-  $("#endoso_tipo_a").click((e) => createEndozo($("#poliza_id").val(), "A"));
-  $("#endoso_tipo_b").click((e) => createEndozo($("#poliza_id").val(), "B"));
+  $("#endoso_tipo_a").click((e) => createEndozo($("#poliza_id").val(), "B"));
+  $("#endoso_tipo_b").click((e) => createEndozo($("#poliza_id").val(), "A"));
   $("#endoso_tipo_d").click((e) => createEndozo($("#poliza_id").val(), "D"));
 
   $("#div_poliza_id").hide();
