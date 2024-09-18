@@ -907,17 +907,23 @@ $(function () {
     const fecha_inicio = $('#VigenciaI').val();
     const fecha_termino = $('#VigenciaF').val();
     const tipo_pago_id = $('#Pago').val();
+    let params = $.param({
+      prima_neta,
+      prima_total,
+      fecha_inicio,
+      fecha_termino,
+      tipo_pago_id,
+    });
+    if ($('#title_poliza')?.text()?.includes('Endoso')) {
+      const polizaId = $('#poliza_id').val();
+      params = `${params}&poliza_id=${polizaId}&is_endoso=true`;
+    }
+    console.log(params);
     $.ajax({
       url: 'polizas/get_policy_values',
       method: 'POST',
       dataType: 'json',
-      data: $.param({
-        prima_neta,
-        prima_total,
-        fecha_inicio,
-        fecha_termino,
-        tipo_pago_id,
-      }),
+      data: params,
       success: function (resp) {
         if (resp.error) {
           alert(resp.msg, 'error', resp.title);

@@ -337,7 +337,7 @@ def get_policy_values():
     #Calcular la duracion en meses con funcion de floor
     def diff_month(d1, d2):
         return (d1.year - d2.year) * 12 + d1.month - d2.month
-    
+
     policy_duration_months = diff_month(end_date,start_date)
 
     # Duración en años, considerando años bisiestos y redondeado a entero
@@ -368,7 +368,7 @@ def get_policy_values():
         if tipo_pago.contado=="Si": msg=""
         msg="Los recibos del endoso no coincidiran con los de la poliza, para esto seleccione el tipo de pago: %s y la fecha de termino de la poliza: %s" % (TipoPago.query.get(poliza.tipo_pago_id).tipo_pago,poliza.fecha_termino.strftime('%d/%m/%Y'))
         print(msg)
-        
+        return jsonify({'error': True, 'msg': msg})
 
     # Obtener el número de pagos según el tipo de pago
     if tipo_pago.contado == "Si":
@@ -377,12 +377,12 @@ def get_policy_values():
         # De lo contrario, el número de pagos es igual a los pagos mensuales
         deltames=12/tipo_pago.pagos_anuales
         if deltames>policy_duration_months:
-            return jsonify({'error': True, 'msg': 'Este tipo de pago no es valido para la duracion de la poliza/endoso. Porfavor, intente con otro'}) 
+            return jsonify({'error': True, 'msg': 'Este tipo de pago no es valido para la duracion de la poliza/endoso. Porfavor, intente con otro'})
         if policy_duration_months % deltames == 0:
             num_payments = policy_duration_months // deltames
         else:
             return jsonify({'error': True, 'msg': 'Este tipo de pago no es válido para la duración de la póliza/endoso. Por favor, intente con otro'})
-    
+
 
     # Devolver los valores como un objeto JSON
     return jsonify({'error':False,
@@ -400,19 +400,19 @@ def calcular_recibos():
     iva = float(request.form.get('iva'))
     derecho_poliza = float(request.form.get('insurance'))
     derecho_poliza_con_iva = derecho_poliza * (1+iva / 100)
-    iva = prima_total*iva /(100+iva) 
+    iva = prima_total*iva /(100+iva)
     commission = float(request.form.get('commission'))
     commission = prima_neta * commission/100
     # Assuming this is the number of payments
     nopagos = int(request.form.get('receipts'))
-    
+
     recargo_por_pago = prima_total - iva-prima_neta-derecho_poliza
-    
+
     rec_pago=request.form.get('rec_pago') #Es "primer_recibo" o "dividir_recibos"
     print(rec_pago)
     print(nopagos)
     print(derecho_poliza_con_iva)
-    
+
     # Perform calculations
     response = {
         'firstpay': {
@@ -503,7 +503,7 @@ def save_receipts():
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
     elif poliza.recibos == "Generados":
         return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
-    
+
     try:
         # Ejecuta el bucle para crear registros
         start_date = endoso_or_poliza.fecha_inicio
