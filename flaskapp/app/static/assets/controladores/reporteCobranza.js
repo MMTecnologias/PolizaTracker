@@ -2,23 +2,24 @@
 $(function () {
   let ordered = false;
   const ajaxConfig = {
-    url: "",
-    type: "POST",
+    url: '',
+    type: 'POST',
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    dataType: "json",
+    dataType: 'json',
   };
 
-  function alert(text = "", icon = "success", title = "") {
+  function alert(text = '', icon = 'success', title = '') {
     Swal.fire({ title, text, icon });
   }
 
   function fillTableVencimientos(resp) {
     const itemsOnPage = 5;
     const { data, recordsTotal } = resp;
-    const table = $("#table-vencimientos");
-    table.html("");
+    console.log(data);
+    const table = $('#table-vencimientos');
+    table.html('');
     $.each(data, function (idx, poliza) {
       table.append(
         `<tr class="tableOption">
@@ -27,26 +28,27 @@ $(function () {
                 ${poliza.no_de_recibo}
             </p>
           </td>
-          <td>${poliza.poliza}</td>
+          <td>${poliza.endoso !== null ? 'Endoso' : 'Poliza'}</td>
+          <td>${poliza.endoso !== null ? poliza.endoso : poliza.poliza}</td>
           <td>${poliza.fecha_fin}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>
           <td>${poliza.subramo}</td>
           <td>${poliza.forma_pago}</td>
-        </tr>`
+        </tr>`,
       );
     });
-    $(".tableOption").slice(5).hide();
-    $("#pagination").pagination({
+    $('.tableOption').slice(5).hide();
+    $('#pagination').pagination({
       items: recordsTotal,
       itemsOnPage: itemsOnPage,
       onPageClick: (noofele) =>
-        $(".tableOption")
+        $('.tableOption')
           .hide()
           .slice(
             itemsOnPage * (noofele - 1),
-            itemsOnPage + itemsOnPage * (noofele - 1)
+            itemsOnPage + itemsOnPage * (noofele - 1),
           )
           .show(),
     });
@@ -55,36 +57,36 @@ $(function () {
   function getVencimientos(formDataFechas = null, start = 0, length = 10) {
     $.ajax({
       ...ajaxConfig,
-      url: "/vencimientos/get_upcoming_receipts",
+      url: '/vencimientos/get_upcoming_receipts',
       data: formDataFechas ? formDataFechas : $.param({ start, length }),
       success: fillTableVencimientos,
       error: (xhr, status, error) => console.error(error),
     });
   }
 
-  $("#form-fechas").submit(function (e) {
+  $('#form-fechas').submit(function (e) {
     e.preventDefault();
     if (!this.checkValidity())
-      return alert("Debes llenar los dos campos de fecha", "warning");
-    const formDataFechas = $("#form-fechas").serialize();
+      return alert('Debes llenar los dos campos de fecha', 'warning');
+    const formDataFechas = $('#form-fechas').serialize();
     getVencimientos(formDataFechas);
   });
 
-  $("#btnExportar").click((e) => {
+  $('#btnExportar').click((e) => {
     e.preventDefault();
     $.ajax({
-      type: "POST",
-      url: "/vencimientos/get_upcoming_receipts",
+      type: 'POST',
+      url: '/vencimientos/get_upcoming_receipts',
       data: $.param({ export_csv: true }),
       xhrFields: {
-        responseType: "blob",
+        responseType: 'blob',
       },
       success: function (blob, status, xhr) {
         // Crear un enlace temporal para descargar el archivo
-        let a = document.createElement("a");
+        let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = "collection_report.csv";
+        a.download = 'collection_report.csv';
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -94,21 +96,21 @@ $(function () {
     });
   });
 
-  $("#btnPdf").click((e) => {
+  $('#btnPdf').click((e) => {
     e.preventDefault();
     $.ajax({
-      type: "POST",
-      url: "/vencimientos/get_upcoming_receipts",
+      type: 'POST',
+      url: '/vencimientos/get_upcoming_receipts',
       data: $.param({ export_pdf: true }),
       xhrFields: {
-        responseType: "blob",
+        responseType: 'blob',
       },
       success: function (blob, status, xhr) {
         // Crear un enlace temporal para descargar el archivo
-        let a = document.createElement("a");
+        let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = "reporte_cobranza.pdf";
+        a.download = 'reporte_cobranza.pdf';
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);
