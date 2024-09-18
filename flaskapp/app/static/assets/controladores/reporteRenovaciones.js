@@ -94,10 +94,15 @@ $(function () {
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
+    let params = $.param({ export_csv: true });
+    if ($('#start_date').val() && $('#end_date').val()) {
+      const formDataFechas = $('#form-fechas').serialize();
+      params = `${params}&${formDataFechas}`;
+    }
     $.ajax({
       type: 'POST',
       url: '/vencimientos/get_upcoming_policies',
-      data: $.param({ export_csv: true }),
+      data: params,
       xhrFields: {
         responseType: 'blob',
       },
@@ -106,7 +111,7 @@ $(function () {
         let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = 'renewal_report.csv';
+        a.download = `reporte_renovaciones_${new Date().toLocaleDateString()}.csv`;
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -120,10 +125,15 @@ $(function () {
 
   $('#btnPdf').click((e) => {
     e.preventDefault();
+    let params = $.param({ export_pdf: true });
+    if ($('#start_date').val() && $('#end_date').val()) {
+      const formDataFechas = $('#form-fechas').serialize();
+      params = `${params}&${formDataFechas}`;
+    }
     $.ajax({
       type: 'POST',
       url: '/vencimientos/get_upcoming_policies',
-      data: $.param({ export_pdf: true }),
+      data: params,
       xhrFields: {
         responseType: 'blob',
       },
@@ -132,7 +142,7 @@ $(function () {
         let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = 'reporte-renovaciones.pdf';
+        a.download = `reporte_renovaciones_${new Date().toLocaleDateString()}.pdf`;
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);
