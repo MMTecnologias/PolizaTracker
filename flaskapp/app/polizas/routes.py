@@ -350,14 +350,16 @@ def get_policy_values():
 
     endoso=request.form.get('is_endoso')
     msg=""
+    
     if endoso=="true":
         poliza_id=request.form.get('poliza_id')
         poliza=Poliza.query.get(poliza_id)
         if not poliza: return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
-        if start_date>poliza.fecha_termino: return jsonify({'error': True, 'msg': 'El endoso no puede empezar una vez vencida la poliza'})
-        if tipo_pago.contado!="Si" and TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago and poliza.fecha_termino==end_date:
+        if start_date.date()>poliza.fecha_termino: return jsonify({'error': True, 'msg': 'El endoso no puede empezar una vez vencida la poliza'})
+        print(TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago)
+        if tipo_pago.contado!="Si" and TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago and poliza.fecha_termino==end_date.date():
             #Obtener el numero de pagos de la poliza que estan entre las fechas esocgidas
-            num_payments = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <= end_date, Recibo.endoso_id == None).count()
+            num_payments = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <= end_date.date(), Recibo.endoso_id == None).count()
             return jsonify({'error':False,
                 'netPremium': float(prima_neta),
                 'totalPremium': float(prima_total),
