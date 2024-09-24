@@ -370,7 +370,7 @@ def get_policy_values():
         if tipo_pago.contado=="Si": msg=""
         msg="Los recibos del endoso no coincidiran con los de la poliza, para esto seleccione el tipo de pago: %s y la fecha de termino de la poliza: %s" % (TipoPago.query.get(poliza.tipo_pago_id).tipo_pago,poliza.fecha_termino.strftime('%d/%m/%Y'))
         print(msg)
-        return jsonify({'error': True, 'msg': msg})
+        #return jsonify({'error': True, 'msg': msg})
 
     # Obtener el número de pagos según el tipo de pago
     if tipo_pago.contado == "Si":

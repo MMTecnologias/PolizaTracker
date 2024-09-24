@@ -15,7 +15,7 @@ from sqlalchemy.orm import aliased
 from io import BytesIO
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib import colors
+from reportlab.lib import colors,styles
 from reportlab.lib.styles import getSampleStyleSheet
 
 
@@ -264,7 +264,9 @@ def get_upcoming_receipts():
         return export_to_csv(headers, response, 'upcoming_receipts.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['cliente', 'notas']
-        return export_to_pdf(headers, response, 'upcoming_receipts.pdf', real_headers, to_multiline)
+        today = datetime.now().strftime('%d/%m/%y')
+        title_str="Recibos por vencer en (%s - %s) al %s" % (payment_due_start.strftime('%d/%m/%y'), payment_due_end.strftime('%d/%m/%y'),today )
+        return export_to_pdf(headers, response, 'upcoming_receipts.pdf', real_headers, to_multiline,title_str)
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
@@ -412,7 +414,9 @@ def get_upcoming_policies():
         return export_to_csv(headers, response, 'upcoming_policies.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['cliente']
-        return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline)
+        today = datetime.now().strftime('%d/%m/%y')
+        title_str="Pólizas y Endosos por vencer en (%s - %s) al %s" % (policy_due_start.strftime('%d/%m/%y'), policy_due_end.strftime('%d/%m/%y'),today)
+        return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline,title_str)
 
     print(response)
     return jsonify({
@@ -446,7 +450,8 @@ def export_to_csv(headers, jsondic, filename, real_headers=None):
     return response
 
 
-def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None):
+def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None,title_str="Title"):
+    title_str=str(title_str)
     if real_headers is None:
         real_headers = headers
     if to_multiline is None:
@@ -455,7 +460,8 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     buffer = BytesIO()
     # Set up the PDF document
     doc = SimpleDocTemplate(buffer, pagesize=landscape(
-        letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4)
+        letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4,title=title_str)
+    
     # Create the table data
     style = getSampleStyleSheet()['Normal']
     style.fontName = 'Helvetica'
@@ -494,9 +500,24 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     ]))
 
     # Build the PDF document
-    elements = [table]
-    doc.build(elements)
+    elements = []
+    
+    # Create a style for the title
+    title_style = getSampleStyleSheet()['Title']
+    title_style.fontName = 'Helvetica'
+    title_style.fontSize = 14
+    title_style.leading = 20
+    title_style.alignment = 1  # Center alignment
+    
+    # Create the title paragraph
+    p = Paragraph(title_str, title_style)
+    elements.append(p)
 
+    elements.append(table)
+    doc.build(elements)
+    
+
+    
     # Reset the buffer position
     buffer.seek(0)
 
