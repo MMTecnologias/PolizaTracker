@@ -185,6 +185,9 @@ def get_upcoming_receipts():
     print(request.form.get('end_date'))
 
     # Retrieve the start and end dates for the report
+    filtered_selected = True
+    if not request.form.get('start_date') and not request.form.get('end_date'):
+        filtered_selected = False
     start_date = datetime.now() if not request.form.get(
         'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
     end_date = start_date + timedelta(days=days_tolerance//2) if not request.form.get(
@@ -264,8 +267,11 @@ def get_upcoming_receipts():
         return export_to_csv(headers, response, 'upcoming_receipts.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['cliente', 'notas']
-        today = datetime.now().strftime('%d/%m/%y')
-        title_str="Recibos por vencer en (%s - %s) al %s" % (payment_due_start.strftime('%d/%m/%y'), payment_due_end.strftime('%d/%m/%y'),today )
+        if filtered_selected:
+            title_str="Recibos por vencer en %s - %s" % (payment_due_start.strftime('%d/%m/%y'), payment_due_end.strftime('%d/%m/%y'))
+        else: 
+            today = datetime.now().strftime('%d/%m/%y')
+            title_str="Recibos próximos por vencer, al %s" % today
         return export_to_pdf(headers, response, 'upcoming_receipts.pdf', real_headers, to_multiline,title_str)
 
     return jsonify({
@@ -285,6 +291,10 @@ def get_upcoming_policies():
                  ) if request.form.get('length') else None
 
     # Retrieve the start and end dates for the report
+
+    filtered_selected = True
+    if not request.form.get('start_date') and not request.form.get('end_date'):
+        filtered_selected = False
     start_date = datetime.now() if not request.form.get(
         'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
     end_date = start_date + timedelta(days=days_tolerance) if not request.form.get(
@@ -414,8 +424,11 @@ def get_upcoming_policies():
         return export_to_csv(headers, response, 'upcoming_policies.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['cliente']
-        today = datetime.now().strftime('%d/%m/%y')
-        title_str="Pólizas y Endosos por vencer en (%s - %s) al %s" % (policy_due_start.strftime('%d/%m/%y'), policy_due_end.strftime('%d/%m/%y'),today)
+        if filtered_selected:
+            title_str="Pólizas y Endosos por vencer en (%s - %s)" % (policy_due_start.strftime('%d/%m/%y'), policy_due_end.strftime('%d/%m/%y'))
+        else:
+            today = datetime.now().strftime('%d/%m/%y')
+            title_str="Pólizas y Endosos por vencer, al %s" % today
         return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline,title_str)
 
     print(response)
