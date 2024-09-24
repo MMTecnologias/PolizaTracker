@@ -925,11 +925,15 @@ $(function () {
       dataType: 'json',
       data: params,
       success: function (resp) {
+        console.log(resp);
         if (resp.error) {
           alert(resp.msg, 'error', resp.title);
           $('#create-recib').modal('hide');
         } else {
-          console.log(resp);
+          if (resp.msg && resp.msg.includes("no coincidiran")) {
+            $("#alert_Modal").show();
+            $("#alert_Modal").text(resp.msg);
+          }
           $('#prima-neta').val(resp.netPremium);
           $('#prima-total').val(resp.totalPremium);
           $('#nopagos').val(resp.numReceipts);
