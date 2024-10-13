@@ -98,6 +98,12 @@ def vencimientos():
 def reportes():
     return render_template('reportes.html')
 
+#Reportes Gerenciales
+@main.route('/reportesG', methods=['GET'])
+@login_required
+def reportesG():
+    return render_template('reportesG.html')
+
 #Reportes Renovaciones
 @main.route('/reportesRenovaciones', methods=['GET'])
 @login_required
@@ -154,7 +160,6 @@ def usuario():
 @login_required
 def index():
     acceso=NivelAcceso.query.get_or_404(current_user.nivel_id)
-
     return render_template('menuP.html', user=current_user,acceso=acceso.nombre)
 
 #Solicitudes
@@ -184,16 +189,12 @@ def grupo():
         })
     return jsonify(data)
 
-
-
-
 @main.route('/create_multiple', methods=['POST'])
 @login_required
 def create_multiple():
     tipo = request.form.get('tipo')
     nombre=request.form.get('nombre')
     form_id = request.form.get('form_id') if request.form.get('form_id') else "New"
-
     clases={"Aseguradora":Aseguradora,
             "Agente":Agente,
             "Vendedor":Vendedor}
@@ -202,13 +203,10 @@ def create_multiple():
             "Vendedor":"nombre"}
     if tipo not in clases.keys():
         return jsonify({"error":True,"msg": "No se encuentra el tipo de elemento"})
-
-
     dict_return=new_class_edit(clases[tipo],form_id ,nombre,colnames[tipo])
 
     return jsonify(dict_return)
 
-#@main.route('/get_data_multiple', methods=['GET'])
 @main.route('/get_data_multiple', methods=['POST'])
 @login_required
 def get_data_multiple():
