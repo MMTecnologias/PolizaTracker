@@ -116,6 +116,18 @@ def reportesRenovaciones():
 def reportesCobranza():
     return render_template('reporteCobranza.html')
 
+#Reportes por prima neta
+@main.route('/reportePrimaNeta', methods=['GET'])
+@login_required
+def reportePrimaNeta():
+    return render_template('reportePrimaNeta.html')
+
+#Reportes por estatus de póliza
+@main.route('/reportePolizaEstatus', methods=['GET'])
+@login_required
+def reportePolizaEstatus():
+    return render_template('reportePolizaEstatus.html')
+
 #Recibos
 @main.route('/recibos', methods=['GET'])
 @login_required

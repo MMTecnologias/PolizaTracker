@@ -45,24 +45,27 @@
             <div class="col-6 d-flex justify-content-center mt-5">
                 <div class="card w-100 m-0">
                     <div class="card-header">
-                       <h4><strong>Reportes de cobranza</strong></h4>
+                        <h4><strong>Reporte por Prima neta</strong></h4>
                     </div>
                     <div class="card-body">
-                        <h5 class="card-title">Reporte de los recibos próximos en vencer</h5>
-                        <p class="card-text text-left">Vencimiento de 30 días después del inicio de vigencia.</p>
-                        <a class="btn btn-primary px-3" href="{{ url_for('main.reportesCobranza') }}">Ver reportes</a>
+                        <!-- <h5 class="card-title">Reporte de los recibos próximos en vencer</h5> -->
+                        <p class="card-text text-left">Prima neta pagada acumulada, Prima neta pagada,
+                            Prima neta por aseguradora.</p>
+                        <a class="btn btn-primary px-3" href="{{ url_for('main.reportePrimaNeta') }}">Ver reportes</a>
                     </div>
                 </div>
             </div>
             <div class="col-6 d-flex justify-content-center mt-5">
                 <div class="card w-100 m-0">
                     <div class="card-header">
-                       <h4><strong>Reportes de renovaciones</strong></h4>
+                        <h4><strong>Reportes por estatus de Póliza</strong></h4>
                     </div>
                     <div class="card-body">
-                        <h5 class="card-title">Reporte de polizas que estan por vencer</h5>
-                        <p class="card-text text-left">Vencimiento de acuerdo a la fecha fin vigencia registrada.</p>
-                        <a class="btn btn-primary px-3" href="{{ url_for('main.reportesRenovaciones') }}">Ver reportes</a>
+                        <!-- <h5 class="card-title">Reporte de polizas que estan por vencer</h5> -->
+                        <p class="card-text text-left">Polizas nuevas, Polizas emitidas contra renovaciones, Polizas
+                            canceladas.</p>
+                        <a class="btn btn-primary px-3" href="{{ url_for('main.reportePolizaEstatus') }}">Ver
+                            reportes</a>
                     </div>
                 </div>
             </div>
