@@ -1,4 +1,3 @@
-// @ts-nocheck
 $(function () {
   let ordered = false;
   const ajaxConfig = {
@@ -14,29 +13,12 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function getColor(status) {
-    if (!status) return '';
-    switch (status) {
-      case 'Vigente':
-        // return "#46d139";
-        return 'rgb(0 255 0 / 50%)';
-      case 'Cancelada':
-        // return "#ff0000";
-        return 'rgb(255 0 0 / 80%)';
-      case 'Por vencer':
-        // return "#fff800";
-        return 'rgb(255 255 0 / 80%)';
-      case status.includes('Cancel'):
-        return '#ff0000';
-      case status.toLowerCase().includes('vencer'):
-        return 'rgb(255 255 0 / 80%)';
-      default:
-        return '';
-    }
-  }
-
-  function fillTableVencimientos(resp) {
-    const itemsOnPage = 5;
+  function fillTableVencimientos(
+    resp,
+    formDataFechas,
+    currentPage,
+    itemsOnPage
+  ) {
     const { data, recordsTotal } = resp;
     const table = $('#table-vencimientos');
     table.html('');
@@ -56,30 +38,31 @@ $(function () {
           <td>${poliza.ramo}</td>
           <td>${poliza.subramo}</td>
           <td>${poliza.forma_pago}</td>
-        </tr>`,
+        </tr>`
       );
     });
-    $('.tableOption').slice(5).hide();
     $('#pagination').pagination({
       items: recordsTotal,
-      itemsOnPage: itemsOnPage,
-      onPageClick: (noofele) =>
-        $('.tableOption')
-          .hide()
-          .slice(
-            itemsOnPage * (noofele - 1),
-            itemsOnPage + itemsOnPage * (noofele - 1),
-          )
-          .show(),
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      itemsOnPage,
+      currentPage,
+      onPageClick: (pageNumber, e) => {
+        const start = (pageNumber - 1) * itemsOnPage;
+        getVencimientos(formDataFechas, pageNumber, start);
+      },
     });
   }
 
-  function getVencimientos(formDataFechas = null, start = 0, length = 10) {
+  function getVencimientos(formDataFechas = null, pageNumber = 1, start = 0) {
+    const length = 10;
+    const params = $.param({ start, length });
     $.ajax({
       ...ajaxConfig,
       url: '/vencimientos/get_upcoming_policies',
-      data: formDataFechas ? formDataFechas : $.param({ start, length }),
-      success: fillTableVencimientos,
+      data: formDataFechas ? formDataFechas + '&' + params : params,
+      success: (resp) =>
+        fillTableVencimientos(resp, formDataFechas, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }

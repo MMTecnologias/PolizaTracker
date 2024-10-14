@@ -1,77 +1,5 @@
 $(function () {
-  const series = [
-    {
-      name: 'sales',
-      type: 'bar',
-      data: [5, 20, 36, 10, 10, 20],
-    },
-  ];
-
-  const seriesPie = [
-    {
-      name: 'Access From',
-      type: 'pie',
-      radius: '50%',
-      data: [
-        { value: 1048, name: 'Search Engine' },
-        { value: 735, name: 'Direct' },
-        { value: 580, name: 'Email' },
-        { value: 484, name: 'Union Ads' },
-        { value: 300, name: 'Video Ads' },
-      ],
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.5)',
-        },
-      },
-    },
-  ];
-
-  function getBarChart(series) {
-    if (!series) return;
-    const dom = document.getElementById('bar_chart');
-    const myChart = echarts.init(dom);
-    const option = {
-      title: {
-        text: 'Pólizas canceladas',
-      },
-      tooltip: {},
-      legend: {
-        data: ['sales'],
-      },
-      xAxis: {
-        data: ['Shirts', 'Cardigans', 'Chiffons', 'Pants', 'Heels', 'Socks'],
-      },
-      yAxis: {},
-      series,
-    };
-    option && myChart.setOption(option);
-  }
-
-  function getPieChart(series) {
-    if (!series) return;
-    const dom = document.getElementById('pie_chart');
-    const myChart = echarts.init(dom);
-    const option = {
-      title: {
-        text: 'Pólizas canceladas',
-        subtext: 'Fake Data',
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'item',
-      },
-      legend: {
-        orient: 'vertical',
-        left: 'left',
-      },
-      series,
-    };
-    option && myChart.setOption(option);
-  }
-
+  let ordered = false;
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -85,8 +13,12 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTableVencimientos(resp) {
-    const itemsOnPage = 4;
+  function fillTableVencimientos(
+    resp,
+    formDataFechas,
+    currentPage,
+    itemsOnPage
+  ) {
     const { data, recordsTotal } = resp;
     const table = $('#table-vencimientos');
     table.html('');
@@ -109,27 +41,28 @@ $(function () {
         </tr>`
       );
     });
-    $('.tableOption').slice(itemsOnPage).hide();
     $('#pagination').pagination({
       items: recordsTotal,
-      itemsOnPage: itemsOnPage,
-      onPageClick: (noofele) =>
-        $('.tableOption')
-          .hide()
-          .slice(
-            itemsOnPage * (noofele - 1),
-            itemsOnPage + itemsOnPage * (noofele - 1)
-          )
-          .show(),
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      itemsOnPage,
+      currentPage,
+      onPageClick: (pageNumber, e) => {
+        const start = (pageNumber - 1) * itemsOnPage;
+        getVencimientos(formDataFechas, pageNumber, start);
+      },
     });
   }
 
-  function getVencimientos(formDataFechas = null, start = 0, length = 10) {
+  function getVencimientos(formDataFechas = null, pageNumber = 1, start = 0) {
+    const length = 10;
+    const params = $.param({ start, length });
     $.ajax({
       ...ajaxConfig,
       url: '/vencimientos/get_upcoming_receipts',
-      data: formDataFechas ? formDataFechas : $.param({ start, length }),
-      success: fillTableVencimientos,
+      data: formDataFechas ? formDataFechas + '&' + params : params,
+      success: (resp) =>
+        fillTableVencimientos(resp, formDataFechas, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -199,7 +132,19 @@ $(function () {
     });
   });
 
+  //   $("#searchPoliza").on("keyup", function (e) {
+  //     e.preventDefault();
+  //     const searchValue = e.target.value;
+  //     if (searchValue == "") return getVencimientos();
+  //     if (searchValue.length >= 3)
+  //       $.ajax({
+  //         ...ajaxConfig,
+  //         url: "/polizas/get",
+  //         data: $.param({ start: 0, length: 0, searchValue }),
+  //         success: fillTableVencimientos,
+  //         error: (xhr, status, error) => console.error(error),
+  //       });
+  //   });
+
   getVencimientos();
-  getBarChart(series);
-  getPieChart(seriesPie);
 });

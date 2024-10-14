@@ -59,7 +59,7 @@
                      </div>
                      <div class="input-group" style="background-color: aliceblue;">
                         <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
-                           aria-label="Search" aria-describedby="search-addon" autocomplete="off"/>
+                           aria-label="Search" aria-describedby="search-addon" autocomplete="off" />
                         <div class="dropdown-menu" id="client-options"></div>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
@@ -73,7 +73,7 @@
                   <div class="form__input-data" id="div_poliza_id">
                      <label class="label-input-data">Póliza</label>
                      <div class="input-group">
-                        <input type="text" class="form-control" id="id_poliza" name="id_poliza" disabled/>
+                        <input type="text" class="form-control" id="id_poliza" name="id_poliza" disabled />
                      </div>
                   </div>
                   <div class="input-sibling">
@@ -236,14 +236,16 @@
                      <div class="form__input-data input-sibling-child">
                         <label class="label-input-data" for="prima_neta">Prima Neta</label>
                         <div class="input-group">
-                           <input type="number" class="form-control" id="prima_neta" name="prima_neta" step=".01" required />
+                           <input type="number" class="form-control" id="prima_neta" name="prima_neta" step=".01"
+                              required />
                            <p class="invalid-feedback">Ingresa un dato valido</p>
                         </div>
                      </div>
                      <div class="form__input-data input-sibling-child">
                         <label class="label-input-data" for="prima_total">Prima Total</label>
                         <div class="input-group">
-                           <input type="number" class="form-control" id="prima_total" name="prima_total" step=".01" required />
+                           <input type="number" class="form-control" id="prima_total" name="prima_total" step=".01"
+                              required />
                            <p class="invalid-feedback">Ingresa un dato valido</p>
                         </div>
                      </div>
@@ -251,8 +253,8 @@
                   <div class="form__input-data">
                      <label class="label-input-data" for="notas">Notas</label>
                      <div class="">
-                        <textarea class="form-control" id="notas" name="notas"
-                           placeholder="Insertar notas" rows="3"></textarea>
+                        <textarea class="form-control" id="notas" name="notas" placeholder="Insertar notas"
+                           rows="3"></textarea>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
                   </div>
@@ -268,24 +270,26 @@
             </div>
          </div>
          <div class="col-8 p-3">
-            <div class="w-100 card__shadow p-3" style="max-height: 665.61px;min-height: 665.61px;position: relative">
+            <div class="w-100 card__shadow p-3"
+               style="height: 703.59px;max-height: 703.59px;position: relative;padding-bottom: 20px;overflow: hidden;">
                <div class="table-polizas" id="table-polizas">
                   <h4 class="header-title">Tabla de Pólizas</h4>
                   <form class="d-flex" role="search">
                      <input class="form-control my-2" type="search" placeholder="Buscar Póliza" aria-label="Search"
                         id="searchPoliza" />
                   </form>
-                  <table class="table">
+                  <table class="table" style="overflow-y: scroll;">
                      <thead class="tableHeader">
                         <tr>
                            <th class="table-name siblingContainerRow" scope="col">
                               Póliza
-                              <a class="btn__icon" id="sortByPoliza">
-                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                              <!-- <a class="btn__icon" id="sortByPoliza">
+                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960"
+                                    width="24">
                                     <path
                                        d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
                                  </svg>
-                              </a>
+                              </a> -->
                            </th>
                            <th scope="col">Cliente</th>
                            <th scope="col">Sub Ramo</th>
@@ -298,8 +302,8 @@
                      </tbody>
                   </table>
                </div>
-               <div class="w-100 d-flex justify-content-center">
-                  <div id="pagination" style="position: absolute;bottom: 10px;"></div>
+               <div class="w-100 d-flex justify-content-center" style="position: absolute; bottom:5px">
+                  <div id="pagination"></div>
                </div>
             </div>
          </div>
@@ -368,14 +372,16 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima neta</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima-neta" name="prima-neta" required disabled/>
+                                 <input type="text" class="form-control" id="prima-neta" name="prima-neta" required
+                                    disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima total</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima-total" name="prima-total" required disabled/>
+                                 <input type="text" class="form-control" id="prima-total" name="prima-total" required
+                                    disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -384,14 +390,16 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Número de recibos</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="nopagos" name="nopagos" required disabled/>
+                                 <input type="text" class="form-control" id="nopagos" name="nopagos" required
+                                    disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Derecho de poliza</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="derecho_poliza" name="derecho_poliza" required />
+                                 <input type="text" class="form-control" id="derecho_poliza" name="derecho_poliza"
+                                    required />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -433,14 +441,16 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima neta 1er recibo</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_neta_1er" name="prima_neta_1er" required disabled />
+                                 <input type="text" class="form-control" id="prima_neta_1er" name="prima_neta_1er"
+                                    required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima neta subsecuentes</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_neta_subs" name="prima_neta_subs" required disabled />
+                                 <input type="text" class="form-control" id="prima_neta_subs" name="prima_neta_subs"
+                                    required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -449,14 +459,16 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima total 1er recibo</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_total_1er" name="prima_total_1er" required disabled />
+                                 <input type="text" class="form-control" id="prima_total_1er" name="prima_total_1er"
+                                    required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima total subsecuentes</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="prima_total_subs" name="prima_total_subs" required disabled />
+                                 <input type="text" class="form-control" id="prima_total_subs" name="prima_total_subs"
+                                    required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -465,14 +477,16 @@
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Comisión 1er recibo</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="comision_1er" name="comision_1er" required disabled />
+                                 <input type="text" class="form-control" id="comision_1er" name="comision_1er" required
+                                    disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Comisión subsecuentes</label>
                               <div class="input-group">
-                                 <input type="text" class="form-control" id="comision_subs" name="comision_subs" required disabled />
+                                 <input type="text" class="form-control" id="comision_subs" name="comision_subs"
+                                    required disabled />
                                  <p class="invalid-feedback">Ingresa un dato valido</p>
                               </div>
                            </div>
@@ -494,7 +508,8 @@
    </div>
 
    <!-- Modal select endoso type -->
-   <div class="modal fade bd-example-modal-lg" id="endoso-type" tabindex="-1" role="dialog" aria-labelledby="endoso-type">
+   <div class="modal fade bd-example-modal-lg" id="endoso-type" tabindex="-1" role="dialog"
+      aria-labelledby="endoso-type">
       <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
          <div class="modal-content">
             <div class="modal-header">
@@ -517,7 +532,8 @@
    </div>
 
    <!-- Modal listado endosos -->
-   <div class="modal fade bd-example-modal-lg" id="endoso-list" tabindex="-1" role="dialog" aria-labelledby="endoso-list">
+   <div class="modal fade bd-example-modal-lg" id="endoso-list" tabindex="-1" role="dialog"
+      aria-labelledby="endoso-list">
       <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
          <div class="modal-content">
             <div class="modal-header">
@@ -525,9 +541,9 @@
                   <span aria-hidden="true">&times;</span>
                </button>
             </div>
-            <div class="modal-body pt-1">
+            <div class="modal-body pt-1" style="overflow-y: scroll;">
                <div class="container">
-                  <div class="row pb-4">
+                  <div class="row pb-4" style="position: relative;">
                      <div class="col-12">
                         <h4 class="header-title">Lista de Endosos</h4>
                         <table class="table">
@@ -548,13 +564,11 @@
                            </tbody>
                         </table>
                      </div>
+                     <div class="col-12 d-flex justify-content-center">
+                        <div id="pagination-endosos"></div>
+                     </div>
                   </div>
-                  <div class="w-100 d-flex justify-content-center">
-                     <div id="pagination-endosos" style="position: absolute;bottom: 10px;"></div>
-                  </div>
-               </div>
-               <div class="container">
-                  <div class="row pb-4" id="div-recibos-endosos">
+                  <div class="row pb-4" id="div-recibos-endosos" style="position: relative;">
                      <div class="col-12">
                         <h4 class="header-title">Recibos de endosos</h4>
                         <table class="table">
@@ -574,9 +588,9 @@
                            </tbody>
                         </table>
                      </div>
-                  </div>
-                  <div class="w-100 d-flex justify-content-center">
-                     <div id="pagination-recibos-endosos" style="position: absolute;bottom: 10px;"></div>
+                     <div class="col-12 d-flex justify-content-center">
+                        <div id="pagination-recibos-endosos"></div>
+                     </div>
                   </div>
                </div>
             </div>

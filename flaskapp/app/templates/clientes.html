@@ -17,7 +17,8 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
+   <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
 </head>
 
 <body>
@@ -37,13 +38,12 @@
       </div>
    </nav>
 
-   <!-- page container area start -->
    <div class="container-fluid">
       <div class="row mt-3">
          <div class="col-3 p-3">
             <div class="w-100 card__shadow p-3">
                <h4 class="header-title">Captura de Clientes</h4>
-               <form id="cliente-form"class="needs-validation form-data" novalidate>
+               <form id="cliente-form" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="cliente_id" name="cliente_id" value="New" />
                   <div class="form__input-data">
                      <label for="nombre" class="label-input-data">
@@ -58,8 +58,8 @@
                   <div class="form__input-data">
                      <label for="apellido" class="label-input-data">Apellido</label>
                      <div class="input-group">
-                        <input type="text" class="form-control" id="apellido" name="apellido" placeholder="" minlength="2"
-                           maxlength="50" required />
+                        <input type="text" class="form-control" id="apellido" name="apellido" placeholder=""
+                           minlength="2" maxlength="50" required />
                         <p class="invalid-feedback">Ingresa un apellido válido.</p>
                      </div>
                   </div>
@@ -74,19 +74,22 @@
                   <div class="form__input-data">
                      <label for="telefono_movil" class="label-input-data">Teléfonos Móviles</label>
                      <div class="input-group">
-                        <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder="" minlength="10" maxlength="10" />
+                        <input type="text" class="form-control" id="telefono_movil" name="telefono_movil" placeholder=""
+                           minlength="10" maxlength="10" />
                      </div>
                   </div>
                   <div class="form__input-data">
                      <label class="label-input-data" for="correo">Correo Electrónico</label>
                      <div class="input-group">
-                        <input type="email" class="form-control" id="correo" name="correo" placeholder="" minlength="5" maxlength="50" />
+                        <input type="email" class="form-control" id="correo" name="correo" placeholder="" minlength="5"
+                           maxlength="50" />
                      </div>
                   </div>
                   <div class="form__input-data">
                      <label for="direccion_fiscal" class="label-input-data">Dirección Fiscal</label>
                      <div class="input-group">
-                        <input type="text" class="form-control" id="direccion_fiscal" name="direccion_fiscal" placeholder="" minlength="5" maxlength="125" />
+                        <input type="text" class="form-control" id="direccion_fiscal" name="direccion_fiscal"
+                           placeholder="" minlength="5" maxlength="125" />
                      </div>
                   </div>
                   <div class="input-sibling">
@@ -94,7 +97,7 @@
                         <label for="fecha_nacimiento" class="label-input-data">Fecha de Nacimiento</label>
                         <div class="input-group">
                            <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
-                              placeholder=""/>
+                              placeholder="" />
                         </div>
                      </div>
                      <div class="form__input-data input-sibling-child">
@@ -112,13 +115,14 @@
                         <label for="ocupacion" class="label-input-data">Ocupación</label>
                         <div class="input-group">
                            <input type="text" class="form-control" id="ocupacion" name="ocupacion" placeholder=""
-                              minlength="2" maxlength="30"/>
+                              minlength="2" maxlength="30" />
                         </div>
                      </div>
                      <div class="form__input-data input-sibling-child">
                         <label for="giro_actividad" class="label-input-data">Giro o Actividad</label>
                         <div class="input-group">
-                           <input type="text" class="form-control" id="giro_actividad" name="giro_actividad" placeholder="" minlength="2" maxlength="30"/>
+                           <input type="text" class="form-control" id="giro_actividad" name="giro_actividad"
+                              placeholder="" minlength="2" maxlength="30" />
                         </div>
                      </div>
                   </div>
@@ -153,21 +157,24 @@
                         Número de Cuenta/Tarjeta
                      </label>
                      <div class="input-group">
-                        <input type="tel" inputmode="numeric" pattern="[0-9\s]{16,18}" autocomplete="cc-number" maxlength="19"
-                           class="form-control" id="cuenta" name="cuenta" placeholder="xxxx xxxx xxxx xxxx" required/>
+                        <input type="tel" inputmode="numeric" pattern="[0-9\s]{16,18}" autocomplete="cc-number"
+                           maxlength="19" class="form-control" id="cuenta" name="cuenta"
+                           placeholder="xxxx xxxx xxxx xxxx" required />
                      </div>
                   </div>
                   <div class="input-sibling">
                      <div class="form__input-data input-sibling-child">
                         <label for="fecha_vencimiento" class="label-input-data">Fecha vencimiento</label>
                         <div class="input-group">
-                           <input type="text" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento" placeholder="" minlength="5" maxlength="5" required/>
+                           <input type="text" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento"
+                              placeholder="" minlength="5" maxlength="5" required />
                         </div>
                      </div>
                      <div class="form__input-data input-sibling-child">
                         <label for="cvv" class="label-input-data">Cvv</label>
                         <div class="input-group">
-                           <input type="text" class="form-control" id="cvv" name="cvv" placeholder="" minlength="3" maxlength="3" required/>
+                           <input type="text" class="form-control" id="cvv" name="cvv" placeholder="" minlength="3"
+                              maxlength="3" required />
                         </div>
                      </div>
                   </div>
@@ -195,12 +202,13 @@
                         <tr>
                            <th class="table-name siblingContainerRow" scope="col">
                               Nombre
-                              <a class="btn__icon" id="sortByName">
-                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                              <!-- <a class="btn__icon" id="sortByName">
+                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960"
+                                    width="24">
                                     <path
                                        d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
                                  </svg>
-                              </a>
+                              </a> -->
                            </th>
                            <th class="table-mail" scope="col">
                               Correo
@@ -211,17 +219,13 @@
                            <th class="table-actions" scope="col">
                               Acción
                            </th>
-                           <!-- <th scope="col">Vigencia</th> -->
-                           <!-- <th scope="col"></th> -->
                         </tr>
                      </thead>
-                     <tbody id="table-clientes" class="pb-5">
-                        <!-- Agregar la información de la tabla -->
-                     </tbody>
+                     <tbody id="table-clientes" class="pb-5"></tbody>
                   </table>
                </div>
                <div class="w-100 d-flex justify-content-center">
-                  <div id="pagination" style="position: absolute;bottom: 15px;"></div>
+                  <div id="pagination"></div>
                </div>
             </div>
          </div>
@@ -242,4 +246,5 @@
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
 </body>
+
 </html>

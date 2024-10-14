@@ -1,45 +1,40 @@
-// @ts-nocheck
 $(function () {
   let ordered = false;
   const ajaxConfig = {
-    url: "",
-    type: "POST",
+    url: '',
+    type: 'POST',
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    dataType: "json",
+    dataType: 'json',
   };
 
-  function alert(text = "", icon = "success", title = "") {
+  function alert(text = '', icon = 'success', title = '') {
     Swal.fire({ title, text, icon });
   }
 
   function getColor(status) {
-    if (!status) return "";
+    if (!status) return '';
     switch (status) {
-      case "Vigente":
-        // return "#46d139";
-        return "rgb(0 255 0 / 50%)";
-      case "Cancelada":
-        // return "#ff0000";
-        return "rgb(255 0 0 / 80%)";
-      case "Por vencer":
-        // return "#fff800";
-        return "rgb(255 255 0 / 80%)";
-      case status.includes("Cancel"):
-        return "#ff0000";
-      case status.toLowerCase().includes("vencer"):
-        return "rgb(255 255 0 / 80%)";
+      case 'Vigente':
+        return 'rgb(0 255 0 / 50%)';
+      case 'Cancelada':
+        return 'rgb(255 0 0 / 80%)';
+      case 'Por vencer':
+        return 'rgb(255 255 0 / 80%)';
+      case status.includes('Cancel'):
+        return '#ff0000';
+      case status.toLowerCase().includes('vencer'):
+        return 'rgb(255 255 0 / 80%)';
       default:
-        return "";
+        return '';
     }
   }
 
-  function fillTableVencimientos(resp) {
-    const itemsOnPage = 5;
+  function fillTableVencimientos(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
-    const table = $("#table-vencimientos");
-    table.html("");
+    const table = $('#table-vencimientos');
+    table.html('');
     $.each(data, function (idx, poliza) {
       table.append(
         `<tr class="tableOption" style="background-color: ${getColor(
@@ -76,48 +71,46 @@ $(function () {
         </tr>`
       );
     });
-    $(".tableOption").slice(5).hide();
-    $("#pagination").pagination({
+    $('#pagination').pagination({
       items: recordsTotal,
-      itemsOnPage: itemsOnPage,
-      onPageClick: (noofele) =>
-        $(".tableOption")
-          .hide()
-          .slice(
-            itemsOnPage * (noofele - 1),
-            itemsOnPage + itemsOnPage * (noofele - 1)
-          )
-          .show(),
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      itemsOnPage,
+      currentPage,
+      onPageClick: (pageNumber, e) => {
+        const start = (pageNumber - 1) * itemsOnPage;
+        getVencimientos(pageNumber, start);
+      },
     });
   }
 
-  function getVencimientos(order = false, start = 0, length = 10) {
+  function getVencimientos(pageNumber = 1, start = 0) {
+    const length = 10;
     $.ajax({
       ...ajaxConfig,
-      url: "/vencimientos/get",
-
-      data: $.param(order ? { start, length, order } : { start, length }),
-      success: fillTableVencimientos,
+      url: '/vencimientos/get',
+      data: $.param({ start, length, order: true }),
+      success: (resp) => fillTableVencimientos(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
 
-  $("#sortByName").click((e) => {
-    e.preventDefault();
-    ordered = !ordered;
-    getVencimientos(ordered);
-  });
+  // $('#sortByName').click((e) => {
+  //   e.preventDefault();
+  //   ordered = !ordered;
+  //   getVencimientos(ordered);
+  // });
 
-  $("#searchPoliza").on("keyup", function (e) {
+  $('#searchPoliza').on('keyup', function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
-    if (searchValue == "") return getVencimientos();
+    if (searchValue == '') return getVencimientos();
     if (searchValue.length >= 3)
       $.ajax({
         ...ajaxConfig,
-        url: "/polizas/get",
+        url: '/polizas/get',
         data: $.param({ start: 0, length: 0, searchValue }),
-        success: fillTableVencimientos,
+        success: (resp) => fillTableVencimientos(resp, 1, 10),
         error: (xhr, status, error) => console.error(error),
       });
   });

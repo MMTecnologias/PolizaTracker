@@ -1,112 +1,92 @@
-// @ts-ignore
 $(function () {
   let ordered = false;
 
   const ajaxConfig = {
-    url: "",
-    type: "POST",
+    url: '',
+    type: 'POST',
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    dataType: "json",
+    dataType: 'json',
   };
 
-  function alert(text = "", icon = "success", title = "") {
-    // @ts-ignore
+  function alert(text = '', icon = 'success', title = '') {
     Swal.fire({ title, text, icon });
   }
 
-  function alertConfirm(text = "") {
-    // @ts-ignore
+  function alertConfirm(text = '') {
     return Swal.fire({
-      title: "",
+      title: '',
       text,
       showCancelButton: true,
       allowOutsideClick: false,
-      confirmButtonText: "Aceptar",
-      cancelButtonText: "Cancelar",
-      icon: "warning",
+      confirmButtonText: 'Aceptar',
+      cancelButtonText: 'Cancelar',
+      icon: 'warning',
     });
   }
 
   function resetForm() {
-    // @ts-ignore
-    $("#cliente-form")[0].reset();
-    // @ts-ignore
-    $("#sexo").html(`
+    $('#cliente-form')[0].reset();
+    $('#sexo').html(`
       <option value="Mujer">Mujer</option>
       <option value="Hombre">Hombre</option>
       <option value="Empresa">Empresa</option>
     `);
-    // @ts-ignore
-    $("#cliente-form").removeClass("was-validated");
-    // @ts-ignore
-    $("#cliente-form input").prop("disabled", false);
-    // @ts-ignore
-    $("#cliente-form select").prop("disabled", false);
-    // @ts-ignore
-    $("#cliente_id").val("New");
-    // @ts-ignore
-    $("#nuevo_grupo_div").hide();
+    $('#cliente-form').removeClass('was-validated');
+    $('#cliente-form input').prop('disabled', false);
+    $('#cliente-form select').prop('disabled', false);
+    $('#cliente_id').val('New');
+    $('#nuevo_grupo_div').hide();
   }
 
   function editClient(id) {
     const clientsPerPage = 5;
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/clientes/get",
-      // @ts-ignore
+      url: '/clientes/get',
       data: $.param({ start: 0, length: clientsPerPage, cliente_id: id }),
       success: function (resp) {
-        // @ts-ignore
-        $("#cliente_id").val(resp.data[0].id);
-        // @ts-ignore
-        $("#nombre").val(resp.data[0].nombre);
-        // @ts-ignore
-        $("#apellido").val(resp.data[0].apellido);
-        // @ts-ignore
-        $("#rfc").val(resp.data[0].rfc);
-        // @ts-ignore
-        $("#telefono_oficina").val(resp.data[0].tel_oficina);
-        // @ts-ignore
-        $("#telefono_movil").val(resp.data[0].tel_movil);
-        // @ts-ignore
-        $("#telefono_casa").val(resp.data[0].tel_casa);
-        // @ts-ignore
-        $("#correo").val(resp.data[0].correo);
-        // @ts-ignore
-        $("#direccion_fiscal").val(resp.data[0].direccion);
-        // @ts-ignore
-        $("#fecha_nacimiento").val(resp.data[0].fecha_nacimiento);
-        // @ts-ignore
-        $("#sexo").html(`
-          <option value="Mujer" ${resp.data[0].sexo === "Mujer" ? "selected" : ""}>Mujer</option>
-          <option value="Hombre" ${resp.data[0].sexo === "Hombre" ? "selected" : ""}>Hombre</option>
-          <option value="Empresa" ${resp.data[0].sexo === "Empresa" ? "selected" : ""}>Empresa</option>
-          <option value="Indefinido" ${resp.data[0].sexo === "Indefinido" ? "selected" : ""}>Indefinido</option>
+        $('#cliente_id').val(resp.data[0].id);
+        $('#nombre').val(resp.data[0].nombre);
+        $('#apellido').val(resp.data[0].apellido);
+        $('#rfc').val(resp.data[0].rfc);
+        $('#telefono_oficina').val(resp.data[0].tel_oficina);
+        $('#telefono_movil').val(resp.data[0].tel_movil);
+        $('#telefono_casa').val(resp.data[0].tel_casa);
+        $('#correo').val(resp.data[0].correo);
+        $('#direccion_fiscal').val(resp.data[0].direccion);
+        $('#fecha_nacimiento').val(resp.data[0].fecha_nacimiento);
+        $('#sexo').html(`
+          <option value="Mujer" ${
+            resp.data[0].sexo === 'Mujer' ? 'selected' : ''
+          }>Mujer</option>
+          <option value="Hombre" ${
+            resp.data[0].sexo === 'Hombre' ? 'selected' : ''
+          }>Hombre</option>
+          <option value="Empresa" ${
+            resp.data[0].sexo === 'Empresa' ? 'selected' : ''
+          }>Empresa</option>
+          <option value="Indefinido" ${
+            resp.data[0].sexo === 'Indefinido' ? 'selected' : ''
+          }>Indefinido</option>
         `);
-        // @ts-ignore
-        $("#ocupacion").val(resp.data[0].ocupacion);
-        // @ts-ignore
-        $("#giro_actividad").val(resp.data[0].actividad);
-        // @ts-ignore
-        $("#grupo").html(`<option value='${resp.data[0].grupo_id}'> ${
+        $('#ocupacion').val(resp.data[0].ocupacion);
+        $('#giro_actividad').val(resp.data[0].actividad);
+        $('#grupo').html(`<option value='${resp.data[0].grupo_id}'> ${
           resp.data[0].grupo
         }</option>
-         ${fetch("/grupo")
+         ${fetch('/grupo')
            .then((response) => response.json())
            .then((data) => {
              data.forEach((grupo) => {
-               // @ts-ignore
-               document.querySelector("#grupo").innerHTML += `
+               document.querySelector('#grupo').innerHTML += `
                <option value='${grupo.id}'>${grupo.nombre}</option>
                `;
              });
            })}
          `);
-        // @ts-ignore
-        $("#cuenta").val(resp.data[0].cuenta);
+        $('#cuenta').val(resp.data[0].cuenta);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -117,36 +97,32 @@ $(function () {
       `¿Esta seguro de eliminar este cliente ${nombre}?`
     );
     if (!isConfirmed) return;
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/clientes/delete",
-      // @ts-ignore
+      url: '/clientes/delete',
+
       data: $.param({ client_id }),
       success: function (resp) {
         if (!resp.error) {
           alert(resp.msg, undefined, resp.title);
         } else {
-          alert(resp.msg, "error");
+          alert(resp.msg, 'error');
         }
       },
       error: function (xhr, status, error) {
         console.log(error);
         alert(
-          "Lamentamos el inconveniente, por favor vuelve a intentarlo",
-          "error"
+          'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+          'error'
         );
       },
     });
   }
 
-  function fillTable(resp) {
-    const itemsOnPage = 11;
+  function fillTable(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
-    // @ts-ignore
-    const table = $("#table-clientes");
-    table.html("");
-    // @ts-ignore
+    const table = $('#table-clientes');
+    table.html('');
     $.each(data, function (idx, client) {
       table.append(
         `<tr class="tableOption">
@@ -169,75 +145,60 @@ $(function () {
             </td>
          </tr>`
       );
-      // @ts-ignore
-      $(`#btnEdit_${client.id}`).on("click", (e) => editClient(client.id));
-      // @ts-ignore
-      $(`#btnDelete_${client.id}`).on("click", (e) =>
+      $(`#btnEdit_${client.id}`).on('click', (e) => editClient(client.id));
+      $(`#btnDelete_${client.id}`).on('click', (e) =>
         deleteClient(client.id, client.fullname)
       );
     });
-    // @ts-ignore
-    $(".tableOption").slice(11).hide();
-    // @ts-ignore
-    $("#pagination").pagination({
+    $('#pagination').pagination({
       items: recordsTotal,
-      itemsOnPage: itemsOnPage,
-      onPageClick: (noofele) =>
-        // @ts-ignore
-        $(".tableOption")
-          .hide()
-          .slice(
-            itemsOnPage * (noofele - 1),
-            itemsOnPage + itemsOnPage * (noofele - 1)
-          )
-          .show(),
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      itemsOnPage,
+      currentPage,
+      onPageClick: (pageNumber, e) => {
+        const start = (pageNumber - 1) * itemsOnPage;
+        getPolizas(pageNumber, start);
+      },
     });
   }
 
-  function getClients(order = false, start = 0, length = 0) {
-    // @ts-ignore
+  function getClients(pageNumber = 1, start = 0) {
+    const length = 10;
     $.ajax({
       ...ajaxConfig,
-      url: "/clientes/get",
-      // @ts-ignore
-      data: $.param(order ? { start, length, order } : { start, length }),
-      success: fillTable,
+      url: '/clientes/get',
+      data: $.param({ start, length, order: true }),
+      success: (resp) => fillTable(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
 
-  // @ts-ignore
-  $("#cliente-form").submit(function (e) {
+  $('#cliente-form').submit(function (e) {
     e.preventDefault();
-    // @ts-ignore
     var formData = $(this).serialize();
-    // Checar que el formulario este validado
     if (!this.checkValidity()) {
-      // @ts-ignore
-      $(this).addClass("was-validated");
+      $(this).addClass('was-validated');
       return;
     }
-    // @ts-ignore
     $.ajax({
-      type: "POST",
-      url: "/clientes/create",
+      type: 'POST',
+      url: '/clientes/create',
       data: formData,
       success: function (resp) {
         if (resp.error) {
-          alert(resp.msg, "error", "Cliente incorrecto");
+          alert(resp.msg, 'error', 'Cliente incorrecto');
         } else {
-          alert(resp.msg, "success", resp.title);
+          alert(resp.msg, 'success', resp.title);
           if (resp.add_group_opt) {
-            // @ts-ignore
             var option = $(
               '<option value="' +
                 resp.new_group_id +
                 '">' +
                 resp.new_group_name +
-                "</option>"
+                '</option>'
             );
-            // @ts-ignore
-            $("#grupo").find('option[value="New"]').before(option);
+            $('#grupo').find('option[value="New"]').before(option);
           }
           getClients();
         }
@@ -246,57 +207,46 @@ $(function () {
       error: function (xhr, status, error) {
         resetForm();
         alert(
-          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
-          "error",
-          "Error inesperado"
+          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
+          'error',
+          'Error inesperado'
         );
       },
     });
   });
 
-  // @ts-ignore
-  $("#grupo").change(function () {
-    // @ts-ignore
+  $('#grupo').change(function () {
     var selectedOption = $(this).val();
-    if (selectedOption === "New") {
-      // @ts-ignore
-      $("#nuevo_grupo_div").show();
-      // @ts-ignore
-      $("#nuevo_grupo").prop("required", true);
+    if (selectedOption === 'New') {
+      $('#nuevo_grupo_div').show();
+      $('#nuevo_grupo').prop('required', true);
     } else {
-      // @ts-ignore
-      $("#nuevo_grupo_div").hide();
-      // @ts-ignore
-      $("#nuevo_grupo").prop("required", false);
+      $('#nuevo_grupo_div').hide();
+      $('#nuevo_grupo').prop('required', false);
     }
   });
 
-  // @ts-ignore
-  $("#searchClient").on("keyup", function (e) {
+  $('#searchClient').on('keyup', function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
-    if (searchValue == "") return getClients();
+    if (searchValue == '') return getClients();
     if (searchValue.length >= 3)
-      // @ts-ignore
       $.ajax({
         ...ajaxConfig,
-        url: "/clientes/get",
-        // @ts-ignore
+        url: '/clientes/get',
         data: $.param({ start: 0, length: 0, searchValue }),
-        success: fillTable,
+        success: (resp) => fillTable(resp, 1, 10),
         error: (xhr, status, error) => console.error(error),
       });
   });
 
-  // @ts-ignore
-  $("#sortByName").click((e) => {
-    e.preventDefault();
-    ordered = !ordered;
-    getClients(ordered);
-  });
+  // $('#sortByName').click((e) => {
+  //   e.preventDefault();
+  //   ordered = !ordered;
+  //   getClients(ordered);
+  // });
 
-  // @ts-ignore
-  $("#Resetbtn").click(function () {
+  $('#Resetbtn').click(function () {
     resetForm();
   });
 

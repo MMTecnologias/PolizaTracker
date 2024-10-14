@@ -39,7 +39,6 @@
         </div>
     </nav>
 
-    <!-- page container area start -->
     <div class="container">
         <div class="row">
             <div class="col-12">
@@ -49,17 +48,17 @@
                         <input class="form-control my-2" type="search" placeholder="Buscar .." aria-label="Search"
                             id="searchPoliza" />
                     </form>
-                    <table class="table">
+                    <table class="table mb-3">
                         <thead class="tableHeader">
                             <tr>
                                 <th class="table-name siblingContainerRow" scope="col">
                                     Póliza
-                                    <a class="btn__icon" id="sortByPoliza">
+                                    <!-- <a class="btn__icon" id="sortByPoliza">
                                         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
                                             <path
                                                 d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
                                         </svg>
-                                    </a>
+                                    </a> -->
                                 </th>
                                 <th scope="col">Cliente</th>
                                 <th scope="col">Sub Ramo</th>
@@ -70,14 +69,13 @@
                         </thead>
                         <tbody id="table-vencimientos"></tbody>
                     </table>
-                </div>
-                <div class="w-100 d-flex justify-content-center">
-                    <div id="pagination" style="position: absolute;bottom: 15px;"></div>
+                    <div class="w-100 d-flex justify-content-center">
+                        <div id="pagination"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- main content area end -->
     <script type="module" src="{{ url_for('static', filename='assets/controladores/vencimientos.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>

@@ -1,77 +1,57 @@
-// @ts-ignore
 $(function () {
-  let ordered = false;
-
   const ajaxConfig = {
-    url: "",
-    type: "POST",
+    url: '',
+    type: 'POST',
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    dataType: "json",
+    dataType: 'json',
   };
 
-  function alert(text = "", icon = "success", title = "") {
-    // @ts-ignore
+  function alert(text = '', icon = 'success', title = '') {
     Swal.fire({ title, text, icon });
   }
 
-  function alertConfirm(text = "") {
-    // @ts-ignore
+  function alertConfirm(text = '') {
     return Swal.fire({
-      title: "",
+      title: '',
       text,
       showCancelButton: true,
       allowOutsideClick: false,
-      confirmButtonText: "Aceptar",
-      cancelButtonText: "Cancelar",
-      icon: "warning",
+      confirmButtonText: 'Aceptar',
+      cancelButtonText: 'Cancelar',
+      icon: 'warning',
     });
   }
 
   function resetForm() {
-    // @ts-ignore
-    $("#userForm")[0].reset();
-    // @ts-ignore
-    $("#acceso").html(`
+    $('#userForm')[0].reset();
+    $('#acceso').html(`
       <option></option>
       <option value="1">Administrador</option>
       <option value="2">Usuario</option>
       <option value="3">Desarrollador</option>
       <option value="4">Gerente</option>
     `);
-    // @ts-ignore
-    $("#userForm input").prop("disabled", false);
-    // @ts-ignore
-    $("#userForm").removeClass("was-validated");
-    // @ts-ignore
-    $("#usuario_id").val("New");
+    $('#userForm input').prop('disabled', false);
+    $('#userForm').removeClass('was-validated');
+    $('#usuario_id').val('New');
   }
 
   function editUser(usuario_id) {
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/usuarios/get",
-      // @ts-ignore
+      url: '/usuarios/get',
       data: $.param({ start: 0, length: 0, usuario_id }),
       success: function (resp) {
-        // @ts-ignore
-        $("#usuario_id").val(resp.data[0].id);
-        // @ts-ignore
-        $("#nombre").val(resp.data[0].nombre);
-        // @ts-ignore
-        $("#apellido").val(resp.data[0].apellido);
-        // @ts-ignore
-        $("#email").val(resp.data[0].correo);
-        // @ts-ignore
-        $("#cel").val(resp.data[0].telefono);
-        // @ts-ignore
-        $("#username").val(resp.data[0].username);
-        // @ts-ignore
-        $("#password").prop("disabled", true);
-        // @ts-ignore
-        $("#acceso").html(`<option value='${resp.data[0].nivel_id}'>
+        $('#usuario_id').val(resp.data[0].id);
+        $('#nombre').val(resp.data[0].nombre);
+        $('#apellido').val(resp.data[0].apellido);
+        $('#email').val(resp.data[0].correo);
+        $('#cel').val(resp.data[0].telefono);
+        $('#username').val(resp.data[0].username);
+        $('#password').prop('disabled', true);
+        $('#acceso').html(`<option value='${resp.data[0].nivel_id}'>
         ${resp.data[0].acceso}
         </option>
         ${
@@ -95,37 +75,32 @@ $(function () {
       `¿Esta seguro de eliminar al usuario ${name}?`
     );
     if (!isConfirmed) return;
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/usuarios/delete",
-      // @ts-ignore
+      url: '/usuarios/delete',
       data: $.param({ user_id }),
       success: function (resp) {
         if (!resp.error) {
           alert(resp.msg, undefined, resp.title);
           getUsers();
         } else {
-          alert(resp.msg, "error");
+          alert(resp.msg, 'error');
         }
       },
       error: function (xhr, status, error) {
         console.log(error);
         alert(
-          "Lamentamos el inconveniente, por favor vuelve a intentarlo",
-          "error"
+          'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+          'error'
         );
       },
     });
   }
 
-  function fillTableUsers(resp) {
-    const itemsOnPage = 5;
+  function fillTableUsers(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
-    // @ts-ignore
-    const table = $("#table-users");
-    table.html("");
-    // @ts-ignore
+    const table = $('#table-users');
+    table.html('');
     $.each(data, function (idx, usuario) {
       table.append(
         `<tr class="tableOption">
@@ -154,44 +129,33 @@ $(function () {
           </td>
         </tr>`
       );
-      // @ts-ignore
-      $(`#btnEdit_${usuario.id}`).on("click", (e) => editUser(usuario.id));
-      // @ts-ignore
-      $(`#btnDelete_${usuario.id}`).on("click", (e) =>
+      $(`#btnEdit_${usuario.id}`).on('click', (e) => editUser(usuario.id));
+      $(`#btnDelete_${usuario.id}`).on('click', (e) =>
         deleteUser(usuario.id, usuario.fullname)
       );
-      // @ts-ignore
-      $(`#btnShow_${usuario.id}`).on("click", (e) => {
-        // @ts-ignore
-        $("#hist").modal();
+      $(`#btnShow_${usuario.id}`).on('click', (e) => {
+        $('#hist').modal();
         getHistory(usuario.id);
       });
     });
-    // @ts-ignore
-    $(".tableOption").slice(5).hide();
-    // @ts-ignore
-    $("#pagination").pagination({
+    $('#pagination').pagination({
       items: recordsTotal,
-      itemsOnPage: itemsOnPage,
-      onPageClick: (noofele) =>
-        // @ts-ignore
-        $(".tableOption")
-          .hide()
-          .slice(
-            itemsOnPage * (noofele - 1),
-            itemsOnPage + itemsOnPage * (noofele - 1)
-          )
-          .show(),
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      itemsOnPage,
+      currentPage,
+      onPageClick: (pageNumber, e) => {
+        const start = (pageNumber - 1) * itemsOnPage;
+        getUsers(pageNumber, start);
+      },
     });
   }
 
   function fillTablePassword(resp) {
     const itemsOnPage = 5;
     const { data, recordsTotal } = resp;
-    // @ts-ignore
-    const table = $("#table-password");
-    table.html("");
-    // @ts-ignore
+    const table = $('#table-password');
+    table.html('');
     $.each(data, function (idx, contra) {
       table.append(
         `<tr  class="table-option">
@@ -204,23 +168,19 @@ $(function () {
           </td>
         </tr>`
       );
-      // @ts-ignore
-      $(`#btnChange_${contra.usuario_id}`).on("click", (e) => {
-        // @ts-ignore
-        $("#pass").modal();
-        // @ts-ignore
-        $("#user_id").val(contra.usuario_id);
+
+      $(`#btnChange_${contra.usuario_id}`).on('click', (e) => {
+        $('#pass').modal();
+
+        $('#user_id').val(contra.usuario_id);
       });
     });
-    // @ts-ignore
-    $(".table-option").slice(5).hide();
-    // @ts-ignore
-    $("#pagination-password").pagination({
+    $('.table-option').slice(5).hide();
+    $('#pagination-password').pagination({
       items: recordsTotal,
       itemsOnPage: itemsOnPage,
       onPageClick: (noofele) =>
-        // @ts-ignore
-        $(".table-option")
+        $('.table-option')
           .hide()
           .slice(
             itemsOnPage * (noofele - 1),
@@ -233,10 +193,8 @@ $(function () {
   function fillTableHistory(resp) {
     const itemsOnPage = 15;
     const { data, recordsTotal } = resp;
-    // @ts-ignore
-    const table = $("#table-history");
-    table.html("");
-    // @ts-ignore
+    const table = $('#table-history');
+    table.html('');
     $.each(data, function (idx, hist) {
       table.append(
         `<tr class="table-option-hist">
@@ -247,15 +205,12 @@ $(function () {
         </tr>`
       );
     });
-    // @ts-ignore
-    $(".table-option-hist").slice(15).hide();
-    // @ts-ignore
-    $("#pagination-history").pagination({
+    $('.table-option-hist').slice(15).hide();
+    $('#pagination-history').pagination({
       items: recordsTotal,
       itemsOnPage: itemsOnPage,
       onPageClick: (noofele) =>
-        // @ts-ignore
-        $(".table-option-hist")
+        $('.table-option-hist')
           .hide()
           .slice(
             itemsOnPage * (noofele - 1),
@@ -265,24 +220,21 @@ $(function () {
     });
   }
 
-  function getUsers(order = false, start = 0, length = 0) {
-    // @ts-ignore
+  function getUsers(pageNumber = 1, start = 0) {
+    const length = 5;
     $.ajax({
       ...ajaxConfig,
-      url: "/usuarios/get",
-      // @ts-ignore
-      data: $.param(order ? { start, length, order } : { start, length }),
-      success: fillTableUsers,
+      url: '/usuarios/get',
+      data: $.param({ start, length, order: true }),
+      success: (resp) => fillTableUsers(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
 
   function getHistory(user_id) {
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/usuarios/get_requests",
-      // @ts-ignore
+      url: '/usuarios/get_requests',
       data: $.param({ user_id }),
       success: fillTableHistory,
       error: (xhr, status, error) => console.error(error),
@@ -290,37 +242,30 @@ $(function () {
   }
 
   function getChangesPassword(start = 0, length = 0) {
-    // @ts-ignore
     $.ajax({
       ...ajaxConfig,
-      url: "/usuarios/get_solicitudes_contrasenas",
-      // @ts-ignore
+      url: '/usuarios/get_solicitudes_contrasenas',
       data: $.param({ start, length }),
       success: fillTablePassword,
       error: (xhr, status, error) => console.error(error),
     });
   }
-
-  // @ts-ignore
-  $("#userForm").submit(function (e) {
+  $('#userForm').submit(function (e) {
     e.preventDefault();
-    // @ts-ignore
     const formData = $(this).serialize();
     if (!this.checkValidity()) {
-      // @ts-ignore
-      $(this).addClass("was-validated");
+      $(this).addClass('was-validated');
       return;
     }
-    // @ts-ignore
     $.ajax({
-      type: "POST",
-      url: "/usuarios/create",
+      type: 'POST',
+      url: '/usuarios/create',
       data: formData,
       success: function (resp) {
         if (resp.error) {
-          alert(resp.msg, "error", resp.title);
+          alert(resp.msg, 'error', resp.title);
         } else {
-          alert(resp.msg, "success", resp.title);
+          alert(resp.msg, 'success', resp.title);
           getUsers();
           resetForm();
         }
@@ -328,101 +273,76 @@ $(function () {
       error: function (xhr, status, error) {
         console.log(error);
         alert(
-          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
-          "error"
+          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
+          'error'
         );
       },
     });
   });
-
-  // @ts-ignore
-  $("#visibility_newpass").click(function () {
-    // @ts-ignore
-    if ($("#newpass").attr("type") === "password") {
-      // @ts-ignore
-      $("#newpass").attr("type", "text");
-    } else{
-      // @ts-ignore
-      $("#newpass").attr("type", "password");
-    }
-  });
-  // @ts-ignore
-  $("#visibility_cnewpass").click(function () {
-    // @ts-ignore
-    if ($("#cnewpass").attr("type") === "password") {
-      // @ts-ignore
-      $("#cnewpass").attr("type", "text");
+  $('#visibility_newpass').click(function () {
+    if ($('#newpass').attr('type') === 'password') {
+      $('#newpass').attr('type', 'text');
     } else {
-      // @ts-ignore
-      $("#cnewpass").attr("type", "password");
+      $('#newpass').attr('type', 'password');
     }
   });
-
-  // @ts-ignore
-  $("#passForm").submit(function (e) {
+  $('#visibility_cnewpass').click(function () {
+    if ($('#cnewpass').attr('type') === 'password') {
+      $('#cnewpass').attr('type', 'text');
+    } else {
+      $('#cnewpass').attr('type', 'password');
+    }
+  });
+  $('#passForm').submit(function (e) {
     e.preventDefault();
-    // @ts-ignore
     const formData = $(this).serialize();
     if (!this.checkValidity()) {
-      // @ts-ignore
-      $(this).addClass("was-validated");
+      $(this).addClass('was-validated');
       return;
     }
-    // @ts-ignore
-    if ($("#newpass").val() !== $("#cnewpass").val())
-      return alert("Las contraseñas deben ser iguales", "error");
-    // @ts-ignore
+    if ($('#newpass').val() !== $('#cnewpass').val())
+      return alert('Las contraseñas deben ser iguales', 'error');
     $.ajax({
-      type: "POST",
-      url: "/usuarios/change_pass",
+      type: 'POST',
+      url: '/usuarios/change_pass',
       data: formData,
       success: function (resp) {
         if (resp.error) {
-          alert(resp.msg, "error", resp.title);
+          alert(resp.msg, 'error', resp.title);
         } else {
-          alert(resp.msg, "success", resp.title);
-          // @ts-ignore
-          $("#passForm")[0].reset();
-          // @ts-ignore
-          $("#pass").modal("toggle");
+          alert(resp.msg, 'success', resp.title);
+          $('#passForm')[0].reset();
+          $('#pass').modal('toggle');
         }
       },
       error: function (xhr, status, error) {
         console.log(error);
         alert(
-          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
-          "error"
+          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
+          'error'
         );
       },
     });
   });
-
-  // @ts-ignore
-  $("#reset-btn").click((e) => {
+  $('#reset-btn').click((e) => {
     e.preventDefault();
     resetForm();
   });
-
-  // @ts-ignore
-  $("#sortByName").click((e) => {
-    e.preventDefault();
-    ordered = !ordered;
-    getUsers(ordered);
-  });
-
-  // @ts-ignore
-  $("#searchUser").on("keyup", function (e) {
+  // $('#sortByName').click((e) => {
+  //   e.preventDefault();
+  //   ordered = !ordered;
+  //   getUsers(ordered);
+  // });
+  $('#searchUser').on('keyup', function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
-    if (searchValue == "") return getUsers();
+    if (searchValue == '') return getUsers();
     if (searchValue.length >= 3)
-      // @ts-ignore
       $.ajax({
         ...ajaxConfig,
-        url: "/usuarios/get",
-        // @ts-ignore
+        url: '/usuarios/get',
         data: $.param({ start: 0, length: 0, searchValue }),
-        success: fillTableUsers,
+        success: (resp) => fillTableUsers(resp, 1, 5),
         error: (xhr, status, error) => console.error(error),
       });
   });

@@ -1,58 +1,46 @@
-// @ts-ignore
 $(function () {
-  let ordered = false;
-
-  let title = "Nuevo(a) Aseguradora";
+  let title = 'Nuevo(a) Aseguradora';
 
   const ajaxConfig = {
-    url: "",
-    type: "POST",
+    url: '',
+    type: 'POST',
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    dataType: "json",
+    dataType: 'json',
   };
 
-  function alert(text = "", icon = "success", title = "") {
-    // @ts-ignore
+  function alert(text = '', icon = 'success', title = '') {
     Swal.fire({ title, text, icon });
   }
 
-  function alertConfirm(text = "") {
-    // @ts-ignore
+  function alertConfirm(text = '') {
     return Swal.fire({
-      title: "",
+      title: '',
       text,
       showCancelButton: true,
       allowOutsideClick: false,
-      confirmButtonText: "Aceptar",
-      cancelButtonText: "Cancelar",
-      icon: "warning",
+      confirmButtonText: 'Aceptar',
+      cancelButtonText: 'Cancelar',
+      icon: 'warning',
     });
   }
 
   function resetForm() {
-    // @ts-ignore
-    $("#utileriasForm")[0].reset();
-    // @ts-ignore
-    $("#utileriasForm").removeClass("was-validated");
-    // @ts-ignore
-    $("#aseguradora_id").val("New");
+    $('#utileriasForm')[0].reset();
+    $('#utileriasForm').removeClass('was-validated');
+    $('#aseguradora_id').val('New');
   }
 
   function editAseguradora(aseguradora_id) {
-    return alert("Aseguradora editada");
-    // @ts-ignore
+    return alert('Aseguradora editada');
     $.ajax({
       ...ajaxConfig,
-      url: "/get_data_multiple",
-      // @ts-ignore
+      url: '/get_data_multiple',
       data: $.param({ start: 0, length: 0, aseguradora_id }),
       success: function (resp) {
-        // @ts-ignore
-        $("#aseguradora_id").val(resp.data[0].id);
-        // @ts-ignore
-        $("#nombre").val(resp.data[0].nombre);
+        $('#aseguradora_id').val(resp.data[0].id);
+        $('#nombre').val(resp.data[0].nombre);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -60,43 +48,39 @@ $(function () {
 
   async function deleteAseguradora(aseguradora_id) {
     const { isConfirmed } = await alertConfirm(
-      "¿Esta seguro de eliminar esta aseguradora?"
+      '¿Esta seguro de eliminar esta aseguradora?'
     );
     if (!isConfirmed) return;
-    return alert("Aseguradora eliminada");
-    // @ts-ignore
+    return alert('Aseguradora eliminada');
     $.ajax({
       ...ajaxConfig,
-      url: "/usuarios/delete",
-      // @ts-ignore
+      url: '/usuarios/delete',
       data: $.param({ aseguradora_id }),
       success: function (resp) {
         if (!resp.error) {
           alert(resp.msg, undefined, resp.title);
           getAseguradoras();
         } else {
-          alert(resp.msg, "error");
+          alert(resp.msg, 'error');
         }
       },
       error: function (xhr, status, error) {
         console.log(error);
         alert(
-          "Lamentamos el inconveniente, por favor vuelve a intentarlo",
-          "error"
+          'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+          'error'
         );
       },
     });
   }
 
-  function fillTableAseguradoras(resp) {
-    const itemsOnPage = 5;
+  function fillTableAseguradoras(resp, currentPage, itemsOnPage) {
     const {
       Aseguradora: { data, recordsTotal },
     } = resp;
-    // @ts-ignore
-    const table = $("#table-aseguradoras");
-    table.html("");
-    // @ts-ignore
+    console.log(recordsTotal);
+    const table = $('#table-aseguradoras');
+    table.html('');
     $.each(data, function (idx, item) {
       table.append(
         `<tr class="tableOption">
@@ -119,111 +103,87 @@ $(function () {
           </td>
         </tr>`
       );
-      // @ts-ignore
-      $(`#btnEdit_${item.id}`).on("click", (e) => editAseguradora(item.id));
-      // @ts-ignore
-      $(`#btnDelete_${item.id}`).on("click", (e) => deleteAseguradora(item.id));
+      $(`#btnEdit_${item.id}`).on('click', (e) => editAseguradora(item.id));
+      $(`#btnDelete_${item.id}`).on('click', (e) => deleteAseguradora(item.id));
     });
-    // @ts-ignore
-    $(".tableOption").slice(5).hide();
-    // @ts-ignore
-    $("#pagination").pagination({
+    $('#pagination').pagination({
       items: recordsTotal,
-      itemsOnPage: itemsOnPage,
-      onPageClick: (noofele) =>
-        // @ts-ignore
-        $(".tableOption")
-          .hide()
-          .slice(
-            itemsOnPage * (noofele - 1),
-            itemsOnPage + itemsOnPage * (noofele - 1)
-          )
-          .show(),
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      itemsOnPage,
+      currentPage,
+      onPageClick: (pageNumber, e) => {
+        const start = (pageNumber - 1) * itemsOnPage;
+        getAseguradoras(pageNumber, start);
+      },
     });
   }
 
-  function getAseguradoras(order = false, start = 0, length = 10) {
-    // @ts-ignore
+  function getAseguradoras(pageNumber = 1, start = 0) {
+    const length = 5;
     $.ajax({
       ...ajaxConfig,
-      url: "/get_data_multiple",
-      // @ts-ignore
-      data: $.param(order ? { start, length, order } : { start, length }),
-      success: fillTableAseguradoras,
+      url: '/get_data_multiple',
+      data: $.param({ start, length, order: true }),
+      success: (resp) => fillTableAseguradoras(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
+  $('#tipoTitle').text(title);
 
-  // @ts-ignore
-  $("#tipoTitle").text(title);
-
-  // @ts-ignore
-  $("#tipo").on("change", (e) =>
-    // @ts-ignore
-    $("#tipoTitle").text(`Nuevo(a) ${e.target.value}`)
+  $('#tipo').on('change', (e) =>
+    $('#tipoTitle').text(`Nuevo(a) ${e.target.value}`)
   );
 
-  // @ts-ignore
-  $("#utileriasForm").submit(function (e) {
+  $('#utileriasForm').submit(function (e) {
     e.preventDefault();
-    // @ts-ignore
     const formData = $(this).serialize();
     if (!this.checkValidity()) {
-      // @ts-ignore
-      $(this).addClass("was-validated");
+      $(this).addClass('was-validated');
       return;
     }
-    // @ts-ignore
     $.ajax({
-      type: "POST",
-      url: "/create_multiple",
+      type: 'POST',
+      url: '/create_multiple',
       data: formData,
       success: function (resp) {
-        console.log(resp);
         if (resp.error) {
-          alert(resp.msg || "Ocurrio un error, intente de nuevo", "error");
+          alert(resp.msg || 'Ocurrio un error, intente de nuevo', 'error');
         } else {
-          alert(resp.msg, "success");
+          alert(resp.msg, 'success');
           getAseguradoras();
-          resetForm()
+          resetForm();
         }
       },
       error: function (xhr, status, error) {
         console.log(error);
         alert(
-          "Lamentamos el inconveniente, porfavor vuelve a intentarlo",
-          "error"
+          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
+          'error'
         );
       },
     });
   });
 
-  // @ts-ignore
-  $("#reset-btn").click((e) => {
+  $('#reset-btn').click((e) => {
     e.preventDefault();
     resetForm();
   });
-
-  // @ts-ignore
-  $("#sortByName").click((e) => {
-    e.preventDefault();
-    ordered = !ordered;
-    getAseguradoras(ordered);
-  });
-
-  // @ts-ignore
-  $("#searchAseguradora").on("keyup", function (e) {
+  // $('#sortByName').click((e) => {
+  //   e.preventDefault();
+  //   ordered = !ordered;
+  //   getAseguradoras(ordered);
+  // });
+  $('#searchAseguradora').on('keyup', function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
-    if (searchValue == "") return getAseguradoras();
+    if (searchValue == '') return getAseguradoras();
     if (searchValue.length >= 3)
-      // @ts-ignore
       $.ajax({
         ...ajaxConfig,
-        url: "/get_data_multiple",
-        // @ts-ignore
+        url: '/get_data_multiple',
         data: $.param({ start: 0, length: 0, searchValue }),
-        success: fillTableAseguradoras,
+        success: (resp) => fillTableAseguradoras(resp, 1, 5),
         error: (xhr, status, error) => console.error(error),
       });
   });

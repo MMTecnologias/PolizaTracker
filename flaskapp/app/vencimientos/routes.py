@@ -15,7 +15,7 @@ from sqlalchemy.orm import aliased
 from io import BytesIO
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib import colors,styles
+from reportlab.lib import colors, styles
 from reportlab.lib.styles import getSampleStyleSheet
 
 
@@ -181,9 +181,6 @@ def get_upcoming_receipts():
     length = int(request.form.get('length')
                  ) if request.form.get('length') else None
 
-    print(request.form.get('start_date'))
-    print(request.form.get('end_date'))
-
     # Retrieve the start and end dates for the report
     filtered_selected = True
     if not request.form.get('start_date') and not request.form.get('end_date'):
@@ -229,11 +226,11 @@ def get_upcoming_receipts():
 
     total_records = upcoming_receipts_query.count()
 
-    if start and length:
+    if not length and not start:
+        upcoming_receipts = upcoming_receipts_query.all()
+    else:
         upcoming_receipts = upcoming_receipts_query.offset(
             start).limit(length).all()
-    else:
-        upcoming_receipts = upcoming_receipts_query.all()
 
     # Prepare the response data
     response = []
@@ -268,11 +265,12 @@ def get_upcoming_receipts():
     if request.form.get('export_pdf'):
         to_multiline = ['cliente', 'notas']
         if filtered_selected:
-            title_str="Recibos por vencer en %s - %s" % (payment_due_start.strftime('%d/%m/%y'), payment_due_end.strftime('%d/%m/%y'))
-        else: 
+            title_str = "Recibos por vencer en %s - %s" % (
+                payment_due_start.strftime('%d/%m/%y'), payment_due_end.strftime('%d/%m/%y'))
+        else:
             today = datetime.now().strftime('%d/%m/%y')
-            title_str="Recibos próximos por vencer, al %s" % today
-        return export_to_pdf(headers, response, 'upcoming_receipts.pdf', real_headers, to_multiline,title_str)
+            title_str = "Recibos próximos por vencer, al %s" % today
+        return export_to_pdf(headers, response, 'upcoming_receipts.pdf', real_headers, to_multiline, title_str)
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
@@ -361,14 +359,14 @@ def get_upcoming_policies():
     total_records = upcoming_policies_query.count()
     total_records += upcoming_endosos_query.count()
 
-    if start and length:
+    if not length and not start:
+        upcoming_policies = upcoming_policies_query.all()
+        upcoming_endosos = upcoming_endosos_query.all()
+    else:
         upcoming_endosos = upcoming_endosos_query.offset(
             start).limit(length).all()
         upcoming_policies = upcoming_policies_query.offset(
             start).limit(length).all()
-    else:
-        upcoming_policies = upcoming_policies_query.all()
-        upcoming_endosos = upcoming_endosos_query.all()
 
     # Prepare the response data
     response = []
@@ -425,11 +423,12 @@ def get_upcoming_policies():
     if request.form.get('export_pdf'):
         to_multiline = ['cliente']
         if filtered_selected:
-            title_str="Pólizas y Endosos por vencer en (%s - %s)" % (policy_due_start.strftime('%d/%m/%y'), policy_due_end.strftime('%d/%m/%y'))
+            title_str = "Pólizas y Endosos por vencer en (%s - %s)" % (
+                policy_due_start.strftime('%d/%m/%y'), policy_due_end.strftime('%d/%m/%y'))
         else:
             today = datetime.now().strftime('%d/%m/%y')
-            title_str="Pólizas y Endosos por vencer, al %s" % today
-        return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline,title_str)
+            title_str = "Pólizas y Endosos por vencer, al %s" % today
+        return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline, title_str)
 
     print(response)
     return jsonify({
@@ -463,8 +462,8 @@ def export_to_csv(headers, jsondic, filename, real_headers=None):
     return response
 
 
-def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None,title_str="Title"):
-    title_str=str(title_str)
+def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None, title_str="Title"):
+    title_str = str(title_str)
     if real_headers is None:
         real_headers = headers
     if to_multiline is None:
@@ -473,8 +472,8 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     buffer = BytesIO()
     # Set up the PDF document
     doc = SimpleDocTemplate(buffer, pagesize=landscape(
-        letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4,title=title_str)
-    
+        letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4, title=title_str)
+
     # Create the table data
     style = getSampleStyleSheet()['Normal']
     style.fontName = 'Helvetica'
@@ -514,23 +513,21 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
 
     # Build the PDF document
     elements = []
-    
+
     # Create a style for the title
     title_style = getSampleStyleSheet()['Title']
     title_style.fontName = 'Helvetica'
     title_style.fontSize = 14
     title_style.leading = 20
     title_style.alignment = 1  # Center alignment
-    
+
     # Create the title paragraph
     p = Paragraph(title_str, title_style)
     elements.append(p)
 
     elements.append(table)
     doc.build(elements)
-    
 
-    
     # Reset the buffer position
     buffer.seek(0)
 
