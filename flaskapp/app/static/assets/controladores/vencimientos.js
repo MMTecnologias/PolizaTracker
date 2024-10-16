@@ -45,6 +45,7 @@ $(function () {
                 ${poliza.poliza}
             </p>
           </td>
+          <td>${poliza.fecha_termino}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.subramo}</td>
           <td>${poliza.aseguradora}</td>

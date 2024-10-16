@@ -597,6 +597,7 @@ $(function () {
 
   function fillTableRecibos(resp, currentPage, itemsOnPage, poliza_id) {
     const { data, recordsTotal } = resp;
+    console.log(data);
     const table = $('#receiptsTable');
     table.html('');
     $.each(data, function (idx, recibo) {
