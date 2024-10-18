@@ -65,20 +65,36 @@ def get_multiple_ids():
 
     return jsonify(response)
 
-# Prima Neta
+# Prima Neta (Incompleto)
+#Usar group by month year func of mysql
 @reportes_route.route('/prima_neta', methods=['POST', 'GET'])
 @login_required
 def prima_neta():
+    type_report = request.form.get('type_report')
+    if type_report not in ['mes','año']:
+        return jsonify({'error':True,'msg':'Tipo de reporte no válido'})
+        
+    start_date= request.form.get('start_date')
+    end_date= request.form.get('end_date')
+    if not start_date or not end_date:
+        year = datetime.now().year
+        start_date = datetime(year,1,1)
+        end_date = datetime(year,12,31)
+    else:
+        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
+        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
 
+    aseguradora_id = request.form.get('aseguradora_id')
+    grupo_id = request.form.get('grupo_id')
+    ramo_id = request.form.get('ramo_id')
+    agente_id = request.form.get('agente_id')
+    vendedor_id = request.form.get('vendedor_id')
 
+    # Query the database for the total prima neta fo
 
-    # Get the start and end dates for the report
-    start_date = datetime.now() if not request.form.get(
-        'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-    end_date = datetime.now() if not request.form.get(
-        'end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+    if type_report == 'mes':
+        1
 
-    # Query the database for the total prima neta
     total_prima_neta_query = db.session.query(func.sum(Poliza.prima_neta)) \
         .filter(Poliza.fecha_inicio >= start_date,
                 Poliza.fecha_inicio <= end_date)
