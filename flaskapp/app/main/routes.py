@@ -201,6 +201,8 @@ def grupo():
         })
     return jsonify(data)
 
+
+
 @main.route('/create_multiple', methods=['POST'])
 @login_required
 def create_multiple():

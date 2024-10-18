@@ -113,7 +113,7 @@ def get_all():
     start = int(request.form.get('start'))
     length = int(request.form.get('length'))
     #start = 0
-    #length = 50
+    #length = 500
     UsuarioReview = aliased(Usuario)
     # Query to fetch clientes data from the database
     request_query = db.session.query(Request,
@@ -122,7 +122,8 @@ def get_all():
                                      UsuarioReview.nombre.label('reviso_nombre'),
                                      UsuarioReview.apellido.label('reviso_apellido'))\
                                 .join(Usuario, Request.usuario_id == Usuario.id)\
-                                .join(UsuarioReview, Request.usuario_review_id == UsuarioReview.id)
+                                .outerjoin(UsuarioReview, Request.usuario_review_id == UsuarioReview.id)\
+                                .order_by(Request.id.desc())
 
     # Get total count of records without filtering
     total_records = request_query.count()

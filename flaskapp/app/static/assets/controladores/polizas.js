@@ -357,6 +357,7 @@ $(function () {
       url: '/polizas/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
+        $('#poliza_id').val(poliza_id);
         $('#id_poliza').val(resp.data[0].poliza);
         $('#polizaAnterior').val(resp.data[0].poliza);
         $('#poliza-anterior').val(resp.data[0].poliza).prop('disabled', true);

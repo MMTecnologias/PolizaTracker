@@ -94,6 +94,11 @@ class Poliza(db.Model):
     #alter table polizas add column conducta_pago varchar(30) default null;
     conducta_pago = Column(String(30), default=None)
 
+    #ALTER TABLE `ggsystem`.`polizas` 
+    #ADD COLUMN `Poliza_renovada` ENUM('Si', 'No') NOT NULL DEFAULT 'No' AFTER `conducta_pago`;
+    Poliza_renovada = Column(Enum('Si', 'No'), nullable=False, default='No')
+
+
 
 class Endoso(db.Model):
     __tablename__ = 'endosos'

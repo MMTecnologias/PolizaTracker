@@ -27,6 +27,7 @@ def get_receipts():
         poliza_id = Recibo.query.get(endoso_id).poliza_id
     else:
         recibos_query = Recibo.query.filter_by(poliza_id=poliza_id, endoso_id=None)
+    moneda=Poliza.query.get(int(poliza_id)).moneda
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
@@ -47,7 +48,8 @@ def get_receipts():
             "fecha_pago" : "" if recibo.fecha_pago is None else  recibo.fecha_pago.strftime('%Y-%m-%d'),
             "comprobante" : "" if recibo.comprobante is None else  recibo.comprobante ,
             "cancelado" : True if poliza.status=='Cancelada' else False,
-            'id': recibo.id
+            'id': recibo.id,
+            'moneda':moneda
             # Add more fields as needed
         })
     # 'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
@@ -185,6 +187,20 @@ def create():
     # if not check_access("Clientes"):
     #    return redirect(url_for('main.index'))
     poliza_id = request.form.get('poliza_id')
+    poliza_old = None
+    if not(poliza_id == "New"):
+        try:
+            poliza_id = int(poliza_id)
+        except:
+            return jsonify({'error': True, 'msg': 'No se encontró la póliza a renovar'})
+        poliza_old = Poliza.query.get(poliza_id)
+        if not poliza_old:
+            return jsonify({'error': True, 'msg': 'No se encontró la póliza a renovar'})
+        if poliza_old.Poliza_renovada=="Si":
+            return jsonify({'error': True, 'msg': 'La poliza ya ha sido renovada'})
+
+    if not poliza_id:
+        return jsonify({'error': True, 'msg': 'No se encontró la póliza'})
 
     def check_new_form():
         argdict = {}
@@ -252,44 +268,55 @@ def create():
     # return arg_values
 
     # If cliente_id is "New", then it's a new client creation
-    if poliza_id == "New":
-        arg_values.update(check_new_form())
-        arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
-        # Create a new client
-        new_poliza = Poliza(**arg_values)
-        # Save the new client to the database
-        db.session.add(new_poliza)
-        db.session.commit()
+    #if poliza_id == "New":
+    arg_values.update(check_new_form())
+    arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
+    # Create a new client
+    new_poliza = Poliza(**arg_values)
+    # Save the new client to the database
+    db.session.add(new_poliza)
+    db.session.commit()
 
+    if poliza_old:
+        poliza_old.Poliza_renovada="Si"
         request_entry = Request(usuario_id=current_user.id,
-                                description=f"Crear poliza {new_poliza.poliza}",
-                                status="Aceptada",
-                                table_name='Poliza',
-                                row_id=new_poliza.id)
+                            description=f"Renovar póliza {poliza_old.poliza} a {new_poliza.poliza}",
+                            status="Aceptada",
+                            table_name='Poliza',
+                            row_id=new_poliza.id)
         db.session.add(request_entry)
         db.session.commit()
-        """for col,value in arg_values.items():
-            log_entry = Log(request_id=request_entry.id,
-                            column_name=col,
-                            old_value="",
-                            new_value=value)
-            db.session.add(log_entry)
-        db.session.commit() """
-
-        return jsonify({
-            'error': False,
-            'redirect': url_for('main.polizas'),
-            'msg': arg_values,
-            'title':'Poliza registrada exitosamente',
-            'poliza_id':new_poliza.id
-        })
     else:
-        return jsonify({
-            'error': False,
-            'redirect': url_for('main.polizas'),
-            'msg': 'Solo se puede editar poliza en endosos',
-            'title': 'Sin cambios'
-        })
+        request_entry = Request(usuario_id=current_user.id,
+                            description=f"Crear poliza {new_poliza.poliza}",
+                            status="Aceptada",
+                            table_name='Poliza',
+                            row_id=new_poliza.id)
+        db.session.add(request_entry)
+        db.session.commit()
+
+    """for col,value in arg_values.items():
+        log_entry = Log(request_id=request_entry.id,
+                        column_name=col,
+                        old_value="",
+                        new_value=value)
+        db.session.add(log_entry)
+    db.session.commit() """
+
+    return jsonify({
+        'error': False,
+        'redirect': url_for('main.polizas'),
+        'msg': arg_values,
+        'title':'Poliza registrada exitosamente',
+        'poliza_id':new_poliza.id
+    })
+    #else:
+    #    return jsonify({
+     #       'error': False,
+      #      'redirect': url_for('main.polizas'),
+       #     'msg': 'Solo se puede editar poliza en endosos',
+        #    'title': 'Sin cambios'
+        #})
 
 @polizas_route.route('/delete', methods=['POST'])
 @login_required
@@ -856,4 +883,119 @@ def get_form_data():
         response[key] = data
 
     return jsonify(response)
+
+@polizas_route.route('/get_all_receipts', methods=['POST', 'GET'])
+@login_required
+def get_all_receipts():
+    start = int(request.form.get('start')
+                ) if request.form.get('start') else None
+    length = int(request.form.get('length')
+                 ) if request.form.get('length') else None
+    
+    aseguradora_id = request.form.get('aseguradora_id')
+    cliente_id = request.form.get('cliente_id')
+    grupo_id = request.form.get('grupo_id')    
+
+    #Get valid list of policies
+    polizas = []
+    if cliente_id:
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.cliente_id == int(cliente_id)).all()
+        polizas = [poliza.id for poliza in polizas_query]
+    
+    if grupo_id:
+        clients_query = db.session.query(Cliente) \
+            .filter(Cliente.grupo_id == int(grupo_id)).all()
+        clients = [client.id for client in clients_query]
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.cliente_id.in_(clients)).all()
+        polizas = [poliza.id for poliza in polizas_query]
+
+    if aseguradora_id:
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
+        if polizas==[]:
+            polizas = [poliza.id for poliza in polizas_query]
+        else:
+            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
+    #Client and grupo can not be asked both
+    if cliente_id and grupo_id:
+        return jsonify({'error':True,
+                        'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
+
+    # Query the database for upcoming receipts
+    upcoming_receipts_query = db.session.query(Recibo,
+                                               Poliza,
+                                               Cliente.nombre.label(
+                                                   "client_name"),
+                                               Cliente.apellido.label(
+                                                   "client_lastname"),
+                                               Aseguradora.aseguradora.label(
+                                                   "aseguradora"),
+                                               Ramo.ramo.label("ramo"),
+                                               Subramo.subramo.label(
+                                                   "subramo"),
+                                               TipoPago.tipo_pago.label(
+                                                   "tipo_pago"),
+                                               Agente.nombre.label("agente"),
+                                               Vendedor.nombre.label("vendedor")) \
+        .select_from(Recibo) \
+        .join(Poliza, Recibo.poliza_id == Poliza.id) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id) \
+        .join(Subramo, Poliza.subramo_id == Subramo.id) \
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+        .join(Agente, Poliza.agente_id == Agente.id) \
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) 
+
+    if aseguradora_id or cliente_id or grupo_id:
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.poliza_id.in_(polizas))
+
+    if request.form.get('start_date') and request.form.get('end_date'):
+        start_date =  datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
+        end_date =  datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= start_date,
+                                                                Recibo.fecha_inicio <= end_date)
+    upcoming_receipts_query = upcoming_receipts_query.order_by(Recibo.fecha_inicio)
+
+
+    total_records = upcoming_receipts_query.count()
+
+    if not length and not start:
+        upcoming_receipts = upcoming_receipts_query.all()
+    else:
+        upcoming_receipts = upcoming_receipts_query.offset(
+            start).limit(length).all()
+
+    # Prepare the response data
+    response = []
+    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_receipts:
+
+        data = {
+            'poliza_id': recibo.poliza_id,
+            'poliza': poliza.poliza,
+            'no_de_recibo': f"'{recibo.no_de_recibo}",  # Convert to string
+            'cliente': f'{nombre} {apellido}',
+            'notas': poliza.notas,
+            'ramo': ramo,
+            'subramo': subramo,
+            'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
+            'fecha_fin': recibo.fecha_vencimiento.strftime('%d/%m/%y'),
+            'prima_neta': recibo.prima_neta,
+            'prima_total': recibo.prima_total,
+            'moneda': poliza.moneda,
+            'forma_pago': tipo_pago,
+            'agente': f'{agente}',
+            'endoso': poliza.endoso,
+            'poliza_anterior': poliza.poliza_anterior,
+            'aseguradora': aseguradora
+        }
+
+        response.append(data)
+
+    return jsonify({
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': response  # Data to display
+    })
 
