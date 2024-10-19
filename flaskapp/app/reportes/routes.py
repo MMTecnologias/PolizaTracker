@@ -66,58 +66,89 @@ def get_multiple_ids():
     return jsonify(response)
 
 # Prima Neta (Incompleto)
-#Usar group by month year func of mysql
+# Usar group by month year func de SQLAlchemy
 @reportes_route.route('/prima_neta', methods=['POST', 'GET'])
 @login_required
 def prima_neta():
-    type_report = request.form.get('type_report')
-    if type_report not in ['mes','año']:
-        return jsonify({'error':True,'msg':'Tipo de reporte no válido'})
-        
-    start_date= request.form.get('start_date')
-    end_date= request.form.get('end_date')
+    # Commenting out request for testing purposes
+    # type_report = request.form.get('type_report')
+    type_report = 'mes'  # Default value for testing
+    if type_report not in ['mes', 'año']:
+        return jsonify({'error': True, 'msg': 'Tipo de reporte no válido'})
+
+    # Commenting out request for testing purposes
+    # start_date = request.form.get('start_date')
+    # end_date = request.form.get('end_date')
+    start_date = '2023-01-01'  # Default value for testing
+    end_date = '2024-12-31'  # Default value for testing
     if not start_date or not end_date:
         year = datetime.now().year
-        start_date = datetime(year,1,1)
-        end_date = datetime(year,12,31)
+        start_date = datetime(year, 1, 1)
+        end_date = datetime(year, 12, 31)
     else:
-        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
 
-    aseguradora_id = request.form.get('aseguradora_id')
-    grupo_id = request.form.get('grupo_id')
-    ramo_id = request.form.get('ramo_id')
-    agente_id = request.form.get('agente_id')
-    vendedor_id = request.form.get('vendedor_id')
+    # Commenting out request for testing purposes
+    # aseguradora_id = request.form.get('aseguradora_id')
+    # grupo_id = request.form.get('grupo_id')
+    # ramo_id = request.form.get('ramo_id')
+    # agente_id = request.form.get('agente_id')
+    # vendedor_id = request.form.get('vendedor_id')
 
-    # Query the database for the total prima neta fo
+    # Default values for testing
+    aseguradora_id = None
+    grupo_id = None
+    ramo_id = None
+    agente_id = None
+    vendedor_id = None
 
-    if type_report == 'mes':
-        1
+    # Query the database for the total prima neta grouped by month/year
+    """
+    total_prima_neta_query = db.session.query(
+        func.year(Poliza.fecha_inicio).label('year'),
+        func.month(Poliza.fecha_inicio).label('month'),
+        func.sum(Poliza.prima_neta).label('total_prima_neta')
+    ).filter(
+        Poliza.fecha_inicio >= start_date,
+        Poliza.fecha_inicio <= end_date
+    ).group_by(
+        func.year(Poliza.fecha_inicio),
+        func.month(Poliza.fecha_inicio)
+    ).order_by(
+        func.year(Poliza.fecha_inicio),
+        func.month(Poliza.fecha_inicio)
+    ).all()
+    """
 
-    total_prima_neta_query = db.session.query(func.sum(Poliza.prima_neta)) \
-        .filter(Poliza.fecha_inicio >= start_date,
-                Poliza.fecha_inicio <= end_date)
+    # Query the database for the total prima neta pagada grouped by month/year
+    total_prima_neta_pagada_query = db.session.query(
+        func.year(Recibo.fecha_pago).label('year'),
+        func.month(Recibo.fecha_pago).label('month'),
+        func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
+    ).join(
+        Poliza, Recibo.poliza_id == Poliza.id
+    ).filter(
+        Recibo.fecha_pago >= start_date,
+        Recibo.fecha_pago <= end_date
+    ).group_by(
+        func.year(Recibo.fecha_pago),
+        func.month(Recibo.fecha_pago)
+    ).order_by(
+        func.year(Recibo.fecha_pago),
+        func.month(Recibo.fecha_pago)
+    )
 
-    total_prima_neta = total_prima_neta_query.scalar()
-
-    # Query the database for the total prima neta pagada
-    total_prima_neta_pagada_query = db.session.query(func.sum(Recibo.prima_neta)) \
-        .join(Poliza, Recibo.poliza_id == Poliza.id) \
-        .filter(Recibo.fecha_pago >= start_date,
-                Recibo.fecha_pago <= end_date)
-
-    total_prima_neta_pagada = total_prima_neta_pagada_query.scalar()
-
+    total_records = total_prima_neta_pagada_query.count()
+    records = total_prima_neta_pagada_query.all()
+    data=[{'year': row.year, 'month': row.month, 'total_prima_neta_pagada': row.total_prima_neta_pagada}
+            for row in records]
     # Prepare the response
     response = {
-        'total_prima_neta': total_prima_neta,
-        'total_prima_neta_pagada': total_prima_neta_pagada
+        'recordsTotal': total_records,  # Total records without filtering
+        'data': data  # Data to display
     }
-
     return jsonify(response)
-
-
 
 ## DO NOT USE
 """
