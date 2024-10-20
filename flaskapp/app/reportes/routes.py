@@ -68,24 +68,24 @@ def get_multiple_ids():
 @login_required
 def prima_neta():
     """
-    Endpoint to generate a report of the total prima neta pagada grouped by month or year.
-    The report can be filtered by aseguradora, grupo, ramo, agente, and vendedor.
-    The report can be generated for a specific date range.
+    Punto de acceso para generar un informe de la prima neta total pagada agrupada por mes o año.
+    El informe puede filtrarse por aseguradora, grupo, ramo, agente y vendedor.
+    El informe puede generarse para un rango de fechas específico.
 
-    Request Parameters:
-    - type_report: 'month' or 'year' (default: 'month')
-    - start_date: Start date for the report (format: 'YYYY-MM-DD')
-    - end_date: End date for the report (format: 'YYYY-MM-DD')
-    - aseguradora_id: ID of the aseguradora to filter by
-    - grupo_id: ID of the grupo to filter by
-    - ramo_id: ID of the ramo to filter by
-    - agente_id: ID of the agente to filter by
-    - vendedor_id: ID of the vendedor to filter by
+    Parámetros de la solicitud:
+    - type_report: 'month' o 'year' (por defecto: 'month')
+    - start_date: Fecha de inicio para el informe (formato: 'YYYY-MM-DD')
+    - end_date: Fecha de fin para el informe (formato: 'YYYY-MM-DD')
+    - aseguradora_id: ID de la aseguradora para filtrar
+    - grupo_id: ID del grupo para filtrar
+    - ramo_id: ID del ramo para filtrar
+    - agente_id: ID del agente para filtrar
+    - vendedor_id: ID del vendedor para filtrar
 
-    Response:
-    - recordsTotal: Total number of records sent
-    - recordsTotal_with_values: Total number of records without filtering
-    - data: List of dictionaries containing the report data
+    Respuesta:
+    - recordsTotal: Número total de registros enviados
+    - recordsTotal_with_values: Número total de registros con valores
+    - data: Lista de diccionarios que contienen los datos del informe
     """
     type_report = request.form.get('type_report') if request.form.get('type_report') else 'month'
     if type_report not in ['month', 'year']:
