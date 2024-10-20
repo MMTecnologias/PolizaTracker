@@ -67,17 +67,32 @@ def get_multiple_ids():
 @reportes_route.route('/prima_neta', methods=['POST', 'GET'])
 @login_required
 def prima_neta():
-    # Commenting out request for testing purposes
-    #type_report = request.form.get('type_report') if request.form.get('type_report') else 'month'
-    type_report = 'year'  # Default value for testing
+    """
+    Endpoint to generate a report of the total prima neta pagada grouped by month or year.
+    The report can be filtered by aseguradora, grupo, ramo, agente, and vendedor.
+    The report can be generated for a specific date range.
+
+    Request Parameters:
+    - type_report: 'month' or 'year' (default: 'month')
+    - start_date: Start date for the report (format: 'YYYY-MM-DD')
+    - end_date: End date for the report (format: 'YYYY-MM-DD')
+    - aseguradora_id: ID of the aseguradora to filter by
+    - grupo_id: ID of the grupo to filter by
+    - ramo_id: ID of the ramo to filter by
+    - agente_id: ID of the agente to filter by
+    - vendedor_id: ID of the vendedor to filter by
+
+    Response:
+    - recordsTotal: Total number of records sent
+    - recordsTotal_with_values: Total number of records without filtering
+    - data: List of dictionaries containing the report data
+    """
+    type_report = request.form.get('type_report') if request.form.get('type_report') else 'month'
     if type_report not in ['month', 'year']:
         return jsonify({'error': True, 'msg': 'Tipo de reporte no válido, debe ser "month" o "year"'})
 
-    # Commenting out request for testing purposes
-    # start_date = request.form.get('start_date')
-    # end_date = request.form.get('end_date')
-    start_date = '2023-01-01'  # Default value for testing
-    end_date = '2024-12-31'  # Default value for testing
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date')
     if not start_date or not end_date:
         year = datetime.now().year
         start_date = datetime(year, 1, 1)
@@ -86,19 +101,11 @@ def prima_neta():
         start_date = datetime.strptime(start_date, '%Y-%m-%d')
         end_date = datetime.strptime(end_date, '%Y-%m-%d')
 
-    # Commenting out request for testing purposes
-    # aseguradora_id = request.form.get('aseguradora_id')
-    # grupo_id = request.form.get('grupo_id')
-    # ramo_id = request.form.get('ramo_id')
-    # agente_id = request.form.get('agente_id')
-    # vendedor_id = request.form.get('vendedor_id')
-
-    # Default values for testing
-    aseguradora_id = None  # Esta en tabla de polizas 3
-    grupo_id = None  # Esta en tabla de clientes
-    ramo_id = None # Esta en tabla de polizas
-    agente_id = None  # Esta en tabla de polizas
-    vendedor_id = None  # Esta en tabla de polizas
+    aseguradora_id = request.form.get('aseguradora_id')
+    grupo_id = request.form.get('grupo_id')
+    ramo_id = request.form.get('ramo_id')
+    agente_id = request.form.get('agente_id')
+    vendedor_id = request.form.get('vendedor_id')
 
     polizas_sets = []
 
@@ -128,31 +135,30 @@ def prima_neta():
         polizas = list(set.intersection(*polizas_sets))
     else:
         polizas = []
-    print(polizas)
+
     # Now `polizas` contains the set of valid poliza ids based on the selected filters
 
-    
     # Query the database for the total prima neta pagada grouped by month/year
     if type_report == 'month':
-        total_records_query =  db.session.query(
+        total_records_query = db.session.query(
             func.year(Recibo.fecha_pago).label('year'),
             func.month(Recibo.fecha_pago).label('month'),
             func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
         )
     else:
-        total_records_query =  db.session.query(
+        total_records_query = db.session.query(
             func.year(Recibo.fecha_pago).label('year'),
             func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
         )
     if polizas:
         total_records_query = total_records_query.filter(Recibo.poliza_id.in_(polizas))
     total_records_query = total_records_query.join(
-            Poliza, Recibo.poliza_id == Poliza.id
-        ).filter(
-            Recibo.fecha_pago >= start_date,
-            Recibo.fecha_pago <= end_date,
-        )
-    
+        Poliza, Recibo.poliza_id == Poliza.id
+    ).filter(
+        Recibo.fecha_pago >= start_date,
+        Recibo.fecha_pago <= end_date,
+    )
+
     if type_report == 'month':
         total_records_query = total_records_query.group_by(
             func.year(Recibo.fecha_pago),
@@ -171,7 +177,7 @@ def prima_neta():
     total_records = total_records_query.count()
     records = total_records_query.all()
 
-    # Create empty data 
+    # Create empty data
     start_year = start_date.year
     start_month = start_date.month
     end_year = end_date.year
@@ -191,20 +197,15 @@ def prima_neta():
             data.append({'year': year, 'total_prima_neta_pagada': 0})
             data_index.append(year)
 
-    
     # Fill in the data with the actual values
-    # This is done by iterating through the records and updating the corresponding data entry
-    # based on the year and month
     for record in records:
         if type_report == 'month':
-            data_index_serch = (record.year, record.month)
+            data_index_search = (record.year, record.month)
         else:
-            data_index_serch = record.year
-        index_row = data_index.index(data_index_serch)
+            data_index_search = record.year
+        index_row = data_index.index(data_index_search)
         data[index_row]['total_prima_neta_pagada'] = record.total_prima_neta_pagada
 
-    data=[{'year': row.year, 'total_prima_neta_pagada': row.total_prima_neta_pagada}
-            for row in records]
     # Prepare the response
     response = {
         'recordsTotal': len(data),  # Total records send
