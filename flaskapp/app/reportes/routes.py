@@ -13,10 +13,7 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 from io import BytesIO
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib import colors, styles
-from reportlab.lib.styles import getSampleStyleSheet
+from app.models import export_to_csv, export_to_pdf
 
 
 #### Rutas para reportes gerenciales
@@ -71,10 +68,10 @@ def get_multiple_ids():
 @login_required
 def prima_neta():
     # Commenting out request for testing purposes
-    # type_report = request.form.get('type_report')
-    type_report = 'mes'  # Default value for testing
-    if type_report not in ['mes', 'año']:
-        return jsonify({'error': True, 'msg': 'Tipo de reporte no válido'})
+    #type_report = request.form.get('type_report') if request.form.get('type_report') else 'month'
+    type_report = 'year'  # Default value for testing
+    if type_report not in ['month', 'year']:
+        return jsonify({'error': True, 'msg': 'Tipo de reporte no válido, debe ser "month" o "year"'})
 
     # Commenting out request for testing purposes
     # start_date = request.form.get('start_date')
@@ -97,242 +94,381 @@ def prima_neta():
     # vendedor_id = request.form.get('vendedor_id')
 
     # Default values for testing
-    aseguradora_id = None
-    grupo_id = None
-    ramo_id = None
-    agente_id = None
-    vendedor_id = None
+    aseguradora_id = None  # Esta en tabla de polizas 3
+    grupo_id = None  # Esta en tabla de clientes
+    ramo_id = None # Esta en tabla de polizas
+    agente_id = None  # Esta en tabla de polizas
+    vendedor_id = None  # Esta en tabla de polizas
 
-    # Query the database for the total prima neta grouped by month/year
-    """
-    total_prima_neta_query = db.session.query(
-        func.year(Poliza.fecha_inicio).label('year'),
-        func.month(Poliza.fecha_inicio).label('month'),
-        func.sum(Poliza.prima_neta).label('total_prima_neta')
-    ).filter(
-        Poliza.fecha_inicio >= start_date,
-        Poliza.fecha_inicio <= end_date
-    ).group_by(
-        func.year(Poliza.fecha_inicio),
-        func.month(Poliza.fecha_inicio)
-    ).order_by(
-        func.year(Poliza.fecha_inicio),
-        func.month(Poliza.fecha_inicio)
-    ).all()
-    """
+    polizas_sets = []
 
+    if aseguradora_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if grupo_id:
+        clients_query = db.session.query(Cliente.id).filter(Cliente.grupo_id == int(grupo_id)).all()
+        clients = [client.id for client in clients_query]
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.cliente_id.in_(clients)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if ramo_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.ramo_id == int(ramo_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if agente_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.agente_id == int(agente_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.vendedor_id == int(vendedor_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if polizas_sets:
+        polizas = list(set.intersection(*polizas_sets))
+    else:
+        polizas = []
+    print(polizas)
+    # Now `polizas` contains the set of valid poliza ids based on the selected filters
+
+    
     # Query the database for the total prima neta pagada grouped by month/year
-    total_prima_neta_pagada_query = db.session.query(
-        func.year(Recibo.fecha_pago).label('year'),
-        func.month(Recibo.fecha_pago).label('month'),
-        func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
-    ).join(
-        Poliza, Recibo.poliza_id == Poliza.id
-    ).filter(
-        Recibo.fecha_pago >= start_date,
-        Recibo.fecha_pago <= end_date
-    ).group_by(
-        func.year(Recibo.fecha_pago),
-        func.month(Recibo.fecha_pago)
-    ).order_by(
-        func.year(Recibo.fecha_pago),
-        func.month(Recibo.fecha_pago)
-    )
+    if type_report == 'month':
+        total_records_query =  db.session.query(
+            func.year(Recibo.fecha_pago).label('year'),
+            func.month(Recibo.fecha_pago).label('month'),
+            func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
+        )
+    else:
+        total_records_query =  db.session.query(
+            func.year(Recibo.fecha_pago).label('year'),
+            func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
+        )
+    if polizas:
+        total_records_query = total_records_query.filter(Recibo.poliza_id.in_(polizas))
+    total_records_query = total_records_query.join(
+            Poliza, Recibo.poliza_id == Poliza.id
+        ).filter(
+            Recibo.fecha_pago >= start_date,
+            Recibo.fecha_pago <= end_date,
+        )
+    
+    if type_report == 'month':
+        total_records_query = total_records_query.group_by(
+            func.year(Recibo.fecha_pago),
+            func.month(Recibo.fecha_pago)
+        ).order_by(
+            func.year(Recibo.fecha_pago),
+            func.month(Recibo.fecha_pago)
+        )
+    else:
+        total_records_query = total_records_query.group_by(
+            func.year(Recibo.fecha_pago)
+        ).order_by(
+            func.year(Recibo.fecha_pago)
+        )
 
-    total_records = total_prima_neta_pagada_query.count()
-    records = total_prima_neta_pagada_query.all()
-    data=[{'year': row.year, 'month': row.month, 'total_prima_neta_pagada': row.total_prima_neta_pagada}
+    total_records = total_records_query.count()
+    records = total_records_query.all()
+
+    # Create empty data 
+    start_year = start_date.year
+    start_month = start_date.month
+    end_year = end_date.year
+    end_month = end_date.month
+    data = []
+    data_index = []
+    for year in range(start_year, end_year + 1):
+        if type_report == 'month':
+            for month in range(1, 13):
+                if year == start_year and month < start_month:
+                    continue
+                if year == end_year and month > end_month:
+                    break
+                data.append({'year': year, 'month': month, 'total_prima_neta_pagada': 0})
+                data_index.append((year, month))
+        else:
+            data.append({'year': year, 'total_prima_neta_pagada': 0})
+            data_index.append(year)
+
+    
+    # Fill in the data with the actual values
+    # This is done by iterating through the records and updating the corresponding data entry
+    # based on the year and month
+    for record in records:
+        if type_report == 'month':
+            data_index_serch = (record.year, record.month)
+        else:
+            data_index_serch = record.year
+        index_row = data_index.index(data_index_serch)
+        data[index_row]['total_prima_neta_pagada'] = record.total_prima_neta_pagada
+
+    data=[{'year': row.year, 'total_prima_neta_pagada': row.total_prima_neta_pagada}
             for row in records]
     # Prepare the response
     response = {
-        'recordsTotal': total_records,  # Total records without filtering
+        'recordsTotal': len(data),  # Total records send
+        'recordsTotal_with_values': total_records,  # Total records without filtering
         'data': data  # Data to display
     }
     return jsonify(response)
 
-## DO NOT USE
-"""
-@vencimientos_route.route('/get', methods=['POST'])
+#polizas
+@reportes_route.route('/polizas', methods=['POST', 'GET'])
 @login_required
-def get():
-    # Estos datos los recibe desde la función en JS
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
-    search_value = request.form.get('searchValue')
-    order = bool(request.form.get('order'))
-    poliza_id = request.form.get('poliza_id')
+def polizas():
+    type_report = 'year'  # Default value for testing
+    if type_report not in ['month', 'year']:
+        return jsonify({'error': True, 'msg': 'Tipo de reporte no válido, debe ser "month" o "year"'})
 
-    aseguradora_id = request.form.get('aseguradora_id')
-    cliente_id = request.form.get('cliente_id')
-    grupo_id = request.form.get('grupo_id')    
+    start_date = '2019-01-01'  # Default value for testing
+    end_date = '2025-12-31'  # Default value for testing
 
-    #Client and grupo can not be asked both
-    if cliente_id and grupo_id:
-        return jsonify({'error':True,
-                        'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
-
-
-        
-
-    polizas_query = db.session.query(Poliza,
-                                     Cliente.nombre.label("client_name"),
-                                     Cliente.apellido.label("client_lastname"),
-                                     Aseguradora.aseguradora.label(
-                                         "aseguradora"),
-                                     Ramo.ramo.label("ramo"),
-                                     Subramo.subramo.label("subramo"),
-                                     TipoPago.tipo_pago.label("tipo_pago"),
-                                     Agente.nombre.label("agente"),
-                                     Vendedor.nombre.label("vendedor")) \
-        .select_from(Poliza) \
-        .join(Cliente, Poliza.cliente_id == Cliente.id) \
-        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-        .join(Ramo, Poliza.ramo_id == Ramo.id)  \
-        .join(Subramo, Poliza.subramo_id == Subramo.id)  \
-        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
-        .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Poliza.status.in_(["Finalizada", "Por Vencer"]),
-                Poliza.Poliza_renovada.in_(["No"]))
-
-    if order:
-        polizas_query = polizas_query.order_by('poliza')
+    if not start_date or not end_date:
+        year = datetime.now().year
+        end_date = datetime(year, 12, 31)
+        minus=1 if type_report == 'year' else 0
+        start_date = datetime(year-minus, 1, 1)
     else:
-        polizas_query = polizas_query.order_by(desc(Poliza.id))
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        if type_report == 'year':
+            #Start exactly one year before
+            start_date = start_date - relativedelta(years=1)
+    aseguradora_id = None  # Default value for testing
+    grupo_id = None  # Default value for testing
+    ramo_id = None  # Default value for testing
+    agente_id = None  # Default value for testing
+    vendedor_id = None  # Default value for testing
 
-    if poliza_id:
-        polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
+    polizas_sets = []
 
     if aseguradora_id:
-        polizas_query = polizas_query.filter(Poliza.aseguradora_id == int(aseguradora_id))
-
-    if cliente_id:
-        polizas_query = polizas_query.filter(Poliza.cliente_id == int(cliente_id))
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
 
     if grupo_id:
-        clients_query = db.session.query(Cliente) \
-            .filter(Cliente.grupo_id == int(grupo_id)).all()
+        clients_query = db.session.query(Cliente.id).filter(Cliente.grupo_id == int(grupo_id)).all()
         clients = [client.id for client in clients_query]
-        polizas_query = polizas_query.filter(Poliza.cliente_id.in_(clients))
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.cliente_id.in_(clients)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
 
-    # Implement search functionality
-    if search_value:
-        polizas_query = polizas_query.filter(or_(
-            Poliza.poliza.ilike(f'%{search_value}%'),
-            Poliza.serie.ilike(f'%{search_value}%')
-            # Add more fields for searching as needed
-        ))
+    if ramo_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.ramo_id == int(ramo_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
 
-    # Get total count of records without filtering
-    total_records = polizas_query.count()
+    if agente_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.agente_id == int(agente_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
 
-    # Apply pagination
-    if not length and not start:
-        polizas = polizas_query.all()
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.vendedor_id == int(vendedor_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if polizas_sets:
+        polizas = list(set.intersection(*polizas_sets))
     else:
-        polizas = polizas_query.offset(start).limit(length).all()
+        polizas = []
 
+    # Query the database for the count of polizas grouped by month/year
+    if type_report == 'month':
+        total_records_query = db.session.query(
+            func.year(Poliza.fecha_inicio).label('year'),
+            func.month(Poliza.fecha_inicio).label('month'),
+            func.count(Poliza.id).label('total_polizas')
+        )
+    else:
+        total_records_query = db.session.query(
+            func.year(Poliza.fecha_inicio).label('year'),
+            func.count(Poliza.id).label('total_polizas')
+        )
+    if polizas:
+        total_records_query = total_records_query.filter(Poliza.id.in_(polizas))
+    total_records_query = total_records_query.filter(
+        Poliza.fecha_inicio >= start_date,
+        Poliza.fecha_inicio <= end_date,
+    )
+    
+    if type_report == 'month':
+        total_records_query = total_records_query.group_by(
+            func.year(Poliza.fecha_inicio),
+            func.month(Poliza.fecha_inicio)
+        ).order_by(
+            func.year(Poliza.fecha_inicio),
+            func.month(Poliza.fecha_inicio)
+        )
+    else:
+        total_records_query = total_records_query.group_by(
+            func.year(Poliza.fecha_inicio)
+        ).order_by(
+            func.year(Poliza.fecha_inicio)
+        )
+
+    total_records = total_records_query.count()
+    records = total_records_query.all()
+
+    # Create empty data
+    start_year = start_date.year
+    start_month = start_date.month
+    end_year = end_date.year
+    end_month = end_date.month
     data = []
-    # Iterate through the query results
-    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in polizas:
-        # Extracting all columns from the Poliza object
-        poliza_data = {}
-        # Iterate through each column in the Poliza table
-        for column in Poliza.__table__.columns:
-            # Get the value of the column
-            value = getattr(poliza, column.name)
-            # Convert date to string if it's a date type
-            if isinstance(value, date):
-                value = value.strftime('%Y-%m-%d')
-            # Convert Decimal to float if it's a Decimal type
-            elif isinstance(value, Decimal):
-                value = float(value)
-            # Add column name and corresponding value to poliza_data dictionary
-            poliza_data[column.name] = value
+    data_index = []
+    for year in range(start_year, end_year + 1):
+        if type_report == 'month':
+            for month in range(1, 13):
+                if year == start_year and month < start_month:
+                    continue
+                if year == end_year and month > end_month:
+                    break
+                data.append({'year': year, 'month': month, 
+                             'polizas_totales': 0,
+                             'polizas_nuevas': 0,
+                             'polizas_renovadas': 0,
+                             'polizas_canceladas': 0,
+                             'renovaciones':0
+                             })
+                data_index.append((year, month))
+        else:
+            data.append({'year': year, 
+                             'polizas_totales': 0,
+                             'polizas_nuevas': 0,
+                             'polizas_renovadas': 0,
+                             'polizas_canceladas': 0,
+                             'renovaciones':0
+                             })
+            data_index.append(year)
 
-        # Append additional information
-        poliza_data.update({
-            'cliente': f"{nombre} {apellido}",
-            'aseguradora': aseguradora,
-            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'ramo': f"{ramo}",
-            'subramo': f"{subramo}",
-            'tipoPago': f"{tipo_pago}",
-            'agente': f"{agente}",
-            'vendedor': f"{vendedor}"
-        })
+    # Fill in the data with the actual values
+    for record in records:
+        if type_report == 'month':
+            data_index_search = (record.year, record.month)
+        else:
+            data_index_search = record.year
+        index_row = data_index.index(data_index_search)
+        data[index_row]['polizas_totales'] = record.total_polizas
 
-        # Append to data list
-        data.append(poliza_data)
+    # Query for new polizas (has empty poliza_anteior)
+    new_polizas_query = total_records_query.filter(Poliza.poliza_anterior == None)
+    new_polizas_records = new_polizas_query.all()
+    for record in new_polizas_records:
+        if type_report == 'month':
+            data_index_search = (record.year, record.month)
+        else:
+            data_index_search = record.year
+        index_row = data_index.index(data_index_search)
+        data[index_row]['polizas_nuevas'] = record.total_polizas
 
-    # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
-    # Prepare response
+    # Query for renewed polizas (Poliza_renovada == 'Si')
+    renewed_polizas_query = total_records_query.filter(Poliza.Poliza_renovada == 'Si')
+    renewed_polizas_records = renewed_polizas_query.all()
+    for record in renewed_polizas_records:
+        if type_report == 'month':
+            data_index_search = (record.year, record.month)
+        else:
+            data_index_search = record.year
+        index_row = data_index.index(data_index_search)
+        data[index_row]['polizas_renovadas'] = record.total_polizas
+    # Query for canceled polizas
+    canceled_polizas_query = total_records_query.filter(Poliza.status == 'Cancelada')
+    canceled_polizas_records = canceled_polizas_query.all()
+    for record in canceled_polizas_records:
+        if type_report == 'month':
+            data_index_search = (record.year, record.month)
+        else:
+            data_index_search = record.year
+        index_row = data_index.index(data_index_search)
+        data[index_row]['polizas_canceladas'] = record.total_polizas
+    #Query for renewals (has non empty poliza_anteior)
+    renewals_query = total_records_query.filter(Poliza.poliza_anterior != None)
+    renewals_records = renewals_query.all()
+    for record in renewals_records:
+        if type_report == 'month':
+            data_index_search = (record.year, record.month)
+        else:
+            data_index_search = record.year
+        index_row = data_index.index(data_index_search)
+        data[index_row]['renovaciones'] = record.total_polizas
+
+
+
+    # Prepare the response
     response = {
-        # 'draw': draw,
-        'recordsTotal': total_records,  # Total records without filtering
+        'recordsTotal': len(data),  # Total records send
         'data': data  # Data to display
     }
-    #print(data)
     return jsonify(response)
 
 
-
-@vencimientos_route.route('/get_upcoming_receipts', methods=['POST', 'GET'])
+#Reporte de recibos pagados con filtros por vendedor, por aseguradora, cliente,
+# grupo y fecha en ricbos pagados tambien añadir columnas de vendedor y
+#  la fecha de la vigencia  tanto inicio como fin y añadir prima neta y prima total
+@reportes_route.route('/recibos_pagados', methods=['POST', 'GET'])
 @login_required
-def get_upcoming_receipts():
-    days_tolerance = 30
+def recibos_pagados():
 
     start = int(request.form.get('start')
                 ) if request.form.get('start') else None
     length = int(request.form.get('length')
                  ) if request.form.get('length') else None
-    
-    aseguradora_id = request.form.get('aseguradora_id')
-    cliente_id = request.form.get('cliente_id')
-    grupo_id = request.form.get('grupo_id')    
+    # start_date = request.form.get('start_date')
+    # end_date = request.form.get('end_date')
+    start_date = '2023-01-01'  # Default value for testing
+    end_date = '2024-12-31'  # Default value for testing
+    if not start_date or not end_date:
+        year = datetime.now().year
+        start_date = datetime(year, 1, 1)
+        end_date = datetime(year, 12, 31)
+    else:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
 
-    #Get valid list of policies
-    polizas = []
-    if cliente_id:
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.cliente_id == int(cliente_id)).all()
-        polizas = [poliza.id for poliza in polizas_query]
-    
-    if grupo_id:
-        clients_query = db.session.query(Cliente) \
-            .filter(Cliente.grupo_id == int(grupo_id)).all()
-        clients = [client.id for client in clients_query]
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.cliente_id.in_(clients)).all()
-        polizas = [poliza.id for poliza in polizas_query]
+    # Commenting out request for testing purposes
+    # aseguradora_id = request.form.get('aseguradora_id')
+    # grupo_id = request.form.get('grupo_id')
+    # ramo_id = request.form.get('ramo_id')
+    # agente_id = request.form.get('agente_id')
+    # vendedor_id = request.form.get('vendedor_id')
+    # cliente_id = request.form.get('cliente_id')
 
-    if aseguradora_id:
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
-        if polizas==[]:
-            polizas = [poliza.id for poliza in polizas_query]
-        else:
-            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
-    #Client and grupo can not be asked both
+    aseguradora_id = None  # Esta en tabla de polizas 3
+    grupo_id = None  # Esta en tabla de clientes
+    ramo_id = None # Esta en tabla de polizas
+    agente_id = None  # Esta en tabla de polizas
+    vendedor_id = None  # Esta en tabla de polizas
+    cliente_id = None
+    
     if cliente_id and grupo_id:
         return jsonify({'error':True,
                         'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
+    polizas_sets = []    
+    if aseguradora_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    if grupo_id:
+        clients_query = db.session.query(Cliente.id).filter(Cliente.grupo_id == int(grupo_id)).all()
+        clients = [client.id for client in clients_query]
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.cliente_id.in_(clients)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    if ramo_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.ramo_id == int(ramo_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    if agente_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.agente_id == int(agente_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.vendedor_id == int(vendedor_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    if cliente_id:
+        polizas_query = db.session.query(Poliza.id).filter(Poliza.cliente_id == int(cliente_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    if polizas_sets:
+        polizas = list(set.intersection(*polizas_sets))
+    else:
+        polizas = []
 
-    # Retrieve the start and end dates for the report
-    filtered_selected = True
-    if not request.form.get('start_date') and not request.form.get('end_date'):
-        filtered_selected = False
-    start_date = datetime.now() if not request.form.get(
-        'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-    end_date = start_date + timedelta(days=days_tolerance//2) if not request.form.get(
-        'end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
-
-    # Calculate the payment due date range
-    payment_due_start = start_date - timedelta(days=days_tolerance)
-    payment_due_end = end_date - timedelta(days=days_tolerance//2)
-
-    # Query the database for upcoming receipts
-    upcoming_receipts_query = db.session.query(Recibo,
+    # Query the database
+    paid_recipts_query = db.session.query(Recibo,
                                                Poliza,
                                                Cliente.nombre.label(
                                                    "client_name"),
@@ -356,25 +492,24 @@ def get_upcoming_receipts():
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Recibo.fecha_inicio >= payment_due_start,
-                Recibo.fecha_inicio <= payment_due_end,
-                Recibo.status == "Pendiente") \
+        .filter(Recibo.fecha_inicio >= start_date,
+                Recibo.fecha_inicio <= end_date,
+                Recibo.status == "Liquidado") \
         .order_by(Recibo.fecha_inicio)
-
-    if aseguradora_id or cliente_id or grupo_id:
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.poliza_id.in_(polizas))
-
-    total_records = upcoming_receipts_query.count()
+    
+    if polizas:
+        paid_recipts_query = paid_recipts_query.filter(Recibo.poliza_id.in_(polizas))
+    
+    total_records = paid_recipts_query.count()
 
     if not length and not start:
-        upcoming_receipts = upcoming_receipts_query.all()
+        records = paid_recipts_query.all()
     else:
-        upcoming_receipts = upcoming_receipts_query.offset(
-            start).limit(length).all()
+        records = paid_recipts_query.limit(length).offset(start).all()
 
     # Prepare the response data
     response = []
-    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_receipts:
+    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in records:
 
         data = {
             'poliza_id': recibo.poliza_id,
@@ -391,27 +526,24 @@ def get_upcoming_receipts():
             'moneda': poliza.moneda,
             'forma_pago': tipo_pago,
             'agente': f'{agente}',
+            'vendedor': f'{vendedor}',
             'endoso': poliza.endoso,
             'poliza_anterior': poliza.poliza_anterior,
             'aseguradora': aseguradora
         }
 
         response.append(data)
-
+    
     headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo','aseguradora', 'fecha_inicio',
-               'fecha_fin', 'prima_neta', 'prima_total','moneda', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+               'fecha_fin', 'prima_neta', 'prima_total','moneda', 'forma_pago', 'agente','vendedor', 'endoso', 'poliza_anterior']
     real_headers = ['poliza', 'Recibo', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Aseguradora',
-                    'Inicio', 'Final', 'Prima Neta', 'Prima Total','Moneda', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
+                    'Inicio', 'Final', 'Prima Neta', 'Prima Total','Moneda', 'Forma de pago', 'Agente','Vendedor', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'upcoming_receipts.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['cliente', 'notas']
-        if filtered_selected:
-            title_str = "Recibos por vencer en %s - %s" % (
-                payment_due_start.strftime('%d/%m/%y'), payment_due_end.strftime('%d/%m/%y'))
-        else:
-            today = datetime.now().strftime('%d/%m/%y')
-            title_str = "Recibos próximos por vencer, al %s" % today
+        title_str = "Recibos pagados en %s - %s" % (
+                start_date.strftime('%d/%m/%y'), end_date.strftime('%d/%m/%y'))
         return export_to_pdf(headers, response, 'upcoming_receipts.pdf', real_headers, to_multiline, title_str)
 
     return jsonify({
@@ -419,324 +551,98 @@ def get_upcoming_receipts():
         'data': response  # Data to display
     })
 
+#reporte de fecha de nacimientos de clientes con ordenamiento por columnas y 
+# que ese ordanimiento que el usuario haya hecho se pueda exportar a excel y pdf 
 
-@vencimientos_route.route('/get_upcoming_policies', methods=['POST', 'GET'])
+@reportes_route.route('/fecha_nacimientos', methods=['POST', 'GET'])
 @login_required
-def get_upcoming_policies():
-    days_tolerance = 30
-
+def fecha_nacimientos():
+    """
     start = int(request.form.get('start')
                 ) if request.form.get('start') else None
     length = int(request.form.get('length')
                  ) if request.form.get('length') else None
-
-    aseguradora_id = request.form.get('aseguradora_id')
-    cliente_id = request.form.get('cliente_id')
-    grupo_id = request.form.get('grupo_id')    
-
-    #Client and grupo can not be asked both
-    if cliente_id and grupo_id:
-        return jsonify({'error':True,
-                        'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
-
-
-    # Retrieve the start and end dates for the report
-
-    filtered_selected = True
-    if not request.form.get('start_date') and not request.form.get('end_date'):
-        filtered_selected = False
-    start_date = datetime.now() if not request.form.get(
-        'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-    end_date = start_date + timedelta(days=days_tolerance) if not request.form.get(
-        'end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
-
-    # Calculate the policy due date range
-    policy_due_start = start_date
-    policy_due_end = end_date + timedelta(days=days_tolerance)
-
-    # Query the database for upcoming policies
-    upcoming_policies_query = db.session.query(Poliza,
-                                               Cliente.nombre.label(
-                                                   "client_name"),
-                                               Cliente.apellido.label(
-                                                   "client_lastname"),
-                                               Aseguradora.aseguradora.label(
-                                                   "aseguradora"),
-                                               Ramo.ramo.label("ramo"),
-                                               Subramo.subramo.label(
-                                                   "subramo"),
-                                               TipoPago.tipo_pago.label(
-                                                   "tipo_pago"),
-                                               Agente.nombre.label("agente"),
-                                               Vendedor.nombre.label("vendedor")) \
-        .select_from(Poliza) \
-        .join(Cliente, Poliza.cliente_id == Cliente.id) \
-        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-        .join(Ramo, Poliza.ramo_id == Ramo.id) \
-        .join(Subramo, Poliza.subramo_id == Subramo.id) \
-        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
-        .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Poliza.fecha_termino >= policy_due_start,
-                Poliza.fecha_termino <= policy_due_end,
-                Poliza.status.in_(["Vigente", "Por Vencer","Finalizada"]),
-                Poliza.Poliza_renovada.in_(["No"]) ) \
-        .order_by(Poliza.fecha_termino)
-
-    upcoming_endosos_query = db.session.query(Endoso,
-                                              Cliente.nombre.label(
-                                                  "client_name"),
-                                              Cliente.apellido.label(
-                                                  "client_lastname"),
-                                              Aseguradora.aseguradora.label(
-                                                  "aseguradora"),
-                                              Ramo.ramo.label("ramo"),
-                                              Subramo.subramo.label("subramo"),
-                                              TipoPago.tipo_pago.label(
-                                                  "tipo_pago"),
-                                              Agente.nombre.label("agente"),
-                                              Vendedor.nombre.label("vendedor")) \
-        .select_from(Endoso) \
-        .join(Cliente, Endoso.cliente_id == Cliente.id) \
-        .join(Aseguradora, Endoso.aseguradora_id == Aseguradora.id) \
-        .join(Ramo, Endoso.ramo_id == Ramo.id) \
-        .join(Subramo, Endoso.subramo_id == Subramo.id) \
-        .join(TipoPago, Endoso.tipo_pago_id == TipoPago.id) \
-        .join(Agente, Endoso.agente_id == Agente.id) \
-        .join(Vendedor, Endoso.vendedor_id == Vendedor.id) \
-        .filter(Endoso.fecha_termino >= policy_due_start,
-                Endoso.fecha_termino <= policy_due_end,
-                Endoso.status.in_(["Vigente", "Por Vencer"])) \
-        .order_by(Endoso.fecha_termino)
-
+    search_client_name = request.form.get('search_client_name')
+    order_by_name = request.form.get('order_by_name')
+    if order_by_name and order_by_name not in ['asc', 'desc']:
+        return jsonify({'error': True, 'msg': 'Ordenamiento no válido, debe ser "asc" o "desc"'})
     
-    if aseguradora_id:
-        upcoming_policies_query = upcoming_policies_query.filter(Poliza.aseguradora_id == int(aseguradora_id))
-        upcoming_endosos_query = upcoming_endosos_query.filter(Endoso.aseguradora_id == int(aseguradora_id))
+    current_report = request.form.get('current_report')
+   
+    """
+    #Try values for testing
+    current_report = None
+    search_client_name = None
+    order_by_name = None
+    start = None
+    length = None
 
-    if cliente_id:
-        upcoming_policies_query = upcoming_policies_query.filter(Poliza.cliente_id == int(cliente_id))
-        upcoming_endosos_query = upcoming_endosos_query.filter(Endoso.cliente_id == int(cliente_id))
+    if current_report :
+        month = datetime.now().month
+    # Query the database, include  birth day (day/month) order by month and day
+    clients_query = db.session.query(Cliente, 
+                                     Grupo.grupo.label('grupo_name'),
+                                     func.day(Cliente.fecha_nacimiento).label('day'),
+                                     func.month(Cliente.fecha_nacimiento).label('month'),
+                                     func.year(Cliente.fecha_nacimiento).label('year')) \
+        .join(Grupo).filter(Cliente.status == 'Activo') \
+        .order_by('month', 'day')
+    
+    
+    if search_client_name:
+        clients_query = clients_query.filter(or_(
+            Cliente.nombre.ilike(f'%{search_client_name}%'),
+            Cliente.apellido.ilike(f'%{search_client_name}%'),
+            Cliente.correo.ilike(f'%{search_client_name}%'),
+            # Add more fields for searching as needed
+        ))
+    
+    if current_report == 'month':
+        clients_query = clients_query.filter(
+            func.month(Cliente.fecha_nacimiento) == month
+        )
 
-    if grupo_id:
-        clients_query = db.session.query(Cliente) \
-            .filter(Cliente.grupo_id == int(grupo_id)).all()
-        clients = [client.id for client in clients_query]
-        upcoming_policies_query = upcoming_policies_query.filter(Poliza.cliente_id.in_(clients))
-        upcoming_endosos_query = upcoming_endosos_query.filter(Endoso.cliente_id.in_(clients))
-
-
-    total_records = upcoming_policies_query.count()
-    total_records += upcoming_endosos_query.count()
-
+    if order_by_name:
+        if order_by_name == 'asc':
+            clients_query = clients_query.order_by(
+                Cliente.nombre.asc()
+            )
+        else:
+            clients_query = clients_query.order_by(
+                Cliente.nombre.desc()
+            )
+    total_records = clients_query.count()
     if not length and not start:
-        upcoming_policies = upcoming_policies_query.all()
-        upcoming_endosos = upcoming_endosos_query.all()
+        clients = clients_query.all()
     else:
-        upcoming_endosos = upcoming_endosos_query.offset(
-            start).limit(length).all()
-        upcoming_policies = upcoming_policies_query.offset(
-            start).limit(length).all()
-
+        clients = clients_query.limit(length).offset(start).all()
     # Prepare the response data
     response = []
-    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_policies:
-
+    for client, grupo_name, day, month, year in clients:
         data = {
-            'Poliza o Endoso': 'Poliza',
-            'poliza_id': poliza.id,
-            'poliza': poliza.poliza,
-            'cliente': f'{nombre} {apellido}',
-            'ramo': ramo,
-            'subramo': subramo,
-            'fecha_inicio': poliza.fecha_inicio.strftime('%d/%m/%y'),
-            'fecha_fin': poliza.fecha_termino.strftime('%d/%m/%y'),
-            'prima_neta': poliza.prima_neta,
-            'prima_total': poliza.prima_total,
-            'moneda': poliza.moneda,
-            'forma_pago': tipo_pago,
-            'agente': f'{agente}',
-            'vendedor': f'{vendedor}',
-            'endoso': poliza.endoso,
-            'poliza_anterior': poliza.poliza_anterior
+            'nombre': f'{client.nombre} {client.apellido}', 
+            'bday': f'{day}/{month}',
+            'correo': client.correo,
+            'telefono': client.tel_movil,
+
+            'fecha_nacimiento': client.fecha_nacimiento.strftime('%d/%m/%y') if client.fecha_nacimiento else None
         }
-
         response.append(data)
-
-    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_endosos:
-
-        data = {
-            'Poliza o Endoso': 'Endoso',
-            'poliza_id': poliza.id,
-            'poliza': poliza.poliza,
-            'cliente': f'{nombre} {apellido}',
-            'ramo': ramo,
-            'subramo': subramo,
-            'fecha_inicio': poliza.fecha_inicio.strftime('%d/%m/%y'),
-            'fecha_fin': poliza.fecha_termino.strftime('%d/%m/%y'),
-            'prima_neta': poliza.prima_neta,
-            'prima_total': poliza.prima_total,
-            'moneda': poliza.moneda,
-            'forma_pago': tipo_pago,
-            'agente': f'{agente}',
-            'vendedor': f'{vendedor}',
-            'endoso': poliza.endoso,
-            'poliza_anterior': poliza.poliza_anterior
-        }
-
-        response.append(data)
-
-    # 'Poliza o Endoso': 'Endoso'
-    # Export to CSV
-    headers = ['Poliza o Endoso', 'poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio',
-               'fecha_fin', 'prima_neta', 'prima_total', 'moneda','forma_pago', 'agente', 'vendedor','endoso', 'poliza_anterior']
-    real_headers = ['Tipo', 'id', 'poliza', 'Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio',
-                    'Final', 'Prima Neta', 'Prima Total','Moneda', 'Forma de pago', 'Agente','Vendedor', 'Endoso', 'Anterior']
+    headers = ['nombre', 'bday', 'correo', 'telefono', 'fecha_nacimiento']
+    real_headers = ['Nombre', 'Cumpleaños', 'Correo', 'Teléfono', 'Fecha de nacimiento']
     if request.form.get('export_csv'):
-        return export_to_csv(headers, response, 'upcoming_policies.csv', real_headers)
+        return export_to_csv(headers, response, 'fecha_nacimientos.csv', real_headers)
     if request.form.get('export_pdf'):
-        to_multiline = ['cliente']
-        if filtered_selected:
-            title_str = "Pólizas y Endosos por vencer en (%s - %s)" % (
-                policy_due_start.strftime('%d/%m/%y'), policy_due_end.strftime('%d/%m/%y'))
-        else:
-            today = datetime.now().strftime('%d/%m/%y')
-            title_str = "Pólizas y Endosos por vencer, al %s" % today
-        return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline, title_str)
-
-    print(response)
+        to_multiline = ['nombre']
+        title_str = "Cumpleaños" 
+        return export_to_pdf(headers, response, 'fecha_nacimientos.pdf', real_headers, to_multiline, title_str)
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
         'data': response  # Data to display
     })
 
 
-def export_to_csv(headers, jsondic, filename, real_headers=None):
-    if real_headers is None:
-        real_headers = headers
-
-    def generate():
-        f = StringIO()
-        writer = csv.writer(f)
-
-        # Escribir los encabezados solo una vez
-        writer.writerow(real_headers)
-
-        for data in jsondic:
-            row = [data[header] for header in headers]
-            writer.writerow(row)
-
-        f.seek(0)
-        yield f.read()
-        f.close()
-
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition",
-                         "attachment", filename=filename)
-    return response
 
 
-def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None, title_str="Title"):
-    title_str = str(title_str)
-    if real_headers is None:
-        real_headers = headers
-    if to_multiline is None:
-        to_multiline = []
-    # Create a buffer to hold the PDF data
-    buffer = BytesIO()
-    # Set up the PDF document
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(
-        letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4, title=title_str)
-
-    # Create the table data
-    style = getSampleStyleSheet()['Normal']
-    style.fontName = 'Helvetica'
-    style.fontSize = 8
-    style.textColor = colors.black
-    style.wordWrap = True
-    style.alignment = 0
-    style.valign = 1
-    style.bottomPadding = 6
-
-    print(real_headers)
-    print(jsondic)
-    data = [real_headers] + [
-        [Paragraph(
-            '' if not data[header] else data[header], style) if header in to_multiline else data[header] for header in headers]
-        for data in jsondic
-    ]
-    print("Porcessed")
-    print(data)
-    # Create the table and set its style
-    table = Table(data)
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('WORDWRAP', (0, 1), (-1, -1), True),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 7),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-
-    # Build the PDF document
-    elements = []
-
-    # Create a style for the title
-    title_style = getSampleStyleSheet()['Title']
-    title_style.fontName = 'Helvetica'
-    title_style.fontSize = 14
-    title_style.leading = 20
-    title_style.alignment = 1  # Center alignment
-
-    # Create the title paragraph
-    p = Paragraph(title_str, title_style)
-    elements.append(p)
-
-    elements.append(table)
-    doc.build(elements)
-
-    # Reset the buffer position
-    buffer.seek(0)
-
-    # Return the PDF data as a response
-    response = Response(buffer, mimetype='application/pdf')
-    response.headers.set("Content-Disposition",
-                         "attachment", filename=filename)
-    return response
 
 
-def print_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None):
-    response = export_to_pdf(headers, jsondic, filename,
-                             real_headers, to_multiline)
-    # Open the print interface in the browser
-    response.headers.set("Content-Disposition", "inline")
-    return response
-
-
-def export_tocsv2(headers, jsondic, filename):
-    def generate():
-        f = StringIO()
-        f.seek(0)
-        f.write(u'\uFEFF')
-        writer = csv.writer(f)
-        writer.writerow(tuple(headers))
-        # Write rows
-        print(jsondic)
-        for data in jsondic:
-            row = [data[header] for header in headers]
-            writer.writerow(tuple(row))
-            yield f.getvalue()
-            f.seek(0)
-
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition",
-                         "attachment", filename=filename)
-    return response
-"""
