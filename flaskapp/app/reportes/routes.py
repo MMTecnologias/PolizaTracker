@@ -452,6 +452,7 @@ def recibos_pagados():
     parámetros de la solicitud:
     - start_date: Fecha de inicio para el informe (formato: 'YYYY-MM-DD')
     - end_date: Fecha de fin para el informe (formato: 'YYYY-MM-DD')
+        Si no se proporciona ninguna fecha, se generará un informe para el año actual
     - aseguradora_id: ID de la aseguradora para filtrar
     - grupo_id: ID del grupo para filtrar
     - ramo_id: ID del ramo para filtrar
@@ -460,6 +461,8 @@ def recibos_pagados():
     - cliente_id: ID del cliente para filtrar
     - start: Índice de inicio para la paginación
     - length: Número de registros por página para la paginación
+    - export_csv: 'true' para exportar a CSV
+    - export_pdf: 'true' para exportar a PDF
     """
 
     start = int(request.form.get('start')
@@ -625,7 +628,7 @@ def fecha_nacimientos():
     - current_report: 'month' para filtrar por el mes actual
     - export_csv: 'true' para exportar a CSV
     - export_pdf: 'true' para exportar a PDF
-    
+
     """
 
 
