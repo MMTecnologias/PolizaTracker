@@ -84,7 +84,7 @@ def prima_neta():
 
     Respuesta:
     - recordsTotal: Número total de registros enviados
-    - recordsTotal_with_values: Número total de registros con valores
+    - recordsTotal_with_values: Número total de registros con val
     - data: Lista de diccionarios que contienen los datos del informe
     """
     type_report = request.form.get('type_report') if request.form.get('type_report') else 'month'
@@ -218,12 +218,40 @@ def prima_neta():
 @reportes_route.route('/polizas', methods=['POST', 'GET'])
 @login_required
 def polizas():
-    type_report = 'year'  # Default value for testing
+    """
+    Punto de acceso para generar un informe de polizas agrupadas por mes o año.
+    El informe puede filtrarse por aseguradora, grupo, ramo, agente y vendedor.
+    El informe puede generarse para un rango de fechas específico.
+
+    parámetros de la solicitud:
+    - type_report: 'month' o 'year' (por defecto: 'month')
+    - start_date: Fecha de inicio para el informe (formato: 'YYYY-MM-DD')
+    - end_date: Fecha de fin para el informe (formato: 'YYYY-MM-DD')
+    - aseguradora_id: ID de la aseguradora para filtrar
+    - grupo_id: ID del grupo para filtrar
+    - ramo_id: ID del ramo para filtrar
+    - agente_id: ID del agente para filtrar
+    - vendedor_id: ID del vendedor para filtrar
+
+    Respuesta:
+    - recordsTotal: Número total de registros enviados
+    - data: Lista de diccionarios que contienen los datos del informe
+        incluyendo polizas totales, polizas nuevas, polizas renovadas, polizas canceladas
+    """
+
+
+
+    #type_report = 'year'  # Default value for testing
+    type_report = request.form.get('type_report') if request.form.get('type_report') else 'month'
     if type_report not in ['month', 'year']:
         return jsonify({'error': True, 'msg': 'Tipo de reporte no válido, debe ser "month" o "year"'})
 
-    start_date = '2019-01-01'  # Default value for testing
-    end_date = '2025-12-31'  # Default value for testing
+    #start_date = '2019-01-01'  # Default value for testing
+    #end_date = '2025-12-31'  # Default value for testing
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date')
+
+
 
     if not start_date or not end_date:
         year = datetime.now().year
@@ -236,11 +264,20 @@ def polizas():
         if type_report == 'year':
             #Start exactly one year before
             start_date = start_date - relativedelta(years=1)
-    aseguradora_id = None  # Default value for testing
-    grupo_id = None  # Default value for testing
-    ramo_id = None  # Default value for testing
-    agente_id = None  # Default value for testing
-    vendedor_id = None  # Default value for testing
+
+
+            
+    #aseguradora_id = None  # Default value for testing
+    #grupo_id = None  # Default value for testing
+    #ramo_id = None  # Default value for testing
+    #agente_id = None  # Default value for testing
+    #vendedor_id = None  # Default value for testing
+    aseguradora_id = request.form.get('aseguradora_id')
+    grupo_id = request.form.get('grupo_id')
+    ramo_id = request.form.get('ramo_id')
+    agente_id = request.form.get('agente_id')
+    vendedor_id = request.form.get('vendedor_id')
+
 
     polizas_sets = []
 
@@ -407,15 +444,32 @@ def polizas():
 @reportes_route.route('/recibos_pagados', methods=['POST', 'GET'])
 @login_required
 def recibos_pagados():
+    """
+    Punto de acceso para generar un informe de recibos pagados.
+    El informe puede filtrarse por aseguradora, grupo, ramo, agente, vendedor y cliente.
+    El informe puede generarse para un rango de fechas específico.
+
+    parámetros de la solicitud:
+    - start_date: Fecha de inicio para el informe (formato: 'YYYY-MM-DD')
+    - end_date: Fecha de fin para el informe (formato: 'YYYY-MM-DD')
+    - aseguradora_id: ID de la aseguradora para filtrar
+    - grupo_id: ID del grupo para filtrar
+    - ramo_id: ID del ramo para filtrar
+    - agente_id: ID del agente para filtrar
+    - vendedor_id: ID del vendedor para filtrar
+    - cliente_id: ID del cliente para filtrar
+    - start: Índice de inicio para la paginación
+    - length: Número de registros por página para la paginación
+    """
 
     start = int(request.form.get('start')
                 ) if request.form.get('start') else None
     length = int(request.form.get('length')
                  ) if request.form.get('length') else None
-    # start_date = request.form.get('start_date')
-    # end_date = request.form.get('end_date')
-    start_date = '2023-01-01'  # Default value for testing
-    end_date = '2024-12-31'  # Default value for testing
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date')
+    #start_date = '2023-01-01'  # Default value for testing
+    #end_date = '2024-12-31'  # Default value for testing
     if not start_date or not end_date:
         year = datetime.now().year
         start_date = datetime(year, 1, 1)
@@ -425,19 +479,19 @@ def recibos_pagados():
         end_date = datetime.strptime(end_date, '%Y-%m-%d')
 
     # Commenting out request for testing purposes
-    # aseguradora_id = request.form.get('aseguradora_id')
-    # grupo_id = request.form.get('grupo_id')
-    # ramo_id = request.form.get('ramo_id')
-    # agente_id = request.form.get('agente_id')
-    # vendedor_id = request.form.get('vendedor_id')
-    # cliente_id = request.form.get('cliente_id')
+    aseguradora_id = request.form.get('aseguradora_id')
+    grupo_id = request.form.get('grupo_id')
+    ramo_id = request.form.get('ramo_id')
+    agente_id = request.form.get('agente_id')
+    vendedor_id = request.form.get('vendedor_id')
+    cliente_id = request.form.get('cliente_id')
 
-    aseguradora_id = None  # Esta en tabla de polizas 3
-    grupo_id = None  # Esta en tabla de clientes
-    ramo_id = None # Esta en tabla de polizas
-    agente_id = None  # Esta en tabla de polizas
-    vendedor_id = None  # Esta en tabla de polizas
-    cliente_id = None
+    #aseguradora_id = None  # Esta en tabla de polizas 3
+    #grupo_id = None  # Esta en tabla de clientes
+    #ramo_id = None # Esta en tabla de polizas
+    #agente_id = None  # Esta en tabla de polizas
+    #vendedor_id = None  # Esta en tabla de polizas
+    #cliente_id = None
     
     if cliente_id and grupo_id:
         return jsonify({'error':True,
@@ -559,6 +613,22 @@ def recibos_pagados():
 @login_required
 def fecha_nacimientos():
     """
+    Punto de acceso para generar un informe de la fecha de nacimiento de los clientes.
+    El informe puede filtrarse por nombre de cliente y ordenarse por nombre.
+    El informe puede generarse para el mes actual.
+
+    Parámetros de la solicitud:
+    - start: Índice de inicio para la paginación
+    - length: Número de registros por página para la paginación
+    - search_client_name: Nombre del cliente para buscar
+    - order_by_name: 'asc' o 'desc' para ordenar por nombre
+    - current_report: 'month' para filtrar por el mes actual
+    - export_csv: 'true' para exportar a CSV
+    - export_pdf: 'true' para exportar a PDF
+    
+    """
+
+
     start = int(request.form.get('start')
                 ) if request.form.get('start') else None
     length = int(request.form.get('length')
@@ -570,13 +640,13 @@ def fecha_nacimientos():
     
     current_report = request.form.get('current_report')
    
-    """
+    
     #Try values for testing
-    current_report = None
-    search_client_name = None
-    order_by_name = None
-    start = None
-    length = None
+    #current_report = None
+    #search_client_name = None
+    #order_by_name = None
+    #start = None
+    #length = None
 
     if current_report :
         month = datetime.now().month
