@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html class="no-js" lang="es-mx">
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <title>Reporte de fechas de nacimiento</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
+</head>
+
+<body>
+  <nav class="navbar">
+    <a class="app-section" href="{{ url_for('main.index') }}">
+      <h2 class="name-app">Póliza Tracker</h2>
+      <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" class="logo-ggc" />
+    </a>
+    <div class="user-profile pull-right">
+      <h6 class="user-name dropdown-toggle" data-toggle="dropdown">
+        {{ current_user.username }}<i class="fa fa-angle-down"></i>
+      </h6>
+      <div class="dropdown-menu">
+        <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
+        <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- page container area start -->
+  <div class="container-fluid">
+    <div class="row mt-4">
+      <div class="col-3">
+      </div>
+      <div class="col-3">
+      </div>
+      <div class="col-2 d-flex align-items-end">
+        <button class="btn" type="button" id="btnMonth">
+          Filtrar mes actual
+        </button>
+      </div>
+      <div class="col-2 d-flex align-items-end">
+        <button class="btn" type="button" id="btnExportar">
+          Exportar a Excel
+        </button>
+      </div>
+      <div class="col-2 d-flex align-items-end">
+        <button class="btn" type="button" id="btnPdf">
+          Exportar Pdf
+        </button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <div class="w-100 card__shadow p-3 mt-5 mb-3" id="table-polizas">
+          <h4 class="header-title">Tabla de fechas de nacimiento de clientes</h4>
+          <form class="d-flex" role="search">
+            <input class="form-control my-2" type="search" placeholder="Buscar Cliente" aria-label="Search"
+              id="searchClient" />
+          </form>
+          <table class="table">
+            <thead class="tableHeader">
+              <tr>
+                <th class="table-name siblingContainerRow" scope="col">
+                  Nombre
+                </th>
+                <th scope="col">Email</th>
+                <th scope="col">Teléfono</th>
+                <th scope="col">Fecha de nacimiento</th>
+              </tr>
+            </thead>
+            <tbody id="table-nacimientos"></tbody>
+          </table>
+          <div class="w-100 d-flex justify-content-center">
+            <div id="pagination-nacimientos"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- main content area end -->
+  <script type="module" src="{{ url_for('static', filename='assets/controladores/reporteNacimiento.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+  <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
+</body>
+
+</html>

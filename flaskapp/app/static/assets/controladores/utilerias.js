@@ -119,6 +119,34 @@ $(function () {
     });
   }
 
+  function fillTableAcciones(resp, currentPage, itemsOnPage) {
+    const { data, recordsTotal } = resp;
+    const table = $('#table-accciones');
+    table.html('');
+    $.each(data, function (idx, item) {
+      table.append(
+        `<tr class="tableOption">
+          <td>${item.usuario}</td>
+          <td>${item.reviso}</td>
+          <td>${item.timestamp}</td>
+          <td>${item.descripcion}</td>
+          <td>${item.status}</td>
+        </tr>`
+      );
+    });
+    $('#pagination-acciones').pagination({
+      items: recordsTotal,
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      itemsOnPage,
+      currentPage,
+      onPageClick: (pageNumber, e) => {
+        const start = (pageNumber - 1) * itemsOnPage;
+        getAseguradoras(pageNumber, start);
+      },
+    });
+  }
+
   function getAseguradoras(pageNumber = 1, start = 0) {
     const length = 5;
     $.ajax({
@@ -129,6 +157,21 @@ $(function () {
       error: (xhr, status, error) => console.error(error),
     });
   }
+
+  function getAcciones(pageNumber = 1, start = 0) {
+    const length = 10;
+    $.ajax({
+      ...ajaxConfig,
+      url: '/solicitudes/get_all',
+      data: $.param({ start, length }),
+      success: (resp) => {
+        console.log(resp);
+        fillTableAcciones(resp, pageNumber, length);
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
   $('#tipoTitle').text(title);
 
   $('#tipo').on('change', (e) =>
@@ -189,4 +232,5 @@ $(function () {
   });
 
   getAseguradoras();
+  getAcciones();
 });

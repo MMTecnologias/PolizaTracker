@@ -1,5 +1,4 @@
 $(function () {
-  let ordered = false;
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -13,39 +12,39 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTableVencimientos(
+  function fillTableRecibosPagados(
     resp,
     formDataFechas,
     currentPage,
     itemsOnPage
   ) {
     const { data, recordsTotal } = resp;
-    const table = $('#table-vencimientos');
+    const table = $('#table-recibos');
     table.html('');
-    $.each(data, function (idx, poliza) {
+    $.each(data, function (idx, recibo) {
       table.append(
         `<tr class="tableOption">
           <td>
-            <p class="td-clickable" id="td-clickable_${poliza.id}">
-                ${poliza.no_de_recibo}
+            <p class="td-clickable" id="td-clickable_${recibo.id}">
+                ${recibo.no_de_recibo}
             </p>
           </td>
-          <td>${poliza.endoso !== null ? 'Endoso' : 'Poliza'}</td>
-          <td>${poliza.endoso !== null ? poliza.endoso : poliza.poliza}</td>
-          <td>${poliza.aseguradora}</td>
-          <td>${poliza.prima_neta}</td>
-          <td>${poliza.prima_total}</td>
-          <td>${poliza.moneda}</td>
-          <td>${poliza.fecha_inicio}</td>
-          <td>${poliza.cliente}</td>
-          <td>${poliza.agente}</td>
-          <td>${poliza.ramo}</td>
-          <td>${poliza.subramo}</td>
-          <td>${poliza.forma_pago}</td>
+          <td>${recibo.endoso !== null ? 'Endoso' : 'Poliza'}</td>
+          <td>${recibo.endoso !== null ? recibo.endoso : recibo.poliza}</td>
+          <td>${recibo.aseguradora}</td>
+          <td>${recibo.prima_neta}</td>
+          <td>${recibo.prima_total}</td>
+          <td>${recibo.moneda}</td>
+          <td>${recibo.fecha_inicio}</td>
+          <td>${recibo.cliente}</td>
+          <td>${recibo.agente}</td>
+          <td>${recibo.ramo}</td>
+          <td>${recibo.subramo}</td>
+          <td>${recibo.forma_pago}</td>
         </tr>`
       );
     });
-    $('#pagination').pagination({
+    $('#pagination-recibos').pagination({
       items: recordsTotal,
       prevText: 'Anterior',
       nextText: 'Siguiente',
@@ -53,20 +52,22 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getVencimientos(formDataFechas, pageNumber, start);
+        getRecibosPagados(formDataFechas, pageNumber, start);
       },
     });
   }
 
-  function getVencimientos(formDataFechas = null, pageNumber = 1, start = 0) {
+  function getRecibosPagados(formDataFechas = null, pageNumber = 1, start = 0) {
     const length = 15;
     const params = $.param({ start, length });
     $.ajax({
       ...ajaxConfig,
-      url: '/vencimientos/get_upcoming_receipts',
+      url: '/reportes/recibos_pagados',
       data: formDataFechas ? formDataFechas + '&' + params : params,
-      success: (resp) =>
-        fillTableVencimientos(resp, formDataFechas, pageNumber, length),
+      success: (resp) => {
+        console.log(resp.data);
+        fillTableRecibosPagados(resp, formDataFechas, pageNumber, length);
+      },
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -76,7 +77,7 @@ $(function () {
     if (!this.checkValidity())
       return alert('Debes llenar los dos campos de fecha', 'warning');
     const formDataFechas = $('#form-fechas').serialize();
-    getVencimientos(formDataFechas);
+    getRecibosPagados(formDataFechas);
   });
 
   $('#btnExportar').click((e) => {
@@ -88,7 +89,7 @@ $(function () {
     }
     $.ajax({
       type: 'POST',
-      url: '/vencimientos/get_upcoming_receipts',
+      url: '/reportes/recibos_pagados',
       data: params,
       xhrFields: {
         responseType: 'blob',
@@ -116,13 +117,12 @@ $(function () {
     }
     $.ajax({
       type: 'POST',
-      url: '/vencimientos/get_upcoming_receipts',
+      url: '/reportes/recibos_pagados',
       data: params,
       xhrFields: {
         responseType: 'blob',
       },
       success: function (blob, status, xhr) {
-        // Crear un enlace temporal para descargar el archivo
         let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
@@ -136,19 +136,5 @@ $(function () {
     });
   });
 
-  //   $("#searchPoliza").on("keyup", function (e) {
-  //     e.preventDefault();
-  //     const searchValue = e.target.value;
-  //     if (searchValue == "") return getVencimientos();
-  //     if (searchValue.length >= 3)
-  //       $.ajax({
-  //         ...ajaxConfig,
-  //         url: "/polizas/get",
-  //         data: $.param({ start: 0, length: 0, searchValue }),
-  //         success: fillTableVencimientos,
-  //         error: (xhr, status, error) => console.error(error),
-  //       });
-  //   });
-
-  getVencimientos();
+  getRecibosPagados();
 });

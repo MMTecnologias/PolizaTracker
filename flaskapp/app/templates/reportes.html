@@ -45,7 +45,7 @@
             <div class="col-6 d-flex justify-content-center mt-5">
                 <div class="card w-100 m-0">
                     <div class="card-header">
-                       <h4><strong>Reportes de cobranza</strong></h4>
+                        <h4><strong>Reportes de cobranza</strong></h4>
                     </div>
                     <div class="card-body">
                         <h5 class="card-title">Reporte de los recibos próximos en vencer</h5>
@@ -57,12 +57,37 @@
             <div class="col-6 d-flex justify-content-center mt-5">
                 <div class="card w-100 m-0">
                     <div class="card-header">
-                       <h4><strong>Reportes de renovaciones</strong></h4>
+                        <h4><strong>Reportes de renovaciones</strong></h4>
                     </div>
                     <div class="card-body">
-                        <h5 class="card-title">Reporte de polizas que estan por vencer</h5>
+                        <h5 class="card-title">Reporte de polizas pendientes por renovar</h5>
                         <p class="card-text text-left">Vencimiento de acuerdo a la fecha fin vigencia registrada.</p>
-                        <a class="btn btn-primary px-3" href="{{ url_for('main.reportesRenovaciones') }}">Ver reportes</a>
+                        <a class="btn btn-primary px-3" href="{{ url_for('main.reportesRenovaciones') }}">Ver
+                            reportes</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 d-flex justify-content-center mt-5">
+                <div class="card w-100 m-0">
+                    <div class="card-header">
+                        <h4><strong>Reporte fechas de nacimiento</strong></h4>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Reportes fechas de nacimiento de clientes</h5>
+                        <a class="btn btn-primary px-3" href="{{ url_for('main.reporteNacimiento') }}">Ver
+                            reportes</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 d-flex justify-content-center mt-5">
+                <div class="card w-100 m-0">
+                    <div class="card-header">
+                        <h4><strong>Reporte de recibos pagados</strong></h4>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Reporte resumen de recibos pagados</h5>
+                        <a class="btn btn-primary px-3" href="{{ url_for('main.reporteRecibosPagados') }}">Ver
+                            reportes</a>
                     </div>
                 </div>
             </div>

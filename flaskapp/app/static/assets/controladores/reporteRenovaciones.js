@@ -32,8 +32,12 @@ $(function () {
           </td>
           <td>${poliza.endoso ? poliza.endoso : ''}</td>
           <td>${poliza.poliza}</td>
+          <td>${poliza.prima_neta}</td>
+          <td>${poliza.prima_total}</td>
+          <td>${poliza.fecha_inicio}</td>
           <td>${poliza.fecha_fin}</td>
           <td>${poliza.cliente}</td>
+          <td>${poliza.vendedor}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>
           <td>${poliza.subramo}</td>
@@ -55,7 +59,7 @@ $(function () {
   }
 
   function getVencimientos(formDataFechas = null, pageNumber = 1, start = 0) {
-    const length = 10;
+    const length = 15;
     const params = $.param({ start, length });
     $.ajax({
       ...ajaxConfig,
@@ -67,12 +71,61 @@ $(function () {
     });
   }
 
+  function getMultipleIds() {
+    $.ajax({
+      ...ajaxConfig,
+      type: 'GET',
+      url: '/reportes/get_multiple_ids',
+      data: {},
+      success: ({ Agente, Aseguradora, Grupo, Ramo, Vendedor }) => {
+        console.log(Agente, Aseguradora, Grupo, Ramo, Vendedor);
+        $('#agente').append(`<option value="">Selecciona agente</option>`);
+        for (const agente of Agente.data) {
+          $('#agente').append(
+            `<option value='${agente.id}'>${agente.nombre}</option>`
+          );
+        }
+        $('#aseguradora').append(
+          `<option value="">Selecciona aseguradora</option>`
+        );
+        for (const aseg of Aseguradora.data) {
+          $('#aseguradora').append(
+            `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
+          );
+        }
+        $('#grupo').append(`<option value="">Selecciona grupo</option>`);
+        for (const grupo of Grupo.data) {
+          $('#grupo').append(
+            `<option value='${grupo.id}'>${grupo.grupo}</option>`
+          );
+        }
+        $('#ramo').append(`<option value="">Selecciona ramo</option>`);
+        for (const ramo of Ramo.data) {
+          $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+        }
+        $('#vendedor').append(`<option value="">Selecciona vendedor</option>`);
+        for (const vendedor of Vendedor.data) {
+          $('#vendedor').append(
+            `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
+          );
+        }
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
   $('#form-fechas').submit(function (e) {
     e.preventDefault();
     if (!this.checkValidity())
       return alert('Debes llenar los dos campos de fecha', 'warning');
     const formDataFechas = $('#form-fechas').serialize();
     getVencimientos(formDataFechas);
+  });
+
+  $('#form-multiple').submit(function (e) {
+    e.preventDefault();
+    const multiple = $('#form-fechas').serialize();
+    getVencimientos(multiple);
   });
 
   $('#btnExportar').click((e) => {
@@ -121,7 +174,6 @@ $(function () {
         responseType: 'blob',
       },
       success: function (blob, status, xhr) {
-        // Crear un enlace temporal para descargar el archivo
         let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
@@ -160,27 +212,6 @@ $(function () {
     });
   });
 
-  /* // Exportar a CSV al hacer click en el botón con formulario
-$("#btnExportar").click((e) => {
-  e.preventDefault();
-
-  // Crear un formulario oculto
-  let $form = $("<form>")
-      .attr("method", "POST")
-      .attr("action", "/vencimientos/get_upcoming_policies");
-
-  // Añadir el campo export_csv al formulario
-  let $input = $("<input>")
-      .attr("type", "hidden")
-      .attr("name", "export_csv")
-      .attr("value", "true");
-
-  $form.append($input);
-  $("body").append($form);
-  $form.submit();
-});
-*/
-
   //   $("#searchPoliza").on("keyup", function (e) {
   //     e.preventDefault();
   //     const searchValue = e.target.value;
@@ -194,6 +225,6 @@ $("#btnExportar").click((e) => {
   //         error: (xhr, status, error) => console.error(error),
   //       });
   //   });
-
+  getMultipleIds();
   getVencimientos();
 });

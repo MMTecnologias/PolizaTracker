@@ -251,10 +251,7 @@ $(function () {
   async function showPoliza(poliza_id) {
     const data = await resetForm();
     $('#btnGuardar').hide();
-    // $('#reset-btn').hide();
     $('#poliza_id').val(poliza_id);
-    // $('#div_search_client').hide();
-    // $('#div_poliza_id').show();
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
@@ -263,6 +260,7 @@ $(function () {
         $('#buscar-cliente').val(resp.data[0].cliente);
         $('#Poliza').val(resp.data[0].poliza);
         $('#selected-client-id').val(resp.data[0].cliente_id);
+        $('#VigenciaI').val(resp.data[0].fecha_inicio);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
         $('#prima_neta').prop('disabled', false);
         $('#prima_total').prop('disabled', false);
@@ -357,6 +355,9 @@ $(function () {
       url: '/polizas/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
+        const year = new Date(resp.data[0].fecha_termino).getFullYear() + 1;
+        const month = new Date(resp.data[0].fecha_termino).getMonth() + 1;
+        const dia = new Date(resp.data[0].fecha_termino).getDay();
         $('#poliza_id').val(poliza_id);
         $('#id_poliza').val(resp.data[0].poliza);
         $('#polizaAnterior').val(resp.data[0].poliza);
@@ -365,6 +366,11 @@ $(function () {
         $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#serie').val(resp.data[0].serie);
         $('#VigenciaI').val(resp.data[0].fecha_termino);
+        $('#VigenciaF').val(
+          `${year}-${month < 10 ? '0' + String(month) : month}-${
+            dia < 10 ? '0' + String(dia) : dia
+          }`
+        );
         $('#prima_neta').val('');
         $('#prima_total').val('');
         $('#Moneda').val(resp.data[0].moneda);
@@ -609,6 +615,7 @@ $(function () {
             <td>${recibo.vencimiento}</td>
             <td>${recibo.prima_neta}</td>
             <td>${recibo.prima_total}</td>
+            <td>${recibo.moneda}</td>
             <td>
                 <input type="checkbox" id="check_pagado${
                   recibo.id
@@ -695,6 +702,7 @@ $(function () {
             <td>${recibo.vencimiento}</td>
             <td>${recibo.prima_neta}</td>
             <td>${recibo.prima_total}</td>
+            <td>${recibo.moneda}</td>
             <td>
                 <input type="checkbox" id="check_pagado${
                   recibo.id

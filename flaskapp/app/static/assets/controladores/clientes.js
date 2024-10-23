@@ -1,6 +1,4 @@
 $(function () {
-  let ordered = false;
-
   const ajaxConfig = {
     url: '',
     type: 'POST',
