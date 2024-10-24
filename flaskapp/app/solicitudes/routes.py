@@ -1,5 +1,5 @@
 # app/main/routes.py
-from flask import render_template, redirect, url_for, flash, request,current_app,jsonify, abort,Flask, Response
+from flask import render_template, redirect, url_for, flash,current_app,jsonify, abort,Flask, Response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash,generate_password_hash
 from app import app, db, login_manager
@@ -13,6 +13,7 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 
+from flask import request as flask_request
 
 
 
@@ -34,8 +35,8 @@ def revert_logs_from_request(request):
 @login_required
 def process():
 
-    request_id = request.form.get('request_id')
-    action = request.form.get('action')
+    request_id = flask_request.form.get('request_id')
+    action = flask_request.form.get('action')
 
     # Get the request
     request_entry = Request.query.get(request_id)
@@ -70,8 +71,8 @@ def process():
 @login_required
 def get_pending():
     # Estos datos los recibe desde la función en JS
-    #start = request.form.get('start')
-    #length = request.form.get('length')
+    #start = flask_request.form.get('start')
+    #length = flask_request.form.get('length')
 
     #start = int(start) if start else 0
     #length = int(length) if length else 20
@@ -110,10 +111,12 @@ def get_pending():
 @login_required
 def get_all():
     # Estos datos los recibe desde la función en JS
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
-    #start = 0
-    #length = 500
+    start = flask_request.form.get('start')
+    length = flask_request.form.get('length')
+    print(start,length)
+    start = int(start) if start else 0
+    length = int(length) if length else 20
+
     UsuarioReview = aliased(Usuario)
     # Query to fetch clientes data from the database
     request_query = db.session.query(Request,
@@ -157,13 +160,13 @@ def get_all():
 @login_required
 def logs():
 
-    start = request.form.get('start')
-    length = request.form.get('length')
+    start = flask_request.form.get('start')
+    length = flask_request.form.get('length')
 
     start = int(start) if start else 0
     length = int(length) if length else 20
 
-    request_id = int(request.form.get('request_id'))
+    request_id = int(flask_request.form.get('request_id'))
 
     log_query=Log.query.filter_by(request_id=request_id)
 
