@@ -34,7 +34,8 @@ def get_multiple_ids():
             "Grupo":Grupo,
             "Ramo":Ramo,
             "Agente":Agente,
-            "Vendedor":Vendedor}
+            "Vendedor":Vendedor,
+            "Cliente":Cliente}
     response={}
     for key,tabla in clases.items():
         query=tabla.query.order_by(tabla.id.desc())  # Order by id in descending order
