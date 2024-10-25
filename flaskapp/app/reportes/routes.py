@@ -102,6 +102,9 @@ def prima_neta():
         start_date = datetime.strptime(start_date, '%Y-%m-%d')
         end_date = datetime.strptime(end_date, '%Y-%m-%d')
 
+    start=int(request.form.get('start')) if request.form.get('start') else None
+    length=int(request.form.get('length')) if request.form.get('length') else None
+
     aseguradora_id = request.form.get('aseguradora_id')
     grupo_id = request.form.get('grupo_id')
     ramo_id = request.form.get('ramo_id')
@@ -176,7 +179,10 @@ def prima_neta():
         )
 
     total_records = total_records_query.count()
-    records = total_records_query.all()
+    if not length and not start:
+        records = total_records_query.all()
+    else:
+        records = total_records_query.limit(length).offset(start).all()
 
     # Create empty data
     start_year = start_date.year
@@ -266,7 +272,8 @@ def polizas():
             #Start exactly one year before
             start_date = start_date - relativedelta(years=1)
 
-
+    start=int(request.form.get('start')) if request.form.get('start') else None
+    length=int(request.form.get('length')) if request.form.get('length') else None
             
     #aseguradora_id = None  # Default value for testing
     #grupo_id = None  # Default value for testing
@@ -344,7 +351,11 @@ def polizas():
         )
 
     total_records = total_records_query.count()
-    records = total_records_query.all()
+
+    if not length and not start:
+        records = total_records_query.all()
+    else:
+        records = total_records_query.limit(length).offset(start).all()
 
     # Create empty data
     start_year = start_date.year
