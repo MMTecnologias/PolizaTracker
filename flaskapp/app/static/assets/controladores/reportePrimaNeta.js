@@ -1,69 +1,47 @@
 $(function () {
-  const series = [
-    {
-      name: 'sales',
-      type: 'bar',
-      data: [5, 20, 36, 10, 10, 20],
-    },
-  ];
-  const seriesPie = [
-    {
-      name: 'Access From',
-      type: 'pie',
-      radius: '50%',
-      data: [
-        { value: 1048, name: 'Search Engine' },
-        { value: 735, name: 'Direct' },
-        { value: 580, name: 'Email' },
-        { value: 484, name: 'Union Ads' },
-        { value: 300, name: 'Video Ads' },
-      ],
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.5)',
-        },
-      },
-    },
-  ];
-  function getBarChart(series) {
-    if (!series) return;
+  function getBarChart(data) {
+    if (!data.length) return;
+    $('#chart-container').html(
+      '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
+    );
+    const mesesMatrix = [
+      ['Enero'],
+      ['Febrero'],
+      ['Marzo'],
+      ['Abril'],
+      ['Mayo'],
+      ['Junio'],
+      ['Julio'],
+      ['Agosto'],
+      ['Septiembre'],
+      ['Octubre'],
+      ['Noviembre'],
+      ['Diciembre'],
+    ];
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
+    const years = data
+      .map((item) => String(item.year))
+      .reduce((acc, cur) => {
+        if (!acc.includes(cur)) acc.push(cur);
+        return acc;
+      }, []);
+    const series = years.map((item) => ({ type: 'bar' }));
+    for (const dat of data) {
+      const i = years.findIndex((year) => year == String(dat.year));
+      if (i !== -1) {
+        mesesMatrix[dat.month - 1][i + 1] = dat.total_prima_neta_pagada;
+      }
+    }
+    const source = [['Mes', ...years], ...mesesMatrix];
     const option = {
-      title: {
-        text: 'Prima neta',
-      },
+      legend: {},
       tooltip: {},
-      legend: {
-        data: ['sales'],
+      dataset: {
+        source: source,
       },
-      xAxis: {
-        data: ['Shirts', 'Cardigans', 'Chiffons', 'Pants', 'Heels', 'Socks'],
-      },
+      xAxis: { type: 'category' },
       yAxis: {},
-      series,
-    };
-    option && myChart.setOption(option);
-  }
-  function getPieChart(series) {
-    if (!series) return;
-    const dom = document.getElementById('pie_chart');
-    const myChart = echarts.init(dom);
-    const option = {
-      title: {
-        text: 'Prima neta',
-        subtext: 'Fake Data',
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'item',
-      },
-      legend: {
-        orient: 'vertical',
-        left: 'left',
-      },
       series,
     };
     option && myChart.setOption(option);
@@ -82,30 +60,26 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTablePrimaNeta(resp, formDataFechas, currentPage, itemsOnPage) {
+  function fillTablePrimaNeta(
+    resp,
+    formDataFechas,
+    currentPage,
+    itemsOnPage,
+    formMultiple
+  ) {
     const { data, recordsTotal } = resp;
-    const table = $('#table-vencimientos');
+    const table = $('#table-primaneta');
     table.html('');
     $.each(data, function (idx, poliza) {
       table.append(
         `<tr class="tableOption">
-          <td>
-            <p class="td-clickable" id="td-clickable_${poliza.id}">
-                ${poliza.no_de_recibo}
-            </p>
-          </td>
-          <td>${poliza.endoso !== null ? 'Endoso' : 'Poliza'}</td>
-          <td>${poliza.endoso !== null ? poliza.endoso : poliza.poliza}</td>
-          <td>${poliza.fecha_fin}</td>
-          <td>${poliza.cliente}</td>
-          <td>${poliza.agente}</td>
-          <td>${poliza.ramo}</td>
-          <td>${poliza.subramo}</td>
-          <td>${poliza.forma_pago}</td>
+          <td>${poliza.year}</td>
+          <td>${poliza.month}</td>
+          <td>${poliza.total_prima_neta_pagada}</td>
         </tr>`
       );
     });
-    $('#pagination').pagination({
+    $('#pagination-primaneta').pagination({
       items: recordsTotal,
       prevText: 'Anterior',
       nextText: 'Siguiente',
@@ -113,20 +87,79 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getPrimaNeta(formDataFechas, pageNumber, start);
+        getPrimaNeta(formDataFechas, pageNumber, start, formMultiple);
       },
     });
   }
 
-  function getPrimaNeta(formDataFechas = null, pageNumber = 1, start = 0) {
+  function getPrimaNeta(
+    formDataFechas = null,
+    pageNumber = 1,
+    start = 0,
+    formMultiple = null
+  ) {
     const length = 10;
-    const params = $.param({ start, length });
+    let params = $.param({ start, length });
+    if (formMultiple) {
+      params = formMultiple + '&' + params;
+    }
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/prima_neta',
       data: formDataFechas ? formDataFechas + '&' + params : params,
-      success: (resp) =>
-        fillTablePrimaNeta(resp, formDataFechas, pageNumber, length),
+      success: (resp) => {
+        getBarChart(resp.data);
+        fillTablePrimaNeta(
+          resp,
+          formDataFechas,
+          pageNumber,
+          length,
+          formMultiple
+        );
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
+  function getMultipleIds() {
+    $.ajax({
+      ...ajaxConfig,
+      type: 'GET',
+      url: '/reportes/get_multiple_ids',
+      data: {},
+      success: (resp) => {
+        const { Aseguradora, Grupo, Ramo, Agente, Vendedor } = resp;
+        $('#aseguradora').append(
+          `<option value="">Selecciona aseguradora</option>`
+        );
+        for (const aseg of Aseguradora.data) {
+          $('#aseguradora').append(
+            `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
+          );
+        }
+        $('#grupo').append(`<option value="">Selecciona grupo</option>`);
+        for (const grupo of Grupo.data) {
+          $('#grupo').append(
+            `<option value='${grupo.id}'>${grupo.grupo}</option>`
+          );
+        }
+        $('#ramo').append(`<option value="">Selecciona ramo</option>`);
+        for (const ramo of Ramo.data) {
+          $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+        }
+        $('#agente').append(`<option value="">Selecciona agente</option>`);
+        for (const agente of Agente.data) {
+          $('#agente').append(
+            `<option value='${agente.id}'>${agente.nombre}</option>`
+          );
+        }
+        $('#vendedor').append(`<option value="">Selecciona Vendedor</option>`);
+        for (const vendedor of Vendedor.data) {
+          $('#vendedor').append(
+            `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
+          );
+        }
+      },
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -137,6 +170,12 @@ $(function () {
       return alert('Debes llenar los dos campos de fecha', 'warning');
     const formDataFechas = $('#form-fechas').serialize();
     getPrimaNeta(formDataFechas);
+  });
+
+  $('#form-multiple').submit(function (e) {
+    e.preventDefault();
+    const multiple = $('#form-multiple').serialize();
+    getVencimientos(null, 1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
@@ -209,7 +248,6 @@ $(function () {
   //       });
   //   });
 
+  getMultipleIds();
   getPrimaNeta();
-  getBarChart(series);
-  getPieChart(seriesPie);
 });

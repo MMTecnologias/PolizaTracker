@@ -1,5 +1,4 @@
 $(function () {
-  let ordered = false;
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -17,7 +16,8 @@ $(function () {
     resp,
     formDataFechas,
     currentPage,
-    itemsOnPage
+    itemsOnPage,
+    formMultiple = null
   ) {
     const { data, recordsTotal } = resp;
     const table = $('#table-vencimientos');
@@ -53,20 +53,34 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getVencimientos(formDataFechas, pageNumber, start);
+        getVencimientos(formDataFechas, pageNumber, start, formMultiple);
       },
     });
   }
 
-  function getVencimientos(formDataFechas = null, pageNumber = 1, start = 0) {
+  function getVencimientos(
+    formDataFechas = null,
+    pageNumber = 1,
+    start = 0,
+    formMultiple = null
+  ) {
     const length = 15;
-    const params = $.param({ start, length });
+    let params = $.param({ start, length });
+    if (formMultiple) {
+      params = formMultiple + '&' + params;
+    }
     $.ajax({
       ...ajaxConfig,
       url: '/vencimientos/get_upcoming_policies',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) =>
-        fillTableVencimientos(resp, formDataFechas, pageNumber, length),
+        fillTableVencimientos(
+          resp,
+          formDataFechas,
+          pageNumber,
+          length,
+          formMultiple
+        ),
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -77,14 +91,7 @@ $(function () {
       type: 'GET',
       url: '/reportes/get_multiple_ids',
       data: {},
-      success: ({ Agente, Aseguradora, Grupo, Ramo, Vendedor }) => {
-        console.log(Agente, Aseguradora, Grupo, Ramo, Vendedor);
-        $('#agente').append(`<option value="">Selecciona agente</option>`);
-        for (const agente of Agente.data) {
-          $('#agente').append(
-            `<option value='${agente.id}'>${agente.nombre}</option>`
-          );
-        }
+      success: ({ Aseguradora, Cliente, Grupo }) => {
         $('#aseguradora').append(
           `<option value="">Selecciona aseguradora</option>`
         );
@@ -93,20 +100,16 @@ $(function () {
             `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
           );
         }
+        $('#cliente').append(`<option value="">Selecciona cliente</option>`);
+        for (const cliente of Cliente.data) {
+          $('#cliente').append(
+            `<option value='${cliente.id}'>${cliente.nombre}</option>`
+          );
+        }
         $('#grupo').append(`<option value="">Selecciona grupo</option>`);
         for (const grupo of Grupo.data) {
           $('#grupo').append(
             `<option value='${grupo.id}'>${grupo.grupo}</option>`
-          );
-        }
-        $('#ramo').append(`<option value="">Selecciona ramo</option>`);
-        for (const ramo of Ramo.data) {
-          $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
-        }
-        $('#vendedor').append(`<option value="">Selecciona vendedor</option>`);
-        for (const vendedor of Vendedor.data) {
-          $('#vendedor').append(
-            `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
           );
         }
       },
@@ -124,8 +127,10 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const multiple = $('#form-fechas').serialize();
-    getVencimientos(multiple);
+    const multiple = $('#form-multiple').serialize();
+    if ($('#cliente').val() && $('#grupo').val())
+      return alert('No puedes filtrar combinando cliente y grupo', 'warning');
+    getVencimientos(null, 1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {

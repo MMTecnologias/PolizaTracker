@@ -78,7 +78,6 @@ $(function () {
     const {
       Aseguradora: { data, recordsTotal },
     } = resp;
-    console.log(recordsTotal);
     const table = $('#table-aseguradoras');
     table.html('');
     $.each(data, function (idx, item) {
@@ -142,7 +141,7 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getAseguradoras(pageNumber, start);
+        getAcciones(pageNumber, start);
       },
     });
   }

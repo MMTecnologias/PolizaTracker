@@ -16,7 +16,8 @@ $(function () {
     resp,
     formDataFechas,
     currentPage,
-    itemsOnPage
+    itemsOnPage,
+    formMultiple
   ) {
     const { data, recordsTotal } = resp;
     const table = $('#table-recibos');
@@ -52,21 +53,84 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getRecibosPagados(formDataFechas, pageNumber, start);
+        getRecibosPagados(formDataFechas, pageNumber, start, formMultiple);
       },
     });
   }
 
-  function getRecibosPagados(formDataFechas = null, pageNumber = 1, start = 0) {
+  function getRecibosPagados(
+    formDataFechas = null,
+    pageNumber = 1,
+    start = 0,
+    formMultiple = null
+  ) {
     const length = 15;
-    const params = $.param({ start, length });
+    let params = $.param({ start, length });
+    if (formMultiple) {
+      params = formMultiple + '&' + params;
+    }
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/recibos_pagados',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
         console.log(resp.data);
-        fillTableRecibosPagados(resp, formDataFechas, pageNumber, length);
+        fillTableRecibosPagados(
+          resp,
+          formDataFechas,
+          pageNumber,
+          length,
+          formMultiple
+        );
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
+  function getMultipleIds() {
+    $.ajax({
+      ...ajaxConfig,
+      type: 'GET',
+      url: '/reportes/get_multiple_ids',
+      data: {},
+      success: (resp) => {
+        const { Aseguradora, Grupo, Ramo, Agente, Vendedor, Cliente } = resp;
+        $('#aseguradora').append(
+          `<option value="">Selecciona aseguradora</option>`
+        );
+        for (const aseg of Aseguradora.data) {
+          $('#aseguradora').append(
+            `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
+          );
+        }
+        $('#grupo').append(`<option value="">Selecciona grupo</option>`);
+        for (const grupo of Grupo.data) {
+          $('#grupo').append(
+            `<option value='${grupo.id}'>${grupo.grupo}</option>`
+          );
+        }
+        $('#ramo').append(`<option value="">Selecciona ramo</option>`);
+        for (const ramo of Ramo.data) {
+          $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+        }
+        $('#agente').append(`<option value="">Selecciona agente</option>`);
+        for (const agente of Agente.data) {
+          $('#agente').append(
+            `<option value='${agente.id}'>${agente.nombre}</option>`
+          );
+        }
+        $('#vendedor').append(`<option value="">Selecciona vendedor</option>`);
+        for (const vendedor of Vendedor.data) {
+          $('#vendedor').append(
+            `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
+          );
+        }
+        $('#cliente').append(`<option value="">Selecciona cliente</option>`);
+        for (const cliente of Cliente.data) {
+          $('#cliente').append(
+            `<option value='${cliente.id}'>${cliente.nombre}</option>`
+          );
+        }
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -78,6 +142,14 @@ $(function () {
       return alert('Debes llenar los dos campos de fecha', 'warning');
     const formDataFechas = $('#form-fechas').serialize();
     getRecibosPagados(formDataFechas);
+  });
+
+  $('#form-multiple').submit(function (e) {
+    e.preventDefault();
+    const multiple = $('#form-multiple').serialize();
+    if ($('#cliente').val() && $('#grupo').val())
+      return alert('No puedes filtrar combinando cliente y grupo', 'warning');
+    getVencimientos(null, 1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
@@ -136,5 +208,6 @@ $(function () {
     });
   });
 
+  getMultipleIds();
   getRecibosPagados();
 });

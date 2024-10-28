@@ -1,69 +1,49 @@
 $(function () {
-  const series = [
-    {
-      name: 'sales',
-      type: 'bar',
-      data: [5, 20, 36, 10, 10, 20],
-    },
-  ];
-  const seriesPie = [
-    {
-      name: 'Access From',
-      type: 'pie',
-      radius: '50%',
-      data: [
-        { value: 1048, name: 'Search Engine' },
-        { value: 735, name: 'Direct' },
-        { value: 580, name: 'Email' },
-        { value: 484, name: 'Union Ads' },
-        { value: 300, name: 'Video Ads' },
-      ],
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.5)',
-        },
-      },
-    },
-  ];
-  function getBarChart(series) {
-    if (!series) return;
+  function getBarChart(data) {
+    // console.log(data);
+    // return;
+    if (!data.length) return;
+    $('#chart-container').html(
+      '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
+    );
+    const mesesMatrix = [
+      ['Enero'],
+      ['Febrero'],
+      ['Marzo'],
+      ['Abril'],
+      ['Mayo'],
+      ['Junio'],
+      ['Julio'],
+      ['Agosto'],
+      ['Septiembre'],
+      ['Octubre'],
+      ['Noviembre'],
+      ['Diciembre'],
+    ];
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
+    const years = data
+      .map((item) => String(item.year))
+      .reduce((acc, cur) => {
+        if (!acc.includes(cur)) acc.push(cur);
+        return acc;
+      }, []);
+    const series = years.map((item) => ({ type: 'bar' }));
+    for (const dat of data) {
+      const i = years.findIndex((year) => year == String(dat.year));
+      if (i !== -1) {
+        mesesMatrix[dat.month - 1][i + 1] = dat.polizas_totales;
+      }
+    }
+    const source = [['Mes', ...years], ...mesesMatrix];
     const option = {
-      title: {
-        text: 'Pólizas canceladas',
-      },
+      legend: {},
       tooltip: {},
-      legend: {
-        data: ['sales'],
+      dataset: {
+        source: source,
       },
-      xAxis: {
-        data: ['Shirts', 'Cardigans', 'Chiffons', 'Pants', 'Heels', 'Socks'],
-      },
+      xAxis: { type: 'category' },
       yAxis: {},
-      series,
-    };
-    option && myChart.setOption(option);
-  }
-  function getPieChart(series) {
-    if (!series) return;
-    const dom = document.getElementById('pie_chart');
-    const myChart = echarts.init(dom);
-    const option = {
-      title: {
-        text: 'Pólizas canceladas',
-        subtext: 'Fake Data',
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'item',
-      },
-      legend: {
-        orient: 'vertical',
-        left: 'left',
-      },
       series,
     };
     option && myChart.setOption(option);
@@ -82,35 +62,29 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTableVencimientos(
+  function fillTablePolizastatus(
     resp,
     formDataFechas,
     currentPage,
-    itemsOnPage
+    itemsOnPage,
+    formMultiple = null
   ) {
     const { data, recordsTotal } = resp;
-    const table = $('#table-vencimientos');
+    const table = $('#table-polizastatus');
     table.html('');
     $.each(data, function (idx, poliza) {
       table.append(
         `<tr class="tableOption">
-          <td>
-            <p class="td-clickable" id="td-clickable_${poliza.id}">
-                ${poliza.no_de_recibo}
-            </p>
-          </td>
-          <td>${poliza.endoso !== null ? 'Endoso' : 'Poliza'}</td>
-          <td>${poliza.endoso !== null ? poliza.endoso : poliza.poliza}</td>
-          <td>${poliza.fecha_fin}</td>
-          <td>${poliza.cliente}</td>
-          <td>${poliza.agente}</td>
-          <td>${poliza.ramo}</td>
-          <td>${poliza.subramo}</td>
-          <td>${poliza.forma_pago}</td>
+          <td>${poliza.year}</td>
+          <td>${poliza.month}</td>
+          <td>${poliza.polizas_nuevas}</td>
+          <td>${poliza.polizas_renovadas}</td>
+          <td>${poliza.polizas_canceladas}</td>
+          <td>${poliza.polizas_totales}</td>
         </tr>`
       );
     });
-    $('#pagination').pagination({
+    $('#pagination-polizastatus').pagination({
       items: recordsTotal,
       prevText: 'Anterior',
       nextText: 'Siguiente',
@@ -118,20 +92,79 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getVencimientos(formDataFechas, pageNumber, start);
+        getPolizaStatus(formDataFechas, pageNumber, start, formMultiple);
       },
     });
   }
 
-  function getVencimientos(formDataFechas = null, pageNumber = 1, start = 0) {
+  function getPolizaStatus(
+    formDataFechas = null,
+    pageNumber = 1,
+    start = 0,
+    formMultiple = null
+  ) {
     const length = 10;
-    const params = $.param({ start, length });
+    let params = $.param({ start, length });
+    if (formMultiple) {
+      params = formMultiple + '&' + params;
+    }
     $.ajax({
       ...ajaxConfig,
-      url: '/vencimientos/get_upcoming_receipts',
+      url: '/reportes/polizas',
       data: formDataFechas ? formDataFechas + '&' + params : params,
-      success: (resp) =>
-        fillTableVencimientos(resp, formDataFechas, pageNumber, length),
+      success: (resp) => {
+        getBarChart(resp.data);
+        fillTablePolizastatus(
+          resp,
+          formDataFechas,
+          pageNumber,
+          length,
+          formMultiple
+        );
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
+  function getMultipleIds() {
+    $.ajax({
+      ...ajaxConfig,
+      type: 'GET',
+      url: '/reportes/get_multiple_ids',
+      data: {},
+      success: (resp) => {
+        const { Aseguradora, Grupo, Ramo, Agente, Vendedor } = resp;
+        $('#aseguradora').append(
+          `<option value="">Selecciona aseguradora</option>`
+        );
+        for (const aseg of Aseguradora.data) {
+          $('#aseguradora').append(
+            `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
+          );
+        }
+        $('#grupo').append(`<option value="">Selecciona grupo</option>`);
+        for (const grupo of Grupo.data) {
+          $('#grupo').append(
+            `<option value='${grupo.id}'>${grupo.grupo}</option>`
+          );
+        }
+        $('#ramo').append(`<option value="">Selecciona ramo</option>`);
+        for (const ramo of Ramo.data) {
+          $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+        }
+        $('#agente').append(`<option value="">Selecciona agente</option>`);
+        for (const agente of Agente.data) {
+          $('#agente').append(
+            `<option value='${agente.id}'>${agente.nombre}</option>`
+          );
+        }
+        $('#vendedor').append(`<option value="">Selecciona Vendedor</option>`);
+        for (const vendedor of Vendedor.data) {
+          $('#vendedor').append(
+            `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
+          );
+        }
+      },
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -141,7 +174,13 @@ $(function () {
     if (!this.checkValidity())
       return alert('Debes llenar los dos campos de fecha', 'warning');
     const formDataFechas = $('#form-fechas').serialize();
-    getVencimientos(formDataFechas);
+    getPolizaStatus(formDataFechas);
+  });
+
+  $('#form-multiple').submit(function (e) {
+    e.preventDefault();
+    const multiple = $('#form-multiple').serialize();
+    getPolizaStatus(null, 1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
@@ -153,7 +192,7 @@ $(function () {
     }
     $.ajax({
       type: 'POST',
-      url: '/vencimientos/get_upcoming_receipts',
+      url: '/reportes/polizas',
       data: params,
       xhrFields: {
         responseType: 'blob',
@@ -181,7 +220,7 @@ $(function () {
     }
     $.ajax({
       type: 'POST',
-      url: '/vencimientos/get_upcoming_receipts',
+      url: '/reportes/polizas',
       data: params,
       xhrFields: {
         responseType: 'blob',
@@ -204,18 +243,17 @@ $(function () {
   //   $("#searchPoliza").on("keyup", function (e) {
   //     e.preventDefault();
   //     const searchValue = e.target.value;
-  //     if (searchValue == "") return getVencimientos();
+  //     if (searchValue == "") return getPolizaStatus();
   //     if (searchValue.length >= 3)
   //       $.ajax({
   //         ...ajaxConfig,
   //         url: "/polizas/get",
   //         data: $.param({ start: 0, length: 0, searchValue }),
-  //         success: fillTableVencimientos,
+  //         success: fillTablePolizastatus,
   //         error: (xhr, status, error) => console.error(error),
   //       });
   //   });
 
-  getVencimientos();
-  getBarChart(series);
-  getPieChart(seriesPie);
+  getMultipleIds();
+  getPolizaStatus();
 });

@@ -36,39 +36,80 @@
     </div>
   </nav>
   <div class="container">
-    <form class="row my-2" id="form-fechas" novalidate>
-      <div class="col-3">
-        <div class="form__input-data input-sibling-child">
-          <label class="label-input-data" for="start_date">Fecha Inicio</label>
-          <div class="input-group">
-            <input type="date" class="form-control" id="start_date" name="start_date" required />
+    <div class="row">
+      <div class="col-10">
+        <form class="row mt-2" id="form-fechas" novalidate>
+          <div class="col-5">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="start_date">Fecha Inicio</label>
+              <div class="input-group">
+                <input type="date" class="form-control" id="start_date" name="start_date" required />
+              </div>
+            </div>
           </div>
+          <div class="col-5">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="end_date">Fecha Fin</label>
+              <div class="input-group">
+                <input type="date" class="form-control" id="end_date" name="end_date" required />
+              </div>
+            </div>
+          </div>
+          <div class="col-2 d-flex align-items-end">
+            <button class="btn" type="submit" id="btnGuardar">
+              Filtrar por fechas
+            </button>
+          </div>
+        </form>
+        <form class="row mt-2" id="form-multiple" novalidate>
+          <div class="col">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="start_date">Aseguradora</label>
+              <select class="custom-select" id="aseguradora" name="aseguradora"></select>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="end_date">Grupo</label>
+              <select class="custom-select" id="grupo" name="grupo"></select>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="end_date">Ramo</label>
+              <select class="custom-select" id="ramo" name="ramo"></select>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="end_date">Agente</label>
+              <select class="custom-select" id="agente" name="agente"></select>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="end_date">Vendedor</label>
+              <select class="custom-select" id="vendedor" name="vendedor"></select>
+            </div>
+          </div>
+          <div class="col-2 d-flex align-items-end">
+            <button class="btn" type="submit" id="btnMultiple">
+              Filtrar multiple
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="col-2 d-flex justify-content-center align-items-center">
+        <div>
+          <button class="btn px-4 py-2" type="button" id="btnExportar">
+            Exportar a Excel
+          </button>
+          <button class="btn px-4 py-2" type="button" id="btnPdf">
+            Exportar Pdf
+          </button>
         </div>
       </div>
-      <div class="col-3">
-        <div class="form__input-data input-sibling-child">
-          <label class="label-input-data" for="end_date">Fecha Fin</label>
-          <div class="input-group">
-            <input type="date" class="form-control" id="end_date" name="end_date" required />
-          </div>
-        </div>
-      </div>
-      <div class="col-2 d-flex align-items-end">
-        <button class="btn" type="submit" id="btnGuardar">
-          Filtrar por fechas
-        </button>
-      </div>
-      <div class="col-2 d-flex align-items-end">
-        <button class="btn" type="button" id="btnExportar">
-          Exportar a Excel
-        </button>
-      </div>
-      <div class="col-2 d-flex align-items-end">
-        <button class="btn" type="button" id="btnPdf">
-          Exportar Pdf
-        </button>
-      </div>
-    </form>
+    </div>
     <div class="row">
       <div class="col-12">
         <div class="w-100 card__shadow p-3 my-2" id="table-polizas">
@@ -77,31 +118,20 @@
             <thead class="tableHeader">
               <tr>
                 <th class="table-name siblingContainerRow" scope="col">
-                  Recibo
+                  Año
                 </th>
-                <th scope="col">Documento</th>
-                <th scope="col">Id documento</th>
-                <th scope="col">Vencimiento</th>
-                <th scope="col">Cliente</th>
-                <th scope="col">Agente</th>
-                <th scope="col">Ramo</th>
-                <th scope="col">Sub Ramo</th>
-                <th scope="col">Forma de Pago</th>
+                <th scope="col">Mes</th>
+                <th scope="col">Total prima neta pagada</th>
               </tr>
             </thead>
-            <tbody id="table-vencimientos"></tbody>
+            <tbody id="table-primaneta"></tbody>
           </table>
           <div class="w-100 d-flex justify-content-center">
-            <div id="pagination"></div>
+            <div id="pagination-primaneta"></div>
           </div>
         </div>
       </div>
-      <div class="col-6">
-        <div id="bar_chart" style="width: 100%;height:400px;"></div>
-      </div>
-      <div class="col-6">
-        <div id="pie_chart" style="width: 100%;height:400px;"></div>
-      </div>
+      <div class="col-12" id="chart-container"></div>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"
