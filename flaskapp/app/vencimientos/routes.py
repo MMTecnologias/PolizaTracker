@@ -273,14 +273,20 @@ def get_upcoming_receipts():
         .join(Subramo, Poliza.subramo_id == Subramo.id) \
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Recibo.fecha_inicio >= payment_due_start,
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) 
+    
+    if not filtered_selected and not polizas:
+        upcoming_receipts_query=upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
+                Recibo.status == "Pendiente") \
+        .order_by(Recibo.fecha_inicio)
+    else:
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= payment_due_start,
                 Recibo.fecha_inicio <= payment_due_end,
                 Recibo.status == "Pendiente") \
         .order_by(Recibo.fecha_inicio)
 
     if aseguradora_id or cliente_id or grupo_id:
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.poliza_id.in_(polizas))
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.poliza_id.in_(polizas))    
 
     total_records = upcoming_receipts_query.count()
 
