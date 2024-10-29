@@ -192,11 +192,14 @@ def prima_neta():
         )
 
     total_records = total_records_query.count()
+    """
+    #This is not working due to empty years 
     if not length and not start:
         records = total_records_query.all()
     else:
         records = total_records_query.limit(length).offset(start).all()
-
+    """
+    records = total_records_query.all()
     # Create empty data
     start_year = start_date.year
     start_month = start_date.month
@@ -226,12 +229,19 @@ def prima_neta():
             data_index_search = record.year
         index_row = data_index.index(data_index_search)
         data[index_row]['total_prima_neta_pagada'] = record.total_prima_neta_pagada
-
+    
+    #Make pagination after filling the data
+    count=len(data)
+    if not length and not start:
+        data_pag = data
+    else:
+        data_pag = data[start:(start+length)]
     # Prepare the response
     response = {
-        'recordsTotal': len(data),  # Total records send
+        'recordsTotal': count,  # Total records send
         'recordsTotal_with_values': total_records,  # Total records without filtering
-        'data': data  # Data to display
+        'data': data_pag,  # Data to display
+        'full_data': data #Full data for graph
     }
     return jsonify(response)
 
@@ -373,10 +383,14 @@ def polizas():
 
     total_records = total_records_query.count()
 
+    """
+    #This is not working due to empty years
     if not length and not start:
         records = total_records_query.all()
     else:
         records = total_records_query.limit(length).offset(start).all()
+    """
+    records = total_records_query.all()
 
     # Create empty data
     start_year = start_date.year
@@ -464,10 +478,18 @@ def polizas():
         index_row = data_index.index(data_index_search)
         data[index_row]['renovaciones'] = record.total_polizas
 
+    #Make pagination after filling the data
+    count=len(data)
+    if not length and not start:
+        data_pag = data
+    else:
+        data_pag = data[start:(start+length)]
+    
     # Prepare the response
     response = {
         'recordsTotal': len(data),  # Total records send
-        'data': data  # Data to display
+        'data': data_pag,  # Data to display
+        'full_data': data #Full data for graph
     }
     return jsonify(response)
 
