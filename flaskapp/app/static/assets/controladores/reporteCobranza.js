@@ -69,6 +69,7 @@ $(function () {
     if (formMultiple) {
       params = formMultiple + '&' + params;
     }
+    console.log(params);
     $.ajax({
       ...ajaxConfig,
       url: '/vencimientos/get_upcoming_receipts',
@@ -92,23 +93,23 @@ $(function () {
       url: '/reportes/get_multiple_ids',
       data: {},
       success: ({ Aseguradora, Cliente, Grupo }) => {
-        $('#aseguradora').append(
+        $('#aseguradora_id').append(
           `<option value="">Selecciona aseguradora</option>`
         );
         for (const aseg of Aseguradora.data) {
-          $('#aseguradora').append(
+          $('#aseguradora_id').append(
             `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
           );
         }
-        $('#cliente').append(`<option value="">Selecciona cliente</option>`);
+        $('#cliente_id').append(`<option value="">Selecciona cliente</option>`);
         for (const cliente of Cliente.data) {
-          $('#cliente').append(
+          $('#cliente_id').append(
             `<option value='${cliente.id}'>${cliente.nombre}</option>`
           );
         }
-        $('#grupo').append(`<option value="">Selecciona grupo</option>`);
+        $('#grupo_id').append(`<option value="">Selecciona grupo</option>`);
         for (const grupo of Grupo.data) {
-          $('#grupo').append(
+          $('#grupo_id').append(
             `<option value='${grupo.id}'>${grupo.grupo}</option>`
           );
         }
@@ -128,7 +129,7 @@ $(function () {
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
     const multiple = $('#form-multiple').serialize();
-    if ($('#cliente').val() && $('#grupo').val())
+    if ($('#cliente_id').val() && $('#grupo_id').val())
       return alert('No puedes filtrar combinando cliente y grupo', 'warning');
     getVencimientos(null, 1, 0, multiple);
   });

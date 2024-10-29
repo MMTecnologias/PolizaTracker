@@ -57,15 +57,12 @@ def get():
 
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
-    grupo_id = request.form.get('grupo_id')    
+    grupo_id = request.form.get('grupo_id')
 
-    #Client and grupo can not be asked both
+    # Client and grupo can not be asked both
     if cliente_id and grupo_id:
-        return jsonify({'error':True,
+        return jsonify({'error': True,
                         'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
-
-
-        
 
     polizas_query = db.session.query(Poliza,
                                      Cliente.nombre.label("client_name"),
@@ -97,10 +94,12 @@ def get():
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
 
     if aseguradora_id:
-        polizas_query = polizas_query.filter(Poliza.aseguradora_id == int(aseguradora_id))
+        polizas_query = polizas_query.filter(
+            Poliza.aseguradora_id == int(aseguradora_id))
 
     if cliente_id:
-        polizas_query = polizas_query.filter(Poliza.cliente_id == int(cliente_id))
+        polizas_query = polizas_query.filter(
+            Poliza.cliente_id == int(cliente_id))
 
     if grupo_id:
         clients_query = db.session.query(Cliente) \
@@ -165,7 +164,7 @@ def get():
         'recordsTotal': total_records,  # Total records without filtering
         'data': data  # Data to display
     }
-    #print(data)
+    # print(data)
     return jsonify(response)
 
 
@@ -204,18 +203,20 @@ def get_upcoming_receipts():
                 ) if request.form.get('start') else None
     length = int(request.form.get('length')
                  ) if request.form.get('length') else None
-    
+
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
-    grupo_id = request.form.get('grupo_id')    
+    grupo_id = request.form.get('grupo_id')
 
-    #Get valid list of policies
+    print(aseguradora_id, cliente_id, grupo_id)
+
+    # Get valid list of policies
     polizas = []
     if cliente_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.cliente_id == int(cliente_id)).all()
         polizas = [poliza.id for poliza in polizas_query]
-    
+
     if grupo_id:
         clients_query = db.session.query(Cliente) \
             .filter(Cliente.grupo_id == int(grupo_id)).all()
@@ -227,13 +228,14 @@ def get_upcoming_receipts():
     if aseguradora_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
-        if polizas==[]:
+        if polizas == []:
             polizas = [poliza.id for poliza in polizas_query]
         else:
-            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
-    #Client and grupo can not be asked both
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
+    # Client and grupo can not be asked both
     if cliente_id and grupo_id:
-        return jsonify({'error':True,
+        return jsonify({'error': True,
                         'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
 
     # Retrieve the start and end dates for the report
@@ -273,20 +275,21 @@ def get_upcoming_receipts():
         .join(Subramo, Poliza.subramo_id == Subramo.id) \
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) 
-    
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
+
     if not filtered_selected and not polizas:
-        upcoming_receipts_query=upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
-                Recibo.status == "Pendiente") \
-        .order_by(Recibo.fecha_inicio)
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
+                                                                 Recibo.status == "Pendiente") \
+            .order_by(Recibo.fecha_inicio)
     else:
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= payment_due_start,
-                Recibo.fecha_inicio <= payment_due_end,
-                Recibo.status == "Pendiente") \
-        .order_by(Recibo.fecha_inicio)
+                                                                 Recibo.fecha_inicio <= payment_due_end,
+                                                                 Recibo.status == "Pendiente") \
+            .order_by(Recibo.fecha_inicio)
 
     if aseguradora_id or cliente_id or grupo_id:
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.poliza_id.in_(polizas))    
+        upcoming_receipts_query = upcoming_receipts_query.filter(
+            Recibo.poliza_id.in_(polizas))
 
     total_records = upcoming_receipts_query.count()
 
@@ -322,10 +325,10 @@ def get_upcoming_receipts():
 
         response.append(data)
 
-    headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo','aseguradora', 'fecha_inicio',
-               'fecha_fin', 'prima_neta', 'prima_total','moneda', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+    headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'aseguradora', 'fecha_inicio',
+               'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
     real_headers = ['poliza', 'Recibo', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Aseguradora',
-                    'Inicio', 'Final', 'Prima Neta', 'Prima Total','Moneda', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
+                    'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Moneda', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'upcoming_receipts.csv', real_headers)
     if request.form.get('export_pdf'):
@@ -356,13 +359,12 @@ def get_upcoming_policies():
 
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
-    grupo_id = request.form.get('grupo_id')    
+    grupo_id = request.form.get('grupo_id')
 
-    #Client and grupo can not be asked both
+    # Client and grupo can not be asked both
     if cliente_id and grupo_id:
-        return jsonify({'error':True,
+        return jsonify({'error': True,
                         'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
-
 
     # Retrieve the start and end dates for the report
 
@@ -403,8 +405,8 @@ def get_upcoming_policies():
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
         .filter(Poliza.fecha_termino >= policy_due_start,
                 Poliza.fecha_termino <= policy_due_end,
-                Poliza.status.in_(["Vigente", "Por Vencer","Finalizada"]),
-                Poliza.Poliza_renovada.in_(["No"]) ) \
+                Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
+                Poliza.Poliza_renovada.in_(["No"])) \
         .order_by(Poliza.fecha_termino)
 
     upcoming_endosos_query = db.session.query(Endoso,
@@ -433,22 +435,26 @@ def get_upcoming_policies():
                 Endoso.status.in_(["Vigente", "Por Vencer"])) \
         .order_by(Endoso.fecha_termino)
 
-    
     if aseguradora_id:
-        upcoming_policies_query = upcoming_policies_query.filter(Poliza.aseguradora_id == int(aseguradora_id))
-        upcoming_endosos_query = upcoming_endosos_query.filter(Endoso.aseguradora_id == int(aseguradora_id))
+        upcoming_policies_query = upcoming_policies_query.filter(
+            Poliza.aseguradora_id == int(aseguradora_id))
+        upcoming_endosos_query = upcoming_endosos_query.filter(
+            Endoso.aseguradora_id == int(aseguradora_id))
 
     if cliente_id:
-        upcoming_policies_query = upcoming_policies_query.filter(Poliza.cliente_id == int(cliente_id))
-        upcoming_endosos_query = upcoming_endosos_query.filter(Endoso.cliente_id == int(cliente_id))
+        upcoming_policies_query = upcoming_policies_query.filter(
+            Poliza.cliente_id == int(cliente_id))
+        upcoming_endosos_query = upcoming_endosos_query.filter(
+            Endoso.cliente_id == int(cliente_id))
 
     if grupo_id:
         clients_query = db.session.query(Cliente) \
             .filter(Cliente.grupo_id == int(grupo_id)).all()
         clients = [client.id for client in clients_query]
-        upcoming_policies_query = upcoming_policies_query.filter(Poliza.cliente_id.in_(clients))
-        upcoming_endosos_query = upcoming_endosos_query.filter(Endoso.cliente_id.in_(clients))
-
+        upcoming_policies_query = upcoming_policies_query.filter(
+            Poliza.cliente_id.in_(clients))
+        upcoming_endosos_query = upcoming_endosos_query.filter(
+            Endoso.cliente_id.in_(clients))
 
     total_records = upcoming_policies_query.count()
     total_records += upcoming_endosos_query.count()
@@ -513,9 +519,9 @@ def get_upcoming_policies():
     # 'Poliza o Endoso': 'Endoso'
     # Export to CSV
     headers = ['Poliza o Endoso', 'poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio',
-               'fecha_fin', 'prima_neta', 'prima_total', 'moneda','forma_pago', 'agente', 'vendedor','endoso', 'poliza_anterior']
+               'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'forma_pago', 'agente', 'vendedor', 'endoso', 'poliza_anterior']
     real_headers = ['Tipo', 'id', 'poliza', 'Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio',
-                    'Final', 'Prima Neta', 'Prima Total','Moneda', 'Forma de pago', 'Agente','Vendedor', 'Endoso', 'Anterior']
+                    'Final', 'Prima Neta', 'Prima Total', 'Moneda', 'Forma de pago', 'Agente', 'Vendedor', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'upcoming_policies.csv', real_headers)
     if request.form.get('export_pdf'):
