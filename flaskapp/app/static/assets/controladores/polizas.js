@@ -1,5 +1,4 @@
 $(function () {
-  let ordered = false;
   let razonInput = '';
 
   const ajaxConfig = {
@@ -355,9 +354,12 @@ $(function () {
       url: '/polizas/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
-        const year = new Date(resp.data[0].fecha_termino).getFullYear() + 1;
-        const month = new Date(resp.data[0].fecha_termino).getMonth() + 1;
-        const dia = new Date(resp.data[0].fecha_termino).getDay();
+        const year =
+          new Date(`${resp.data[0].fecha_termino}`).getFullYear() + 1;
+        const month = new Date(`${resp.data[0].fecha_termino}`).getMonth() + 1;
+        const dia = new Date(
+          `${resp.data[0].fecha_termino} 23:00:00`
+        ).getDate();
         $('#poliza_id').val(poliza_id);
         $('#id_poliza').val(resp.data[0].poliza);
         $('#polizaAnterior').val(resp.data[0].poliza);

@@ -134,33 +134,37 @@ $(function () {
       data: {},
       success: (resp) => {
         const { Aseguradora, Grupo, Ramo, Agente, Vendedor } = resp;
-        $('#aseguradora').append(
+        $('#aseguradora_id').append(
           `<option value="">Selecciona aseguradora</option>`
         );
         for (const aseg of Aseguradora.data) {
-          $('#aseguradora').append(
+          $('#aseguradora_id').append(
             `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
           );
         }
-        $('#grupo').append(`<option value="">Selecciona grupo</option>`);
+        $('#grupo_id').append(`<option value="">Selecciona grupo</option>`);
         for (const grupo of Grupo.data) {
-          $('#grupo').append(
+          $('#grupo_id').append(
             `<option value='${grupo.id}'>${grupo.grupo}</option>`
           );
         }
-        $('#ramo').append(`<option value="">Selecciona ramo</option>`);
+        $('#ramo_id').append(`<option value="">Selecciona ramo</option>`);
         for (const ramo of Ramo.data) {
-          $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+          $('#ramo_id').append(
+            `<option value='${ramo.id}'>${ramo.ramo}</option>`
+          );
         }
-        $('#agente').append(`<option value="">Selecciona agente</option>`);
+        $('#agente_id').append(`<option value="">Selecciona agente</option>`);
         for (const agente of Agente.data) {
-          $('#agente').append(
+          $('#agente_id').append(
             `<option value='${agente.id}'>${agente.nombre}</option>`
           );
         }
-        $('#vendedor').append(`<option value="">Selecciona Vendedor</option>`);
+        $('#vendedor_id').append(
+          `<option value="">Selecciona Vendedor</option>`
+        );
         for (const vendedor of Vendedor.data) {
-          $('#vendedor').append(
+          $('#vendedor_id').append(
             `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
           );
         }
