@@ -1,9 +1,12 @@
 $(function () {
-  function getBarChart(data) {
+  function getBarChart(data, tipo = 'month') {
     if (!data.length) return;
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
+    let option = {};
+    let source = [];
+    let series = [];
     const mesesMatrix = [
       ['Enero'],
       ['Febrero'],
@@ -26,24 +29,50 @@ $(function () {
         if (!acc.includes(cur)) acc.push(cur);
         return acc;
       }, []);
-    const series = years.map((item) => ({ type: 'bar' }));
-    for (const dat of data) {
-      const i = years.findIndex((year) => year == String(dat.year));
-      if (i !== -1) {
-        mesesMatrix[dat.month - 1][i + 1] = dat.total_prima_neta_pagada;
+    if (tipo === 'month') {
+      series = years.map((item) => ({ type: 'bar' }));
+      for (const dat of data) {
+        if (!dat.month) continue;
+        const i = years.findIndex((year) => year == String(dat.year));
+        if (i !== -1) {
+          mesesMatrix[dat.month - 1][i + 1] = dat.total_prima_neta_pagada;
+        }
       }
+      source = [['Mes', ...years], ...mesesMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
     }
-    const source = [['Mes', ...years], ...mesesMatrix];
-    const option = {
-      legend: {},
-      tooltip: {},
-      dataset: {
-        source: source,
-      },
-      xAxis: { type: 'category' },
-      yAxis: {},
-      series,
-    };
+    if (tipo === 'year') {
+      option = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow',
+          },
+        },
+        xAxis: {
+          type: 'category',
+          data: years,
+        },
+        yAxis: {
+          type: 'value',
+        },
+        series: [
+          {
+            data: data.map((item) => String(item.total_prima_neta_pagada)),
+            type: 'bar',
+          },
+        ],
+      };
+    }
     option && myChart.setOption(option);
   }
 
@@ -74,7 +103,7 @@ $(function () {
       table.append(
         `<tr class="tableOption">
           <td>${poliza.year}</td>
-          <td>${poliza.month}</td>
+          <td>${poliza.month ? poliza.month : ''}</td>
           <td>${poliza.total_prima_neta_pagada}</td>
         </tr>`
       );
@@ -108,7 +137,11 @@ $(function () {
       url: '/reportes/prima_neta',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        getBarChart(resp.data);
+        if (formMultiple && formMultiple.includes('year')) {
+          getBarChart(resp.data, 'year');
+        } else {
+          getBarChart(resp.data);
+        }
         fillTablePrimaNeta(
           resp,
           formDataFechas,
@@ -179,7 +212,7 @@ $(function () {
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
     const multiple = $('#form-multiple').serialize();
-    getVencimientos(null, 1, 0, multiple);
+    getPrimaNeta(null, 1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
