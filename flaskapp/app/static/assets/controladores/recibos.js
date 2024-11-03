@@ -12,7 +12,13 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTableRecibos(resp, formDataFechas, currentPage, itemsOnPage) {
+  function fillTableRecibos(
+    resp,
+    formDataFechas,
+    currentPage,
+    itemsOnPage,
+    formMultiple
+  ) {
     const { data, recordsTotal } = resp;
     const table = $('#table-receipts');
     table.html('');
@@ -47,12 +53,17 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getRecibos(formDataFechas, pageNumber, start);
+        getRecibos(formDataFechas, pageNumber, start, formMultiple);
       },
     });
   }
 
-  function getRecibos(formDataFechas = null, pageNumber = 1, start = 0) {
+  function getRecibos(
+    formDataFechas = null,
+    pageNumber = 1,
+    start = 0,
+    formMultiple = null
+  ) {
     const length = 10;
     const params = $.param({ start, length });
     $.ajax({
@@ -60,7 +71,60 @@ $(function () {
       url: '/polizas/get_all_receipts',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) =>
-        fillTableRecibos(resp, formDataFechas, pageNumber, length),
+        fillTableRecibos(
+          resp,
+          formDataFechas,
+          pageNumber,
+          length,
+          formMultiple
+        ),
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
+  function getMultipleIds() {
+    $.ajax({
+      ...ajaxConfig,
+      type: 'GET',
+      url: '/reportes/get_multiple_ids',
+      data: {},
+      success: (resp) => {
+        const { Aseguradora, Grupo, Ramo, Agente, Vendedor } = resp;
+        $('#aseguradora_id').append(
+          `<option value="">Selecciona aseguradora</option>`
+        );
+        for (const aseg of Aseguradora.data) {
+          $('#aseguradora_id').append(
+            `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
+          );
+        }
+        $('#grupo_id').append(`<option value="">Selecciona grupo</option>`);
+        for (const grupo of Grupo.data) {
+          $('#grupo_id').append(
+            `<option value='${grupo.id}'>${grupo.grupo}</option>`
+          );
+        }
+        $('#ramo_id').append(`<option value="">Selecciona ramo</option>`);
+        for (const ramo of Ramo.data) {
+          $('#ramo_id').append(
+            `<option value='${ramo.id}'>${ramo.ramo}</option>`
+          );
+        }
+        $('#agente_id').append(`<option value="">Selecciona agente</option>`);
+        for (const agente of Agente.data) {
+          $('#agente_id').append(
+            `<option value='${agente.id}'>${agente.nombre}</option>`
+          );
+        }
+        $('#vendedor_id').append(
+          `<option value="">Selecciona Vendedor</option>`
+        );
+        for (const vendedor of Vendedor.data) {
+          $('#vendedor_id').append(
+            `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
+          );
+        }
+      },
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -73,5 +137,68 @@ $(function () {
     getRecibos(formDataFechas);
   });
 
+  $('#form-multiple').submit(function (e) {
+    e.preventDefault();
+    const multiple = $('#form-multiple').serialize();
+    getRecibos(null, 1, 0, multiple);
+  });
+
+  $('#btnExportar').click((e) => {
+    e.preventDefault();
+    let params = $.param({ export_csv: true });
+    if ($('#start_date').val() && $('#end_date').val()) {
+      const formDataFechas = $('#form-fechas').serialize();
+      params = `${params}&${formDataFechas}`;
+    }
+    $.ajax({
+      type: 'POST',
+      url: '/reportes/prima_neta',
+      data: params,
+      xhrFields: {
+        responseType: 'blob',
+      },
+      success: function (blob, status, xhr) {
+        let a = document.createElement('a');
+        let url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `reporte_cobranza_${new Date().toLocaleDateString()}.csv`;
+        document.body.append(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  });
+
+  $('#btnPdf').click((e) => {
+    e.preventDefault();
+    let params = $.param({ export_pdf: true });
+    if ($('#start_date').val() && $('#end_date').val()) {
+      const formDataFechas = $('#form-fechas').serialize();
+      params = `${params}&${formDataFechas}`;
+    }
+    $.ajax({
+      type: 'POST',
+      url: '/reportes/prima_neta',
+      data: params,
+      xhrFields: {
+        responseType: 'blob',
+      },
+      success: function (blob, status, xhr) {
+        let a = document.createElement('a');
+        let url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `reporte_cobranza_${new Date().toLocaleDateString()}.pdf`;
+        document.body.append(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  });
+
+  getMultipleIds();
   getRecibos();
 });

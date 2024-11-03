@@ -38,8 +38,8 @@
   <div class="container">
     <div class="row">
       <div class="col-10">
-        <form class="row mt-2" id="form-fechas" novalidate>
-          <div class="col-5">
+        <form class="row mt-2" id="form-multiple" novalidate>
+          <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="start_date">Fecha Inicio</label>
               <div class="input-group">
@@ -47,7 +47,7 @@
               </div>
             </div>
           </div>
-          <div class="col-5">
+          <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Fecha Fin</label>
               <div class="input-group">
@@ -55,46 +55,48 @@
               </div>
             </div>
           </div>
-          <div class="col-2 d-flex align-items-end">
-            <button class="btn" type="submit" id="btnGuardar">
-              Filtrar por fechas
-            </button>
+          <div class="col-3">
+            <div class="form__input-data input-sibling-child">
+              <label class="label-input-data" for="start_date">Tipo(Mes o Año)</label>
+              <select class="custom-select" id="type_report" name="type_report">
+                <option value="month">Mes</option>
+                <option value="year">Año</option>
+              </select>
+            </div>
           </div>
-        </form>
-        <form class="row mt-2" id="form-multiple" novalidate>
-          <div class="col">
+          <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="start_date">Aseguradora</label>
-              <select class="custom-select" id="aseguradora" name="aseguradora"></select>
+              <select class="custom-select" id="aseguradora_id" name="aseguradora_id"></select>
             </div>
           </div>
           <div class="col">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Grupo</label>
-              <select class="custom-select" id="grupo" name="grupo"></select>
+              <select class="custom-select" id="grupo_id" name="grupo_id"></select>
             </div>
           </div>
           <div class="col">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Ramo</label>
-              <select class="custom-select" id="ramo" name="ramo"></select>
+              <select class="custom-select" id="ramo_id" name="ramo_id"></select>
             </div>
           </div>
           <div class="col">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Agente</label>
-              <select class="custom-select" id="agente" name="agente"></select>
+              <select class="custom-select" id="agente_id" name="agente_id"></select>
             </div>
           </div>
           <div class="col">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Vendedor</label>
-              <select class="custom-select" id="vendedor" name="vendedor"></select>
+              <select class="custom-select" id="vendedor_id" name="vendedor_id"></select>
             </div>
           </div>
           <div class="col-2 d-flex align-items-end">
             <button class="btn" type="submit" id="btnMultiple">
-              Filtrar multiple
+              Aplicar filtros
             </button>
           </div>
         </form>
@@ -111,15 +113,13 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-12">
+      <div class="col-4">
         <div class="w-100 card__shadow p-3 my-2" id="table-polizas">
           <h4 class="header-title">Tabla de prima neta</h4>
           <table class="table">
             <thead class="tableHeader">
               <tr>
-                <th class="table-name siblingContainerRow" scope="col">
-                  Año
-                </th>
+                <th scope="col">Año</th>
                 <th scope="col">Mes</th>
                 <th scope="col">Total prima neta pagada</th>
               </tr>
@@ -131,7 +131,7 @@
           </div>
         </div>
       </div>
-      <div class="col-12" id="chart-container"></div>
+      <div class="col-8" id="chart-container"></div>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"

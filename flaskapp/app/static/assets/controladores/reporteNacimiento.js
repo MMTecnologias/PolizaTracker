@@ -1,4 +1,5 @@
 $(function () {
+  let exportForMonth = false;
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -42,6 +43,7 @@ $(function () {
   function getNacimientos(month = null, pageNumber = 1, start = 0) {
     const length = 15;
     const params = $.param({ start, length });
+    exportForMonth = month ? true : false;
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/fecha_nacimientos',
@@ -59,6 +61,7 @@ $(function () {
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
+    if (exportForMonth) params = 'current_report=month&' + params;
     $.ajax({
       type: 'POST',
       url: '/reportes/fecha_nacimientos',
@@ -83,6 +86,7 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
+    if (exportForMonth) params = 'current_report=month&' + params;
     $.ajax({
       type: 'POST',
       url: '/reportes/fecha_nacimientos',

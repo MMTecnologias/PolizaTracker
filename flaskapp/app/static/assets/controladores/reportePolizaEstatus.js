@@ -1,11 +1,12 @@
 $(function () {
-  function getBarChart(data) {
-    // console.log(data);
-    // return;
+  function getBarChart(data, tipo = 'month') {
     if (!data.length) return;
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
+    let option = {};
+    let source = [];
+    let series = [];
     const mesesMatrix = [
       ['Enero'],
       ['Febrero'],
@@ -22,30 +23,56 @@ $(function () {
     ];
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
-    const years = data
-      .map((item) => String(item.year))
-      .reduce((acc, cur) => {
-        if (!acc.includes(cur)) acc.push(cur);
-        return acc;
-      }, []);
-    const series = years.map((item) => ({ type: 'bar' }));
-    for (const dat of data) {
-      const i = years.findIndex((year) => year == String(dat.year));
-      if (i !== -1) {
-        mesesMatrix[dat.month - 1][i + 1] = dat.polizas_totales;
+    if (tipo === 'month') {
+      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
+      series = status.map((item) => ({ type: 'bar' }));
+      for (const dat of data) {
+        mesesMatrix[dat.month - 1][1] = dat.polizas_nuevas;
+        mesesMatrix[dat.month - 1][2] = dat.polizas_renovadas;
+        mesesMatrix[dat.month - 1][3] = dat.polizas_canceladas;
+        mesesMatrix[dat.month - 1][4] = dat.renovaciones;
       }
+      source = [['Mes', ...status], ...mesesMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
     }
-    const source = [['Mes', ...years], ...mesesMatrix];
-    const option = {
-      legend: {},
-      tooltip: {},
-      dataset: {
-        source: source,
-      },
-      xAxis: { type: 'category' },
-      yAxis: {},
-      series,
-    };
+    if (tipo === 'year') {
+      let years = data.map((item) => [String(item.year).trim()]);
+      const yearsTuple = data.map((item) => [String(item.year).trim()]);
+      // years = Array.from(new Set(years)).map((item) => [item, 0, 0, 0, 0]);
+      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
+      series = status.map((item) => ({ type: 'bar' }));
+      for (const dat of data) {
+        const i = yearsTuple
+          .flat()
+          .findIndex((y) => y === String(dat.year).trim());
+        if (i !== -1) {
+          years[i][1] = dat.polizas_nuevas;
+          years[i][2] = dat.polizas_renovadas;
+          years[i][3] = dat.polizas_canceladas;
+          years[i][4] = dat.renovaciones;
+        }
+      }
+      source = [['Año', ...status], ...years];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
     option && myChart.setOption(option);
   }
 
@@ -76,10 +103,11 @@ $(function () {
       table.append(
         `<tr class="tableOption">
           <td>${poliza.year}</td>
-          <td>${poliza.month}</td>
+          <td>${poliza.month ? poliza.month : ''}</td>
           <td>${poliza.polizas_nuevas}</td>
           <td>${poliza.polizas_renovadas}</td>
           <td>${poliza.polizas_canceladas}</td>
+          <td>${poliza.renovaciones}</td>
           <td>${poliza.polizas_totales}</td>
         </tr>`
       );
@@ -113,7 +141,11 @@ $(function () {
       url: '/reportes/polizas',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        getBarChart(resp.data);
+        if (formMultiple && formMultiple.includes('year')) {
+          getBarChart(resp.data, 'year');
+        } else {
+          getBarChart(resp.data);
+        }
         fillTablePolizastatus(
           resp,
           formDataFechas,
@@ -134,33 +166,37 @@ $(function () {
       data: {},
       success: (resp) => {
         const { Aseguradora, Grupo, Ramo, Agente, Vendedor } = resp;
-        $('#aseguradora').append(
+        $('#aseguradora_id').append(
           `<option value="">Selecciona aseguradora</option>`
         );
         for (const aseg of Aseguradora.data) {
-          $('#aseguradora').append(
+          $('#aseguradora_id').append(
             `<option value='${aseg.id}'>${aseg.aseguradora}</option>`
           );
         }
-        $('#grupo').append(`<option value="">Selecciona grupo</option>`);
+        $('#grupo_id').append(`<option value="">Selecciona grupo</option>`);
         for (const grupo of Grupo.data) {
-          $('#grupo').append(
+          $('#grupo_id').append(
             `<option value='${grupo.id}'>${grupo.grupo}</option>`
           );
         }
-        $('#ramo').append(`<option value="">Selecciona ramo</option>`);
+        $('#ramo_id').append(`<option value="">Selecciona ramo</option>`);
         for (const ramo of Ramo.data) {
-          $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+          $('#ramo_id').append(
+            `<option value='${ramo.id}'>${ramo.ramo}</option>`
+          );
         }
-        $('#agente').append(`<option value="">Selecciona agente</option>`);
+        $('#agente_id').append(`<option value="">Selecciona agente</option>`);
         for (const agente of Agente.data) {
-          $('#agente').append(
+          $('#agente_id').append(
             `<option value='${agente.id}'>${agente.nombre}</option>`
           );
         }
-        $('#vendedor').append(`<option value="">Selecciona Vendedor</option>`);
+        $('#vendedor_id').append(
+          `<option value="">Selecciona Vendedor</option>`
+        );
         for (const vendedor of Vendedor.data) {
-          $('#vendedor').append(
+          $('#vendedor_id').append(
             `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
           );
         }

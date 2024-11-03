@@ -193,7 +193,7 @@ def prima_neta():
 
     total_records = total_records_query.count()
     """
-    #This is not working due to empty years 
+    #This is not working due to empty years
     if not length and not start:
         records = total_records_query.all()
     else:
@@ -229,9 +229,9 @@ def prima_neta():
             data_index_search = record.year
         index_row = data_index.index(data_index_search)
         data[index_row]['total_prima_neta_pagada'] = record.total_prima_neta_pagada
-    
-    #Make pagination after filling the data
-    count=len(data)
+
+    # Make pagination after filling the data
+    count = len(data)
     if not length and not start:
         data_pag = data
     else:
@@ -241,7 +241,7 @@ def prima_neta():
         'recordsTotal': count,  # Total records send
         'recordsTotal_with_values': total_records,  # Total records without filtering
         'data': data_pag,  # Data to display
-        'full_data': data #Full data for graph
+        'full_data': data  # Full data for graph
     }
     return jsonify(response)
 
@@ -478,18 +478,18 @@ def polizas():
         index_row = data_index.index(data_index_search)
         data[index_row]['renovaciones'] = record.total_polizas
 
-    #Make pagination after filling the data
-    count=len(data)
+    # Make pagination after filling the data
+    count = len(data)
     if not length and not start:
         data_pag = data
     else:
         data_pag = data[start:(start+length)]
-    
+
     # Prepare the response
     response = {
         'recordsTotal': len(data),  # Total records send
         'data': data_pag,  # Data to display
-        'full_data': data #Full data for graph
+        'full_data': data  # Full data for graph
     }
     return jsonify(response)
 

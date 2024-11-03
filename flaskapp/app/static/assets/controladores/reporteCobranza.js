@@ -92,7 +92,7 @@ $(function () {
       type: 'GET',
       url: '/reportes/get_multiple_ids',
       data: {},
-      success: ({ Aseguradora, Cliente, Grupo }) => {
+      success: ({ Aseguradora, Cliente, Grupo, Vendedor }) => {
         $('#aseguradora_id').append(
           `<option value="">Selecciona aseguradora</option>`
         );
@@ -113,6 +113,14 @@ $(function () {
             `<option value='${grupo.id}'>${grupo.grupo}</option>`
           );
         }
+        $('#vendedor_id').append(
+          `<option value="">Selecciona Vendedor</option>`
+        );
+        for (const vendedor of Vendedor.data) {
+          $('#vendedor_id').append(
+            `<option value='${vendedor.id}'>${vendedor.nombre}</option>`
+          );
+        }
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -128,9 +136,15 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const multiple = $('#form-multiple').serialize();
-    if ($('#cliente_id').val() && $('#grupo_id').val())
+    const aseguradora_id = $('#aseguradora_id').val();
+    const cliente_id = $('#cliente_id').val();
+    const grupo_id = $('#grupo_id').val();
+    if (cliente_id && grupo_id)
       return alert('No puedes filtrar combinando cliente y grupo', 'warning');
+    let multiple = '';
+    if (aseguradora_id) multiple += `aseguradora_id=${aseguradora_id}`;
+    if (cliente_id) multiple += `&cliente_id=${cliente_id}`;
+    if (grupo_id) multiple += `&grupo_id=${grupo_id}`;
     getVencimientos(null, 1, 0, multiple);
   });
 

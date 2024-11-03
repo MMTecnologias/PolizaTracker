@@ -126,7 +126,7 @@ $(function () {
       table.append(
         `<tr class="tableOption">
           <td>${item.usuario}</td>
-          <td>${item.reviso}</td>
+          <td>${item.reviso === 'None None' ? 'N/A' : item.reviso}</td>
           <td>${item.timestamp}</td>
           <td>${item.descripcion}</td>
           <td>${item.status}</td>
