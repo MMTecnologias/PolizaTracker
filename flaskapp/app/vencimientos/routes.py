@@ -246,11 +246,11 @@ def get_upcoming_receipts():
         'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
     end_date = start_date + timedelta(days=days_tolerance//2) if not request.form.get(
         'end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
-
+    
     # Calculate the payment due date range
     payment_due_start = start_date - timedelta(days=days_tolerance)
     payment_due_end = end_date - timedelta(days=days_tolerance//2)
-
+    
     # Query the database for upcoming receipts
     upcoming_receipts_query = db.session.query(Recibo,
                                                Poliza,
@@ -278,13 +278,24 @@ def get_upcoming_receipts():
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
 
     if not filtered_selected and not polizas:
+
+        # Apply the filters
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
-                                                                 Recibo.status == "Pendiente") \
-            .order_by(Recibo.fecha_inicio)
+                                                                Recibo.status == "Pendiente") \
+                                                                    .add_columns(
+                                                                        (Recibo.fecha_inicio >= payment_due_start).label('is_upcoming')) \
+                                                                    .order_by(desc('is_upcoming'), Recibo.fecha_inicio) 
+                                                                    
+
+        #upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
+        #                                                         Recibo.status == "Pendiente") \
+        #    .order_by(Recibo.fecha_inicio)
     else:
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= payment_due_start,
                                                                  Recibo.fecha_inicio <= payment_due_end,
                                                                  Recibo.status == "Pendiente") \
+                                                                 .add_columns(
+                                                                        (Recibo.fecha_inicio >= payment_due_start).label('is_upcoming')) \
             .order_by(Recibo.fecha_inicio)
 
     if aseguradora_id or cliente_id or grupo_id:
@@ -301,7 +312,7 @@ def get_upcoming_receipts():
 
     # Prepare the response data
     response = []
-    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_receipts:
+    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor,is_upcoming in upcoming_receipts:
 
         data = {
             'poliza_id': recibo.poliza_id,
