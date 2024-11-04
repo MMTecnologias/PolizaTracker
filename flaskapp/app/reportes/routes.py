@@ -255,6 +255,7 @@ def prima_neta():
                 new_record['month'] = record.month
             else:
                 new_record['year'] = record.year
+            new_record['total_prima_neta_pagada'] = record.total_prima_neta_pagada
             data.append(new_record)
         #Convert by_data to data
         
