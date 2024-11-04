@@ -384,7 +384,7 @@ def get_upcoming_policies():
         filtered_selected = False
     start_date = datetime.now() if not request.form.get(
         'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-    end_date = start_date + timedelta(days=days_tolerance) if not request.form.get(
+    end_date = start_date  if not request.form.get(
         'end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
 
     # Calculate the policy due date range
@@ -413,12 +413,12 @@ def get_upcoming_policies():
         .join(Subramo, Poliza.subramo_id == Subramo.id) \
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Poliza.fecha_termino >= policy_due_start,
-                Poliza.fecha_termino <= policy_due_end,
-                Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
-                Poliza.Poliza_renovada.in_(["No"])) \
-        .order_by(Poliza.fecha_termino)
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) #\
+        #.filter(Poliza.fecha_termino >= policy_due_start,
+        #        Poliza.fecha_termino <= policy_due_end,
+        #        Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
+        #        Poliza.Poliza_renovada.in_(["No"])) \
+        #.order_by(Poliza.fecha_termino)
 
     upcoming_endosos_query = db.session.query(Endoso,
                                               Cliente.nombre.label(
@@ -445,6 +445,36 @@ def get_upcoming_policies():
                 Endoso.fecha_termino <= policy_due_end,
                 Endoso.status.in_(["Vigente", "Por Vencer"])) \
         .order_by(Endoso.fecha_termino)
+        
+        
+    if not filtered_selected and not aseguradora_id and not cliente_id and not grupo_id:
+        print("No filters", policy_due_start, policy_due_end)
+        upcoming_policies_query = upcoming_policies_query \
+            .filter(Poliza.fecha_termino <= policy_due_end,
+                    Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
+                    Poliza.Poliza_renovada.in_(["No"])) \
+            .add_columns(
+                (Poliza.fecha_termino >= policy_due_start).label('is_upcoming')) \
+            .order_by(desc('is_upcoming'), Poliza.fecha_termino)
+    else:
+        upcoming_policies_query = upcoming_policies_query \
+            .filter(Poliza.fecha_termino >= policy_due_start,
+                    Poliza.fecha_termino <= policy_due_end,
+                    Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
+                    Poliza.Poliza_renovada.in_(["No"])) \
+             .add_columns(
+                (Poliza.fecha_termino >= policy_due_start).label('is_upcoming')) \
+            .order_by(Poliza.fecha_termino)
+
+        
+        #\
+        #.filter(Poliza.fecha_termino >= policy_due_start,
+        #        Poliza.fecha_termino <= policy_due_end,
+        #        Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
+        #        Poliza.Poliza_renovada.in_(["No"])) \
+        #.order_by(Poliza.fecha_termino)
+    
+
 
     if aseguradora_id:
         upcoming_policies_query = upcoming_policies_query.filter(
@@ -481,7 +511,7 @@ def get_upcoming_policies():
 
     # Prepare the response data
     response = []
-    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_policies:
+    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor,is_upcoming in upcoming_policies:
 
         data = {
             'Poliza o Endoso': 'Poliza',
