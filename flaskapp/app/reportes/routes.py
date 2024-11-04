@@ -67,6 +67,7 @@ def get_multiple_ids():
 # Prima Neta (Incompleto)
 # Usar group by month year func de SQLAlchemy
 
+
 @reportes_route.route('/prima_neta', methods=['POST', 'GET'])
 @login_required
 def prima_neta():
@@ -94,14 +95,14 @@ def prima_neta():
         'type_report') if request.form.get('type_report') else 'month'
     if type_report not in ['month', 'year']:
         return jsonify({'error': True, 'msg': 'Tipo de reporte no válido, debe ser "month" o "year"'})
-    #type_report = 'year'
+    # type_report = 'year'
     years = request.form.get('years')
-    #2017-2025 for testing
+    # 2017-2025 for testing
     if years:
         years = list(map(int, years.split(',')))
     else:
         years = [datetime.now().year]
-    #years=[2017,2018,2019,2020,2021,2022,2023,2024,2025]
+    # years=[2017,2018,2019,2020,2021,2022,2023,2024,2025]
 
     start = int(request.form.get('start')
                 ) if request.form.get('start') else None
@@ -172,18 +173,23 @@ def prima_neta():
     ).filter(
         func.year(Recibo.fecha_pago).in_(years)
     )
-    by="aseguradora"
+    by = "aseguradora"
     if by:
         if by == 'aseguradora':
-            total_records_query = total_records_query.add_columns(Aseguradora.aseguradora.label('aseguradora')).join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+            total_records_query = total_records_query.add_columns(Aseguradora.aseguradora.label(
+                'aseguradora')).join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
         elif by == 'grupo':
-            total_records_query = total_records_query.add_columns(Grupo.grupo.label('grupo')).join(Cliente, Poliza.cliente_id == Cliente.id).join(Grupo, Cliente.grupo_id == Grupo.id)
+            total_records_query = total_records_query.add_columns(Grupo.grupo.label('grupo')).join(
+                Cliente, Poliza.cliente_id == Cliente.id).join(Grupo, Cliente.grupo_id == Grupo.id)
         elif by == 'ramo':
-            total_records_query = total_records_query.add_columns(Ramo.ramo.label('ramo')).join(Ramo, Poliza.ramo_id == Ramo.id)
+            total_records_query = total_records_query.add_columns(
+                Ramo.ramo.label('ramo')).join(Ramo, Poliza.ramo_id == Ramo.id)
         elif by == 'agente':
-            total_records_query = total_records_query.add_columns(Agente.nombre.label('agente')).join(Agente, Poliza.agente_id == Agente.id)
+            total_records_query = total_records_query.add_columns(
+                Agente.nombre.label('agente')).join(Agente, Poliza.agente_id == Agente.id)
         elif by == 'vendedor':
-            total_records_query = total_records_query.add_columns(Vendedor.nombre.label('vendedor')).join(Vendedor, Poliza.vendedor_id == Vendedor.id)
+            total_records_query = total_records_query.add_columns(Vendedor.nombre.label(
+                'vendedor')).join(Vendedor, Poliza.vendedor_id == Vendedor.id)
         else:
             return jsonify({'error': True, 'msg': 'Filtro "by" no válido'})
 
@@ -194,8 +200,10 @@ def prima_neta():
         )
         if by:
             total_records_query = total_records_query.group_by(by,
-                                                                func.year(Recibo.fecha_pago),
-                                                                func.month(Recibo.fecha_pago)
+                                                               func.year(
+                                                                   Recibo.fecha_pago),
+                                                               func.month(
+                                                                   Recibo.fecha_pago)
                                                                ).order_by(
                 func.year(Recibo.fecha_pago),
                 func.month(Recibo.fecha_pago)
@@ -206,7 +214,8 @@ def prima_neta():
         )
         if by:
             total_records_query = total_records_query.group_by(by,
-                                                               func.year(Recibo.fecha_pago)
+                                                               func.year(
+                                                                   Recibo.fecha_pago)
                                                                ).order_by(
                 func.year(Recibo.fecha_pago)
             )
@@ -247,9 +256,10 @@ def prima_neta():
     else:
         data = []
         for record in records:
-            print(record)
+            # print(record)
             new_record = {}
             new_record[by] = getattr(record, by)
+            print(new_record[by])
             if type_report == 'month':
                 new_record['year'] = record.year
                 new_record['month'] = record.month
@@ -257,10 +267,7 @@ def prima_neta():
                 new_record['year'] = record.year
             new_record['total_prima_neta_pagada'] = record.total_prima_neta_pagada
             data.append(new_record)
-        #Convert by_data to data
-        
-
-
+        # Convert by_data to data
 
     # Make pagination after filling the data
     count = len(data)
@@ -275,7 +282,7 @@ def prima_neta():
         'data': data_pag,  # Data to display
         'full_data': data  # Full data for graph
     }
-    #export_to_csv or pdf
+    # export_to_csv or pdf
     headers = ['year', 'month', 'total_prima_neta_pagada']
     real_headers = ['Año', 'Mes', 'Prima Neta Pagada']
     if by:
@@ -323,15 +330,13 @@ def polizas():
 
     # start_date = '2019-01-01'  # Default value for testing
     # end_date = '2025-12-31'  # Default value for testing
-    #start_date = request.form.get('start_date')
-    #end_date = request.form.get('end_date')
+    # start_date = request.form.get('start_date')
+    # end_date = request.form.get('end_date')
     years = request.form.get('years')
     if years:
-        years=list(map(int, years.split(',')))
+        years = list(map(int, years.split(',')))
     else:
         years = [datetime.now().year]
-        
-
 
     start = int(request.form.get('start')
                 ) if request.form.get('start') else None
@@ -399,7 +404,7 @@ def polizas():
     if polizas:
         total_records_query = total_records_query.filter(
             Poliza.id.in_(polizas))
-        
+
     total_records_query = total_records_query.filter(
         func.year(Poliza.fecha_inicio).in_(years)
     )
@@ -431,7 +436,6 @@ def polizas():
     records = total_records_query.all()
 
     # Create empty data
-
 
     data = []
     data_index = []
@@ -523,16 +527,17 @@ def polizas():
         'data': data_pag,  # Data to display
         'full_data': data  # Full data for graph
     }
-    #export_to_csv or pdf
-    headers = ['year', 'month', 'polizas_totales', 'polizas_nuevas', 'polizas_renovadas', 'polizas_canceladas', 'renovaciones']
-    real_headers = ['Año', 'Mes', 'Polizas totales', 'Polizas nuevas', 'Polizas renovadas', 'Polizas canceladas', 'Renovaciones']
+    # export_to_csv or pdf
+    headers = ['year', 'month', 'polizas_totales', 'polizas_nuevas',
+               'polizas_renovadas', 'polizas_canceladas', 'renovaciones']
+    real_headers = ['Año', 'Mes', 'Polizas totales', 'Polizas nuevas',
+                    'Polizas renovadas', 'Polizas canceladas', 'Renovaciones']
     if request.form.get('export_csv'):
         return export_to_csv(headers, data, 'polizas.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = []
         title_str = "Reporte de Polizas " + type_report
         return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, title_str)
-
 
     return jsonify(response)
 
@@ -822,10 +827,11 @@ def fecha_nacimientos():
         return export_to_csv(headers, response, 'fecha_nacimientos.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['nombre']
-        names_map={1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 
-                   5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+        names_map = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                     5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
                      9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
-        title_str = "Cumpleaños"+names_map[month] if current_report else "Cumpleaños"
+        title_str = "Cumpleaños" + \
+            names_map[month] if current_report else "Cumpleaños"
         return export_to_pdf(headers, response, 'fecha_nacimientos.pdf', real_headers, to_multiline, title_str)
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering

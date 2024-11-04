@@ -142,6 +142,7 @@ $(function () {
         } else {
           getBarChart(resp.data);
         }
+        console.log(resp);
         fillTablePrimaNeta(
           resp,
           formDataFechas,
@@ -271,19 +272,10 @@ $(function () {
     });
   });
 
-  //   $("#searchPoliza").on("keyup", function (e) {
-  //     e.preventDefault();
-  //     const searchValue = e.target.value;
-  //     if (searchValue == "") return getVencimientos();
-  //     if (searchValue.length >= 3)
-  //       $.ajax({
-  //         ...ajaxConfig,
-  //         url: "/polizas/get",
-  //         data: $.param({ start: 0, length: 0, searchValue }),
-  //         success: fillTableVencimientos,
-  //         error: (xhr, status, error) => console.error(error),
-  //       });
-  //   });
+  $('#years').select2({
+    placeholder: 'seleciona los años',
+    tags: true,
+  });
 
   getMultipleIds();
   getPrimaNeta();

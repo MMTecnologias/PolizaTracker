@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css">
 </head>
 
 <body>
@@ -41,17 +42,14 @@
         <form class="row mt-2" id="form-multiple" novalidate>
           <div class="col-3">
             <div class="form__input-data input-sibling-child">
-              <label class="label-input-data" for="start_date">Fecha Inicio</label>
-              <div class="input-group">
-                <input type="date" class="form-control" id="start_date" name="start_date" required />
-              </div>
-            </div>
-          </div>
-          <div class="col-3">
-            <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Fecha Fin</label>
               <div class="input-group">
-                <input type="date" class="form-control" id="end_date" name="end_date" required />
+                <select class="mul-select" name="years" id="years" multiple style="min-width: 100%">
+                  <option valube="2022">2022</option>
+                  <option value="2023">2023</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                </select>
               </div>
             </div>
           </div>
@@ -70,7 +68,7 @@
               <select class="custom-select" id="aseguradora_id" name="aseguradora_id"></select>
             </div>
           </div>
-          <div class="col">
+          <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Grupo</label>
               <select class="custom-select" id="grupo_id" name="grupo_id"></select>
@@ -134,10 +132,10 @@
       <div class="col-8" id="chart-container"></div>
     </div>
   </div>
+  <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"
     integrity="sha256-6EJwvQzVvfYP78JtAMKjkcsugfTSanqe4WGFpUdzo88=" crossorigin="anonymous"></script>
-  <script type="module" src="{{ url_for('static', filename='assets/controladores/reportePrimaNeta.js') }}"></script>
-  <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
@@ -150,6 +148,7 @@
   <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
+  <script type="module" src="{{ url_for('static', filename='assets/controladores/reportePrimaNeta.js') }}"></script>
 </body>
 
 </html>

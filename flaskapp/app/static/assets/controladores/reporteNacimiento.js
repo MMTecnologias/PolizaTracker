@@ -1,5 +1,4 @@
 $(function () {
-  let exportForMonth = false;
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -13,7 +12,12 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTableNacimientos(resp, month, currentPage, itemsOnPage) {
+  function fillTableNacimientos(
+    resp,
+    current_report,
+    currentPage,
+    itemsOnPage
+  ) {
     const { data, recordsTotal } = resp;
     const table = $('#table-nacimientos');
     table.html('');
@@ -35,33 +39,48 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getNacimientos(month, pageNumber, start);
+        getNacimientos(current_report, pageNumber, start);
       },
     });
   }
 
-  function getNacimientos(month = null, pageNumber = 1, start = 0) {
+  function getNacimientos(current_report = null, pageNumber = 1, start = 0) {
     const length = 15;
     const params = $.param({ start, length });
-    exportForMonth = month ? true : false;
+    if (current_report) {
+      console.log(current_report + '&' + params);
+    }
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/fecha_nacimientos',
-      data: month ? 'current_report=month' + '&' + params : params,
-      success: (resp) => fillTableNacimientos(resp, month, pageNumber, length),
+      data: current_report ? current_report + '&' + params : params,
+      success: (resp) =>
+        fillTableNacimientos(resp, current_report, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
 
   $('#btnMonth').click((e) => {
     e.preventDefault();
-    getNacimientos('month');
+    if ($('#current_report').val() == '') {
+      alert('Debes seleccionar un mes', 'warning');
+      return;
+    }
+    const current_report = $('#current_report').serialize();
+    getNacimientos(current_report);
+  });
+
+  $('#current_report').on('change', function () {
+    if (this.value == '') getNacimientos();
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    if (exportForMonth) params = 'current_report=month&' + params;
+    if ($('#current_report').val()) {
+      const current_report = $('#current_report').serialize();
+      params = current_report + '&' + params;
+    }
     $.ajax({
       type: 'POST',
       url: '/reportes/fecha_nacimientos',
@@ -86,7 +105,10 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    if (exportForMonth) params = 'current_report=month&' + params;
+    if ($('#current_report').val()) {
+      const current_report = $('#current_report').serialize();
+      params = current_report + '&' + params;
+    }
     $.ajax({
       type: 'POST',
       url: '/reportes/fecha_nacimientos',

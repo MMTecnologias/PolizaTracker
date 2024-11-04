@@ -1,6 +1,7 @@
 $(function () {
   function getBarChart(data, tipo = 'month') {
     if (!data.length) return;
+    console.log(data, tipo);
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
@@ -47,7 +48,6 @@ $(function () {
     if (tipo === 'year') {
       let years = data.map((item) => [String(item.year).trim()]);
       const yearsTuple = data.map((item) => [String(item.year).trim()]);
-      // years = Array.from(new Set(years)).map((item) => [item, 0, 0, 0, 0]);
       const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
       series = status.map((item) => ({ type: 'bar' }));
       for (const dat of data) {
@@ -84,10 +84,6 @@ $(function () {
     },
     dataType: 'json',
   };
-
-  function alert(text = '', icon = 'success', title = '') {
-    Swal.fire({ title, text, icon });
-  }
 
   function fillTablePolizastatus(
     resp,
@@ -131,7 +127,7 @@ $(function () {
     start = 0,
     formMultiple = null
   ) {
-    const length = 10;
+    const length = 12;
     let params = $.param({ start, length });
     if (formMultiple) {
       params = formMultiple + '&' + params;
@@ -141,7 +137,7 @@ $(function () {
       url: '/reportes/polizas',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        if (formMultiple && formMultiple.includes('year')) {
+        if (formMultiple && formMultiple.includes('type_report=year')) {
           getBarChart(resp.data, 'year');
         } else {
           getBarChart(resp.data);
@@ -205,27 +201,45 @@ $(function () {
     });
   }
 
-  $('#form-fechas').submit(function (e) {
-    e.preventDefault();
-    if (!this.checkValidity())
-      return alert('Debes llenar los dos campos de fecha', 'warning');
-    const formDataFechas = $('#form-fechas').serialize();
-    getPolizaStatus(formDataFechas);
-  });
-
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const multiple = $('#form-multiple').serialize();
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
+    }
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
+    if (years) multiple = `${multiple}&${years}`;
     getPolizaStatus(null, 1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
     }
+    const multiple = $($('#form-multiple')[0].elements)
+      .not('#years')
+      .serialize();
+    if (years) multiple = `${multiple}&${years}`;
+    if (multiple) params = `${params}&${multiple}`;
     $.ajax({
       type: 'POST',
       url: '/reportes/polizas',
@@ -250,10 +264,23 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
     }
+    const multiple = $($('#form-multiple')[0].elements)
+      .not('#years')
+      .serialize();
+    if (years) multiple = `${multiple}&${years}`;
+    if (multiple) params = `${params}&${multiple}`;
     $.ajax({
       type: 'POST',
       url: '/reportes/polizas',
@@ -262,7 +289,6 @@ $(function () {
         responseType: 'blob',
       },
       success: function (blob, status, xhr) {
-        // Crear un enlace temporal para descargar el archivo
         let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
@@ -276,19 +302,10 @@ $(function () {
     });
   });
 
-  //   $("#searchPoliza").on("keyup", function (e) {
-  //     e.preventDefault();
-  //     const searchValue = e.target.value;
-  //     if (searchValue == "") return getPolizaStatus();
-  //     if (searchValue.length >= 3)
-  //       $.ajax({
-  //         ...ajaxConfig,
-  //         url: "/polizas/get",
-  //         data: $.param({ start: 0, length: 0, searchValue }),
-  //         success: fillTablePolizastatus,
-  //         error: (xhr, status, error) => console.error(error),
-  //       });
-  //   });
+  $('#years').select2({
+    placeholder: 'seleciona los años',
+    tags: true,
+  });
 
   getMultipleIds();
   getPolizaStatus();
