@@ -895,6 +895,8 @@ def get_all_receipts():
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
     grupo_id = request.form.get('grupo_id')    
+    vendedor_id = request.form.get('vendedor_id')
+    agente_id = request.form.get('agente_id')
 
     #Get valid list of policies
     polizas = []
@@ -918,6 +920,23 @@ def get_all_receipts():
             polizas = [poliza.id for poliza in polizas_query]
         else:
             polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
+    
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.vendedor_id == int(vendedor_id)).all()
+        if polizas==[]:
+            polizas = [poliza.id for poliza in polizas_query]
+        else:
+            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
+    
+    if agente_id:
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.agente_id == int(agente_id)).all()
+        if polizas==[]:
+            polizas = [poliza.id for poliza in polizas_query]
+        else:
+            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
+    
     #Client and grupo can not be asked both
     if cliente_id and grupo_id:
         return jsonify({'error':True,
