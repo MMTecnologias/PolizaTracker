@@ -1,6 +1,7 @@
 $(function () {
   function getBarChart(data, tipo = 'month') {
     if (!data.length) return;
+    console.log(data);
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
@@ -29,8 +30,9 @@ $(function () {
         if (!acc.includes(cur)) acc.push(cur);
         return acc;
       }, []);
-    if (tipo === 'month') {
-      series = years.map((item) => ({ type: 'bar' }));
+    series = years.map((item) => ({ type: 'bar' }));
+    const by = $('#by').val();
+    if (tipo === 'month' && !by) {
       for (const dat of data) {
         if (!dat.month) continue;
         const i = years.findIndex((year) => year == String(dat.year));
@@ -50,7 +52,7 @@ $(function () {
         series,
       };
     }
-    if (tipo === 'year') {
+    if (tipo === 'year' && !by) {
       option = {
         tooltip: {
           trigger: 'axis',
@@ -71,6 +73,191 @@ $(function () {
             type: 'bar',
           },
         ],
+      };
+    }
+    if (by === 'aseguradora') {
+      const aseguradorasMatrix = data
+        .map((item) => item.aseguradora)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((aseguradora) => [
+          aseguradora,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const asegRef = data
+        .map((item) => item.aseguradora)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((aseguradora) => [aseguradora]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = asegRef.flat().findIndex((a) => a === dat.aseguradora);
+        if (iY !== -1) {
+          aseguradorasMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...aseguradorasMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'grupo') {
+      const grupoMatrix = data
+        .map((item) => item.grupo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((grupo) => [
+          grupo,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const grupoRef = data
+        .map((item) => item.grupo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((grupo) => [grupo]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = grupoRef.flat().findIndex((a) => a === dat.grupo);
+        if (iY !== -1) {
+          grupoMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...grupoMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'ramo') {
+      const ramoMatrix = data
+        .map((item) => item.ramo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((ramo) => [
+          ramo,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const ramoRef = data
+        .map((item) => item.ramo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((ramo) => [ramo]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = ramoRef.flat().findIndex((a) => a === dat.ramo);
+        if (iY !== -1) {
+          ramoMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...ramoMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'agente') {
+      const agenteMatrix = data
+        .map((item) => item.agente)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((agente) => [
+          agente,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const agenteRef = data
+        .map((item) => item.agente)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((agente) => [agente]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = agenteRef.flat().findIndex((a) => a === dat.agente);
+        if (iY !== -1) {
+          agenteMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...agenteMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'vendedor') {
+      const vendedorMatrix = data
+        .map((item) => item.vendedor)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((vendedor) => [
+          vendedor,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const vendedorRef = data
+        .map((item) => item.vendedor)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((vendedor) => [vendedor]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = vendedorRef.flat().findIndex((a) => a === dat.vendedor);
+        if (iY !== -1) {
+          vendedorMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...vendedorMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
       };
     }
     option && myChart.setOption(option);
@@ -132,18 +319,16 @@ $(function () {
     if (formMultiple) {
       params = formMultiple + '&' + params;
     }
-    console.log(params);
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/prima_neta',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        if (formMultiple && formMultiple.includes('year')) {
+        if (formMultiple && formMultiple.includes('type_report=year')) {
           getBarChart(resp.data, 'year');
         } else {
           getBarChart(resp.data);
         }
-        console.log(resp);
         fillTablePrimaNeta(
           resp,
           formDataFechas,
