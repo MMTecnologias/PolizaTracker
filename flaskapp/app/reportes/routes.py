@@ -104,10 +104,10 @@ def prima_neta():
         years = [datetime.now().year]
     # years=[2017,2018,2019,2020,2021,2022,2023,2024,2025]
 
-    start = int(request.form.get('start')
-                ) if request.form.get('start') else None
-    length = int(request.form.get('length')
-                 ) if request.form.get('length') else None
+    #start = int(request.form.get('start')
+    #            ) if request.form.get('start') else None
+    #length = int(request.form.get('length')
+    #             ) if request.form.get('length') else None
 
     aseguradora_id = request.form.get('aseguradora_id')
     grupo_id = request.form.get('grupo_id')
@@ -271,16 +271,15 @@ def prima_neta():
 
     # Make pagination after filling the data
     count = len(data)
-    if not length and not start:
-        data_pag = data
-    else:
-        data_pag = data[start:(start+length)]
+    #if not length and not start:
+    #   data_pag = data
+    #else:
+    #    data_pag = data[start:(start+length)]
     # Prepare the response
     response = {
         'recordsTotal': count,  # Total records send
         'recordsTotal_with_values': total_records,  # Total records without filtering
-        'data': data_pag,  # Data to display
-        'full_data': data  # Full data for graph
+        'data': data  # Data to display
     }
     # export_to_csv or pdf
     headers = ['year', 'month', 'total_prima_neta_pagada']
@@ -338,10 +337,10 @@ def polizas():
     else:
         years = [datetime.now().year]
 
-    start = int(request.form.get('start')
-                ) if request.form.get('start') else None
-    length = int(request.form.get('length')
-                 ) if request.form.get('length') else None
+    #start = int(request.form.get('start')
+    #            ) if request.form.get('start') else None
+    #length = int(request.form.get('length')
+    #             ) if request.form.get('length') else None
 
     # aseguradora_id = None  # Default value for testing
     # grupo_id = None  # Default value for testing
@@ -516,16 +515,15 @@ def polizas():
 
     # Make pagination after filling the data
     count = len(data)
-    if not length and not start:
-        data_pag = data
-    else:
-        data_pag = data[start:(start+length)]
+    #if not length and not start:
+    #    data_pag = data
+    #else:
+    #    data_pag = data[start:(start+length)]
 
     # Prepare the response
     response = {
         'recordsTotal': len(data),  # Total records send
-        'data': data_pag,  # Data to display
-        'full_data': data  # Full data for graph
+        'data': data
     }
     # export_to_csv or pdf
     headers = ['year', 'month', 'polizas_totales', 'polizas_nuevas',
