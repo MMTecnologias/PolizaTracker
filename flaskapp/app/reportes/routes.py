@@ -114,7 +114,7 @@ def prima_neta():
     ramo_id = request.form.get('ramo_id')
     agente_id = request.form.get('agente_id')
     vendedor_id = request.form.get('vendedor_id')
-    by = request.form.get('by')
+    by = request.form.get('by') if request.form.get('by') else 'aseguradora'
 
     polizas_sets = []
 
@@ -173,7 +173,7 @@ def prima_neta():
     ).filter(
         func.year(Recibo.fecha_pago).in_(years)
     )
-    by = "aseguradora"
+
     if by:
         if by == 'aseguradora':
             total_records_query = total_records_query.add_columns(Aseguradora.aseguradora.label(
@@ -323,7 +323,7 @@ def polizas():
 
     # type_report = 'year'  # Default value for testing
     type_report = request.form.get(
-        'type_report') if request.form.get('type_report') else 'month'
+        'type_report') if request.form.get('type_report') else 'year'
     if type_report not in ['month', 'year']:
         return jsonify({'error': True, 'msg': 'Tipo de reporte no válido, debe ser "month" o "year"'})
 

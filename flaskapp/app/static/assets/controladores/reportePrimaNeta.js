@@ -1,6 +1,7 @@
 $(function () {
   function getBarChart(data, tipo = 'month') {
     if (!data.length) return;
+    console.log(data);
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
@@ -29,8 +30,9 @@ $(function () {
         if (!acc.includes(cur)) acc.push(cur);
         return acc;
       }, []);
-    if (tipo === 'month') {
-      series = years.map((item) => ({ type: 'bar' }));
+    series = years.map((item) => ({ type: 'bar' }));
+    const by = $('#by').val();
+    if (tipo === 'month' && !by) {
       for (const dat of data) {
         if (!dat.month) continue;
         const i = years.findIndex((year) => year == String(dat.year));
@@ -50,7 +52,7 @@ $(function () {
         series,
       };
     }
-    if (tipo === 'year') {
+    if (tipo === 'year' && !by) {
       option = {
         tooltip: {
           trigger: 'axis',
@@ -73,6 +75,191 @@ $(function () {
         ],
       };
     }
+    if (by === 'aseguradora') {
+      const aseguradorasMatrix = data
+        .map((item) => item.aseguradora)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((aseguradora) => [
+          aseguradora,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const asegRef = data
+        .map((item) => item.aseguradora)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((aseguradora) => [aseguradora]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = asegRef.flat().findIndex((a) => a === dat.aseguradora);
+        if (iY !== -1) {
+          aseguradorasMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...aseguradorasMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'grupo') {
+      const grupoMatrix = data
+        .map((item) => item.grupo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((grupo) => [
+          grupo,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const grupoRef = data
+        .map((item) => item.grupo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((grupo) => [grupo]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = grupoRef.flat().findIndex((a) => a === dat.grupo);
+        if (iY !== -1) {
+          grupoMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...grupoMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'ramo') {
+      const ramoMatrix = data
+        .map((item) => item.ramo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((ramo) => [
+          ramo,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const ramoRef = data
+        .map((item) => item.ramo)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((ramo) => [ramo]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = ramoRef.flat().findIndex((a) => a === dat.ramo);
+        if (iY !== -1) {
+          ramoMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...ramoMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'agente') {
+      const agenteMatrix = data
+        .map((item) => item.agente)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((agente) => [
+          agente,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const agenteRef = data
+        .map((item) => item.agente)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((agente) => [agente]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = agenteRef.flat().findIndex((a) => a === dat.agente);
+        if (iY !== -1) {
+          agenteMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...agenteMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
+    if (by === 'vendedor') {
+      const vendedorMatrix = data
+        .map((item) => item.vendedor)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((vendedor) => [
+          vendedor,
+          ...Array.from({ length: years.length }, (v, i) => i * 0),
+        ]);
+      const vendedorRef = data
+        .map((item) => item.vendedor)
+        .reduce((acc, cur) => {
+          if (!acc.includes(cur)) acc.push(cur);
+          return acc;
+        }, [])
+        .map((vendedor) => [vendedor]);
+      for (const dat of data) {
+        const iY = years.findIndex((y) => y === String(dat.year));
+        const iA = vendedorRef.flat().findIndex((a) => a === dat.vendedor);
+        if (iY !== -1) {
+          vendedorMatrix[iA][iY + 1] += Number(dat.total_prima_neta_pagada);
+        }
+      }
+      source = [['Mes', ...years], ...vendedorMatrix];
+      option = {
+        legend: {},
+        tooltip: {},
+        dataset: {
+          source: source,
+        },
+        xAxis: { type: 'category' },
+        yAxis: {},
+        series,
+      };
+    }
     option && myChart.setOption(option);
   }
 
@@ -89,13 +276,7 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTablePrimaNeta(
-    resp,
-    formDataFechas,
-    currentPage,
-    itemsOnPage,
-    formMultiple
-  ) {
+  function fillTablePrimaNeta(resp, currentPage, itemsOnPage, formMultiple) {
     const { data, recordsTotal } = resp;
     const table = $('#table-primaneta');
     table.html('');
@@ -116,17 +297,12 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getPrimaNeta(formDataFechas, pageNumber, start, formMultiple);
+        getPrimaNeta(pageNumber, start, formMultiple);
       },
     });
   }
 
-  function getPrimaNeta(
-    formDataFechas = null,
-    pageNumber = 1,
-    start = 0,
-    formMultiple = null
-  ) {
+  function getPrimaNeta(pageNumber = 1, start = 0, formMultiple = null) {
     const length = 10;
     let params = $.param({ start, length });
     if (formMultiple) {
@@ -135,21 +311,14 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/prima_neta',
-      data: formDataFechas ? formDataFechas + '&' + params : params,
+      data: params,
       success: (resp) => {
-        if (formMultiple && formMultiple.includes('year')) {
+        if (formMultiple && formMultiple.includes('type_report=year')) {
           getBarChart(resp.data, 'year');
         } else {
           getBarChart(resp.data);
         }
-        console.log(resp);
-        fillTablePrimaNeta(
-          resp,
-          formDataFechas,
-          pageNumber,
-          length,
-          formMultiple
-        );
+        fillTablePrimaNeta(resp, pageNumber, length, formMultiple);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -202,27 +371,43 @@ $(function () {
     });
   }
 
-  $('#form-fechas').submit(function (e) {
-    e.preventDefault();
-    if (!this.checkValidity())
-      return alert('Debes llenar los dos campos de fecha', 'warning');
-    const formDataFechas = $('#form-fechas').serialize();
-    getPrimaNeta(formDataFechas);
-  });
-
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const multiple = $('#form-multiple').serialize();
-    getPrimaNeta(null, 1, 0, multiple);
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
+    }
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
+    if (years) multiple = `${multiple}&${years}`;
+    getPrimaNeta(1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
     }
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
+    if (years) multiple = `${multiple}&${years}`;
+    if (multiple) params = `${params}&${multiple}`;
     $.ajax({
       type: 'POST',
       url: '/reportes/prima_neta',
@@ -247,10 +432,22 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
     }
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
+    if (years) multiple = `${multiple}&${years}`;
+    if (multiple) params = `${params}&${multiple}`;
+    console.log(params);
     $.ajax({
       type: 'POST',
       url: '/reportes/prima_neta',
