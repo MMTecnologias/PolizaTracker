@@ -4,7 +4,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, Endoso, new_class
-from sqlalchemy import join, or_, desc, func, select
+from sqlalchemy import join, or_, desc, func, select, and_,case
 import csv
 from io import StringIO
 from . import reportes_route
@@ -538,6 +538,166 @@ def polizas():
         return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, title_str)
 
     return jsonify(response)
+
+@reportes_route.route('/polizas_unfilter', methods=['POST', 'GET'])
+@login_required
+def polizas_unfilter():
+    """
+    Punto de acceso para generar un informe de polizas agrupadas por mes o año.
+    El informe trae toda la informacion sin filtros, pero agrupada por aseguradora, grupo, ramo, agente y vendedor.
+
+    parámetros de la solicitud:
+    - type_report: 'month' o 'year' (por defecto: 'month')
+    - years: Lista de años para filtrar, si no se proporciona se usará el año actual
+
+    Respuesta:
+    - recordsTotal: Número total de registros enviados
+    - data: Lista de diccionarios que contienen los datos del informe
+        incluyendo polizas totales, polizas nuevas, polizas renovadas, polizas canceladas
+    """
+
+    # type_report = 'year'  # Default value for testing
+    type_report = request.form.get(
+        'type_report') if request.form.get('type_report') else 'year'
+    if type_report not in ['month', 'year']:
+        return jsonify({'error': True, 'msg': 'Tipo de reporte no válido, debe ser "month" o "year"'})
+
+    # start_date = '2019-01-01'  # Default value for testing
+    # end_date = '2025-12-31'  # Default value for testing
+    # start_date = request.form.get('start_date')
+    # end_date = request.form.get('end_date')
+    years = request.form.get('years')
+    if years:
+        years = list(map(int, years.split(',')))
+    else:
+        years = [datetime.now().year]
+
+
+    # Query the database for the count of polizas grouped by month/year
+    if type_report == 'month':
+        total_records_query = db.session.query(
+            func.year(Poliza.fecha_inicio).label('year'),
+            func.month(Poliza.fecha_inicio).label('month'),
+            func.count(Poliza.id).label('total_polizas'),
+            func.count(and_(Poliza.poliza_anterior == None, Poliza.status != 'Cancelada')).label('polizas_nuevas'),
+            func.count(Poliza.Poliza_renovada == 'Si').label('polizas_renovadas'),
+            func.count(Poliza.status == 'Cancelada').label('polizas_canceladas'),
+            func.count(and_(Poliza.poliza_anterior != None, Poliza.status != 'Cancelada')).label('renovaciones')
+        )
+    else:
+        total_records_query = db.session.query(
+            func.year(Poliza.fecha_inicio).label('year'),
+            func.count(Poliza.id).label('total_polizas'),
+            func.count(case((and_(Poliza.poliza_anterior == None, Poliza.status != 'Cancelada'), 1))).label('polizas_nuevas'),
+            func.count(case((Poliza.Poliza_renovada == 'Si', 1))).label('polizas_renovadas'),
+            func.count(case((Poliza.status == 'Cancelada', 1))).label('polizas_canceladas'),
+            func.count(case((and_(Poliza.poliza_anterior != None, Poliza.status != 'Cancelada'), 1))).label('renovaciones')
+        )
+
+    total_records_query = total_records_query.filter(
+        func.year(Poliza.fecha_inicio).in_(years)
+    )
+    #add columns for aseguradora, grupo, ramo, agente, vendedor
+    total_records_query = total_records_query.add_columns(
+        Aseguradora.aseguradora.label('aseguradora'),
+        Grupo.grupo.label('grupo'),
+        Ramo.ramo.label('ramo'),
+        Agente.nombre.label('agente'),
+        Vendedor.nombre.label('vendedor')
+        ).join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .join(Grupo, Cliente.grupo_id == Grupo.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id) \
+        .join(Agente, Poliza.agente_id == Agente.id) \
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
+    #add column to make count of polizas renovada, polizas canceladas, polizas nuevas,renovaciones
+    total_records_query = total_records_query.add_columns(
+    )
+
+    if type_report == 'month':
+        total_records_query = total_records_query.group_by(
+            func.year(Poliza.fecha_inicio),
+            func.month(Poliza.fecha_inicio),
+            'aseguradora','grupo','ramo','agente','vendedor'
+        ).order_by(
+            func.year(Poliza.fecha_inicio),
+            func.month(Poliza.fecha_inicio),
+        )
+    else:
+        total_records_query = total_records_query.group_by(
+            func.year(Poliza.fecha_inicio),
+            'aseguradora','grupo','ramo','agente','vendedor'
+        ).order_by(
+            func.year(Poliza.fecha_inicio)
+        )
+
+    total_records = total_records_query.count()
+
+    """
+    #This is not working due to empty years
+    if not length and not start:
+        records = total_records_query.all()
+    else:
+        records = total_records_query.limit(length).offset(start).all()
+    """
+    records = total_records_query.all()
+
+    # Create empty data
+
+    data = []
+    # Fill in the data with the actual values
+    for record in records:
+        new_record={"aseguradora":record.aseguradora,
+                    "grupo":record.grupo,
+                    "ramo":record.ramo,
+                    "agente":record.agente,
+                    "vendedor":record.vendedor,
+                    "polizas_totales":record.total_polizas,
+                    "polizas_nuevas": record.polizas_nuevas,
+                    "polizas_renovadas": record.polizas_renovadas,
+                    "polizas_canceladas": record.polizas_canceladas,
+                    "renovaciones": record.renovaciones,
+                    "year":record.year}
+        if type_report == 'month':
+            new_record['month'] = record.month
+        data.append(new_record)
+
+
+    # Make pagination after filling the data
+    count = len(data)
+    #if not length and not start:
+    #    data_pag = data
+    #else:
+    #    data_pag = data[start:(start+length)]
+
+    # Prepare the response
+    response = {
+        'recordsTotal': len(data),  # Total records send
+        'data': data
+    }
+    # export_to_csv or pdf
+    headers=['aseguradora','grupo','ramo','agente','vendedor','year',
+             'polizas_totales','polizas_nuevas','polizas_renovadas',
+             'polizas_canceladas','renovaciones']
+
+    real_headers=['Aseguradora','Grupo','Ramo','Agente','Vendedor','Año',
+                  'Polizas totales','Polizas nuevas','Polizas renovadas',
+                  'Polizas canceladas','Renovaciones']
+
+    if type_report == 'month':
+        headers.append('month')
+        real_headers.append('Mes')
+
+
+    if request.form.get('export_csv'):
+        return export_to_csv(headers, data, 'polizas.csv', real_headers)
+    if request.form.get('export_pdf'):
+        to_multiline = []
+        title_str = "Reporte de Polizas " + type_report
+        return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, title_str)
+
+    return jsonify(response)
+
 
 
 # Reporte de recibos pagados con filtros por vendedor, por aseguradora, cliente,
