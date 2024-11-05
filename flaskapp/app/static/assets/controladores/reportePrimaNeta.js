@@ -132,6 +132,7 @@ $(function () {
     if (formMultiple) {
       params = formMultiple + '&' + params;
     }
+    console.log(params);
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/prima_neta',
@@ -212,7 +213,20 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const multiple = $('#form-multiple').serialize();
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
+    }
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
+    if (years) multiple = `${multiple}&${years}`;
     getPrimaNeta(null, 1, 0, multiple);
   });
 
