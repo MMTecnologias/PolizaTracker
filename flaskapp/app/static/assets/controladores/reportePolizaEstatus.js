@@ -509,9 +509,7 @@ $(function () {
           return yerarStr;
         }, 'years=');
     }
-    const multiple = $($('#form-multiple')[0].elements)
-      .not('#years')
-      .serialize();
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
     if (years) multiple = `${multiple}&${years}`;
     if (multiple) params = `${params}&${multiple}`;
     $.ajax({
@@ -550,9 +548,7 @@ $(function () {
           return yerarStr;
         }, 'years=');
     }
-    const multiple = $($('#form-multiple')[0].elements)
-      .not('#years')
-      .serialize();
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
     if (years) multiple = `${multiple}&${years}`;
     if (multiple) params = `${params}&${multiple}`;
     $.ajax({

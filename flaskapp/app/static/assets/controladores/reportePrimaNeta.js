@@ -276,13 +276,7 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
-  function fillTablePrimaNeta(
-    resp,
-    formDataFechas,
-    currentPage,
-    itemsOnPage,
-    formMultiple
-  ) {
+  function fillTablePrimaNeta(resp, currentPage, itemsOnPage, formMultiple) {
     const { data, recordsTotal } = resp;
     const table = $('#table-primaneta');
     table.html('');
@@ -303,17 +297,12 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getPrimaNeta(formDataFechas, pageNumber, start, formMultiple);
+        getPrimaNeta(pageNumber, start, formMultiple);
       },
     });
   }
 
-  function getPrimaNeta(
-    formDataFechas = null,
-    pageNumber = 1,
-    start = 0,
-    formMultiple = null
-  ) {
+  function getPrimaNeta(pageNumber = 1, start = 0, formMultiple = null) {
     const length = 10;
     let params = $.param({ start, length });
     if (formMultiple) {
@@ -322,20 +311,14 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/prima_neta',
-      data: formDataFechas ? formDataFechas + '&' + params : params,
+      data: params,
       success: (resp) => {
         if (formMultiple && formMultiple.includes('type_report=year')) {
           getBarChart(resp.data, 'year');
         } else {
           getBarChart(resp.data);
         }
-        fillTablePrimaNeta(
-          resp,
-          formDataFechas,
-          pageNumber,
-          length,
-          formMultiple
-        );
+        fillTablePrimaNeta(resp, pageNumber, length, formMultiple);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -388,14 +371,6 @@ $(function () {
     });
   }
 
-  $('#form-fechas').submit(function (e) {
-    e.preventDefault();
-    if (!this.checkValidity())
-      return alert('Debes llenar los dos campos de fecha', 'warning');
-    const formDataFechas = $('#form-fechas').serialize();
-    getPrimaNeta(formDataFechas);
-  });
-
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
     let years = '';
@@ -412,16 +387,27 @@ $(function () {
     }
     let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
     if (years) multiple = `${multiple}&${years}`;
-    getPrimaNeta(null, 1, 0, multiple);
+    getPrimaNeta(1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
     }
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
+    if (years) multiple = `${multiple}&${years}`;
+    if (multiple) params = `${params}&${multiple}`;
     $.ajax({
       type: 'POST',
       url: '/reportes/prima_neta',
@@ -446,10 +432,22 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
+    let years = '';
+    if ($('#years').val()) {
+      years = $('#years')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let yerarStr = (acc += cur);
+          if (i !== arr.length - 1) {
+            yerarStr += ',';
+          }
+          return yerarStr;
+        }, 'years=');
     }
+    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
+    if (years) multiple = `${multiple}&${years}`;
+    if (multiple) params = `${params}&${multiple}`;
+    console.log(params);
     $.ajax({
       type: 'POST',
       url: '/reportes/prima_neta',
