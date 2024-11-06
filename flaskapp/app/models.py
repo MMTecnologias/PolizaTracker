@@ -2,12 +2,13 @@ from flask_login import UserMixin
 from sqlalchemy import Column, Integer, String, Date, Enum, DECIMAL, ForeignKey, TIMESTAMP
 from app import db
 from sqlalchemy.sql import func
-from io import BytesIO
+from io import BytesIO, StringIO
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib import colors, styles
 from reportlab.lib.styles import getSampleStyleSheet
 from flask import Response
+import csv
 
 
 class Grupo(db.Model):

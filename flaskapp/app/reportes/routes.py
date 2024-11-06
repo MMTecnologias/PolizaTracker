@@ -114,7 +114,7 @@ def prima_neta():
     ramo_id = request.form.get('ramo_id')
     agente_id = request.form.get('agente_id')
     vendedor_id = request.form.get('vendedor_id')
-    by = request.form.get('by') if request.form.get('by') else 'aseguradora'
+    by = request.form.get('by') if request.form.get('by') else None
 
     polizas_sets = []
 
@@ -697,6 +697,124 @@ def polizas_unfilter():
         return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, title_str)
 
     return jsonify(response)
+
+
+
+@reportes_route.route('/polizas_preprocessed', methods=['POST', 'GET'])
+@login_required
+def polizas_preprocessed():
+    """
+    Punto de acceso para generar un informe con todas las para una lista de años,
+    con la identificación de polizas nuevas, renovadas, canceladas y renovaciones.
+
+    parámetros de la solicitud:
+    - years: Lista de años para filtrar, si no se proporciona se usará el año actual
+
+    Respuesta:
+    - recordsTotal: Número total de registros enviados
+    - data: Lista de diccionarios que contienen los datos del informe
+        incluyendo polizas totales, polizas nuevas, polizas renovadas, polizas canceladas
+    """
+
+
+    years = request.form.get('years')
+    if years:
+        years = list(map(int, years.split(',')))
+    else:
+        years = [datetime.now().year]
+
+    #Query, to get all polizas with all of its information, including aseguradora, grupo, ramo, agente, vendedor
+    #and boolean values for polizas_nuevas, polizas_renovadas, polizas_canceladas, renovaciones
+    #Grupin, count and filter will be handled in the front end
+
+    total_records_query = db.session.query(Poliza,
+                                           func.year(Poliza.fecha_inicio).label('year'),
+                                             func.month(Poliza.fecha_inicio).label('month'),
+                                             Aseguradora.aseguradora.label('aseguradora'),
+                                             Grupo.grupo.label('grupo'),
+                                             Ramo.ramo.label('ramo'),
+                                             Agente.nombre.label('agente'),
+                                             Vendedor.nombre.label('vendedor'),
+                                             case((and_(Poliza.poliza_anterior == None, Poliza.status != 'Cancelada'), 1),else_=0).label('polizas_nuevas'),
+                                             case((Poliza.Poliza_renovada == 'Si', 1),else_=0).label('polizas_renovadas'),
+                                             case((Poliza.status == 'Cancelada', 1),else_=0).label('polizas_canceladas'),
+                                             case((and_(Poliza.poliza_anterior != None, Poliza.status != 'Cancelada'), 1),else_=0).label('renovaciones'),
+                                             Cliente.nombre.label('nombre'),
+                                            Cliente.apellido.label('apellido'),
+                                             ).join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+                                             .join(Cliente, Poliza.cliente_id == Cliente.id) \
+                                             .join(Grupo, Cliente.grupo_id == Grupo.id) \
+                                             .join(Ramo, Poliza.ramo_id == Ramo.id) \
+                                             .join(Agente, Poliza.agente_id == Agente.id) \
+                                             .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
+                                            .filter(func.year(Poliza.fecha_inicio).in_(years)) \
+                                            .order_by(func.year(Poliza.fecha_inicio),func.month(Poliza.fecha_inicio))
+   
+    total_records = total_records_query.count()
+
+    records = total_records_query.all()
+
+    response=[]
+
+    for poliza,year,month,aseguradora,grupo,ramo,agente,vendedor,polizas_nuevas,polizas_renovadas,polizas_canceladas,renovaciones,nombre,apellido in records:
+        
+        data = { #First report information
+            'year': year,
+            'month': month,
+            "polizas_totales":1,
+            "polizas_nuevas": polizas_nuevas, 
+            "polizas_renovadas": polizas_renovadas,
+            "polizas_canceladas": polizas_canceladas,
+            "renovaciones": renovaciones,
+            #Then filter information
+            'aseguradora': aseguradora,
+            'grupo': grupo,
+            'ramo': ramo,
+            'agente': agente,
+            'vendedor': vendedor,
+            #Then poliza information
+            #'Poliza o Endoso': 'Poliza',
+            'poliza_id': poliza.id,
+            'poliza': poliza.poliza,
+            'cliente': f'{nombre} {apellido}',
+            'fecha_inicio': poliza.fecha_inicio.strftime('%d/%m/%y'),
+            'fecha_fin': poliza.fecha_termino.strftime('%d/%m/%y'),
+            'prima_neta': poliza.prima_neta,
+            'prima_total': poliza.prima_total,
+            'moneda': poliza.moneda#,
+            #'poliza_anterior': poliza.poliza_anterior,
+            #'endoso': poliza.endoso,
+        }
+        response.append(data)
+
+
+    # Prepare the response
+
+    # export_to_csv or pdf
+    headers=['poliza_id','year', 'month', 'polizas_totales', 'polizas_nuevas',
+             'polizas_renovadas', 'polizas_canceladas', 'renovaciones',
+                'aseguradora','grupo','ramo','agente','vendedor',
+                'poliza','cliente','fecha_inicio','fecha_fin',
+                'prima_neta','prima_total','moneda']
+    real_headers=['ID','Año', 'Mes', 'Total', 'Nueva', 
+                    'Renovada', 'Cancelada', 'Renovación',
+                    'Aseguradora','Grupo','Ramo','Agente','Vendedor',
+                    'Poliza','Cliente','Inicio','Fin',
+                    'Prima Neta','Prima Total','Moneda']
+
+
+    if request.form.get('export_csv'):
+        print(response)
+        return export_to_csv(headers, response, 'polizas.csv', real_headers)
+    
+    if request.form.get('export_pdf'):
+        to_multiline = ['cliente']
+        title_str = "Reporte de Polizas " 
+        return export_to_pdf(headers, response, 'polizas.pdf', real_headers, to_multiline, title_str)
+
+    return jsonify({'recordsTotal': total_records,   # Total records send
+                        'data': response
+                    })
 
 
 
