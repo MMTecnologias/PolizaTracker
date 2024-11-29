@@ -1,7 +1,6 @@
 $(function () {
   function getBarChart(data, tipo = 'month') {
     if (!data.length) return;
-    console.log(data);
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
@@ -313,6 +312,7 @@ $(function () {
       url: '/reportes/prima_neta',
       data: params,
       success: (resp) => {
+        console.log(resp);
         if (formMultiple && formMultiple.includes('type_report=year')) {
           getBarChart(resp.data, 'year');
         } else {

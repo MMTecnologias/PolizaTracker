@@ -53,7 +53,7 @@
               </div>
             </div>
           </div>
-          <div class="col-3">
+          <!-- <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="start_date">Tipo(Mes o Año)</label>
               <select class="custom-select" id="type_report" name="type_report">
@@ -61,12 +61,13 @@
                 <option value="month">Mes</option>
               </select>
             </div>
-          </div>
+          </div> -->
           <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="by">Mostrar por</label>
               <select class="custom-select" id="by" name="by">
-                <option value="">Elige una opcion</option>
+                <option value="year">Año</option>
+                <option value="month">Mes</option>
                 <option value="aseguradora">Aseguradora</option>
                 <option value="grupo">Grupo</option>
                 <option value="ramo">Ramo</option>
@@ -124,7 +125,7 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-3">
+      <!-- <div class="col-3">
         <div class="w-100 card__shadow p-3 my-2" id="table-polizas">
           <h4 class="header-title">Tabla de polizas por estatus</h4>
           <table class="table">
@@ -140,65 +141,9 @@
             <div id="pagination-polizastatus"></div>
           </div>
         </div>
-      </div>
-      <div class="col-12" id="chart-container"></div>
+      </div> -->
+      <div class="col-12 mt-5" id="chart-container"></div>
     </div>
-    <!-- <div class="row">
-      <div class="col-12">
-        <form class="row mt-2" id="form_multiple_2" novalidate>
-          <div class="col-4">
-            <div class="form__input-data input-sibling-child">
-              <label class="label-input-data" for="years_2">Años</label>
-              <div class="input-group">
-                <select class="mul-select" name="years_2" id="years_2" multiple style="min-width: 100%">
-                  <option valube="2022">2022</option>
-                  <option value="2023">2023</option>
-                  <option value="2024">2024</option>
-                  <option value="2025">2025</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="col-4">
-            <div class="form__input-data input-sibling-child">
-              <label class="label-input-data" for="by">Mostrar por</label>
-              <select class="custom-select" id="by" name="by">
-                <option value="aseguradora">Aseguradora</option>
-                <option value="grupo">Grupo</option>
-                <option value="ramo">Ramo</option>
-                <option value="agente">Agente</option>
-                <option value="vendedor">Vendedor</option>
-              </select>
-            </div>
-          </div>
-          <div class="col d-flex align-items-end">
-            <button class="btn" type="submit" id="btn_multiple_2">
-              Aplicar filtros
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-3">
-        <div class="w-100 card__shadow p-3 my-2">
-          <h4 class="header-title">Tabla de polizas por estatus</h4>
-          <table class="table">
-            <thead class="tableHeader">
-              <tr>
-                <th scope="col">Año</th>
-                <th scope="col">Totales</th>
-              </tr>
-            </thead>
-            <tbody id="table_poliza_status"></tbody>
-          </table>
-          <div class="w-100 d-flex justify-content-center">
-            <div id="pagination_poliza_status_2"></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12" id="chart_container_2"></div>
-    </div> -->
   </div>
   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"

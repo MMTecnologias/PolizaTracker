@@ -1,238 +1,189 @@
 $(function () {
-  function getBarChart(data, tipo = 'year') {
+  function getBarChart(data) {
     if (!data.length) return;
     $('#chart-container').html(
-      '<div id="bar_chart" style="width: 100%;height:400px;"></div>'
+      '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
-    let option = {};
-    let source = [];
-    let series = [];
-    const mesesMatrix = [
-      ['Enero'],
-      ['Febrero'],
-      ['Marzo'],
-      ['Abril'],
-      ['Mayo'],
-      ['Junio'],
-      ['Julio'],
-      ['Agosto'],
-      ['Septiembre'],
-      ['Octubre'],
-      ['Noviembre'],
-      ['Diciembre'],
-    ];
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
-    if (tipo === 'month') {
-      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-      series = status.map((item) => ({ type: 'bar' }));
+    const by = $('#by').val();
+    const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
+    const meses = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    let option = {
+      legend: {},
+      tooltip: {},
+      yAxis: [{ type: 'value' }],
+    };
+    const serieStatic = {
+      type: 'bar',
+      stack: 'Add',
+      emphasis: { focus: 'series' },
+    };
+    if (by === 'month') {
+      const series = status.map((stat) => ({
+        ...serieStatic,
+        name: stat,
+        data: Array.from(meses, (v, i) => i * 0),
+      }));
       for (const dat of data) {
-        mesesMatrix[dat.month - 1][1] = dat.polizas_nuevas;
-        mesesMatrix[dat.month - 1][2] = dat.polizas_renovadas;
-        mesesMatrix[dat.month - 1][3] = dat.polizas_canceladas;
-        mesesMatrix[dat.month - 1][4] = dat.renovaciones;
-      }
-      source = [['Mes', ...status], ...mesesMatrix];
-      option = {
-        legend: {},
-        tooltip: {},
-        dataset: {
-          source: source,
-        },
-        xAxis: { type: 'category' },
-        yAxis: {},
-        series,
-      };
-    }
-    if (tipo === 'year') {
-      let years = data.map((item) => [String(item.year).trim()]);
-      const yearsTuple = data.map((item) => [String(item.year).trim()]);
-      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-      series = status.map((item) => ({ type: 'bar' }));
-      for (const dat of data) {
-        const i = yearsTuple
-          .flat()
-          .findIndex((y) => y === String(dat.year).trim());
-        if (i !== -1) {
-          years[i][1] = dat.polizas_nuevas;
-          years[i][2] = dat.polizas_renovadas;
-          years[i][3] = dat.polizas_canceladas;
-          years[i][4] = dat.renovaciones;
+        if (dat.month && !isNaN(dat.month)) {
+          series[0]['data'][dat.month - 1] += Number(dat.polizas_nuevas);
+          series[1]['data'][dat.month - 1] += Number(dat.polizas_renovadas);
+          series[2]['data'][dat.month - 1] += Number(dat.polizas_canceladas);
+          series[3]['data'][dat.month - 1] += Number(dat.renovaciones);
         }
       }
-      source = [['Año', ...status], ...years];
       option = {
-        legend: {},
-        tooltip: {},
-        dataset: {
-          source: source,
-        },
-        xAxis: { type: 'category' },
-        yAxis: {},
+        ...option,
+        xAxis: [{ type: 'category', data: meses }],
         series,
       };
     }
-    option && myChart.setOption(option);
-  }
-
-  function getBarChart2(data) {
-    if (!data.length) return;
-    $('#chart_container_2').html(
-      '<div id="bar_chart_2" style="width: 100%;height:400px;"></div>'
-    );
-    let option = {};
-    let source = [];
-    let series = [];
-    const mesesMatrix = [
-      ['Enero'],
-      ['Febrero'],
-      ['Marzo'],
-      ['Abril'],
-      ['Mayo'],
-      ['Junio'],
-      ['Julio'],
-      ['Agosto'],
-      ['Septiembre'],
-      ['Octubre'],
-      ['Noviembre'],
-      ['Diciembre'],
-    ];
-    const dom = document.getElementById('bar_chart_2');
-    const myChart = echarts.init(dom);
-    const by = $('#by').val();
-    if (by === 'aseguradora') {
-      const xValues = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-      series = xValues.map((item) => ({ type: 'bar' }));
+    if (by === 'year') {
+      const years = [...new Set(data.map(({ year }) => String(year).trim()))];
+      const series = status.map((stat) => ({
+        ...serieStatic,
+        name: stat,
+        data: Array.from(years, (v, i) => i * 0),
+      }));
       for (const dat of data) {
-        mesesMatrix[dat.month - 1][1] = dat.polizas_nuevas;
-        mesesMatrix[dat.month - 1][2] = dat.polizas_renovadas;
-        mesesMatrix[dat.month - 1][3] = dat.polizas_canceladas;
-        mesesMatrix[dat.month - 1][4] = dat.renovaciones;
+        const i = years.findIndex((y) => y === String(dat.year).trim());
+        if (i !== -1) {
+          series[0]['data'][i] += Number(dat.polizas_nuevas);
+          series[1]['data'][i] += Number(dat.polizas_renovadas);
+          series[2]['data'][i] += Number(dat.polizas_canceladas);
+          series[3]['data'][i] += Number(dat.renovaciones);
+        }
       }
-      source = [['Aseguradora', ...xValues], ...mesesMatrix];
       option = {
-        legend: {},
-        tooltip: {},
-        dataset: {
-          source: source,
-        },
-        xAxis: { type: 'category' },
-        yAxis: {},
+        ...option,
+        xAxis: [{ type: 'category', data: years }],
+        series,
+      };
+    }
+    if (by === 'aseguradora') {
+      const asegs = [...new Set(data.map((item) => item.aseguradora))];
+      const series = status.map((stat) => ({
+        ...serieStatic,
+        name: stat,
+        data: Array.from(asegs, (v, i) => i * 0),
+      }));
+      for (const dat of data) {
+        const iA = asegs.findIndex((a) => a === dat.aseguradora);
+        if (iA !== -1) {
+          series[0]['data'][iA] += Number(dat.polizas_nuevas);
+          series[1]['data'][iA] += Number(dat.polizas_renovadas);
+          series[2]['data'][iA] += Number(dat.polizas_canceladas);
+          series[3]['data'][iA] += Number(dat.renovaciones);
+        }
+      }
+      option = {
+        ...option,
+        xAxis: [{ type: 'category', data: asegs }],
         series,
       };
     }
     if (by === 'grupo') {
-      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-      series = status.map((item) => ({ type: 'bar' }));
+      const groups = [...new Set(data.map((item) => item.grupo))];
+      const series = status.map((stat) => ({
+        ...serieStatic,
+        name: stat,
+        data: Array.from(groups, (v, i) => i * 0),
+      }));
       for (const dat of data) {
-        mesesMatrix[dat.month - 1][1] = dat.polizas_nuevas;
-        mesesMatrix[dat.month - 1][2] = dat.polizas_renovadas;
-        mesesMatrix[dat.month - 1][3] = dat.polizas_canceladas;
-        mesesMatrix[dat.month - 1][4] = dat.renovaciones;
+        const iG = groups.findIndex((a) => a === dat.grupo);
+        if (iG !== -1) {
+          series[0]['data'][iG] += Number(dat.polizas_nuevas);
+          series[1]['data'][iG] += Number(dat.polizas_renovadas);
+          series[2]['data'][iG] += Number(dat.polizas_canceladas);
+          series[3]['data'][iG] += Number(dat.renovaciones);
+        }
       }
-      source = [['Mes', ...status], ...mesesMatrix];
       option = {
-        legend: {},
-        tooltip: {},
-        dataset: {
-          source: source,
-        },
-        xAxis: { type: 'category' },
-        yAxis: {},
+        ...option,
+        xAxis: [{ type: 'category', data: groups }],
         series,
       };
     }
     if (by === 'ramo') {
-      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-      series = status.map((item) => ({ type: 'bar' }));
+      const ramos = [...new Set(data.map((item) => item.ramo))];
+      const series = status.map((stat) => ({
+        ...serieStatic,
+        name: stat,
+        data: Array.from(ramos, (v, i) => i * 0),
+      }));
       for (const dat of data) {
-        mesesMatrix[dat.month - 1][1] = dat.polizas_nuevas;
-        mesesMatrix[dat.month - 1][2] = dat.polizas_renovadas;
-        mesesMatrix[dat.month - 1][3] = dat.polizas_canceladas;
-        mesesMatrix[dat.month - 1][4] = dat.renovaciones;
+        const iR = ramos.findIndex((a) => a === dat.ramo);
+        if (iR !== -1) {
+          series[0]['data'][iR] += Number(dat.polizas_nuevas);
+          series[1]['data'][iR] += Number(dat.polizas_renovadas);
+          series[2]['data'][iR] += Number(dat.polizas_canceladas);
+          series[3]['data'][iR] += Number(dat.renovaciones);
+        }
       }
-      source = [['Mes', ...status], ...mesesMatrix];
       option = {
-        legend: {},
-        tooltip: {},
-        dataset: {
-          source: source,
-        },
-        xAxis: { type: 'category' },
-        yAxis: {},
+        ...option,
+        xAxis: [{ type: 'category', data: ramos }],
         series,
       };
     }
     if (by === 'agente') {
-      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-      series = status.map((item) => ({ type: 'bar' }));
+      const agentes = [...new Set(data.map((item) => item.agente))];
+      const series = status.map((stat) => ({
+        ...serieStatic,
+        name: stat,
+        data: Array.from(agentes, (v, i) => i * 0),
+      }));
       for (const dat of data) {
-        mesesMatrix[dat.month - 1][1] = dat.polizas_nuevas;
-        mesesMatrix[dat.month - 1][2] = dat.polizas_renovadas;
-        mesesMatrix[dat.month - 1][3] = dat.polizas_canceladas;
-        mesesMatrix[dat.month - 1][4] = dat.renovaciones;
+        const iA = agentes.findIndex((a) => a === dat.agente);
+        if (iA !== -1) {
+          series[0]['data'][iA] += Number(dat.polizas_nuevas);
+          series[1]['data'][iA] += Number(dat.polizas_renovadas);
+          series[2]['data'][iA] += Number(dat.polizas_canceladas);
+          series[3]['data'][iA] += Number(dat.renovaciones);
+        }
       }
-      source = [['Mes', ...status], ...mesesMatrix];
       option = {
-        legend: {},
-        tooltip: {},
-        dataset: {
-          source: source,
-        },
-        xAxis: { type: 'category' },
-        yAxis: {},
+        ...option,
+        xAxis: [{ type: 'category', data: agentes }],
         series,
       };
     }
     if (by === 'vendedor') {
-      const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-      series = status.map((item) => ({ type: 'bar' }));
+      const vendedores = [...new Set(data.map((item) => item.vendedor))];
+      const series = status.map((stat) => ({
+        ...serieStatic,
+        name: stat,
+        data: Array.from(vendedores, (v, i) => i * 0),
+      }));
       for (const dat of data) {
-        mesesMatrix[dat.month - 1][1] = dat.polizas_nuevas;
-        mesesMatrix[dat.month - 1][2] = dat.polizas_renovadas;
-        mesesMatrix[dat.month - 1][3] = dat.polizas_canceladas;
-        mesesMatrix[dat.month - 1][4] = dat.renovaciones;
+        const iV = vendedores.findIndex((a) => a === dat.vendedor);
+        if (iV !== -1) {
+          series[0]['data'][iV] += Number(dat.polizas_nuevas);
+          series[1]['data'][iV] += Number(dat.polizas_renovadas);
+          series[2]['data'][iV] += Number(dat.polizas_canceladas);
+          series[3]['data'][iV] += Number(dat.renovaciones);
+        }
       }
-      source = [['Mes', ...status], ...mesesMatrix];
       option = {
-        legend: {},
-        tooltip: {},
-        dataset: {
-          source: source,
-        },
-        xAxis: { type: 'category' },
-        yAxis: {},
+        ...option,
+        xAxis: [{ type: 'category', data: vendedores }],
         series,
       };
     }
-    // if (tipo === 'year') {
-    //   let years = data.map((item) => [String(item.year).trim()]);
-    //   const yearsTuple = data.map((item) => [String(item.year).trim()]);
-    //   const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
-    //   series = status.map((item) => ({ type: 'bar' }));
-    //   for (const dat of data) {
-    //     const i = yearsTuple
-    //       .flat()
-    //       .findIndex((y) => y === String(dat.year).trim());
-    //     if (i !== -1) {
-    //       years[i][1] = dat.polizas_nuevas;
-    //       years[i][2] = dat.polizas_renovadas;
-    //       years[i][3] = dat.polizas_canceladas;
-    //       years[i][4] = dat.renovaciones;
-    //     }
-    //   }
-    //   source = [['Año', ...status], ...years];
-    //   option = {
-    //     legend: {},
-    //     tooltip: {},
-    //     dataset: {
-    //       source: source,
-    //     },
-    //     xAxis: { type: 'category' },
-    //     yAxis: {},
-    //     series,
-    //   };
-    // }
     option && myChart.setOption(option);
   }
 
@@ -293,54 +244,6 @@ $(function () {
     });
   }
 
-  function fillTablePolizastatus2(
-    resp,
-    formDataFechas,
-    currentPage,
-    itemsOnPage,
-    formMultiple = null
-  ) {
-    const { data, recordsTotal } = resp;
-    let dataTable = data;
-    if (formMultiple && formMultiple.includes('type_report=month')) {
-      dataTable = data.reduce((acc, curr) => {
-        const i = acc.findIndex((item) => item.year === curr.year);
-        if (i !== -1) {
-          acc[i].polizas_nuevas += curr.polizas_nuevas;
-          acc[i].polizas_renovadas += curr.polizas_renovadas;
-          acc[i].polizas_canceladas += curr.polizas_canceladas;
-          acc[i].renovaciones += curr.renovaciones;
-          acc[i].polizas_totales += curr.polizas_totales;
-          acc[i].year = curr.year;
-        } else {
-          acc.push(curr);
-        }
-        return acc;
-      }, []);
-    }
-    const table = $('#table_poliza_status');
-    table.html('');
-    $.each(dataTable, function (idx, poliza) {
-      table.append(
-        `<tr class="tableOption">
-          <td>${poliza.year}</td>
-          <td>${poliza.polizas_totales}</td>
-        </tr>`
-      );
-    });
-    $('#pagination_poliza_status_2').pagination({
-      items: recordsTotal,
-      prevText: 'Anterior',
-      nextText: 'Siguiente',
-      itemsOnPage,
-      currentPage,
-      onPageClick: (pageNumber, e) => {
-        const start = (pageNumber - 1) * itemsOnPage;
-        getPolizaStatus2(formDataFechas, pageNumber, start, formMultiple);
-      },
-    });
-  }
-
   function getPolizaStatus(
     formDataFechas = null,
     pageNumber = 1,
@@ -354,54 +257,18 @@ $(function () {
     }
     $.ajax({
       ...ajaxConfig,
-      url: '/reportes/polizas',
+      url: '/reportes/polizas_preprocessed',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        if (formMultiple && formMultiple.includes('type_report=month')) {
-          getBarChart(resp.data, 'month');
-        } else {
-          getBarChart(resp.data);
-        }
-        fillTablePolizastatus(
-          resp,
-          formDataFechas,
-          pageNumber,
-          length,
-          formMultiple
-        );
-      },
-      error: (xhr, status, error) => console.error(error),
-    });
-  }
-
-  function getPolizaStatus2(
-    formDataFechas = null,
-    pageNumber = 1,
-    start = 0,
-    formMultiple = null
-  ) {
-    const length = 12;
-    let params = $.param({ start, length });
-    if (formMultiple) {
-      params = formMultiple + '&' + params;
-    }
-    $.ajax({
-      ...ajaxConfig,
-      url: '/reportes/polizas',
-      data: formDataFechas ? formDataFechas + '&' + params : params,
-      success: (resp) => {
-        if (formMultiple && formMultiple.includes('type_report=month')) {
-          getBarChart2(resp.data, 'month');
-        } else {
-          getBarChart2(resp.data);
-        }
-        fillTablePolizastatus2(
-          resp,
-          formDataFechas,
-          pageNumber,
-          length,
-          formMultiple
-        );
+        console.log(resp);
+        getBarChart(resp.data);
+        // fillTablePolizastatus(
+        //   resp,
+        //   formDataFechas,
+        //   pageNumber,
+        //   length,
+        //   formMultiple
+        // );
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -471,27 +338,6 @@ $(function () {
     let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
     if (years) multiple = `${multiple}&${years}`;
     getPolizaStatus(null, 1, 0, multiple);
-  });
-
-  $('#form_multiple_2').submit(function (e) {
-    e.preventDefault();
-    let years = '';
-    if ($('#years_2').val()) {
-      years = $('#years_2')
-        .val()
-        .reduce((acc, cur, i, arr) => {
-          let yerarStr = (acc += cur);
-          if (i !== arr.length - 1) {
-            yerarStr += ',';
-          }
-          return yerarStr;
-        }, 'years=');
-    }
-    let multiple = $($('#form_multiple_2')[0].elements)
-      .not('#years_2')
-      .serialize();
-    if (years) multiple = `${multiple}&${years}`;
-    getPolizaStatus2(null, 1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
@@ -577,12 +423,6 @@ $(function () {
     tags: true,
   });
 
-  // $('#years_2').select2({
-  //   placeholder: 'seleciona los años',
-  //   tags: true,
-  // });
-
   getMultipleIds();
   getPolizaStatus();
-  // getPolizaStatus2();
 });
