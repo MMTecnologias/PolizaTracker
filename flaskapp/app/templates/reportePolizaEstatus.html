@@ -53,7 +53,7 @@
               </div>
             </div>
           </div>
-          <!-- <div class="col-3">
+          <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="start_date">Tipo(Mes o Año)</label>
               <select class="custom-select" id="type_report" name="type_report">
@@ -61,13 +61,11 @@
                 <option value="month">Mes</option>
               </select>
             </div>
-          </div> -->
+          </div>
           <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="by">Mostrar por</label>
               <select class="custom-select" id="by" name="by">
-                <option value="year">Año</option>
-                <option value="month">Mes</option>
                 <option value="aseguradora">Aseguradora</option>
                 <option value="grupo">Grupo</option>
                 <option value="ramo">Ramo</option>
@@ -124,25 +122,26 @@
         </div>
       </div>
     </div>
-    <div class="row">
-      <!-- <div class="col-3">
+    <div class="row mt-2">
+      <div class="col-4"></div>
+      <div class="col-4" style="min-height: 160px;">
         <div class="w-100 card__shadow p-3 my-2" id="table-polizas">
           <h4 class="header-title">Tabla de polizas por estatus</h4>
           <table class="table">
             <thead class="tableHeader">
               <tr>
-                <th scope="col">Año</th>
-                <th scope="col">Totales</th>
+                <th scope="col">Emitidas</th>
+                <th scope="col">Renovadas</th>
+                <th scope="col">Canceladas</th>
+                <th scope="col">Renovaciones</th>
               </tr>
             </thead>
             <tbody id="table-polizastatus"></tbody>
           </table>
-          <div class="w-100 d-flex justify-content-center">
-            <div id="pagination-polizastatus"></div>
-          </div>
         </div>
-      </div> -->
-      <div class="col-12 mt-5" id="chart-container"></div>
+      </div>
+      <div class="col-4"></div>
+      <div class="col-12 mt-2" id="chart-container"></div>
     </div>
   </div>
   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>

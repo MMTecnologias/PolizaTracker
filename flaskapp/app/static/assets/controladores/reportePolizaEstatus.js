@@ -1,5 +1,61 @@
 $(function () {
-  function getBarChart(data) {
+  const ajaxConfig = {
+    url: '',
+    type: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    dataType: 'json',
+  };
+
+  const chartConfig = {
+    tooltip: {},
+    legend: {},
+    toolbox: {
+      show: true,
+      orient: 'vertical',
+      left: 'right',
+      top: 'center',
+      feature: {
+        mark: { show: true },
+        dataView: { show: true, readOnly: false },
+        magicType: { show: true, type: ['line', 'bar', 'stack'] },
+        restore: { show: true },
+        saveAsImage: { show: true },
+      },
+    },
+    yAxis: [{ type: 'value' }],
+  };
+
+  const serieStatic = {
+    type: 'bar',
+    barGap: 0,
+    emphasis: { focus: 'series' },
+  };
+
+  function createSeriesForCategory(data, categoryName, type, baseArray) {
+    const categories = [...new Set(data.map((item) => item[categoryName]))];
+    const series = categories.map((category) => ({
+      ...serieStatic,
+      name: category,
+      data: Array.from(baseArray, () => 0),
+    }));
+    for (const dat of data) {
+      const i =
+        type === 'year'
+          ? baseArray.findIndex((y) => y === dat.year)
+          : dat.month - 1;
+      const categoryIndex = categories.findIndex(
+        (c) => c === dat[categoryName]
+      );
+      if (categoryIndex !== -1 && i !== -1) {
+        series[categoryIndex]['data'][i] += Number(dat.polizas_totales);
+      }
+    }
+    return series;
+  }
+
+  function getBarChart(data, type = 'year') {
     if (!data.length) return;
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
@@ -7,7 +63,6 @@ $(function () {
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
     const by = $('#by').val();
-    const status = ['Emitidas', 'Renovadas', 'Canceladas', 'Renovaciones'];
     const meses = [
       'Enero',
       'Febrero',
@@ -22,226 +77,70 @@ $(function () {
       'Noviembre',
       'Diciembre',
     ];
-    let option = {
-      legend: {},
-      tooltip: {},
-      yAxis: [{ type: 'value' }],
+    const years = [...new Set(data.map((item) => item.year))];
+    const baseArray = type === 'month' ? meses : years;
+    const categoryMap = {
+      aseguradora: 'aseguradora',
+      grupo: 'grupo',
+      ramo: 'ramo',
+      agente: 'agente',
+      vendedor: 'vendedor',
     };
-    const serieStatic = {
-      type: 'bar',
-      stack: 'Add',
-      emphasis: { focus: 'series' },
+    const series = createSeriesForCategory(
+      data,
+      categoryMap[by],
+      type,
+      baseArray
+    );
+    const option = {
+      ...chartConfig,
+      xAxis: [{ type: 'category', data: baseArray }],
+      series,
     };
-    if (by === 'month') {
-      const series = status.map((stat) => ({
-        ...serieStatic,
-        name: stat,
-        data: Array.from(meses, (v, i) => i * 0),
-      }));
-      for (const dat of data) {
-        if (dat.month && !isNaN(dat.month)) {
-          series[0]['data'][dat.month - 1] += Number(dat.polizas_nuevas);
-          series[1]['data'][dat.month - 1] += Number(dat.polizas_renovadas);
-          series[2]['data'][dat.month - 1] += Number(dat.polizas_canceladas);
-          series[3]['data'][dat.month - 1] += Number(dat.renovaciones);
-        }
+    myChart.on('mouseover', 'series.bar', (params) => {
+      const { name, seriesName } = params;
+      let filteredData = data;
+      if (meses.includes(name)) {
+        filteredData = filteredData.filter(
+          (item) => item.month === meses.findIndex((m) => m === name) + 1
+        );
+      } else {
+        filteredData = filteredData.filter(
+          (item) => item.year === Number(name)
+        );
       }
-      option = {
-        ...option,
-        xAxis: [{ type: 'category', data: meses }],
-        series,
-      };
-    }
-    if (by === 'year') {
-      const years = [...new Set(data.map(({ year }) => String(year).trim()))];
-      const series = status.map((stat) => ({
-        ...serieStatic,
-        name: stat,
-        data: Array.from(years, (v, i) => i * 0),
-      }));
-      for (const dat of data) {
-        const i = years.findIndex((y) => y === String(dat.year).trim());
-        if (i !== -1) {
-          series[0]['data'][i] += Number(dat.polizas_nuevas);
-          series[1]['data'][i] += Number(dat.polizas_renovadas);
-          series[2]['data'][i] += Number(dat.polizas_canceladas);
-          series[3]['data'][i] += Number(dat.renovaciones);
-        }
-      }
-      option = {
-        ...option,
-        xAxis: [{ type: 'category', data: years }],
-        series,
-      };
-    }
-    if (by === 'aseguradora') {
-      const asegs = [...new Set(data.map((item) => item.aseguradora))];
-      const series = status.map((stat) => ({
-        ...serieStatic,
-        name: stat,
-        data: Array.from(asegs, (v, i) => i * 0),
-      }));
-      for (const dat of data) {
-        const iA = asegs.findIndex((a) => a === dat.aseguradora);
-        if (iA !== -1) {
-          series[0]['data'][iA] += Number(dat.polizas_nuevas);
-          series[1]['data'][iA] += Number(dat.polizas_renovadas);
-          series[2]['data'][iA] += Number(dat.polizas_canceladas);
-          series[3]['data'][iA] += Number(dat.renovaciones);
-        }
-      }
-      option = {
-        ...option,
-        xAxis: [{ type: 'category', data: asegs }],
-        series,
-      };
-    }
-    if (by === 'grupo') {
-      const groups = [...new Set(data.map((item) => item.grupo))];
-      const series = status.map((stat) => ({
-        ...serieStatic,
-        name: stat,
-        data: Array.from(groups, (v, i) => i * 0),
-      }));
-      for (const dat of data) {
-        const iG = groups.findIndex((a) => a === dat.grupo);
-        if (iG !== -1) {
-          series[0]['data'][iG] += Number(dat.polizas_nuevas);
-          series[1]['data'][iG] += Number(dat.polizas_renovadas);
-          series[2]['data'][iG] += Number(dat.polizas_canceladas);
-          series[3]['data'][iG] += Number(dat.renovaciones);
-        }
-      }
-      option = {
-        ...option,
-        xAxis: [{ type: 'category', data: groups }],
-        series,
-      };
-    }
-    if (by === 'ramo') {
-      const ramos = [...new Set(data.map((item) => item.ramo))];
-      const series = status.map((stat) => ({
-        ...serieStatic,
-        name: stat,
-        data: Array.from(ramos, (v, i) => i * 0),
-      }));
-      for (const dat of data) {
-        const iR = ramos.findIndex((a) => a === dat.ramo);
-        if (iR !== -1) {
-          series[0]['data'][iR] += Number(dat.polizas_nuevas);
-          series[1]['data'][iR] += Number(dat.polizas_renovadas);
-          series[2]['data'][iR] += Number(dat.polizas_canceladas);
-          series[3]['data'][iR] += Number(dat.renovaciones);
-        }
-      }
-      option = {
-        ...option,
-        xAxis: [{ type: 'category', data: ramos }],
-        series,
-      };
-    }
-    if (by === 'agente') {
-      const agentes = [...new Set(data.map((item) => item.agente))];
-      const series = status.map((stat) => ({
-        ...serieStatic,
-        name: stat,
-        data: Array.from(agentes, (v, i) => i * 0),
-      }));
-      for (const dat of data) {
-        const iA = agentes.findIndex((a) => a === dat.agente);
-        if (iA !== -1) {
-          series[0]['data'][iA] += Number(dat.polizas_nuevas);
-          series[1]['data'][iA] += Number(dat.polizas_renovadas);
-          series[2]['data'][iA] += Number(dat.polizas_canceladas);
-          series[3]['data'][iA] += Number(dat.renovaciones);
-        }
-      }
-      option = {
-        ...option,
-        xAxis: [{ type: 'category', data: agentes }],
-        series,
-      };
-    }
-    if (by === 'vendedor') {
-      const vendedores = [...new Set(data.map((item) => item.vendedor))];
-      const series = status.map((stat) => ({
-        ...serieStatic,
-        name: stat,
-        data: Array.from(vendedores, (v, i) => i * 0),
-      }));
-      for (const dat of data) {
-        const iV = vendedores.findIndex((a) => a === dat.vendedor);
-        if (iV !== -1) {
-          series[0]['data'][iV] += Number(dat.polizas_nuevas);
-          series[1]['data'][iV] += Number(dat.polizas_renovadas);
-          series[2]['data'][iV] += Number(dat.polizas_canceladas);
-          series[3]['data'][iV] += Number(dat.renovaciones);
-        }
-      }
-      option = {
-        ...option,
-        xAxis: [{ type: 'category', data: vendedores }],
-        series,
-      };
-    }
-    option && myChart.setOption(option);
+      filteredData = filteredData.filter(
+        (item) => item[categoryMap[by]] === seriesName
+      );
+      fillTablePolizastatus(filteredData);
+    });
+    myChart.on('mouseout', 'series.bar', () => {
+      $('#table-polizastatus').html('');
+    });
+    myChart.setOption(option);
   }
 
-  const ajaxConfig = {
-    url: '',
-    type: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    dataType: 'json',
-  };
-
-  function fillTablePolizastatus(
-    resp,
-    formDataFechas,
-    currentPage,
-    itemsOnPage,
-    formMultiple = null
-  ) {
-    const { data, recordsTotal } = resp;
-    let dataTable = data;
-    if (formMultiple && formMultiple.includes('type_report=month')) {
-      dataTable = data.reduce((acc, curr) => {
-        const i = acc.findIndex((item) => item.year === curr.year);
-        if (i !== -1) {
-          acc[i].polizas_nuevas += curr.polizas_nuevas;
-          acc[i].polizas_renovadas += curr.polizas_renovadas;
-          acc[i].polizas_canceladas += curr.polizas_canceladas;
-          acc[i].renovaciones += curr.renovaciones;
-          acc[i].polizas_totales += curr.polizas_totales;
-          acc[i].year = curr.year;
-        } else {
-          acc.push(curr);
-        }
+  function fillTablePolizastatus(data) {
+    const dataTable = data.reduce(
+      (acc, curr) => {
+        acc.nuevas += curr.polizas_nuevas;
+        acc.renovadas += curr.polizas_renovadas;
+        acc.canceladas += curr.polizas_canceladas;
+        acc.renovaciones += curr.renovaciones;
         return acc;
-      }, []);
-    }
+      },
+      { nuevas: 0, renovadas: 0, canceladas: 0, renovaciones: 0 }
+    );
     const table = $('#table-polizastatus');
     table.html('');
-    $.each(dataTable, function (idx, poliza) {
-      table.append(
-        `<tr class="tableOption">
-          <td>${poliza.year}</td>
-          <td>${poliza.polizas_totales}</td>
-        </tr>`
-      );
-    });
-    $('#pagination-polizastatus').pagination({
-      items: recordsTotal,
-      prevText: 'Anterior',
-      nextText: 'Siguiente',
-      itemsOnPage,
-      currentPage,
-      onPageClick: (pageNumber, e) => {
-        const start = (pageNumber - 1) * itemsOnPage;
-        getPolizaStatus(formDataFechas, pageNumber, start, formMultiple);
-      },
-    });
+    table.append(
+      `<tr class="tableOption">
+        <td>${dataTable.nuevas}</td>
+        <td>${dataTable.renovadas}</td>
+        <td>${dataTable.canceladas}</td>
+        <td>${dataTable.renovaciones}</td>
+      </tr>`
+    );
   }
 
   function getPolizaStatus(
@@ -260,15 +159,11 @@ $(function () {
       url: '/reportes/polizas_preprocessed',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        console.log(resp);
-        getBarChart(resp.data);
-        // fillTablePolizastatus(
-        //   resp,
-        //   formDataFechas,
-        //   pageNumber,
-        //   length,
-        //   formMultiple
-        // );
+        if (formMultiple && formMultiple.includes('type_report=month')) {
+          getBarChart(resp.data, 'month');
+        } else {
+          getBarChart(resp.data);
+        }
       },
       error: (xhr, status, error) => console.error(error),
     });
