@@ -1,6 +1,8 @@
 flaskapp\auth\
 auth\
-
+**/error.txt
+**/output.txt
+**/*.bat
 config.py
 
 # Ignoramos las carpetas creadas por Python y sus paquetes virtuales
