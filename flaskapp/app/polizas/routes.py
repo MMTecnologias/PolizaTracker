@@ -112,7 +112,7 @@ def get():
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
 
     if order:
-        polizas_query = polizas_query.order_by(desc(Poliza.fecha_termino))
+        polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))
     else:
         polizas_query = polizas_query.order_by('poliza')
         #polizas_query = polizas_query.order_by(desc(Poliza.id))
