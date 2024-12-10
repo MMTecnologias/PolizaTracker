@@ -112,9 +112,10 @@ def get():
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
 
     if order:
-        polizas_query = polizas_query.order_by('poliza')
+        polizas_query = polizas_query.order_by(desc(Poliza.fecha_termino))
     else:
-        polizas_query = polizas_query.order_by(desc(Poliza.id))
+        polizas_query = polizas_query.order_by('poliza')
+        #polizas_query = polizas_query.order_by(desc(Poliza.id))
 
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
