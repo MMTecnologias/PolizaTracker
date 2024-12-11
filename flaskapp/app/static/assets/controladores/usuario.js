@@ -221,7 +221,7 @@ $(function () {
   }
 
   function getUsers(pageNumber = 1, start = 0) {
-    const length = 5;
+    const length = 8;
     $.ajax({
       ...ajaxConfig,
       url: '/usuarios/get',
