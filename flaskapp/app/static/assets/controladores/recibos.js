@@ -65,7 +65,10 @@ $(function () {
     formMultiple = null
   ) {
     const length = 10;
-    const params = $.param({ start, length });
+    let params = $.param({ start, length });
+    if (formMultiple) {
+      params = formMultiple + '&' + params;
+    }
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get_all_receipts',

@@ -156,7 +156,7 @@ $(function () {
       currentPage,
       onPageClick: (pageNumber, e) => {
         const start = (pageNumber - 1) * itemsOnPage;
-        getPolizas(pageNumber, start);
+        getClients(pageNumber, start);
       },
     });
   }
