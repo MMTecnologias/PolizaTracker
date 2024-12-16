@@ -140,29 +140,21 @@ $(function () {
     });
   }
 
-  $('#form-fechas').submit(function (e) {
-    e.preventDefault();
-    if (!this.checkValidity())
-      return alert('Debes llenar los dos campos de fecha', 'warning');
-    const formDataFechas = $('#form-fechas').serialize();
-    getRecibosPagados(formDataFechas);
-  });
-
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const multiple = $('#form-multiple').serialize();
-    if ($('#cliente').val() && $('#grupo').val())
+    const cliente_id = $('#cliente_id').val();
+    const grupo_id = $('#grupo_id').val();
+    if (cliente_id && grupo_id)
       return alert('No puedes filtrar combinando cliente y grupo', 'warning');
-    getVencimientos(null, 1, 0, multiple);
+    const formMultiple = $('#form-multiple').serialize();
+    getVencimientos(null, 1, 0, formMultiple);
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
-    }
+    const formMultiple = $('#form-multiple').serialize();
+    params = `${params}&${formMultiple}`;
     $.ajax({
       type: 'POST',
       url: '/reportes/recibos_pagados',
@@ -187,10 +179,8 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
-    }
+    const formMultiple = $('#form-multiple').serialize();
+    params = `${params}&${formMultiple}`;
     $.ajax({
       type: 'POST',
       url: '/reportes/recibos_pagados',

@@ -1,5 +1,4 @@
 $(function () {
-  let ordered = false;
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -8,10 +7,6 @@ $(function () {
     },
     dataType: 'json',
   };
-
-  function alert(text = '', icon = 'success', title = '') {
-    Swal.fire({ title, text, icon });
-  }
 
   function getColor(status) {
     if (!status) return '';
@@ -95,12 +90,6 @@ $(function () {
       error: (xhr, status, error) => console.error(error),
     });
   }
-
-  // $('#sortByName').click((e) => {
-  //   e.preventDefault();
-  //   ordered = !ordered;
-  //   getVencimientos(ordered);
-  // });
 
   $('#searchPoliza').on('keyup', function (e) {
     e.preventDefault();

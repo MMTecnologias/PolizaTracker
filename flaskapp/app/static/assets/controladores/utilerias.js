@@ -164,7 +164,6 @@ $(function () {
       url: '/solicitudes/get_all',
       data: $.param({ start, length }),
       success: (resp) => {
-        console.log(resp);
         fillTableAcciones(resp, pageNumber, length);
       },
       error: (xhr, status, error) => console.error(error),
@@ -211,23 +210,31 @@ $(function () {
     e.preventDefault();
     resetForm();
   });
-  // $('#sortByName').click((e) => {
-  //   e.preventDefault();
-  //   ordered = !ordered;
-  //   getAseguradoras(ordered);
-  // });
+
   $('#searchAseguradora').on('keyup', function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
     if (searchValue == '') return getAseguradoras();
-    if (searchValue.length >= 3)
-      $.ajax({
-        ...ajaxConfig,
-        url: '/get_data_multiple',
-        data: $.param({ start: 0, length: 0, searchValue }),
-        success: (resp) => fillTableAseguradoras(resp, 1, 5),
-        error: (xhr, status, error) => console.error(error),
-      });
+    $.ajax({
+      ...ajaxConfig,
+      url: '/get_data_multiple',
+      data: $.param({ start: 0, length: 0, searchValue }),
+      success: (resp) => fillTableAseguradoras(resp, 1, 5),
+      error: (xhr, status, error) => console.error(error),
+    });
+  });
+
+  $('#searchAcciones').on('keyup', function (e) {
+    e.preventDefault();
+    const searchValue = e.target.value;
+    if (searchValue == '') return getAcciones();
+    $.ajax({
+      ...ajaxConfig,
+      url: '/get_data_multiple',
+      data: $.param({ start: 0, length: 0, searchValue }),
+      success: (resp) => fillTableAseguradoras(resp, 1, 5),
+      error: (xhr, status, error) => console.error(error),
+    });
   });
 
   getAseguradoras();

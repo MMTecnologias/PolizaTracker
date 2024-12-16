@@ -91,7 +91,7 @@ $(function () {
       type: 'GET',
       url: '/reportes/get_multiple_ids',
       data: {},
-      success: ({ Aseguradora, Cliente, Grupo, Vendedor }) => {
+      success: ({ Aseguradora, Cliente, Grupo, Vendedor, Agente }) => {
         $('#aseguradora_id').append(
           `<option value="">Selecciona aseguradora</option>`
         );
@@ -112,6 +112,12 @@ $(function () {
             `<option value='${grupo.id}'>${grupo.grupo}</option>`
           );
         }
+        $('#agente_id').append(`<option value="">Selecciona agente</option>`);
+        for (const agente of Agente.data) {
+          $('#agente_id').append(
+            `<option value='${agente.id}'>${agente.nombre}</option>`
+          );
+        }
         $('#vendedor_id').append(
           `<option value="">Selecciona Vendedor</option>`
         );
@@ -125,37 +131,21 @@ $(function () {
     });
   }
 
-  $('#form-fechas').submit(function (e) {
-    e.preventDefault();
-    if (!this.checkValidity())
-      return alert('Debes llenar los dos campos de fecha', 'warning');
-    const formDataFechas = $('#form-fechas').serialize();
-    getVencimientos(formDataFechas);
-  });
-
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const aseguradora_id = $('#aseguradora_id').val();
     const cliente_id = $('#cliente_id').val();
     const grupo_id = $('#grupo_id').val();
     if (cliente_id && grupo_id)
       return alert('No puedes filtrar combinando cliente y grupo', 'warning');
-    let multiple = '';
-    if (aseguradora_id) multiple += `aseguradora_id=${aseguradora_id}`;
-    if (multiple) multiple += `&cliente_id=${cliente_id}`;
-    if (cliente_id) multiple += `&cliente_id=${cliente_id}`;
-    if (grupo_id) multiple += `&grupo_id=${grupo_id}`;
-    console.log(multiple);
-    getVencimientos(null, 1, 0, multiple);
+    const formMultiple = $('#form-multiple').serialize();
+    getVencimientos(null, 1, 0, formMultiple);
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
-    }
+    const formMultiple = $('#form-multiple').serialize();
+    params = `${params}&${formMultiple}`;
     $.ajax({
       type: 'POST',
       url: '/vencimientos/get_upcoming_policies',
@@ -164,7 +154,6 @@ $(function () {
         responseType: 'blob',
       },
       success: function (blob, status, xhr) {
-        // Crear un enlace temporal para descargar el archivo
         let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
@@ -183,10 +172,8 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
-    }
+    const formMultiple = $('#form-multiple').serialize();
+    params = `${params}&${formMultiple}`;
     $.ajax({
       type: 'POST',
       url: '/vencimientos/get_upcoming_policies',
@@ -210,42 +197,6 @@ $(function () {
     });
   });
 
-  $('#btnImprimir').click((e) => {
-    e.preventDefault();
-    $.ajax({
-      type: 'POST',
-      url: '/vencimientos/get_upcoming_policies',
-      data: { export_pdf: true },
-      xhrFields: {
-        responseType: 'blob',
-      },
-      success: function (blob, status, xhr) {
-        const fileURL = URL.createObjectURL(blob);
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = fileURL;
-        document.body.appendChild(iframe);
-        iframe.contentWindow.print();
-      },
-      error: function (xhr, status, error) {
-        console.error(error);
-      },
-    });
-  });
-
-  //   $("#searchPoliza").on("keyup", function (e) {
-  //     e.preventDefault();
-  //     const searchValue = e.target.value;
-  //     if (searchValue == "") return getVencimientos();
-  //     if (searchValue.length >= 3)
-  //       $.ajax({
-  //         ...ajaxConfig,
-  //         url: "/polizas/get",
-  //         data: $.param({ start: 0, length: 0, searchValue }),
-  //         success: fillTableVencimientos,
-  //         error: (xhr, status, error) => console.error(error),
-  //       });
-  //   });
   getMultipleIds();
   getVencimientos();
 });
