@@ -147,7 +147,7 @@ $(function () {
     if (cliente_id && grupo_id)
       return alert('No puedes filtrar combinando cliente y grupo', 'warning');
     const formMultiple = $('#form-multiple').serialize();
-    getVencimientos(null, 1, 0, formMultiple);
+    getRecibosPagados(null, 1, 0, formMultiple);
   });
 
   $('#btnExportar').click((e) => {

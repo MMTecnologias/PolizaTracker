@@ -69,7 +69,6 @@ $(function () {
     if (formMultiple) {
       params = formMultiple + '&' + params;
     }
-    console.log(params);
     $.ajax({
       ...ajaxConfig,
       url: '/vencimientos/get_upcoming_receipts',
