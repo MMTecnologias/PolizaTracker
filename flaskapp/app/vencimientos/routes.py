@@ -110,8 +110,11 @@ def get():
     # Implement search functionality
     if search_value:
         polizas_query = polizas_query.filter(or_(
-            Poliza.poliza.ilike(f'%{search_value}%'),
-            Poliza.serie.ilike(f'%{search_value}%')
+            #Poliza.poliza.ilike(f'%{search_value}%'),
+            Cliente.nombre.ilike(f'%{search_value}%'),
+            Cliente.apellido.ilike(f'%{search_value}%'),
+            #Search in poliza sarting with search_value
+            Poliza.poliza.ilike(f'{search_value}%'),
             # Add more fields for searching as needed
         ))
 
