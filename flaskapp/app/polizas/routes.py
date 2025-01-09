@@ -795,22 +795,40 @@ def get_endosos():
 @polizas_route.route('/process_receipt', methods=['POST'])
 @login_required
 def process_receipt():
+    """
+    Processes a receipt based on the action specified in the request form.
+    The function handles three actions:
+    - "Pagar": Marks the receipt as paid and logs the action.
+    - "Cancelar Pago": Cancels the payment of the receipt and logs the action.
+    - "Modificar Fecha de Pago": Modifies the payment date of the receipt and logs the action.
+    Returns:
+        JSON response indicating the success or failure of the action.
+    Raises:
+        ValueError: If the provided payment date is not valid or is in the future.
+    Request Form Parameters:
+        recibo_id (str): The ID of the receipt to be processed.
+        accion (str): The action to be performed on the receipt.
+        fecha_pago (str, optional): The new payment date for the receipt (required for "Modificar Fecha de Pago" action).
+    JSON Response:
+        error (bool): Indicates if there was an error.
+        msg (str): A message describing the result of the action.
+    """
     recibo_id = request.form.get('recibo_id')
     accion = request.form.get('accion')
     recibo = Recibo.query.get(recibo_id)
-    poliza=Poliza.query.get(recibo.poliza_id)
+    poliza = Poliza.query.get(recibo.poliza_id)
     if not recibo:
         return jsonify({
             'error': True,
             'msg': 'Recibo no encontrado'
         })
-    if accion not in ("Pagar", 'Cancelar Pago'):
+    if accion not in ("Pagar", 'Cancelar Pago', 'Modificar Fecha de Pago'):
         return jsonify({
             'error': True,
             'msg': 'Acción no válida'
         })
 
-    if accion=="Pagar":
+    if accion == "Pagar":
         recibo.status = 'Liquidado'
         recibo.fecha_pago = datetime.now().strftime('%Y-%m-%d')
 
@@ -826,22 +844,21 @@ def process_receipt():
             'error': False,
             'msg': 'Recibo pagado exitosamente'
         })
-    else:
+    elif accion == 'Cancelar Pago':
         request_entry = Request(usuario_id=current_user.id,
                                 description=f"Cancelar pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza}",
-                                #status="Aceptada",
                                 table_name='Recibo',
                                 row_id=recibo.id)
         db.session.add(request_entry)
         db.session.commit()
         log_entry_1 = Log(request_id=request_entry.id,
-                        column_name='status',
-                        old_value=recibo.status,
-                        new_value='Pendiente')
+                          column_name='status',
+                          old_value=recibo.status,
+                          new_value='Pendiente')
         log_entry_2 = Log(request_id=request_entry.id,
-                        column_name='fecha_pago',
-                        old_value=recibo.fecha_pago,
-                        new_value=None)
+                          column_name='fecha_pago',
+                          old_value=recibo.fecha_pago,
+                          new_value=None)
 
         db.session.add(log_entry_1)
         db.session.add(log_entry_2)
@@ -853,6 +870,57 @@ def process_receipt():
             'error': False,
             'msg': 'Pago de recibo cancelado exitosamente, esta accion esta sujeta a revision'
         })
+    elif accion == 'Modificar Fecha de Pago':
+        nueva_fecha_pago = request.form.get('fecha_pago')
+        try:
+            nueva_fecha_pago = datetime.strptime(nueva_fecha_pago, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({
+                'error': True,
+                'msg': 'Fecha de pago no válida'
+            })
+
+        hoy = datetime.now()
+        delta = (hoy - nueva_fecha_pago).days
+
+        if delta < 0:
+            return jsonify({
+                'error': True,
+                'msg': 'La fecha de pago no puede ser en el futuro'
+            })
+        elif delta <= 5:
+            recibo.fecha_pago = nueva_fecha_pago
+            request_entry = Request(usuario_id=current_user.id,
+                                description=f"Modificar fecha de pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza} a {nueva_fecha_pago.strftime('%Y-%m-%d')}",
+                                status="Aceptada",
+                                table_name='Recibo',
+                                row_id=recibo.id)
+            db.session.add(request_entry)
+            db.session.commit()
+            return jsonify({
+                'error': False,
+                'msg': 'Fecha de pago modificada exitosamente'
+            })
+        else:
+            request_entry = Request(usuario_id=current_user.id,
+                                    description=f"Modificar fecha de pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza} a {nueva_fecha_pago.strftime('%Y-%m-%d')}",
+                                    table_name='Recibo',
+                                    row_id=recibo.id)
+            db.session.add(request_entry)
+            db.session.commit()
+            log_entry = Log(request_id=request_entry.id,
+                            column_name='fecha_pago',
+                            old_value=recibo.fecha_pago,
+                            new_value=nueva_fecha_pago)
+
+            db.session.add(log_entry)
+            recibo.fecha_pago = nueva_fecha_pago
+            db.session.commit()
+
+            return jsonify({
+                'error': False,
+                'msg': 'Fecha de pago modificada exitosamente, esta accion esta sujeta a revision debido a registro tardio'
+            })
 
 
 #@main.route('/get_data_multiple', methods=['GET'])
