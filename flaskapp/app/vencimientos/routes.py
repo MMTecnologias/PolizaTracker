@@ -82,13 +82,13 @@ def get():
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Poliza.status.in_(["Finalizada", "Por Vencer"]),
+        .filter(Poliza.status.in_([ "Por Vencer","Vigente"]),
                 Poliza.Poliza_renovada.in_(["No"]))
 
     if order:
-        polizas_query = polizas_query.order_by('poliza')
+        polizas_query = polizas_query.order_by(Poliza.fecha_termino)
     else:
-        polizas_query = polizas_query.order_by(desc(Poliza.id))
+        polizas_query = polizas_query.order_by(desc(Poliza.fecha_termino))
 
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
