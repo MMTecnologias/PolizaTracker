@@ -967,6 +967,7 @@ def recibos_pagados():
             'subramo': subramo,
             'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
             'fecha_fin': recibo.fecha_vencimiento.strftime('%d/%m/%y'),
+            'fecha_pago': recibo.fecha_pago.strftime('%d/%m/%y') if recibo.fecha_pago else '',
             'prima_neta': recibo.prima_neta,
             'prima_total': recibo.prima_total,
             'moneda': poliza.moneda,
@@ -977,6 +978,7 @@ def recibos_pagados():
             'poliza_anterior': poliza.poliza_anterior,
             'aseguradora': aseguradora
         }
+       
 
         response.append(data)
 
