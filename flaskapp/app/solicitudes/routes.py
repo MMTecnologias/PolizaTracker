@@ -113,9 +113,9 @@ def get_all():
     # Estos datos los recibe desde la función en JS
     start = flask_request.form.get('start')
     length = flask_request.form.get('length')
-    print(start,length)
     start = int(start) if start else 0
     length = int(length) if length else 20
+    search = flask_request.form.get('search_value')
 
     UsuarioReview = aliased(Usuario)
     # Query to fetch clientes data from the database
@@ -127,6 +127,11 @@ def get_all():
                                 .join(Usuario, Request.usuario_id == Usuario.id)\
                                 .outerjoin(UsuarioReview, Request.usuario_review_id == UsuarioReview.id)\
                                 .order_by(Request.id.desc())
+    if search:
+        request_query = request_query.filter(or_(Usuario.nombre.ilike(f'%{search}%'),
+                                                  Usuario.apellido.ilike(f'%{search}%'),
+                                                  Request.description.ilike(f'%{search}%')))
+
 
     # Get total count of records without filtering
     total_records = request_query.count()
