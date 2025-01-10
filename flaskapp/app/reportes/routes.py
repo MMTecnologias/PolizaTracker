@@ -940,7 +940,7 @@ def recibos_pagados():
         .filter(Recibo.fecha_inicio >= start_date,
                 Recibo.fecha_inicio <= end_date,
                 Recibo.status == "Liquidado") \
-        .order_by(desc(Recibo.fecha_inicio))
+        .order_by(desc(Recibo.fecha_pago))
 
     if polizas:
         paid_recipts_query = paid_recipts_query.filter(

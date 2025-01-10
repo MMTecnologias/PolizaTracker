@@ -210,6 +210,12 @@ def get_upcoming_receipts():
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
     grupo_id = request.form.get('grupo_id')
+    #agente
+    agente_id = request.form.get('agente_id')
+    #vendeor
+    vendedor_id = request.form.get('vendedor_id')
+    #ramo
+    ramo_id = request.form.get('ramo_id')
 
     print(aseguradora_id, cliente_id, grupo_id)
 
@@ -236,6 +242,34 @@ def get_upcoming_receipts():
         else:
             polizas = list(set(polizas).intersection(
                 [poliza.id for poliza in polizas_query]))
+    
+    if agente_id:
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.agente_id == int(agente_id)).all()
+        if polizas == []:
+            polizas = [poliza.id for poliza in polizas_query]
+        else:
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
+    
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.vendedor_id == int(vendedor_id)).all()
+        if polizas == []:
+            polizas = [poliza.id for poliza in polizas_query]
+        else:
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
+    
+    if ramo_id:
+        polizas_query = db.session.query(Poliza) \
+            .filter(Poliza.ramo_id == int(ramo_id)).all()
+        if polizas == []:
+            polizas = [poliza.id for poliza in polizas_query]
+        else:
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
+    
     # Client and grupo can not be asked both
     if cliente_id and grupo_id:
         return jsonify({'error': True,

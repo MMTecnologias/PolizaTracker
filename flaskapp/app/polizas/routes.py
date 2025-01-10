@@ -277,6 +277,18 @@ def create():
     arg_values.update(check_new_form())
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
     # Create a new client
+    
+    #check if there is a poliza with the same number and not canceled
+
+    poliza = Poliza.query.filter(Poliza.poliza==arg_values["poliza"],Poliza.status!="Cancelada").first()
+    if poliza:
+        return jsonify({'error': True, 'msg': 'Ya existe una póliza vigente con el mismo número'})
+    #check for pending cancelation request of the same poliza
+    request = Request.query.filter(Request.description==f"Cancelar póliza {arg_values['poliza']}",
+                                   Request.status=="Pendiente").first()
+    if request:
+        return jsonify({'error': True, 'msg': 'Existe una solicitud de cancelación pendiente para esta póliza'})
+
     new_poliza = Poliza(**arg_values)
     # Save the new client to the database
     db.session.add(new_poliza)
