@@ -32,8 +32,8 @@ $(function () {
           </td>
           <td>${poliza.endoso ? poliza.endoso : ''}</td>
           <td>${poliza.poliza}</td>
-          <td>${poliza.prima_neta}</td>
-          <td>${poliza.prima_total}</td>
+          <td>$${poliza.prima_neta}</td>
+          <td>$${poliza.prima_total}</td>
           <td>${poliza.fecha_inicio}</td>
           <td>${poliza.fecha_fin}</td>
           <td>${poliza.cliente}</td>

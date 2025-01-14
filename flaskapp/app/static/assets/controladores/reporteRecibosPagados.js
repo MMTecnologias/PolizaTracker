@@ -33,10 +33,10 @@ $(function () {
           <td>${recibo.endoso !== null ? 'Endoso' : 'Poliza'}</td>
           <td>${recibo.endoso !== null ? recibo.endoso : recibo.poliza}</td>
           <td>${recibo.aseguradora}</td>
-          <td>${recibo.prima_neta}</td>
-          <td>${recibo.prima_total}</td>
+          <td>$${recibo.prima_neta}</td>
+          <td>$${recibo.prima_total}</td>
           <td>${recibo.moneda}</td>
-          <td>${recibo.fecha_inicio}</td>
+          <td>${recibo.fecha_pago}</td>
           <td>${recibo.cliente}</td>
           <td>${recibo.agente}</td>
           <td>${recibo.ramo}</td>

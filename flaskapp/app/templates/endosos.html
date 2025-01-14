@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es-mx">
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <title>Endosos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
+</head>
+
+<body>
+  <nav class="navbar">
+    <a class="app-section" href="{{ url_for('main.index') }}">
+      <h2 class="name-app">Póliza Tracker</h2>
+      <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" class="logo-ggc" />
+    </a>
+    <div class="user-profile pull-right">
+      <h6 class="user-name dropdown-toggle" data-toggle="dropdown">
+        {{ current_user.username }}<i class="fa fa-angle-down"></i>
+      </h6>
+      <div class="dropdown-menu">
+        <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
+        <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <div class="row mt-3">
+      <div class="col-4 p-3">
+        <div class="w-100 card__shadow p-3">
+          <h4 class="header-title">Endosos</h4>
+          <form id="form-polizas" class="needs-validation form-data" novalidate>
+            <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
+            <input type="text" id="tipo" name="tipo" hidden />
+            <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" hidden />
+
+            <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
+            <div class="form__input-data" id="div_search_client">
+              <!-- <div class="label-option">
+                <label class="label-input-data">Cliente</label>
+                <a href="{{ url_for('main.cliente') }}" class="search-icon">
+                  <img src="{{
+                              url_for('static',filename='assets/images/icon/mas.png')
+                              }}" class="search-icon" width="15" />
+                </a>
+              </div> -->
+              <div class="input-group" style="background-color: aliceblue;">
+                <label class="label-input-data">Cliente</label>
+                <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
+                  aria-label="Search" aria-describedby="search-addon" autocomplete="off" disabled />
+                <div class="dropdown-menu" id="client-options"></div>
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+            <div class="form__input-data input-sibling-child" id="div_poliza_anterior">
+              <label class="label-input-data" for="poliza-anterior">Póliza Anterior</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="poliza-anterior" name="poliza-anterior" disabled />
+              </div>
+            </div>
+            <div class="form__input-data" id="div_poliza_id">
+              <label class="label-input-data">Póliza</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="id_poliza" name="id_poliza" disabled />
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child" id="div_poliza">
+                <label class="label-input-data" id="title_poliza">Póliza</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="Poliza" name="Poliza" required disabled />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+              </div>
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">No. Serie</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="serie" name="serie" required disabled />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Inicio de Vigencia</label>
+                <div class="input-group">
+                  <input type="date" class="form-control" id="VigenciaI" name="VigenciaI" required disabled />
+                </div>
+              </div>
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Fin de Vigencia</label>
+                <div class="input-group">
+                  <input type="date" class="form-control" id="VigenciaF" name="VigenciaF" required disabled />
+                </div>
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Ramo</label>
+                <select class="custom-select" id="ramo" name="ramo" required disabled>
+                  <option value="">Selecciona...</option>
+                  {% for ramo in ramos %}
+                  <option value="{{ ramo.id }}">{{ ramo.ramo }}</option>
+                  {% endfor %}
+                  <option value="New">Nuevo Ramo</option>
+                </select>
+              </div>
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Subramo</label>
+                <select class="custom-select" id="subramo" name="subramo" required disabled>
+                  <option value="">Selecciona...</option>
+                  {% for subramo in subramos %}
+                  <option value="{{ subramo.id }}">
+                    {{ subramo.subramo }}
+                  </option>
+                  {% endfor %}
+                  <option value="New">Nuevo Subramo</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-sibling" id="nuevo_ramo_subramo_div">
+              <div class="form__input-data input-sibling-child" id="nuevo_ramo_div">
+                <label class="label-input-data">Nuevo Ramo</label>
+                <input type="text" class="form-control" id="nuevo_ramo" name="nuevo_ramo" disabled />
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+              <div class="form__input-data input-sibling-child" id="nuevo_subramo_div">
+                <label class="label-input-data">Nuevo Subramo</label>
+                <input type="text" class="form-control" id="nuevo_subramo" name="nuevo_subramo" disabled />
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Moneda</label>
+                <select class="custom-select" id="Moneda" name="Moneda" required disabled>
+                  <option value="">Selecciona...</option>
+                  <option value="MXN">Nacional</option>
+                  <option value="USD">Dolares</option>
+                  <option value="Udis">Udis</option>
+                </select>
+              </div>
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Forma de Pago</label>
+                <select class="custom-select" id="Pago" name="Pago" required disabled>
+                  <option value="">Selecciona...</option>
+                  {% for pago in pagos %}
+                  <option value="{{ pago.id }}">
+                    {{ pago.tipo_pago}}
+                  </option>
+                  {% endfor %}
+                </select>
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+            <div class="form__input-data">
+              <label class="label-input-data" for="conducto_pago">Conducto de pago</label>
+              <div class="">
+                <input type="text" class="form-control" id="conducto_pago" name="conducto_pago" disabled />
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Aseguradora</label>
+                <select class="custom-select" id="aseguradora" name="aseguradora" required disabled>
+                  <option value="">Selecciona...</option>
+                  {% for aseguradora in aseguradoras %}
+                  <option value="{{ aseguradora.id }}">
+                    {{ aseguradora.aseguradora }}
+                  </option>
+                  {% endfor %}
+                  <option value="New">Nueva Aseguradora</option>
+                </select>
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+              <div class="form__input-data input-sibling-child" id="nuevo_aseguradora_div">
+                <label class="label-input-data">Nueva Aseguradora</label>
+                <input type="text" class="form-control" id="nuevo_aseguradora" name="nuevo_aseguradora" disabled />
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Vendedor</label>
+                <select class="custom-select" id="vendedor" name="vendedor" required disabled>
+                  <option value="">Selecciona...</option>
+                  {% for vendedor in vendedores %}
+                  <option value="{{ vendedor.id }}">
+                    {{ vendedor.nombre }}
+                  </option>
+                  {% endfor %}
+                  <option value="New">Nuevo Vendedor</option>
+                </select>
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+              <div class="form__input-data input-sibling-child" id="nuevo_vendedor_div">
+                <label class="label-input-data">Nuevo Vendedor</label>
+                <input type="text" class="form-control" id="nuevo_vendedor" name="nuevo_vendedor" disabled />
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data">Agente</label>
+                <select class="custom-select" id="agente" name="agente" required disabled>
+                  <option value="">Selecciona...</option>
+                  {% for agente in agentes %}
+                  <option value="{{ agente.id }}">
+                    {{ agente.nombre }}
+                  </option>
+                  {% endfor %}
+                  <option value="New">Nuevo Agente</option>
+                </select>
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+              <div class="form__input-data input-sibling-child" id="nuevo_agente_div">
+                <label class="label-input-data">Nuevo Agente</label>
+                <input type="text" class="form-control" id="nuevo_agente" name="nuevo_agente" disabled />
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+            <div class="input-sibling">
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data" for="prima_neta">Prima Neta</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="prima_neta" name="prima_neta" step=".01" required
+                    disabled />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+              </div>
+              <div class="form__input-data input-sibling-child">
+                <label class="label-input-data" for="prima_total">Prima Total</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="prima_total" name="prima_total" step=".01" required
+                    disabled />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+              </div>
+            </div>
+            <div class="form__input-data">
+              <label class="label-input-data" for="notas">Notas</label>
+              <div class="">
+                <textarea class="form-control" id="notas" name="notas" placeholder="Insertar notas" rows="3"
+                  disabled></textarea>
+                <p class="invalid-feedback">Ingresa un dato valido</p>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="col-8 p-3">
+        <div class="w-100 card__shadow p-3"
+          style="height: 703.59px;max-height: 703.59px;position: relative;padding-bottom: 20px;overflow: hidden;">
+          <div class="table-polizas" id="table-polizas">
+            <h4 class="header-title">Tabla de Endosos</h4>
+            <form class="d-flex" role="search">
+              <input class="form-control my-2" type="search" placeholder="Buscar Póliza" aria-label="Search"
+                id="searchPoliza" />
+            </form>
+            <table class="table" style="overflow-y: scroll;">
+              <thead class="tableHeader">
+                <tr>
+                  <th class="table-name siblingContainerRow" scope="col">
+                    Póliza
+                    <!-- <a class="btn__icon" id="sortByPoliza">
+                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960"
+                                    width="24">
+                                    <path
+                                       d="m80-280 162-400h63l161 400h-63l-38-99H181l-38 99H80Zm121-151h144l-70-185h-4l-70 185Zm347 151v-62l233-286H566v-52h272v63L607-332h233v52H548ZM384-784l96-96 96 96H384Zm96 704-96-96h192l-96 96Z" />
+                                 </svg>
+                              </a> -->
+                  </th>
+                  <th scope="col">Cliente</th>
+                  <th scope="col">Sub Ramo</th>
+                  <th scope="col">Aseguradora</th>
+                  <th scope="col">Forma de Pago</th>
+                  <th scope="col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="polizas-table">
+              </tbody>
+            </table>
+          </div>
+          <div class="w-100 d-flex justify-content-center" style="position: absolute; bottom:5px">
+            <div id="pagination"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal listado recibos -->
+  <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body pt-1">
+          <div class="row pb-4">
+            <div class="col-12">
+              <h4 class="header-title">Lista de Recibos</h4>
+              <table class="table">
+                <thead class="tableHeader">
+                  <tr>
+                    <th scope="col">Número</th>
+                    <th scope="col">Fecha de Recibo</th>
+                    <th scope="col">Vencimiento</th>
+                    <th scope="col">Prima Neta</th>
+                    <th scope="col">Prima Total</th>
+                    <th scope="col">Moneda</th>
+                    <th scope="col">Pagado</th>
+                    <th scope="col">Fecha de Pago</th>
+                    <th scope="col">Cancelado</th>
+                  </tr>
+                </thead>
+                <tbody id="receiptsTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="w-100 d-flex justify-content-center">
+            <div id="pagination-recibos" style="position: absolute;bottom: 10px;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal create recibo -->
+  <div class="modal fade bd-example-modal-lg" id="create-recib" tabindex="-1" role="dialog" aria-labelledby="recib">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" id="closeModalCreateRecibos">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div id="alert_Modal" class="alert alert-warning" role="alert" style="display: none;"></div>
+        <div class="modal-body pt-1">
+          <div class="row pb-4">
+            <div class="col-12">
+              <h4 class="header-title">Generar Recibos</h4>
+              <form id="form-recibo" class="needs-validation form-data" novalidate>
+                <input type="text" id="receipts_created" name="receipts_created" value="no" hidden />
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima neta</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima-neta" name="prima-neta" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima total</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima-total" name="prima-total" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Número de recibos</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="nopagos" name="nopagos" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Derecho de poliza</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="derecho_poliza" name="derecho_poliza" required />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">IVA de poliza</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="iva" name="iva" value="16" required />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">% comisión</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="comision" name="comision" required />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Selecciona un opción</label>
+                    <div class="input-group">
+                      <select class="custom-select" id="rec_pago" name="rec_pago" required>
+                        <option value="primer_recibo">Cargar derecho de póliza en 1er recibo</option>
+                        <option value="dividir_recibos">Dividir en todos los recibos</option>
+                      </select>
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-100 py-3 d-flex justify-content-center">
+                  <button class="btn mx-5" type="button" id="btnCalcular" name="btnCalcular">
+                    Calcular totales
+                  </button>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima neta 1er recibo</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_neta_1er" name="prima_neta_1er" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima neta subsecuentes</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_neta_subs" name="prima_neta_subs" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima total 1er recibo</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_total_1er" name="prima_total_1er" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima total subsecuentes</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_total_subs" name="prima_total_subs" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Comisión 1er recibo</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="comision_1er" name="comision_1er" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Comisión subsecuentes</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="comision_subs" name="comision_subs" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="button-container">
+                  <button class="btn" type="submit" id="btnGuardar-recibos" name="btnGuardar-recibos">
+                    Guardar
+                  </button>
+                  <button class="btn" type="reset" value="Cancelar" id="reset-btn-recibos">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal select endoso type -->
+  <div class="modal fade bd-example-modal-lg" id="endoso-type" tabindex="-1" role="dialog"
+    aria-labelledby="endoso-type">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Tipos de endoso</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body pt-1">
+          <div class="row pb-4">
+            <div class="col-12 d-flex justify-content-between">
+              <button type="button" class="btn btn-default" id="endoso_tipo_a">Tipo A</button>
+              <button type="button" class="btn btn-default" id="endoso_tipo_b">Tipo B</button>
+              <button type="button" class="btn btn-default" id="endoso_tipo_d">Tipo D</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal listado endosos -->
+  <div class="modal fade bd-example-modal-lg" id="endoso-list" tabindex="-1" role="dialog"
+    aria-labelledby="endoso-list">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body pt-1" style="overflow-y: scroll;">
+          <div class="container">
+            <div class="row pb-4" style="position: relative;">
+              <div class="col-12">
+                <h4 class="header-title">Lista de Endosos</h4>
+                <table class="table">
+                  <thead class="tableHeader">
+                    <tr>
+                      <th class="table-name siblingContainerRow" scope="col">
+                        Endoso
+                      </th>
+                      <th scope="col">Tipo endoso</th>
+                      <th scope="col">Cliente</th>
+                      <th scope="col">Sub Ramo</th>
+                      <th scope="col">Aseguradora</th>
+                      <th scope="col">Forma de Pago</th>
+                      <th scope="col">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="endosos-table">
+                  </tbody>
+                </table>
+              </div>
+              <div class="col-12 d-flex justify-content-center">
+                <div id="pagination-endosos"></div>
+              </div>
+            </div>
+            <div class="row pb-4" id="div-recibos-endosos" style="position: relative;">
+              <div class="col-12">
+                <h4 class="header-title">Recibos de endosos</h4>
+                <table class="table">
+                  <thead class="tableHeader">
+                    <tr>
+                      <th scope="col">Número</th>
+                      <th scope="col">Fecha de Recibo</th>
+                      <th scope="col">Vencimiento</th>
+                      <th scope="col">Prima Neta</th>
+                      <th scope="col">Prima Total</th>
+                      <th scope="col">Moneda</th>
+                      <th scope="col">Pagado</th>
+                      <th scope="col">Fecha de Pago</th>
+                      <th scope="col">Cancelado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="receiptsEndosoTable">
+                  </tbody>
+                </table>
+              </div>
+              <div class="col-12 d-flex justify-content-center">
+                <div id="pagination-recibos-endosos"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- main content area end -->
+  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}"></script>
+  <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/sweetalert.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
+</body>
+
+</html>

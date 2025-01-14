@@ -48,7 +48,13 @@
                <h3 class="text-card">Pólizas</h3>
             </div>
          </a>
-
+         <a href="{{ url_for('main.endosos') }}" class="card" id="endosos" style="display:none;">
+            <div name="endosos">
+               <img class="card-img-top tamanoIcaja"
+                  src="{{ url_for('static',filename='assets/images/documentos.png') }}" />
+               <h3 class="text-card">Endosos</h3>
+            </div>
+         </a>
          <a href="{{ url_for('main.cliente') }}" class="card" id="clientes" style="display:none;">
             <div name="clientes">
                <img class="card-img-top tamanoIcaja"

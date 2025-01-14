@@ -36,7 +36,7 @@ $(function () {
           <td>${poliza.prima_neta}</td>
           <td>${poliza.prima_total}</td>
           <td>${poliza.moneda}</td>
-          <td>${poliza.fecha_inicio}</td>
+          <td>${recibo.fecha_pago}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>

@@ -175,6 +175,12 @@ def recibos():
     return render_template('recibos.html', polizas=polizas)
 
 
+@main.route('/endosos', methods=['GET'])
+@login_required
+def endosos():
+    return render_template('endosos.html')
+
+
 # Clientes
 @main.route('/cliente', methods=['GET'])
 @login_required

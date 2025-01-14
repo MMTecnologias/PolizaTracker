@@ -1,6 +1,7 @@
 $(function () {
   if (nivelUsuario === 'Desarollador') {
     $('#polizas').show();
+    $('#endosos').show();
     $('#clientes').show();
     $('#recibos').show();
     $('#vencimientos').show();
@@ -16,6 +17,7 @@ $(function () {
     $('#solicitudes').show();
   } else if (nivelUsuario === 'Gerente') {
     $('#polizas').show();
+    $('#endosos').show();
     $('#clientes').show();
     $('#recibos').show();
     $('#vencimientos').show();
@@ -26,6 +28,7 @@ $(function () {
     $('#solicitudes').show();
   } else if (nivelUsuario === 'Usuario') {
     $('#polizas').show();
+    $('#endosos').show();
     $('#clientes').show();
     $('#recibos').show();
     $('#vencimientos').show();

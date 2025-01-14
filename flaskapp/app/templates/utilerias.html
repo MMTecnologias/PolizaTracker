@@ -114,6 +114,41 @@
       <div class="row tables-user1 w-100">
          <div class="table-polizas" id="table-acciones">
             <h4 class="header-title">Tabla historial de acciones</h4>
+            <div class="col-12">
+               <form class="row mt-2" id="form-multiple" novalidate>
+                  <div class="col-3">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data" for="start_date">Fecha Inicio</label>
+                        <div class="input-group">
+                           <input type="date" class="form-control" id="start_date" name="start_date" required />
+                        </div>
+                     </div>
+                  </div>
+                  <div class="col-3">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data" for="end_date">Fecha Fin</label>
+                        <div class="input-group">
+                           <input type="date" class="form-control" id="end_date" name="end_date" required />
+                        </div>
+                     </div>
+                  </div>
+                  <div class="col-3">
+                     <div class="form__input-data input-sibling-child">
+                        <label class="label-input-data" for="start_date">Estatus</label>
+                        <select class="custom-select" id="estatus" name="estatus">
+                           <option value="Pendiente">Pendiente</option>
+                           <option value="Aceptada">Aceptada</option>
+                           <option value="Rechazada">Rechazada</option>
+                        </select>
+                     </div>
+                  </div>
+                  <div class="col-2 d-flex align-items-end">
+                     <button class="btn" type="submit" id="btnMultiple">
+                        Aplicar filtros
+                     </button>
+                  </div>
+               </form>
+            </div>
             <form class="d-flex" role="search">
                <input class="form-control my-2" type="search" placeholder="Buscar ..." id="searchAcciones" />
             </form>

@@ -159,10 +159,13 @@ $(function () {
 
   function getAcciones(pageNumber = 1, start = 0) {
     const length = 10;
+    const search_value = $('#searchAcciones').val();
     $.ajax({
       ...ajaxConfig,
       url: '/solicitudes/get_all',
-      data: $.param({ start, length }),
+      data: search_value
+        ? $.param({ start, length, search_value })
+        : $.param({ start, length }),
       success: (resp) => {
         fillTableAcciones(resp, pageNumber, length);
       },
@@ -226,13 +229,13 @@ $(function () {
 
   $('#searchAcciones').on('keyup', function (e) {
     e.preventDefault();
-    const searchValue = e.target.value;
-    if (searchValue == '') return getAcciones();
+    const search_value = e.target.value;
+    if (search_value == '') return getAcciones();
     $.ajax({
       ...ajaxConfig,
-      url: '/get_data_multiple',
-      data: $.param({ start: 0, length: 0, searchValue }),
-      success: (resp) => fillTableAseguradoras(resp, 1, 5),
+      url: '/solicitudes/get_all',
+      data: $.param({ start: 0, length: 0, search_value }),
+      success: (resp) => fillTableAcciones(resp, 1, 5),
       error: (xhr, status, error) => console.error(error),
     });
   });
