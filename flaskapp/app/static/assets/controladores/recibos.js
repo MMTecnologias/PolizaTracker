@@ -20,6 +20,8 @@ $(function () {
     formMultiple
   ) {
     const { data, recordsTotal } = resp;
+    console.log(data);
+
     const table = $('#table-receipts');
     table.html('');
     $.each(data, function (idx, poliza) {
@@ -36,7 +38,7 @@ $(function () {
           <td>${poliza.prima_neta}</td>
           <td>${poliza.prima_total}</td>
           <td>${poliza.moneda}</td>
-          <td>${recibo.fecha_pago}</td>
+          <td>${poliza.fecha_pago ? poliza.fecha_pago : ''}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>

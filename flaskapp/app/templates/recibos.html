@@ -43,8 +43,8 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-10">
-                <form class="row mt-2" id="form-fechas" novalidate>
-                    <div class="col-5">
+                <form class="row mt-2" id="form-multiple" novalidate>
+                    <div class="col-3">
                         <div class="form__input-data input-sibling-child">
                             <label class="label-input-data" for="start_date">Fecha Inicio</label>
                             <div class="input-group">
@@ -52,7 +52,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-5">
+                    <div class="col-3">
                         <div class="form__input-data input-sibling-child">
                             <label class="label-input-data" for="end_date">Fecha Fin</label>
                             <div class="input-group">
@@ -60,17 +60,16 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-2 d-flex align-items-end">
-                        <button class="btn" type="submit" id="btnGuardar">
-                            Filtrar por fechas
-                        </button>
-                    </div>
-                </form>
-                <form class="row mt-2" id="form-multiple" novalidate>
-                    <div class="col">
+                    <div class="col-3">
                         <div class="form__input-data input-sibling-child">
                             <label class="label-input-data" for="start_date">Aseguradora</label>
                             <select class="custom-select" id="aseguradora_id" name="aseguradora_id"></select>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="form__input-data input-sibling-child">
+                            <label class="label-input-data" for="end_date">Cliente</label>
+                            <select class="custom-select" id="cliente_id" name="cliente_id"></select>
                         </div>
                     </div>
                     <div class="col">
@@ -81,7 +80,7 @@
                     </div>
                     <div class="col">
                         <div class="form__input-data input-sibling-child">
-                            <label class="label-input-data" for="end_date">Ramo</label>
+                            <label class="label-input-data" for="ramo_id">Ramo</label>
                             <select class="custom-select" id="ramo_id" name="ramo_id"></select>
                         </div>
                     </div>

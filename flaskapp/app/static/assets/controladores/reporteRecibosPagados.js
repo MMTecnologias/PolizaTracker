@@ -74,7 +74,7 @@ $(function () {
       url: '/reportes/recibos_pagados',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        console.log(resp.data);
+        console.log(resp);
         fillTableRecibosPagados(
           resp,
           formDataFechas,

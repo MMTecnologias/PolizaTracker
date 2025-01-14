@@ -91,7 +91,7 @@ $(function () {
       type: 'GET',
       url: '/reportes/get_multiple_ids',
       data: {},
-      success: ({ Aseguradora, Cliente, Grupo, Vendedor, Agente }) => {
+      success: ({ Aseguradora, Cliente, Grupo, Ramo, Vendedor, Agente }) => {
         $('#aseguradora_id').append(
           `<option value="">Selecciona aseguradora</option>`
         );
@@ -110,6 +110,12 @@ $(function () {
         for (const grupo of Grupo.data) {
           $('#grupo_id').append(
             `<option value='${grupo.id}'>${grupo.grupo}</option>`
+          );
+        }
+        $('#ramo_id').append(`<option value="">Selecciona Ramo</option>`);
+        for (const ramo of Ramo.data) {
+          $('#ramo_id').append(
+            `<option value='${ramo.id}'>${ramo.ramo}</option>`
           );
         }
         $('#agente_id').append(`<option value="">Selecciona agente</option>`);

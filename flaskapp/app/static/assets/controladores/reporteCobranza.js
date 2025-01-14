@@ -20,6 +20,8 @@ $(function () {
     formMultiple = null
   ) {
     const { data, recordsTotal } = resp;
+    console.log(data);
+
     const table = $('#table-vencimientos');
     table.html('');
     $.each(data, function (idx, poliza) {
@@ -37,6 +39,7 @@ $(function () {
           <td>$${poliza.prima_total}</td>
           <td>${poliza.moneda}</td>
           <td>${poliza.fecha_inicio}</td>
+          <td>${poliza.fecha_fin}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>
@@ -103,7 +106,9 @@ $(function () {
         $('#cliente_id').append(`<option value="">Selecciona cliente</option>`);
         for (const cliente of Cliente.data) {
           $('#cliente_id').append(
-            `<option value='${cliente.id}'>${cliente.nombre}</option>`
+            `<option value='${cliente.id}'>${
+              cliente.nombre + ' ' + cliente.apellido
+            }</option>`
           );
         }
         $('#grupo_id').append(`<option value="">Selecciona grupo</option>`);
