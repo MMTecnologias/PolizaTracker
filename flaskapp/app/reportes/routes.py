@@ -39,7 +39,10 @@ def get_multiple_ids():
     response = {}
     for key, tabla in clases.items():
         # Order by id in descending order
-        query = tabla.query.order_by(tabla.id.desc())
+        if key == "Cliente":
+            query = tabla.query.order_by(tabla.nombre.desc(),tabla.apellido.desc())
+        else:
+            query = tabla.query.order_by(tabla.id.desc())
         total_records = query.count()
         # Apply pagination
         records = query.all()
