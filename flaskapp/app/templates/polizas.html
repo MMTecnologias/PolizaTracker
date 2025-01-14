@@ -46,6 +46,7 @@
                <form id="form-polizas" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
                   <input type="text" id="tipo" name="tipo" hidden />
+                  <input type="text" id="recibo_id" name="id_recibo" hidden />
                   <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" hidden />
                   <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
                   <div class="form__input-data" id="div_search_client">
@@ -348,6 +349,40 @@
             </div>
             <div class="modal-footer">
                <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Modal edit date recibo -->
+   <div class="modal fade bd-example-modal-lg" id="edit_recib_date" tabindex="-1" role="dialog" aria-labelledby="recib">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+         <div class="modal-content">
+            <div class="modal-header">
+               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+               </button>
+            </div>
+            <div class="modal-body pt-1">
+               <div class="row pb-4">
+                  <div class="col-12">
+                     <form id="form_date_recib" class="needs-validation form-data" novalidate>
+                        <div class="input-sibling">
+                           <div class="form__input-data input-sibling-child">
+                              <label class="label-input-data">Fecha de pago</label>
+                              <div class="input-group">
+                                 <input type="date" class="form-control" id="fecha_pago" name="fecha_pago" required />
+                              </div>
+                           </div>
+                        </div>
+                        <div class="button-container">
+                           <button class="btn" type="submit" id="btnGuardar">
+                              Guardar
+                           </button>
+                        </div>
+                     </form>
+                  </div>
+               </div>
             </div>
          </div>
       </div>

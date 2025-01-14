@@ -655,7 +655,13 @@ $(function () {
                   recibo.id
                 }" name="check_pagado${recibo.id}" />
             </td>
-            <td>${recibo.fecha_pago}</td>
+            <td>${recibo.fecha_pago} ${
+          recibo.fecha_pago
+            ? `<a class="btn__icon_edit pointer" id="btnEdit_${recibo.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21"><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
+                </a>`
+            : null
+        } </td>
             <td>${recibo.cancelado ? 'Cancelado' : ''}</td>
          </tr>`
       );
@@ -666,6 +672,11 @@ $(function () {
         } else {
           changeReciboPagado(recibo.id, 'Cancelar Pago', poliza_id);
         }
+      });
+      $(`#btnEdit_${recibo.id}`).on('click', (e) => {
+        $('#recibo_id').val(recibo.id);
+        $('#poliza_id').val(poliza_id);
+        $('#edit_recib_date').modal();
       });
     });
     if (!data.length) return $('#pagination-recibos').html('');
@@ -915,7 +926,6 @@ $(function () {
       const polizaId = $('#poliza_id').val();
       params = `${params}&poliza_id=${polizaId}&is_endoso=true`;
     }
-    console.log(params);
     $.ajax({
       url: 'polizas/get_policy_values',
       method: 'POST',
@@ -943,6 +953,42 @@ $(function () {
         console.error(error);
         alert(
           'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+          'error'
+        );
+      },
+    });
+  });
+
+  $('#form_date_recib').submit(function (e) {
+    e.preventDefault();
+    if (!this.checkValidity()) {
+      $(this).addClass('was-validated');
+      return;
+    }
+    const formDataRecib = $('#form_date_recib').serialize();
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/process_receipt',
+      data:
+        formDataRecib +
+        '&accion=Modificar Fecha de Pago' +
+        '&recibo_id=' +
+        $('#recibo_id').val(),
+      success: function (resp) {
+        if (resp.error) {
+          alert(resp.msg, 'error', resp.title);
+        } else {
+          $('#edit_recib_date').modal('toggle');
+          alert(resp.msg, 'success');
+          getRecibos($('#poliza_id').val());
+          $('#recibo_id').val('');
+          $('#poliza_id').val('');
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error(error);
+        alert(
+          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
           'error'
         );
       },
@@ -1068,12 +1114,6 @@ $(function () {
       error: (xhr, status, error) => console.error(error),
     });
   });
-
-  // $('#sortByPoliza').click((e) => {
-  //   e.preventDefault();
-  //   ordered = !ordered;
-  //   getPolizas(ordered);
-  // });
 
   $('#searchPoliza').on('keyup', function (e) {
     e.preventDefault();
