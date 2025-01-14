@@ -1,5 +1,6 @@
 # app/main/routes.py
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response
+from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
@@ -17,11 +18,11 @@ from sqlalchemy.orm import aliased
 @login_required
 def get_receipts():
     # Recibe
-    poliza_id = request.form.get('poliza_id')
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
+    poliza_id = flask_request.form.get('poliza_id')
+    start = int(flask_request.form.get('start'))
+    length = int(flask_request.form.get('length'))
 
-    endoso_id = request.form.get('endoso_id')
+    endoso_id = flask_request.form.get('endoso_id')
     if endoso_id:
         recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
         poliza_id = Recibo.query.get(endoso_id).poliza_id
@@ -67,7 +68,7 @@ def get_receipts():
 @login_required
 def search_clients():
     # Get search query from request data
-    search_query = request.form.get('query')
+    search_query = flask_request.form.get('query')
     clients_query = db.session.query(Cliente.id, Cliente.nombre, Cliente.apellido) \
         .filter(Cliente.status == 'Activo') \
         .filter(or_(
@@ -86,11 +87,11 @@ def search_clients():
 @login_required
 def get():
     # Estos datos los recibe desde la función en JS
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
-    search_value = request.form.get('searchValue')
-    order = bool(request.form.get('order'))
-    poliza_id = request.form.get('poliza_id')
+    start = int(flask_request.form.get('start'))
+    length = int(flask_request.form.get('length'))
+    search_value = flask_request.form.get('searchValue')
+    order = bool(flask_request.form.get('order'))
+    poliza_id = flask_request.form.get('poliza_id')
 
     polizas_query = db.session.query(Poliza,
                                      Cliente.nombre.label("client_name"),
@@ -191,7 +192,9 @@ def get():
 def create():
     # if not check_access("Clientes"):
     #    return redirect(url_for('main.index'))
-    poliza_id = request.form.get('poliza_id')
+    #flask_request.form.get('start')
+    poliza_id = flask_request.form.get('poliza_id')
+    print("Here")
     poliza_old = None
     if not(poliza_id == "New"):
         try:
@@ -210,27 +213,27 @@ def create():
     def check_new_form():
         argdict = {}
 
-        ramo = request.form.get('ramo')
-        nuevo_ramo = request.form.get('nuevo_ramo')
+        ramo = flask_request.form.get('ramo')
+        nuevo_ramo = flask_request.form.get('nuevo_ramo')
         argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
 
-        subramo = request.form.get('subramo')
-        nuevo_subramo = request.form.get('nuevo_subramo')
+        subramo = flask_request.form.get('subramo')
+        nuevo_subramo = flask_request.form.get('nuevo_subramo')
         argdict["subramo_id"] = new_class(
             Subramo, subramo, nuevo_subramo, "subramo")
 
-        aseguradora = request.form.get('aseguradora')
-        nuevo_aseguradora = request.form.get('nuevo_aseguradora')
+        aseguradora = flask_request.form.get('aseguradora')
+        nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
         argdict["aseguradora_id"] = new_class(
             Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
-        vendedor = request.form.get('vendedor')
-        nuevo_vendedor = request.form.get('nuevo_vendedor')
+        vendedor = flask_request.form.get('vendedor')
+        nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
         argdict["vendedor_id"] = new_class(
             Vendedor, vendedor, nuevo_vendedor, "nombre")
 
-        agente = request.form.get('agente')
-        nuevo_agente = request.form.get('nuevo_agente')
+        agente = flask_request.form.get('agente')
+        nuevo_agente = flask_request.form.get('nuevo_agente')
         argdict["agente_id"] = new_class(
             Agente, agente, nuevo_agente, "nombre")
         return argdict
@@ -253,19 +256,19 @@ def create():
         'conducta_pago':'conducto_pago'
     }
     form_value_mapping = {
-        'selected-client-id': request.form.get('selected-client-id'),
-        'VigenciaI': request.form.get('VigenciaI'),
-        'VigenciaF': request.form.get('VigenciaF'),
-        'Moneda': request.form.get('Moneda'),
-        'Pago': request.form.get('Pago'),
-        'serie': request.form.get('serie'),
-        'notas': request.form.get('notas'),
-        'polizaAnterior': request.form.get('polizaAnterior'),
-        'renovacion': request.form.get('renovacion'),
-        'prima_neta': request.form.get('prima_neta'),
-        'prima_total': request.form.get('prima_total'),
-        'Poliza': request.form.get('Poliza'),
-        'conducto_pago': request.form.get('conducto_pago')
+        'selected-client-id': flask_request.form.get('selected-client-id'),
+        'VigenciaI': flask_request.form.get('VigenciaI'),
+        'VigenciaF': flask_request.form.get('VigenciaF'),
+        'Moneda': flask_request.form.get('Moneda'),
+        'Pago': flask_request.form.get('Pago'),
+        'serie': flask_request.form.get('serie'),
+        'notas': flask_request.form.get('notas'),
+        'polizaAnterior': flask_request.form.get('polizaAnterior'),
+        'renovacion': flask_request.form.get('renovacion'),
+        'prima_neta': flask_request.form.get('prima_neta'),
+        'prima_total': flask_request.form.get('prima_total'),
+        'Poliza': flask_request.form.get('Poliza'),
+        'conducto_pago': flask_request.form.get('conducto_pago')
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
@@ -338,8 +341,8 @@ def create():
 @polizas_route.route('/delete', methods=['POST'])
 @login_required
 def delete():
-    poliza_id = int(request.form.get('poliza_id'))
-    razon = request.form.get('razon')
+    poliza_id = int(flask_request.form.get('poliza_id'))
+    razon = flask_request.form.get('razon')
     poliza = Poliza.query.get(poliza_id)
     if poliza:
         # Update the poliza's status to "Eliminado"
@@ -368,11 +371,11 @@ def delete():
 @login_required
 def get_policy_values():
     # Buscar la póliza en la base de datos por su ID
-    fecha_inicio = request.form.get('fecha_inicio')
-    fecha_termino = request.form.get('fecha_termino')
-    tipo_pago_id = request.form.get('tipo_pago_id')
-    prima_neta = request.form.get('prima_neta')
-    prima_total = request.form.get('prima_total')
+    fecha_inicio = flask_request.form.get('fecha_inicio')
+    fecha_termino = flask_request.form.get('fecha_termino')
+    tipo_pago_id = flask_request.form.get('tipo_pago_id')
+    prima_neta = flask_request.form.get('prima_neta')
+    prima_total = flask_request.form.get('prima_total')
 
     # Calcular la duración de la póliza en años, considerando años bisiestos
     start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d')
@@ -392,11 +395,11 @@ def get_policy_values():
     if not tipo_pago:
         return jsonify({'error': True, 'msg': 'Tipo de pago no encontrado'})
 
-    endoso=request.form.get('is_endoso')
+    endoso=flask_request.form.get('is_endoso')
     msg=""
     
     if endoso=="true":
-        poliza_id=request.form.get('poliza_id')
+        poliza_id=flask_request.form.get('poliza_id')
         poliza=Poliza.query.get(poliza_id)
         if not poliza: return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
         if start_date.date()>poliza.fecha_termino: return jsonify({'error': True, 'msg': 'El endoso no puede empezar una vez vencida la poliza'})
@@ -441,20 +444,20 @@ def get_policy_values():
 
 def calcular_recibos():
     # Retrieve data from the form
-    prima_total = float(request.form.get('totalPremium'))
-    prima_neta = float(request.form.get('netPremium'))
-    iva = float(request.form.get('iva'))
-    derecho_poliza = float(request.form.get('insurance'))
+    prima_total = float(flask_request.form.get('totalPremium'))
+    prima_neta = float(flask_request.form.get('netPremium'))
+    iva = float(flask_request.form.get('iva'))
+    derecho_poliza = float(flask_request.form.get('insurance'))
     derecho_poliza_con_iva = derecho_poliza * (1+iva / 100)
     iva = prima_total*iva /(100+iva)
-    commission = float(request.form.get('commission'))
+    commission = float(flask_request.form.get('commission'))
     commission = prima_neta * commission/100
     # Assuming this is the number of payments
-    nopagos = int(request.form.get('receipts'))
+    nopagos = int(flask_request.form.get('receipts'))
 
     recargo_por_pago = prima_total - iva-prima_neta-derecho_poliza
 
-    rec_pago=request.form.get('rec_pago') #Es "primer_recibo" o "dividir_recibos"
+    rec_pago=flask_request.form.get('rec_pago') #Es "primer_recibo" o "dividir_recibos"
     print(rec_pago)
     print(nopagos)
     print(derecho_poliza_con_iva)
@@ -492,7 +495,7 @@ def calcular_recibos():
     response['iva'] = iva
     response['rec_pago'] = recargo_por_pago
     response['comision'] = commission
-    response['poliza_id'] = request.form.get('selectPoliza')
+    response['poliza_id'] = flask_request.form.get('selectPoliza')
     response['nopagos'] = nopagos
 
     print(response)
@@ -521,7 +524,7 @@ def save_receipts():
     poliza_id = response['poliza_id']
 
     poliza = Poliza.query.get(poliza_id)
-    endoso_id = request.form.get('endoso_id')
+    endoso_id = flask_request.form.get('endoso_id')
     multiplier=1
     endoso_or_poliza = poliza
     is_endoso = False
@@ -623,8 +626,8 @@ def save_receipts():
 @polizas_route.route('/create_endoso', methods=['POST'])
 @login_required
 def create_endoso():
-    poliza_id = request.form.get('poliza_id')
-    tipo = request.form.get('tipo')
+    poliza_id = flask_request.form.get('poliza_id')
+    tipo = flask_request.form.get('tipo')
     if tipo not in ("A", "B", "D"):
         return jsonify({"error": True, "msg": "No se encuentra el tipo de endoso"})
     poliza = Poliza.query.get(poliza_id)
@@ -634,27 +637,27 @@ def create_endoso():
     def check_new_form():
         argdict = {}
 
-        ramo = request.form.get('ramo')
-        nuevo_ramo = request.form.get('nuevo_ramo')
+        ramo = flask_request.form.get('ramo')
+        nuevo_ramo = flask_request.form.get('nuevo_ramo')
         argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
 
-        subramo = request.form.get('subramo')
-        nuevo_subramo = request.form.get('nuevo_subramo')
+        subramo = flask_request.form.get('subramo')
+        nuevo_subramo = flask_request.form.get('nuevo_subramo')
         argdict["subramo_id"] = new_class(
             Subramo, subramo, nuevo_subramo, "subramo")
 
-        aseguradora = request.form.get('aseguradora')
-        nuevo_aseguradora = request.form.get('nuevo_aseguradora')
+        aseguradora = flask_request.form.get('aseguradora')
+        nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
         argdict["aseguradora_id"] = new_class(
             Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
-        vendedor = request.form.get('vendedor')
-        nuevo_vendedor = request.form.get('nuevo_vendedor')
+        vendedor = flask_request.form.get('vendedor')
+        nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
         argdict["vendedor_id"] = new_class(
             Vendedor, vendedor, nuevo_vendedor, "nombre")
 
-        agente = request.form.get('agente')
-        nuevo_agente = request.form.get('nuevo_agente')
+        agente = flask_request.form.get('agente')
+        nuevo_agente = flask_request.form.get('nuevo_agente')
         argdict["agente_id"] = new_class(
             Agente, agente, nuevo_agente, "nombre")
         return argdict
@@ -675,18 +678,18 @@ def create_endoso():
         'endoso': 'Poliza'
     }
     form_value_mapping = {
-        'selected-client-id': request.form.get('selected-client-id'),
-        'VigenciaI': request.form.get('VigenciaI'),
-        'VigenciaF': request.form.get('VigenciaF'),
-        'Moneda': request.form.get('Moneda'),
-        'Pago': request.form.get('Pago'),
-        'serie': request.form.get('serie'),
-        'notas': request.form.get('notas'),
-        'polizaAnterior': request.form.get('polizaAnterior'),
-        'renovacion': request.form.get('renovacion'),
-        'prima_neta': request.form.get('prima_neta'),
-        'prima_total': request.form.get('prima_total'),
-        'Poliza': request.form.get('Poliza')
+        'selected-client-id': flask_request.form.get('selected-client-id'),
+        'VigenciaI': flask_request.form.get('VigenciaI'),
+        'VigenciaF': flask_request.form.get('VigenciaF'),
+        'Moneda': flask_request.form.get('Moneda'),
+        'Pago': flask_request.form.get('Pago'),
+        'serie': flask_request.form.get('serie'),
+        'notas': flask_request.form.get('notas'),
+        'polizaAnterior': flask_request.form.get('polizaAnterior'),
+        'renovacion': flask_request.form.get('renovacion'),
+        'prima_neta': flask_request.form.get('prima_neta'),
+        'prima_total': flask_request.form.get('prima_total'),
+        'Poliza': flask_request.form.get('Poliza')
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
@@ -736,9 +739,9 @@ def create_endoso():
 @login_required
 def get_endosos():
     # Recibe
-    poliza_id = request.form.get('poliza_id')
-    start = int(request.form.get('start'))
-    length = int(request.form.get('length'))
+    poliza_id = flask_request.form.get('poliza_id')
+    start = int(flask_request.form.get('start'))
+    length = int(flask_request.form.get('length'))
 
     # Query to fetch endosos data from the database
     endosos_query = db.session.query(Endoso,
@@ -825,8 +828,8 @@ def process_receipt():
         error (bool): Indicates if there was an error.
         msg (str): A message describing the result of the action.
     """
-    recibo_id = request.form.get('recibo_id')
-    accion = request.form.get('accion')
+    recibo_id = flask_request.form.get('recibo_id')
+    accion = flask_request.form.get('accion')
     recibo = Recibo.query.get(recibo_id)
     poliza = Poliza.query.get(recibo.poliza_id)
     if not recibo:
@@ -883,7 +886,7 @@ def process_receipt():
             'msg': 'Pago de recibo cancelado exitosamente, esta accion esta sujeta a revision'
         })
     elif accion == 'Modificar Fecha de Pago':
-        nueva_fecha_pago = request.form.get('fecha_pago')
+        nueva_fecha_pago = flask_request.form.get('fecha_pago')
         try:
             nueva_fecha_pago = datetime.strptime(nueva_fecha_pago, '%Y-%m-%d')
         except ValueError:
@@ -972,17 +975,17 @@ def get_form_data():
 @polizas_route.route('/get_all_receipts', methods=['POST', 'GET'])
 @login_required
 def get_all_receipts():
-    start = int(request.form.get('start')
-                ) if request.form.get('start') else None
-    length = int(request.form.get('length')
-                 ) if request.form.get('length') else None
+    start = int(flask_request.form.get('start')
+                ) if flask_request.form.get('start') else None
+    length = int(flask_request.form.get('length')
+                 ) if flask_request.form.get('length') else None
     
-    aseguradora_id = request.form.get('aseguradora_id')
-    cliente_id = request.form.get('cliente_id')
-    grupo_id = request.form.get('grupo_id')    
-    vendedor_id = request.form.get('vendedor_id')
-    agente_id = request.form.get('agente_id')
-    ramo_id = request.form.get('ramo_id')
+    aseguradora_id = flask_request.form.get('aseguradora_id')
+    cliente_id = flask_request.form.get('cliente_id')
+    grupo_id = flask_request.form.get('grupo_id')    
+    vendedor_id = flask_request.form.get('vendedor_id')
+    agente_id = flask_request.form.get('agente_id')
+    ramo_id = flask_request.form.get('ramo_id')
 
     #Get valid list of policies
     polizas = []
@@ -1065,9 +1068,9 @@ def get_all_receipts():
     if aseguradora_id or cliente_id or grupo_id:
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.poliza_id.in_(polizas))
 
-    if request.form.get('start_date') and request.form.get('end_date'):
-        start_date =  datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-        end_date =  datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+    if flask_request.form.get('start_date') and flask_request.form.get('end_date'):
+        start_date =  datetime.strptime(flask_request.form.get('start_date'), '%Y-%m-%d')
+        end_date =  datetime.strptime(flask_request.form.get('end_date'), '%Y-%m-%d')
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= start_date,
                                                                 Recibo.fecha_inicio <= end_date)
     upcoming_receipts_query = upcoming_receipts_query.order_by(Recibo.fecha_inicio)
