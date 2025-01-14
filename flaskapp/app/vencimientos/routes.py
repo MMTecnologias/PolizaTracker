@@ -408,6 +408,12 @@ def get_upcoming_policies():
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
     grupo_id = request.form.get('grupo_id')
+    #vendedor
+    vendedor_id = request.form.get('vendedor_id')
+    #agente
+    agente_id = request.form.get('agente_id')
+    #ramo
+    ramo_id = request.form.get('ramo_id')
 
     # Client and grupo can not be asked both
     if cliente_id and grupo_id:
@@ -533,6 +539,24 @@ def get_upcoming_policies():
             Poliza.cliente_id.in_(clients))
         upcoming_endosos_query = upcoming_endosos_query.filter(
             Endoso.cliente_id.in_(clients))
+    
+    if agente_id:
+        upcoming_policies_query = upcoming_policies_query.filter(
+            Poliza.agente_id == int(agente_id))
+        upcoming_endosos_query = upcoming_endosos_query.filter(
+            Endoso.agente_id == int(agente_id))
+    
+    if vendedor_id:
+        upcoming_policies_query = upcoming_policies_query.filter(
+            Poliza.vendedor_id == int(vendedor_id))
+        upcoming_endosos_query = upcoming_endosos_query.filter(
+            Endoso.vendedor_id == int(vendedor_id))
+    
+    if ramo_id:
+        upcoming_policies_query = upcoming_policies_query.filter(
+            Poliza.ramo_id == int(ramo_id))
+        upcoming_endosos_query = upcoming_endosos_query.filter(
+            Endoso.ramo_id == int(ramo_id))
 
     total_records = upcoming_policies_query.count()
     total_records += upcoming_endosos_query.count()
