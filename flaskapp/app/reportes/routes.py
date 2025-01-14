@@ -940,8 +940,8 @@ def recibos_pagados():
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Recibo.fecha_inicio >= start_date,
-                Recibo.fecha_inicio <= end_date,
+        .filter(Recibo.fecha_pago >= start_date,
+                Recibo.fecha_pago <= end_date,
                 Recibo.status == "Liquidado") \
         .order_by(desc(Recibo.fecha_pago))
 
