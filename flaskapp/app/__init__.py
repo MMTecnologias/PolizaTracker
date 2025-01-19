@@ -34,6 +34,7 @@ from app.solicitudes import solicitudes_route
 from app.usuarios import usuarios_route
 from app.vencimientos import vencimientos_route
 from app.reportes import reportes_route
+from app.endosos import endosos_route
 
 app.register_blueprint(auth)
 app.register_blueprint(main)
@@ -43,5 +44,6 @@ app.register_blueprint(solicitudes_route)
 app.register_blueprint(usuarios_route)
 app.register_blueprint(vencimientos_route)
 app.register_blueprint(reportes_route)
+app.register_blueprint(endosos_route)
 
 
