@@ -987,6 +987,11 @@ def get_all_receipts():
     agente_id = flask_request.form.get('agente_id')
     ramo_id = flask_request.form.get('ramo_id')
 
+    status = flask_request.form.get('status')
+    #ENUM('Liquidado', 'Pendiente', 'Vencido', 'Cancelado')
+    if status and status not in ('Liquidado', 'Pendiente', 'Vencido', 'Cancelado'):
+        return jsonify({'error': True, 'msg': 'Estado no válido, debe estar en [Liquidado, Pendiente, Vencido, Cancelado]'})
+
     #Get valid list of policies
     polizas = []
     if cliente_id:
@@ -1075,6 +1080,8 @@ def get_all_receipts():
                                                                 Recibo.fecha_inicio <= end_date)
     upcoming_receipts_query = upcoming_receipts_query.order_by(Recibo.fecha_inicio)
 
+    if status:
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.status == status)
 
     total_records = upcoming_receipts_query.count()
 
@@ -1106,7 +1113,8 @@ def get_all_receipts():
             'agente': f'{agente}',
             'endoso': poliza.endoso,
             'poliza_anterior': poliza.poliza_anterior,
-            'aseguradora': aseguradora
+            'aseguradora': aseguradora,
+            'status': recibo.status
         }
 
         response.append(data)
