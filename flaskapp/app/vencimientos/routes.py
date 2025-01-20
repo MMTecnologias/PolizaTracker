@@ -217,7 +217,7 @@ def get_upcoming_receipts():
     #ramo
     ramo_id = request.form.get('ramo_id')
 
-    print(aseguradora_id, cliente_id, grupo_id)
+    print(agente_id)
 
     # Get valid list of policies
     polizas = []
@@ -335,7 +335,7 @@ def get_upcoming_receipts():
                                                                         (Recibo.fecha_inicio >= payment_due_start).label('is_upcoming')) \
             .order_by(Recibo.fecha_inicio)
 
-    if aseguradora_id or cliente_id or grupo_id:
+    if aseguradora_id or cliente_id or grupo_id or agente_id or vendedor_id or ramo_id:
         upcoming_receipts_query = upcoming_receipts_query.filter(
             Recibo.poliza_id.in_(polizas))
 
