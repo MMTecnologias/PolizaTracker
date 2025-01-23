@@ -20,8 +20,6 @@ $(function () {
     formMultiple = null
   ) {
     const { data, recordsTotal } = resp;
-    console.log(data);
-
     const table = $('#table-vencimientos');
     table.html('');
     $.each(data, function (idx, poliza) {
@@ -144,11 +142,12 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const cliente_id = $('#cliente_id').val();
-    const grupo_id = $('#grupo_id').val();
-    if (cliente_id && grupo_id)
-      return alert('No puedes filtrar combinando cliente y grupo', 'warning');
+    // const cliente_id = $('#cliente_id').val();
+    // const grupo_id = $('#grupo_id').val();
+    // if (cliente_id && grupo_id)
+    //   return alert('No puedes filtrar combinando cliente y grupo', 'warning');
     const formMultiple = $('#form-multiple').serialize();
+    console.log(formMultiple);
     getVencimientos(null, 1, 0, formMultiple);
   });
 

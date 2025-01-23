@@ -34,6 +34,7 @@ $(function () {
           <td>${poliza.poliza}</td>
           <td>$${poliza.prima_neta}</td>
           <td>$${poliza.prima_total}</td>
+          <td>${poliza.aseguradora || ''}</td>
           <td>${poliza.fecha_inicio}</td>
           <td>${poliza.fecha_fin}</td>
           <td>${poliza.cliente}</td>
@@ -103,7 +104,9 @@ $(function () {
         $('#cliente_id').append(`<option value="">Selecciona cliente</option>`);
         for (const cliente of Cliente.data) {
           $('#cliente_id').append(
-            `<option value='${cliente.id}'>${cliente.nombre}</option>`
+            `<option value='${cliente.id}'>${
+              cliente.nombre + ' ' + cliente.apellido
+            }</option>`
           );
         }
         $('#grupo_id').append(`<option value="">Selecciona grupo</option>`);
@@ -139,10 +142,10 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const cliente_id = $('#cliente_id').val();
-    const grupo_id = $('#grupo_id').val();
-    if (cliente_id && grupo_id)
-      return alert('No puedes filtrar combinando cliente y grupo', 'warning');
+    // const cliente_id = $('#cliente_id').val();
+    // const grupo_id = $('#grupo_id').val();
+    // if (cliente_id && grupo_id)
+    //   return alert('No puedes filtrar combinando cliente y grupo', 'warning');
     const formMultiple = $('#form-multiple').serialize();
     getVencimientos(null, 1, 0, formMultiple);
   });
