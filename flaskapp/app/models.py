@@ -1,14 +1,15 @@
 from flask_login import UserMixin
 from sqlalchemy import Column, Integer, String, Date, Enum, DECIMAL, ForeignKey, TIMESTAMP
-from app import db
+from app import db, app
 from sqlalchemy.sql import func
 from io import BytesIO, StringIO
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Image,Spacer
 from reportlab.lib import colors, styles
 from reportlab.lib.styles import getSampleStyleSheet
 from flask import Response
 import csv
+import os
 
 
 class Grupo(db.Model):
@@ -354,6 +355,18 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     # Build the PDF document
     elements = []
 
+    
+    # Load the logo image
+    #logo_path = "static/assets/images/GGcorp_logo_for_Repor.png"  # Update this path to the actual location of your logo
+    logo_path = os.path.join(app.root_path, 'static/assets/images/GGcorp_logo_for_Repor.png')
+    logo = Image(logo_path)
+    #og size is 615x1024
+    logo.drawHeight = 102.4/2  # Adjust the height as needed
+    logo.drawWidth = 61.5/2  # Adjust the width as needed
+    """
+    # Add the logo to the document
+    elements.append(logo)
+
     # Create a style for the title
     title_style = getSampleStyleSheet()['Title']
     title_style.fontName = 'Helvetica'
@@ -364,7 +377,34 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     # Create the title paragraph
     p = Paragraph(title_str, title_style)
     elements.append(p)
+    """
+        # Custom header (logo on the right, title on the left)
+    header_table_data = [
+        [
+            Paragraph(
+                f"<b>{title_str}</b>",  # Title on the left
+                getSampleStyleSheet()['Title']
+            ),
+            logo  # Logo on the right
+        ]
+    ]
+    header_table = Table(
+        header_table_data,
+        colWidths=[700, 50]  # Adjust column widths (e.g., 400px for title, 100px for logo)
+    )
+    header_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),  # Align the title to the left
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),  # Align the logo to the right
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Vertically align to the middle
+    ]))
 
+    # Add the custom header
+    elements.append(header_table)
+
+    # Add some spacing after the header
+    elements.append(Spacer(1, 10))
+
+    # Add the table with data
     elements.append(table)
     doc.build(elements)
 
@@ -405,3 +445,80 @@ def export_tocsv2(headers, jsondic, filename):
     response.headers.set("Content-Disposition",
                          "attachment", filename=filename)
     return response
+
+
+def export_to_pdf2(headers, jsondic, filename, real_headers=None, to_multiline=None, title_str="Title"):
+    title_str = str(title_str)
+    if real_headers is None:
+        real_headers = headers
+    if to_multiline is None:
+        to_multiline = []
+    # Create a buffer to hold the PDF data
+    buffer = BytesIO()
+    # Set up the PDF document
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(
+        letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4, title=title_str)
+
+    # Create the table data
+    style = getSampleStyleSheet()['Normal']
+    style.fontName = 'Helvetica'
+    style.fontSize = 8
+    style.textColor = colors.black
+    style.wordWrap = True
+    style.alignment = 0
+    style.valign = 1
+    style.bottomPadding = 6
+
+    print(real_headers)
+    print(jsondic)
+    data = [real_headers] + [
+        [Paragraph(
+            '' if not data[header] else data[header], style) if header in to_multiline else data[header] for header in headers]
+        for data in jsondic
+    ]
+    print("Porcessed")
+    print(data)
+    # Create the table and set its style
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('WORDWRAP', (0, 1), (-1, -1), True),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 7),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+
+    # Build the PDF document
+    elements = []
+
+    # Create a style for the title
+    title_style = getSampleStyleSheet()['Title']
+    title_style.fontName = 'Helvetica'
+    title_style.fontSize = 14
+    title_style.leading = 20
+    title_style.alignment = 1  # Center alignment
+
+    # Create the title paragraph
+    p = Paragraph(title_str, title_style)
+    elements.append(p)
+
+    elements.append(table)
+    doc.build(elements)
+
+    # Reset the buffer position
+    buffer.seek(0)
+
+    # Return the PDF data as a response
+    response = Response(buffer, mimetype='application/pdf')
+    response.headers.set("Content-Disposition",
+                         "attachment", filename=filename)
+    return response
+
