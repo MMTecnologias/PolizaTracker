@@ -234,8 +234,8 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/solicitudes/get_all',
-      data: $.param({ start: 0, length: 0, search_value }),
-      success: (resp) => fillTableAcciones(resp, 1, 5),
+      data: $.param({ start: 0, length: 10, search_value }),
+      success: (resp) => fillTableAcciones(resp, 1, 10),
       error: (xhr, status, error) => console.error(error),
     });
   });

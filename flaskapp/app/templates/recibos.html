@@ -38,8 +38,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- page container area start -->
     <div class="container-fluid">
         <div class="row">
             <div class="col-10">
@@ -60,16 +58,28 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-2">
                         <div class="form__input-data input-sibling-child">
                             <label class="label-input-data" for="start_date">Aseguradora</label>
                             <select class="custom-select" id="aseguradora_id" name="aseguradora_id"></select>
                         </div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-2">
                         <div class="form__input-data input-sibling-child">
                             <label class="label-input-data" for="end_date">Cliente</label>
                             <select class="custom-select" id="cliente_id" name="cliente_id"></select>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form__input-data input-sibling-child">
+                            <label class="label-input-data" for="status">Estatus</label>
+                            <select class="custom-select" id="status" name="status">
+                                <option value="">Selecciona un estatus</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Liquidado">Liquidado</option>
+                                <option value="Vencido">Vencido</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col">
@@ -126,6 +136,7 @@
                                 </th>
                                 <th scope="col">Documento</th>
                                 <th scope="col">Id documento</th>
+                                <th scope="col">Estatus</th>
                                 <th scope="col">Aseguradora</th>
                                 <th scope="col">Prima neta</th>
                                 <th scope="col">Prima total</th>
@@ -147,7 +158,6 @@
             </div>
         </div>
     </div>
-    <!-- main content area end -->
     <script type="module" src="{{ url_for('static', filename='assets/controladores/recibos.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>

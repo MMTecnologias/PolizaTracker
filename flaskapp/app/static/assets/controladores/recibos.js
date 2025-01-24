@@ -34,6 +34,7 @@ $(function () {
           </td>
           <td>${poliza.endoso !== null ? 'Endoso' : 'Poliza'}</td>
           <td>${poliza.endoso !== null ? poliza.endoso : poliza.poliza}</td>
+          <td>${poliza.status}</td>
           <td>${poliza.aseguradora}</td>
           <td>${poliza.prima_neta}</td>
           <td>${poliza.prima_total}</td>
@@ -94,7 +95,7 @@ $(function () {
       url: '/reportes/get_multiple_ids',
       data: {},
       success: (resp) => {
-        const { Aseguradora, Grupo, Ramo, Agente, Vendedor } = resp;
+        const { Aseguradora, Grupo, Ramo, Agente, Cliente, Vendedor } = resp;
         $('#aseguradora_id').append(
           `<option value="">Selecciona aseguradora</option>`
         );
@@ -113,6 +114,14 @@ $(function () {
         for (const ramo of Ramo.data) {
           $('#ramo_id').append(
             `<option value='${ramo.id}'>${ramo.ramo}</option>`
+          );
+        }
+        $('#cliente_id').append(`<option value="">Selecciona Cliente</option>`);
+        for (const cliente of Cliente.data) {
+          $('#cliente_id').append(
+            `<option value='${cliente.id}'>${
+              cliente.nombre + ' ' + cliente.apellido
+            }</option>`
           );
         }
         $('#agente_id').append(`<option value="">Selecciona agente</option>`);

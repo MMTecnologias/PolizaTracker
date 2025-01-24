@@ -166,7 +166,7 @@ $(function () {
     $('#div_poliza_id').show();
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/get',
+      url: '/endosos/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
         console.log(resp);
@@ -265,7 +265,7 @@ $(function () {
     $('#poliza_id').val(poliza_id);
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/get',
+      url: '/endosos/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
         $('#buscar-cliente').val(resp.data[0].cliente);
@@ -363,7 +363,7 @@ $(function () {
     $('#title_poliza').text('Renovacion');
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/get',
+      url: '/endosos/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
         const year =
@@ -472,7 +472,7 @@ $(function () {
       return alert('Debe agregar una razón para cancelar', 'error');
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/delete',
+      url: '/endosos/delete',
       data: $.param({ poliza_id, razon: value.razon }),
       success: function (resp) {
         if (!resp.error) {
@@ -495,7 +495,7 @@ $(function () {
   function changeReciboPagado(recibo_id, accion, poliza_id) {
     $.ajax({
       type: 'POST',
-      url: '/polizas/process_receipt',
+      url: '/endosos/process_receipt',
       data: $.param({ recibo_id, accion }),
       success: function (resp) {
         if (resp.error) {
@@ -519,7 +519,7 @@ $(function () {
     return new Promise((resolve, reject) => {
       $.ajax({
         type: 'GET',
-        url: '/polizas/get_form_data',
+        url: '/endosos/get_form_data',
         data: {},
         success: function (resp) {
           resolve(resp);
@@ -752,7 +752,7 @@ $(function () {
     const length = 9;
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/get',
+      url: '/endosos/get',
       data: $.param({ start, length, order: true }),
       success: (resp) => fillTablePolizas(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
@@ -763,7 +763,7 @@ $(function () {
     const length = 10;
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/get_endosos',
+      url: '/endosos/get_endosos',
       data: $.param({ start, length, order: true, poliza_id }),
       success: (resp) => fillTableEndosos(resp, pageNumber, length, poliza_id),
       error: (xhr, status, error) => console.error(error),
@@ -781,7 +781,7 @@ $(function () {
     }
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/get_receipts',
+      url: '/endosos/get_receipts',
       data: $.param(sendObj),
       success: (resp) =>
         endoso_id
@@ -851,7 +851,7 @@ $(function () {
     if (endoso_id) sendObj.endoso_id = endoso_id;
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/save_receipts',
+      url: '/endosos/save_receipts',
       data: $.param(sendObj),
       success: function (resp) {
         if (resp.error) {
@@ -938,7 +938,7 @@ $(function () {
     if ($('#tipo').val()) {
       $.ajax({
         type: 'POST',
-        url: '/polizas/create_endoso',
+        url: '/endosos/create_endoso',
         data: formDataPoliza,
         success: function (resp) {
           if (resp.error) {
@@ -963,7 +963,7 @@ $(function () {
     } else {
       $.ajax({
         type: 'POST',
-        url: '/polizas/create',
+        url: '/endosos/create',
         data: formDataPoliza,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -1026,7 +1026,7 @@ $(function () {
       );
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/calculate_receipts',
+      url: '/endosos/calculate_receipts',
       data: $.param({
         netPremium,
         totalPremium,
@@ -1060,7 +1060,7 @@ $(function () {
     if (searchValue == '') return getPolizas();
     $.ajax({
       ...ajaxConfig,
-      url: '/polizas/get',
+      url: '/endosos/get',
       data: $.param({ start: 0, length: 9, searchValue }),
       success: (resp) => fillTablePolizas(resp, 1, 9),
       error: (xhr, status, error) => console.error(error),
