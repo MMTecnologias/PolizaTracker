@@ -285,12 +285,12 @@ def create():
 
     poliza = Poliza.query.filter(Poliza.poliza==arg_values["poliza"],Poliza.status!="Cancelada").first()
     if poliza:
-        return jsonify({'error': True, 'msg': 'Ya existe una póliza vigente con el mismo número'})
+        return jsonify({'error': True, 'msg': 'Ya existe una póliza vigente con el mismo número','title': 'Ya existe una póliza vigente con el mismo número'})
     #check for pending cancelation request of the same poliza
     request = Request.query.filter(Request.description==f"Cancelar póliza {arg_values['poliza']}",
                                    Request.status=="Pendiente").first()
     if request:
-        return jsonify({'error': True, 'msg': 'Existe una solicitud de cancelación pendiente para esta póliza'})
+        return jsonify({'error': True, 'msg': 'Existe una solicitud de cancelación pendiente para esta póliza','title': 'Existe una solicitud de cancelación pendiente para esta póliza'})
 
     new_poliza = Poliza(**arg_values)
     # Save the new client to the database

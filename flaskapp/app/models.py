@@ -325,15 +325,15 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     style.valign = 1
     style.bottomPadding = 6
 
-    print(real_headers)
-    print(jsondic)
+    #print(real_headers)
+    #print(jsondic)
     data = [real_headers] + [
         [Paragraph(
             '' if not data[header] else data[header], style) if header in to_multiline else data[header] for header in headers]
         for data in jsondic
     ]
-    print("Porcessed")
-    print(data)
+    #print("Porcessed")
+    #print(data)
     # Create the table and set its style
     table = Table(data)
     table.setStyle(TableStyle([

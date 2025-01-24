@@ -4,6 +4,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, Endoso, new_class
+from app.models import export_to_csv, export_to_pdf
 from sqlalchemy import join, or_, desc, func, select
 import csv
 from io import StringIO
@@ -26,6 +27,9 @@ def update_poliza_status(no_months):
     # Get all polizas with status "Vigente" or "Por Vencer"
     polizas = Poliza.query.filter(
         Poliza.status.in_(["Vigente", "Por Vencer"])).all()
+    
+    #Get recepits with status "Pendiente"
+    recibos = Recibo.query.filter(Recibo.status == "Pendiente").all()
 
     # Iterate through each poliza
     for poliza in polizas:
@@ -40,6 +44,12 @@ def update_poliza_status(no_months):
             # Check if the number of months is less than or equal to no_months
             if num_months <= no_months:
                 poliza.status = "Por Vencer"
+
+    # Iterate through each recibo
+    for recibo in recibos:
+        # Check if the fecha_termino is before the current date
+        if recibo.fecha_vencimiento < current_date:
+            recibo.status = "Vencido"
 
     # Commit the changes to the database
     db.session.commit()
@@ -589,6 +599,7 @@ def get_upcoming_policies():
             'forma_pago': tipo_pago,
             'agente': f'{agente}',
             'vendedor': f'{vendedor}',
+            "aseguradora": aseguradora,
             'endoso': poliza.endoso,
             'poliza_anterior': poliza.poliza_anterior
         }
@@ -612,6 +623,7 @@ def get_upcoming_policies():
             'forma_pago': tipo_pago,
             'agente': f'{agente}',
             'vendedor': f'{vendedor}',
+            "aseguradora": aseguradora,
             'endoso': poliza.endoso,
             'poliza_anterior': poliza.poliza_anterior
         }
@@ -636,13 +648,13 @@ def get_upcoming_policies():
             title_str = "Pólizas y Endosos por vencer, al %s" % today
         return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline, title_str)
 
-    print(response)
+    #print(response)
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
         'data': response  # Data to display
     })
 
-
+"""
 def export_to_csv(headers, jsondic, filename, real_headers=None):
     if real_headers is None:
         real_headers = headers
@@ -771,3 +783,4 @@ def export_tocsv2(headers, jsondic, filename):
     response.headers.set("Content-Disposition",
                          "attachment", filename=filename)
     return response
+"""
