@@ -128,7 +128,7 @@ def get():
         # Extracting all columns from the Poliza object
         poliza_data = {}
         # Iterate through each column in the Poliza table
-        for column in Poliza.__table__.columns:
+        for column in Endoso.__table__.columns:
             # Get the value of the column
             value = getattr(endoso, column.name)
             # Convert date to string if it's a date type
