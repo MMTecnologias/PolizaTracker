@@ -1038,6 +1038,7 @@ $(function () {
         dataType: 'json',
         success: function (resp) {
           if (resp.error) {
+            console.log(resp);
             alert(resp.title, 'error');
           } else {
             $('#create-recib').modal('toggle');
