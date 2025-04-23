@@ -33,6 +33,23 @@ $(function () {
     emphasis: { focus: 'series' },
   };
 
+  const meses = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+
+  let years = [];
+
   function createSeriesForCategory(data, categoryName, type, baseArray) {
     const categories = [...new Set(data.map((item) => item[categoryName]))];
     const series = categories.map((category) => ({
@@ -63,22 +80,7 @@ $(function () {
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
     const by = $('#by').val();
-    console.log(type, by);
-    const meses = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre',
-    ];
-    const years = [...new Set(data.map((item) => item.year))];
+    years = [...new Set(data.map((item) => item.year))];
     const baseArray = type === 'month' ? meses : years;
     const categoryMap = {
       aseguradora: 'aseguradora',
@@ -93,6 +95,14 @@ $(function () {
       type,
       baseArray
     );
+    const sumSeries = series.reduce((acc, curr) => {
+      curr.data.forEach((value, index) => {
+        if (!acc[index]) acc[index] = 0;
+        acc[index] += value;
+      });
+      return acc;
+    }, []);
+    fillTablePrimaNeta(sumSeries, type);
     const option = {
       ...chartConfig,
       xAxis: [{ type: 'category', data: baseArray }],
@@ -101,31 +111,51 @@ $(function () {
     myChart.setOption(option);
   }
 
-  function fillTablePrimaNeta(resp, currentPage, itemsOnPage, formMultiple) {
-    const { data, recordsTotal } = resp;
+  function fillTablePrimaNeta(data, type) {
+    const tr = $('#tr-primaneta');
+    tr.html('');
+    if (type === 'month') {
+      meses.forEach((mes) => {
+        tr.append(`<th scope="col">${mes}</th>`);
+      });
+    } else {
+      years.forEach((year) => {
+        tr.append(`<th scope="col">${year}</th>`);
+      });
+    }
     const table = $('#table-primaneta');
     table.html('');
-    $.each(data, function (idx, poliza) {
-      table.append(
-        `<tr class="tableOption">
-          <td>${poliza.year}</td>
-          <td>${poliza.month ? poliza.month : ''}</td>
-          <td>${poliza.total_prima_neta_pagada}</td>
-        </tr>`
-      );
-    });
-    $('#pagination-primaneta').pagination({
-      items: recordsTotal,
-      prevText: 'Anterior',
-      nextText: 'Siguiente',
-      itemsOnPage,
-      currentPage,
-      onPageClick: (pageNumber, e) => {
-        const start = (pageNumber - 1) * itemsOnPage;
-        getPrimaNeta(pageNumber, start, formMultiple);
-      },
-    });
+    const bodyTable = `<tr class="tableOption">
+      ${data.map((total) => `<td>$${total.toFixed(2)}</td>`).join('')}
+    </tr>`;
+    table.append(bodyTable);
   }
+
+  // function fillTablePrimaNeta(resp, currentPage, itemsOnPage, formMultiple) {
+  //   const { data, recordsTotal } = resp;
+  //   const table = $('#table-primaneta');
+  //   table.html('');
+  //   $.each(data, function (idx, poliza) {
+  //     table.append(
+  //       `<tr class="tableOption">
+  //         <td>${poliza.year}</td>
+  //         <td>${poliza.month ? poliza.month : ''}</td>
+  //         <td>${poliza.total_prima_neta_pagada}</td>
+  //       </tr>`
+  //     );
+  //   });
+  //   $('#pagination-primaneta').pagination({
+  //     items: recordsTotal,
+  //     prevText: 'Anterior',
+  //     nextText: 'Siguiente',
+  //     itemsOnPage,
+  //     currentPage,
+  //     onPageClick: (pageNumber, e) => {
+  //       const start = (pageNumber - 1) * itemsOnPage;
+  //       getPrimaNeta(pageNumber, start, formMultiple);
+  //     },
+  //   });
+  // }
 
   function getPrimaNeta(pageNumber = 1, start = 0, formMultiple = null) {
     const length = 12;
@@ -152,19 +182,17 @@ $(function () {
     if (formMultiple) {
       params = formMultiple + '&' + params;
     }
-    console.log(params);
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/prima_neta',
       data: params,
       success: (resp) => {
-        console.log(resp);
         if (formMultiple && formMultiple.includes('type_report=month')) {
           getBarChart(resp.data, 'month');
         } else {
           getBarChart(resp.data);
         }
-        fillTablePrimaNeta(resp, pageNumber, length, formMultiple);
+        // fillTablePrimaNeta(resp, pageNumber, length, formMultiple);
       },
       error: (xhr, status, error) => console.error(error),
     });

@@ -4,7 +4,7 @@ from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log,Endoso, new_class
+from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, Endoso, new_class
 from sqlalchemy import join, or_, desc, func, select
 import csv
 from io import StringIO
@@ -13,6 +13,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+
 
 @polizas_route.route('/get_receipts', methods=['POST'])
 @login_required
@@ -27,8 +28,9 @@ def get_receipts():
         recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
         poliza_id = Recibo.query.get(endoso_id).poliza_id
     else:
-        recibos_query = Recibo.query.filter_by(poliza_id=poliza_id, endoso_id=None)
-    moneda=Poliza.query.get(int(poliza_id)).moneda
+        recibos_query = Recibo.query.filter_by(
+            poliza_id=poliza_id, endoso_id=None)
+    moneda = Poliza.query.get(int(poliza_id)).moneda
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
@@ -40,17 +42,17 @@ def get_receipts():
     for recibo in recibos:
         data.append({
             'numero': recibo.no_de_recibo,
-            'fecha_recibo':recibo.fecha_inicio.strftime('%Y-%m-%d'),
-            "vencimiento" : recibo.fecha_vencimiento.strftime('%Y-%m-%d') ,
-            "prima_neta" : float(recibo.prima_neta) ,
-            "prima_total" : float(recibo.prima_total) ,
-            "comision" : float(recibo.comision) ,
-            "pagado" : True if recibo.status=='Liquidado' else False,
-            "fecha_pago" : "" if recibo.fecha_pago is None else  recibo.fecha_pago.strftime('%Y-%m-%d'),
-            "comprobante" : "" if recibo.comprobante is None else  recibo.comprobante ,
-            "cancelado" : True if poliza.status=='Cancelada' else False,
+            'fecha_recibo': recibo.fecha_inicio.strftime('%Y-%m-%d'),
+            "vencimiento": recibo.fecha_vencimiento.strftime('%Y-%m-%d'),
+            "prima_neta": float(recibo.prima_neta),
+            "prima_total": float(recibo.prima_total),
+            "comision": float(recibo.comision),
+            "pagado": True if recibo.status == 'Liquidado' else False,
+            "fecha_pago": "" if recibo.fecha_pago is None else recibo.fecha_pago.strftime('%Y-%m-%d'),
+            "comprobante": "" if recibo.comprobante is None else recibo.comprobante,
+            "cancelado": True if poliza.status == 'Cancelada' else False,
             'id': recibo.id,
-            'moneda':moneda
+            'moneda': moneda
             # Add more fields as needed
         })
     # 'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
@@ -63,6 +65,7 @@ def get_receipts():
         'data': data  # Data to display
     }
     return jsonify(response)
+
 
 @polizas_route.route('/search_clients', methods=['POST'])
 @login_required
@@ -79,9 +82,11 @@ def search_clients():
         .limit(20)
 
     # Fetch client options
-    options = [{'id': client.id, 'name': f"{client.nombre} {client.apellido}"} for client in clients_query]
+    options = [{'id': client.id, 'name': f"{client.nombre} {client.apellido}"}
+               for client in clients_query]
 
     return jsonify({'options': options})
+
 
 @polizas_route.route('/get', methods=['POST'])
 @login_required
@@ -116,7 +121,7 @@ def get():
         polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))
     else:
         polizas_query = polizas_query.order_by('poliza')
-        #polizas_query = polizas_query.order_by(desc(Poliza.id))
+        # polizas_query = polizas_query.order_by(desc(Poliza.id))
 
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
@@ -125,10 +130,10 @@ def get():
     if search_value:
 
         polizas_query = polizas_query.filter(or_(
-            #Poliza.poliza.ilike(f'%{search_value}%'),
+            # Poliza.poliza.ilike(f'%{search_value}%'),
             Cliente.nombre.ilike(f'%{search_value}%'),
             Cliente.apellido.ilike(f'%{search_value}%'),
-            #Search in poliza sarting with search_value
+            # Search in poliza sarting with search_value
             Poliza.poliza.ilike(f'{search_value}%'),
             # Add more fields for searching as needed
         ))
@@ -187,16 +192,17 @@ def get():
     }
     return jsonify(response)
 
+
 @polizas_route.route('/create', methods=['POST'])
 @login_required
 def create():
     # if not check_access("Clientes"):
     #    return redirect(url_for('main.index'))
-    #flask_request.form.get('start')
+    # flask_request.form.get('start')
     poliza_id = flask_request.form.get('poliza_id')
     print("Here")
     poliza_old = None
-    if not(poliza_id == "New"):
+    if not (poliza_id == "New"):
         try:
             poliza_id = int(poliza_id)
         except:
@@ -204,7 +210,7 @@ def create():
         poliza_old = Poliza.query.get(poliza_id)
         if not poliza_old:
             return jsonify({'error': True, 'msg': 'No se encontró la póliza a renovar'})
-        if poliza_old.Poliza_renovada=="Si":
+        if poliza_old.Poliza_renovada == "Si":
             return jsonify({'error': True, 'msg': 'La poliza ya ha sido renovada'})
 
     if not poliza_id:
@@ -239,7 +245,7 @@ def create():
         return argdict
 
     # fecha_captura
-    #alter table polizas add column conducta_pago varchar(30) default null;
+    # alter table polizas add column conducta_pago varchar(30) default null;
     column_name_mapping = {
         'cliente_id': 'selected-client-id',
         'fecha_inicio': 'VigenciaI',
@@ -253,7 +259,7 @@ def create():
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
         'poliza': 'Poliza',
-        'conducta_pago':'conducto_pago'
+        'conducta_pago': 'conducto_pago'
     }
     form_value_mapping = {
         'selected-client-id': flask_request.form.get('selected-client-id'),
@@ -276,21 +282,22 @@ def create():
     # return arg_values
 
     # If cliente_id is "New", then it's a new client creation
-    #if poliza_id == "New":
+    # if poliza_id == "New":
     arg_values.update(check_new_form())
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
     # Create a new client
-    
-    #check if there is a poliza with the same number and not canceled
 
-    poliza = Poliza.query.filter(Poliza.poliza==arg_values["poliza"],Poliza.status!="Cancelada").first()
+    # check if there is a poliza with the same number and not canceled
+
+    poliza = Poliza.query.filter(
+        Poliza.poliza == arg_values["poliza"], Poliza.status != "Cancelada").first()
     if poliza:
-        return jsonify({'error': True, 'msg': 'Ya existe una póliza vigente con el mismo número','title': 'Ya existe una póliza vigente con el mismo número'})
-    #check for pending cancelation request of the same poliza
-    request = Request.query.filter(Request.description==f"Cancelar póliza {arg_values['poliza']}",
-                                   Request.status=="Pendiente").first()
+        return jsonify({'error': True, 'msg': 'Ya existe una póliza vigente con el mismo número', 'title': 'Ya existe una póliza vigente con el mismo número'})
+    # check for pending cancelation request of the same poliza
+    request = Request.query.filter(Request.description == f"Cancelar póliza {arg_values['poliza']}",
+                                   Request.status == "Pendiente").first()
     if request:
-        return jsonify({'error': True, 'msg': 'Existe una solicitud de cancelación pendiente para esta póliza','title': 'Existe una solicitud de cancelación pendiente para esta póliza'})
+        return jsonify({'error': True, 'msg': 'Existe una solicitud de cancelación pendiente para esta póliza', 'title': 'Existe una solicitud de cancelación pendiente para esta póliza'})
 
     new_poliza = Poliza(**arg_values)
     # Save the new client to the database
@@ -298,20 +305,20 @@ def create():
     db.session.commit()
 
     if poliza_old:
-        poliza_old.Poliza_renovada="Si"
+        poliza_old.Poliza_renovada = "Si"
         request_entry = Request(usuario_id=current_user.id,
-                            description=f"Renovar póliza {poliza_old.poliza} a {new_poliza.poliza}",
-                            status="Aceptada",
-                            table_name='Poliza',
-                            row_id=new_poliza.id)
+                                description=f"Renovar póliza {poliza_old.poliza} a {new_poliza.poliza}",
+                                status="Aceptada",
+                                table_name='Poliza',
+                                row_id=new_poliza.id)
         db.session.add(request_entry)
         db.session.commit()
     else:
         request_entry = Request(usuario_id=current_user.id,
-                            description=f"Crear poliza {new_poliza.poliza}",
-                            status="Aceptada",
-                            table_name='Poliza',
-                            row_id=new_poliza.id)
+                                description=f"Crear poliza {new_poliza.poliza}",
+                                status="Aceptada",
+                                table_name='Poliza',
+                                row_id=new_poliza.id)
         db.session.add(request_entry)
         db.session.commit()
 
@@ -327,16 +334,17 @@ def create():
         'error': False,
         'redirect': url_for('main.polizas'),
         'msg': arg_values,
-        'title':'Poliza registrada exitosamente',
-        'poliza_id':new_poliza.id
+        'title': 'Poliza registrada exitosamente',
+        'poliza_id': new_poliza.id
     })
-    #else:
+    # else:
     #    return jsonify({
-     #       'error': False,
-      #      'redirect': url_for('main.polizas'),
-       #     'msg': 'Solo se puede editar poliza en endosos',
-        #    'title': 'Sin cambios'
-        #})
+    #       'error': False,
+    #      'redirect': url_for('main.polizas'),
+    #     'msg': 'Solo se puede editar poliza en endosos',
+    #    'title': 'Sin cambios'
+    # })
+
 
 @polizas_route.route('/delete', methods=['POST'])
 @login_required
@@ -365,8 +373,11 @@ def delete():
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró la póliza.'})
 
+
 """Recibos aun sin uso"""
 # Ruta para obtener los valores de la póliza
+
+
 @polizas_route.route('/get_policy_values', methods=['POST'])
 @login_required
 def get_policy_values():
@@ -381,66 +392,72 @@ def get_policy_values():
     start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d')
     end_date = datetime.strptime(fecha_termino, '%Y-%m-%d')
 
-    #Calcular la duracion en meses con funcion de floor
+    # Calcular la duracion en meses con funcion de floor
     def diff_month(d1, d2):
         return (d1.year - d2.year) * 12 + d1.month - d2.month
 
-    policy_duration_months = diff_month(end_date,start_date)
+    policy_duration_months = diff_month(end_date, start_date)
 
     # Duración en años, considerando años bisiestos y redondeado a entero
-    #policy_duration = int(round((end_date - start_date).days / 365.2425))
+    # policy_duration = int(round((end_date - start_date).days / 365.2425))
 
     # Obtener el tipo de pago de la póliza
     tipo_pago = TipoPago.query.get(tipo_pago_id)
     if not tipo_pago:
         return jsonify({'error': True, 'msg': 'Tipo de pago no encontrado'})
 
-    endoso=flask_request.form.get('is_endoso')
-    msg=""
-    
-    if endoso=="true":
-        poliza_id=flask_request.form.get('poliza_id')
-        poliza=Poliza.query.get(poliza_id)
-        if not poliza: return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
-        if start_date.date()>poliza.fecha_termino: return jsonify({'error': True, 'msg': 'El endoso no puede empezar una vez vencida la poliza'})
-        print(TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago)
-        if tipo_pago.contado!="Si" and TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago and poliza.fecha_termino==end_date.date():
-            #Obtener el numero de pagos de la poliza que estan entre las fechas esocgidas
-            num_payments = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <= end_date.date(), Recibo.endoso_id == None).count()
-            return jsonify({'error':False,
-                'netPremium': float(prima_neta),
-                'totalPremium': float(prima_total),
-                'numReceipts': int(num_payments),
-                'msg':msg
-                #'policyDuration': int(policy_duration),  # Convertir a entero
-            })
-        if tipo_pago.contado=="Si": msg=""
-        msg="Los recibos del endoso no coincidiran con los de la poliza, para esto seleccione el tipo de pago: %s y la fecha de termino de la poliza: %s" % (TipoPago.query.get(poliza.tipo_pago_id).tipo_pago,poliza.fecha_termino.strftime('%d/%m/%Y'))
+    endoso = flask_request.form.get('is_endoso')
+    msg = ""
+
+    if endoso == "true":
+        poliza_id = flask_request.form.get('poliza_id')
+        poliza = Poliza.query.get(poliza_id)
+        if not poliza:
+            return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
+        if start_date.date() > poliza.fecha_termino:
+            return jsonify({'error': True, 'msg': 'El endoso no puede empezar una vez vencida la poliza'})
+        print(TipoPago.query.get(poliza.tipo_pago_id).tipo_pago ==
+              tipo_pago.tipo_pago)
+        if tipo_pago.contado != "Si" and TipoPago.query.get(poliza.tipo_pago_id).tipo_pago == tipo_pago.tipo_pago and poliza.fecha_termino == end_date.date():
+            # Obtener el numero de pagos de la poliza que estan entre las fechas esocgidas
+            num_payments = Recibo.query.filter(
+                Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <= end_date.date(), Recibo.endoso_id == None).count()
+            return jsonify({'error': False,
+                            'netPremium': float(prima_neta),
+                            'totalPremium': float(prima_total),
+                            'numReceipts': int(num_payments),
+                            'msg': msg
+                            # 'policyDuration': int(policy_duration),  # Convertir a entero
+                            })
+        if tipo_pago.contado == "Si":
+            msg = ""
+        msg = "Los recibos del endoso no coincidiran con los de la poliza, para esto seleccione el tipo de pago: %s y la fecha de termino de la poliza: %s" % (
+            TipoPago.query.get(poliza.tipo_pago_id).tipo_pago, poliza.fecha_termino.strftime('%d/%m/%Y'))
         print(msg)
-        #return jsonify({'error': True, 'msg': msg})
+        # return jsonify({'error': True, 'msg': msg})
 
     # Obtener el número de pagos según el tipo de pago
     if tipo_pago.contado == "Si":
         num_payments = 1
     else:
         # De lo contrario, el número de pagos es igual a los pagos mensuales
-        deltames=12/tipo_pago.pagos_anuales
-        if deltames>policy_duration_months:
+        deltames = 12/tipo_pago.pagos_anuales
+        if deltames > policy_duration_months:
             return jsonify({'error': True, 'msg': 'Este tipo de pago no es valido para la duracion de la poliza/endoso. Porfavor, intente con otro'})
         if policy_duration_months % deltames == 0:
             num_payments = policy_duration_months // deltames
         else:
             return jsonify({'error': True, 'msg': 'Este tipo de pago no es válido para la duración de la póliza/endoso. Por favor, intente con otro'})
 
-
     # Devolver los valores como un objeto JSON
-    return jsonify({'error':False,
-        'netPremium': float(prima_neta),
-        'totalPremium': float(prima_total),
-        'numReceipts': int(num_payments),
-        'msg':msg
-        #'policyDuration': int(policy_duration),  # Convertir a entero
-    })
+    return jsonify({'error': False,
+                    'netPremium': float(prima_neta),
+                    'totalPremium': float(prima_total),
+                    'numReceipts': int(num_payments),
+                    'msg': msg
+                    # 'policyDuration': int(policy_duration),  # Convertir a entero
+                    })
+
 
 def calcular_recibos():
     # Retrieve data from the form
@@ -449,7 +466,7 @@ def calcular_recibos():
     iva = float(flask_request.form.get('iva'))
     derecho_poliza = float(flask_request.form.get('insurance'))
     derecho_poliza_con_iva = derecho_poliza * (1+iva / 100)
-    iva = prima_total*iva /(100+iva)
+    iva = prima_total*iva / (100+iva)
     commission = float(flask_request.form.get('commission'))
     commission = prima_neta * commission/100
     # Assuming this is the number of payments
@@ -457,7 +474,8 @@ def calcular_recibos():
 
     recargo_por_pago = prima_total - iva-prima_neta-derecho_poliza
 
-    rec_pago=flask_request.form.get('rec_pago') #Es "primer_recibo" o "dividir_recibos"
+    # Es "primer_recibo" o "dividir_recibos"
+    rec_pago = flask_request.form.get('rec_pago')
     print(rec_pago)
     print(nopagos)
     print(derecho_poliza_con_iva)
@@ -477,12 +495,14 @@ def calcular_recibos():
     }
 
     # Calculate the values for the first payment
-    total_premium = (prima_total-derecho_poliza_con_iva)/nopagos if rec_pago=="primer_recibo" else prima_total/nopagos
+    total_premium = (prima_total-derecho_poliza_con_iva) / \
+        nopagos if rec_pago == "primer_recibo" else prima_total/nopagos
     net_premium = prima_neta / nopagos
     commission_pp = commission / nopagos
 
     response['firstpay']['netPremium'] = net_premium
-    response['firstpay']['totalPremium'] = total_premium + derecho_poliza_con_iva if rec_pago=="primer_recibo" else total_premium
+    response['firstpay']['totalPremium'] = total_premium + \
+        derecho_poliza_con_iva if rec_pago == "primer_recibo" else total_premium
     response['firstpay']['comision'] = commission_pp
 
     # If there are subsequent payments, calculate their values as well
@@ -501,6 +521,7 @@ def calcular_recibos():
     print(response)
     return response
 
+
 def add_months(start_date, num_months):
     # Convertir la cadena de fecha en un objeto datetime
 
@@ -511,11 +532,13 @@ def add_months(start_date, num_months):
     # Devolver la nueva fecha como cadena
     return new_date.strftime('%Y-%m-%d')
 
+
 @polizas_route.route('/calculate_receipts', methods=['POST'])
 @login_required
 def calculate_receipts():
     response = calcular_recibos()
     return jsonify(response)
+
 
 @polizas_route.route('/save_receipts', methods=['POST'])
 @login_required
@@ -525,7 +548,7 @@ def save_receipts():
 
     poliza = Poliza.query.get(poliza_id)
     endoso_id = flask_request.form.get('endoso_id')
-    multiplier=1
+    multiplier = 1
     endoso_or_poliza = poliza
     is_endoso = False
     if endoso_id:
@@ -541,7 +564,7 @@ def save_receipts():
         if endoso.tipo_endoso == "A":
             return jsonify({'error': True, 'msg': 'Los Endosos tipo A no generan recibos'})
         elif endoso.tipo_endoso == "D":
-            multiplier=-1
+            multiplier = -1
 
         if endoso.recibos == "Generados":
             return jsonify({'error': True, 'msg': 'Este endoso ya tiene recibos generados'})
@@ -565,9 +588,12 @@ def save_receipts():
                                   fecha_vencimiento=end_date,
                                   poliza_id=poliza_id,
                                   endoso_id=endoso_id,
-                                  prima_neta=multiplier*response['firstpay']['netPremium'],
-                                  prima_total=multiplier*response['firstpay']['totalPremium'],
-                                  comision=multiplier*response['firstpay']['comision']
+                                  prima_neta=multiplier *
+                                  response['firstpay']['netPremium'],
+                                  prima_total=multiplier *
+                                  response['firstpay']['totalPremium'],
+                                  comision=multiplier *
+                                  response['firstpay']['comision']
                                   )
             db.session.add(nuevo_recibo)
         else:
@@ -575,18 +601,23 @@ def save_receipts():
             fecha_inicio = start_date
             fecha_vencimiento = add_months(fecha_inicio, num_months)
             if is_endoso:
-                if TipoPago.query.get(poliza.tipo_pago_id).tipo_pago==tipo_pago.tipo_pago and poliza.fecha_termino==end_date:
-                    recibo=Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <= end_date, Recibo.endoso_id == None).order_by(Recibo.id).first()
-                    fecha_vencimiento=recibo.fecha_vencimiento.strftime('%Y-%m-%d')
+                if TipoPago.query.get(poliza.tipo_pago_id).tipo_pago == tipo_pago.tipo_pago and poliza.fecha_termino == end_date:
+                    recibo = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <=
+                                                 end_date, Recibo.endoso_id == None).order_by(Recibo.id).first()
+                    fecha_vencimiento = recibo.fecha_vencimiento.strftime(
+                        '%Y-%m-%d')
             nopagos = response['nopagos']
             print(nopagos)
             nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
                                   fecha_vencimiento=fecha_vencimiento,
                                   poliza_id=poliza_id,
                                   endoso_id=endoso_id,
-                                  prima_neta=multiplier*response['firstpay']['netPremium'],
-                                  prima_total=multiplier*response['firstpay']['totalPremium'],
-                                  comision=multiplier*response['firstpay']['comision'],
+                                  prima_neta=multiplier *
+                                  response['firstpay']['netPremium'],
+                                  prima_total=multiplier *
+                                  response['firstpay']['totalPremium'],
+                                  comision=multiplier *
+                                  response['firstpay']['comision'],
                                   no_de_recibo="1 / "+str(nopagos)
                                   )
             db.session.add(nuevo_recibo)
@@ -598,16 +629,19 @@ def save_receipts():
                                       fecha_vencimiento=fecha_vencimiento,
                                       poliza_id=poliza_id,
                                       endoso_id=endoso_id,
-                                      prima_neta=multiplier*response['subspay']['netPremium'],
-                                      prima_total=multiplier*response['subspay']['totalPremium'],
-                                      comision=multiplier*response['subspay']['comision'],
+                                      prima_neta=multiplier *
+                                      response['subspay']['netPremium'],
+                                      prima_total=multiplier *
+                                      response['subspay']['totalPremium'],
+                                      comision=multiplier *
+                                      response['subspay']['comision'],
                                       no_de_recibo=str(
                                           nopay)+" / "+str(nopagos)
                                       )
                 db.session.add(nuevo_recibo)
 
         endoso_or_poliza.derecho_poliza = response['derecho_poliza']
-        endoso_or_poliza.iva = round(response['iva'],2)
+        endoso_or_poliza.iva = round(response['iva'], 2)
         endoso_or_poliza.rec_pago = response['rec_pago']
         endoso_or_poliza.comision = response['comision']
         endoso_or_poliza.recibos = "Generados"
@@ -622,7 +656,10 @@ def save_receipts():
         print(e)
         return jsonify({'error': True, 'msg': 'Error en la creación de recibos '+str(e)})
 
+
 """Endosos"""
+
+
 @polizas_route.route('/create_endoso', methods=['POST'])
 @login_required
 def create_endoso():
@@ -701,19 +738,19 @@ def create_endoso():
     arg_values['poliza_id'] = poliza.id
     arg_values['tipo_endoso'] = tipo
 
-    dict_to_keep={
-        "A":['poliza','prima_neta','prima_total','derecho_poliza','iva','rec_pago','comision','recibos'],
-        "B":['poliza'],
-        "D":['poliza']
+    dict_to_keep = {
+        "A": ['poliza', 'prima_neta', 'prima_total', 'derecho_poliza', 'iva', 'rec_pago', 'comision', 'recibos'],
+        "B": ['poliza'],
+        "D": ['poliza']
     }
     for key in dict_to_keep[tipo]:
         arg_values[key] = getattr(poliza, key)
-    #poliza_data = {column.name:getattr(poliza, column.name) for column in Poliza.__table__.columns}
-    #poliza_data.pop('rec_pago', None)
-    #poliza_data.pop('comision', None)
-    #poliza_data.pop('recibos', None)
-    #poliza_data['poliza_id'] = poliza.id
-    #poliza_data['tipo_endoso'] = tipo
+    # poliza_data = {column.name:getattr(poliza, column.name) for column in Poliza.__table__.columns}
+    # poliza_data.pop('rec_pago', None)
+    # poliza_data.pop('comision', None)
+    # poliza_data.pop('recibos', None)
+    # poliza_data['poliza_id'] = poliza.id
+    # poliza_data['tipo_endoso'] = tipo
 
     endoso = Endoso(**arg_values)
     # Save the new endoso to the database
@@ -721,10 +758,10 @@ def create_endoso():
     db.session.commit()
 
     request_entry = Request(usuario_id=current_user.id,
-                                description=f"Crear endoso {endoso.tipo_endoso} para la póliza {endoso.poliza}",
-                                status="Aceptada",
-                                table_name='Endoso',
-                                row_id=endoso.id)
+                            description=f"Crear endoso {endoso.tipo_endoso} para la póliza {endoso.poliza}",
+                            status="Aceptada",
+                            table_name='Endoso',
+                            row_id=endoso.id)
     db.session.add(request_entry)
     db.session.commit()
 
@@ -906,10 +943,10 @@ def process_receipt():
         elif delta <= 5:
             recibo.fecha_pago = nueva_fecha_pago
             request_entry = Request(usuario_id=current_user.id,
-                                description=f"Modificar fecha de pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza} a {nueva_fecha_pago.strftime('%Y-%m-%d')}",
-                                status="Aceptada",
-                                table_name='Recibo',
-                                row_id=recibo.id)
+                                    description=f"Modificar fecha de pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza} a {nueva_fecha_pago.strftime('%Y-%m-%d')}",
+                                    status="Aceptada",
+                                    table_name='Recibo',
+                                    row_id=recibo.id)
             db.session.add(request_entry)
             db.session.commit()
             return jsonify({
@@ -938,7 +975,7 @@ def process_receipt():
             })
 
 
-#@main.route('/get_data_multiple', methods=['GET'])
+# @main.route('/get_data_multiple', methods=['GET'])
 @polizas_route.route('/get_form_data', methods=['GET'])
 @login_required
 def get_form_data():
@@ -950,9 +987,10 @@ def get_form_data():
         "Subramo": Subramo,
         "TipoPago": TipoPago
     }
-    response={}
-    for key,tabla in clases.items():
-        query=tabla.query.order_by(tabla.id.desc())  # Order by id in descending order
+    response = {}
+    for key, tabla in clases.items():
+        # Order by id in descending order
+        query = tabla.query.order_by(tabla.id.desc())
         records = query.all()
         # Format data
         data = []
@@ -972,6 +1010,7 @@ def get_form_data():
 
     return jsonify(response)
 
+
 @polizas_route.route('/get_all_receipts', methods=['POST', 'GET'])
 @login_required
 def get_all_receipts():
@@ -979,26 +1018,26 @@ def get_all_receipts():
                 ) if flask_request.form.get('start') else None
     length = int(flask_request.form.get('length')
                  ) if flask_request.form.get('length') else None
-    
+
     aseguradora_id = flask_request.form.get('aseguradora_id')
     cliente_id = flask_request.form.get('cliente_id')
-    grupo_id = flask_request.form.get('grupo_id')    
+    grupo_id = flask_request.form.get('grupo_id')
     vendedor_id = flask_request.form.get('vendedor_id')
     agente_id = flask_request.form.get('agente_id')
     ramo_id = flask_request.form.get('ramo_id')
 
     status = flask_request.form.get('status')
-    #ENUM('Liquidado', 'Pendiente', 'Vencido', 'Cancelado')
+    # ENUM('Liquidado', 'Pendiente', 'Vencido', 'Cancelado')
     if status and status not in ('Liquidado', 'Pendiente', 'Vencido', 'Cancelado'):
         return jsonify({'error': True, 'msg': 'Estado no válido, debe estar en [Liquidado, Pendiente, Vencido, Cancelado]'})
 
-    #Get valid list of policies
+    # Get valid list of policies
     polizas = []
     if cliente_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.cliente_id == int(cliente_id)).all()
         polizas = [poliza.id for poliza in polizas_query]
-    
+
     if grupo_id:
         clients_query = db.session.query(Cliente) \
             .filter(Cliente.grupo_id == int(grupo_id)).all()
@@ -1010,38 +1049,42 @@ def get_all_receipts():
     if aseguradora_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
-        if polizas==[]:
+        if polizas == []:
             polizas = [poliza.id for poliza in polizas_query]
         else:
-            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
-    
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
+
     if vendedor_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.vendedor_id == int(vendedor_id)).all()
-        if polizas==[]:
+        if polizas == []:
             polizas = [poliza.id for poliza in polizas_query]
         else:
-            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
-    
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
+
     if agente_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.agente_id == int(agente_id)).all()
-        if polizas==[]:
+        if polizas == []:
             polizas = [poliza.id for poliza in polizas_query]
         else:
-            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
-    
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
+
     if ramo_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.ramo_id == int(ramo_id)).all()
-        if polizas==[]:
+        if polizas == []:
             polizas = [poliza.id for poliza in polizas_query]
         else:
-            polizas = list(set(polizas).intersection([poliza.id for poliza in polizas_query]))
+            polizas = list(set(polizas).intersection(
+                [poliza.id for poliza in polizas_query]))
 
-    #Client and grupo can not be asked both
+    # Client and grupo can not be asked both
     if cliente_id and grupo_id:
-        return jsonify({'error':True,
+        return jsonify({'error': True,
                         'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
 
     # Query the database for upcoming receipts
@@ -1068,20 +1111,25 @@ def get_all_receipts():
         .join(Subramo, Poliza.subramo_id == Subramo.id) \
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) 
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
 
     if aseguradora_id or cliente_id or grupo_id:
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.poliza_id.in_(polizas))
+        upcoming_receipts_query = upcoming_receipts_query.filter(
+            Recibo.poliza_id.in_(polizas))
 
     if flask_request.form.get('start_date') and flask_request.form.get('end_date'):
-        start_date =  datetime.strptime(flask_request.form.get('start_date'), '%Y-%m-%d')
-        end_date =  datetime.strptime(flask_request.form.get('end_date'), '%Y-%m-%d')
+        start_date = datetime.strptime(
+            flask_request.form.get('start_date'), '%Y-%m-%d')
+        end_date = datetime.strptime(
+            flask_request.form.get('end_date'), '%Y-%m-%d')
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= start_date,
-                                                                Recibo.fecha_inicio <= end_date)
-    upcoming_receipts_query = upcoming_receipts_query.order_by(Recibo.fecha_inicio)
+                                                                 Recibo.fecha_inicio <= end_date)
+    upcoming_receipts_query = upcoming_receipts_query.order_by(
+        Recibo.fecha_inicio)
 
     if status:
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.status == status)
+        upcoming_receipts_query = upcoming_receipts_query.filter(
+            Recibo.status == status)
 
     total_records = upcoming_receipts_query.count()
 
@@ -1101,6 +1149,7 @@ def get_all_receipts():
             'no_de_recibo': f"'{recibo.no_de_recibo}",  # Convert to string
             'cliente': f'{nombre} {apellido}',
             'notas': poliza.notas,
+            'serie': poliza.serie,
             'ramo': ramo,
             'subramo': subramo,
             'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
@@ -1123,4 +1172,3 @@ def get_all_receipts():
         'recordsTotal': total_records,  # Total records without filtering
         'data': response  # Data to display
     })
-

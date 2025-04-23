@@ -161,7 +161,7 @@ $(function () {
     $('#tipo').val(tipo);
     $('#btnGuardar').html('Generar endoso');
     $('#poliza_id').val(poliza_id);
-    $('#div_search_client').hide();
+    // $('#div_search_client').hide();
     $('#title_poliza').text('Endoso');
     $('#div_poliza_id').show();
     $.ajax({
@@ -171,7 +171,7 @@ $(function () {
       success: function (resp) {
         console.log(resp);
         $('#id_poliza').val(resp.data[0].poliza);
-        $('#selected-client-id').val(resp.data[0].cliente_id);
+        // $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
         if (tipo === 'B' || tipo === 'D') {
           $('#prima_neta').prop('disabled', false);
@@ -555,6 +555,12 @@ $(function () {
           </td>
           <td style="color: ${getTextColor(poliza.status)}">${
           poliza.cliente
+        }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+          poliza.fecha_inicio
+        }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+          poliza.fecha_termino
         }</td>
           <td style="color: ${getTextColor(poliza.status)}">${
           poliza.subramo

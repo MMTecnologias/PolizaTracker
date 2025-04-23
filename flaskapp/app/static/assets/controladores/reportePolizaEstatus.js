@@ -33,6 +33,23 @@ $(function () {
     emphasis: { focus: 'series' },
   };
 
+  const meses = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+
+  let years = [];
+
   function createSeriesForCategory(data, categoryName, type, baseArray) {
     const categories = [...new Set(data.map((item) => item[categoryName]))];
     const series = categories.map((category) => ({
@@ -63,21 +80,8 @@ $(function () {
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
     const by = $('#by').val();
-    const meses = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre',
-    ];
-    const years = [...new Set(data.map((item) => item.year))];
+
+    years = [...new Set(data.map((item) => item.year))];
     const baseArray = type === 'month' ? meses : years;
     const categoryMap = {
       aseguradora: 'aseguradora',
@@ -92,6 +96,14 @@ $(function () {
       type,
       baseArray
     );
+    const sumSeries = series.reduce((acc, curr) => {
+      curr.data.forEach((value, index) => {
+        if (!acc[index]) acc[index] = 0;
+        acc[index] += value;
+      });
+      return acc;
+    }, []);
+    fillTableTotales(sumSeries, type);
     const option = {
       ...chartConfig,
       xAxis: [{ type: 'category', data: baseArray }],
@@ -118,6 +130,26 @@ $(function () {
       $('#table-polizastatus').html('');
     });
     myChart.setOption(option);
+  }
+
+  function fillTableTotales(data, type) {
+    const tr = $('#tr-poliza-status');
+    tr.html('');
+    if (type === 'month') {
+      meses.forEach((mes) => {
+        tr.append(`<th scope="col">${mes}</th>`);
+      });
+    } else {
+      years.forEach((year) => {
+        tr.append(`<th scope="col">${year}</th>`);
+      });
+    }
+    const table = $('#table-poliza-status');
+    table.html('');
+    const bodyTable = `<tr class="tableOption">
+      ${data.map((total) => `<td>$${total.toFixed(2)}</td>`).join('')}
+    </tr>`;
+    table.append(bodyTable);
   }
 
   function fillTablePolizastatus(data) {

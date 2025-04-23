@@ -30,8 +30,10 @@ $(function () {
                 ${poliza.no_de_recibo}
             </p>
           </td>
-          <td>${poliza.endoso !== null ? 'Endoso' : 'Poliza'}</td>
-          <td>${poliza.endoso !== null ? poliza.endoso : poliza.poliza}</td>
+          <td>${poliza.endoso !== '' ? 'Endoso' : 'Poliza'}</td>
+          <td>${poliza.endoso !== '' ? poliza.endoso : poliza.poliza}</td>
+          <td>${poliza.serie}</td>
+          <td>${poliza.notas}</td>
           <td>${poliza.aseguradora}</td>
           <td>$${poliza.prima_neta}</td>
           <td>$${poliza.prima_total}</td>

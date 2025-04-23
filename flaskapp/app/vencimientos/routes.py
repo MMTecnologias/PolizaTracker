@@ -27,8 +27,8 @@ def update_poliza_status(no_months):
     # Get all polizas with status "Vigente" or "Por Vencer"
     polizas = Poliza.query.filter(
         Poliza.status.in_(["Vigente", "Por Vencer"])).all()
-    
-    #Get recepits with status "Pendiente"
+
+    # Get recepits with status "Pendiente"
     recibos = Recibo.query.filter(Recibo.status == "Pendiente").all()
 
     # Iterate through each poliza
@@ -92,7 +92,7 @@ def get():
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Poliza.status.in_([ "Por Vencer","Vigente"]),
+        .filter(Poliza.status.in_(["Por Vencer", "Vigente"]),
                 Poliza.Poliza_renovada.in_(["No"]))
 
     if order:
@@ -120,10 +120,10 @@ def get():
     # Implement search functionality
     if search_value:
         polizas_query = polizas_query.filter(or_(
-            #Poliza.poliza.ilike(f'%{search_value}%'),
+            # Poliza.poliza.ilike(f'%{search_value}%'),
             Cliente.nombre.ilike(f'%{search_value}%'),
             Cliente.apellido.ilike(f'%{search_value}%'),
-            #Search in poliza sarting with search_value
+            # Search in poliza sarting with search_value
             Poliza.poliza.ilike(f'{search_value}%'),
             # Add more fields for searching as needed
         ))
@@ -220,11 +220,11 @@ def get_upcoming_receipts():
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
     grupo_id = request.form.get('grupo_id')
-    #agente
+    # agente
     agente_id = request.form.get('agente_id')
-    #vendeor
+    # vendeor
     vendedor_id = request.form.get('vendedor_id')
-    #ramo
+    # ramo
     ramo_id = request.form.get('ramo_id')
 
     print(agente_id)
@@ -252,7 +252,7 @@ def get_upcoming_receipts():
         else:
             polizas = list(set(polizas).intersection(
                 [poliza.id for poliza in polizas_query]))
-    
+
     if agente_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.agente_id == int(agente_id)).all()
@@ -261,7 +261,7 @@ def get_upcoming_receipts():
         else:
             polizas = list(set(polizas).intersection(
                 [poliza.id for poliza in polizas_query]))
-    
+
     if vendedor_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.vendedor_id == int(vendedor_id)).all()
@@ -270,7 +270,7 @@ def get_upcoming_receipts():
         else:
             polizas = list(set(polizas).intersection(
                 [poliza.id for poliza in polizas_query]))
-    
+
     if ramo_id:
         polizas_query = db.session.query(Poliza) \
             .filter(Poliza.ramo_id == int(ramo_id)).all()
@@ -279,7 +279,7 @@ def get_upcoming_receipts():
         else:
             polizas = list(set(polizas).intersection(
                 [poliza.id for poliza in polizas_query]))
-    
+
     # Client and grupo can not be asked both
     if cliente_id and grupo_id:
         return jsonify({'error': True,
@@ -293,11 +293,11 @@ def get_upcoming_receipts():
         'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
     end_date = start_date + timedelta(days=days_tolerance//2) if not request.form.get(
         'end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
-    
+
     # Calculate the payment due date range
     payment_due_start = start_date - timedelta(days=days_tolerance)
     payment_due_end = end_date - timedelta(days=days_tolerance//2)
-    
+
     # Query the database for upcoming receipts
     upcoming_receipts_query = db.session.query(Recibo,
                                                Poliza,
@@ -328,21 +328,20 @@ def get_upcoming_receipts():
 
         # Apply the filters
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
-                                                                Recibo.status == "Pendiente") \
-                                                                    .add_columns(
-                                                                        (Recibo.fecha_inicio >= payment_due_start).label('is_upcoming')) \
-                                                                    .order_by(desc('is_upcoming'), Recibo.fecha_inicio) 
-                                                                    
+                                                                 Recibo.status == "Pendiente") \
+            .add_columns(
+            (Recibo.fecha_inicio >= payment_due_start).label('is_upcoming')) \
+            .order_by(desc('is_upcoming'), Recibo.fecha_inicio)
 
-        #upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
+        # upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= payment_due_end,
         #                                                         Recibo.status == "Pendiente") \
         #    .order_by(Recibo.fecha_inicio)
     else:
         upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= payment_due_start,
                                                                  Recibo.fecha_inicio <= payment_due_end,
                                                                  Recibo.status == "Pendiente") \
-                                                                 .add_columns(
-                                                                        (Recibo.fecha_inicio >= payment_due_start).label('is_upcoming')) \
+            .add_columns(
+            (Recibo.fecha_inicio >= payment_due_start).label('is_upcoming')) \
             .order_by(Recibo.fecha_inicio)
 
     if aseguradora_id or cliente_id or grupo_id or agente_id or vendedor_id or ramo_id:
@@ -359,7 +358,7 @@ def get_upcoming_receipts():
 
     # Prepare the response data
     response = []
-    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor,is_upcoming in upcoming_receipts:
+    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor, is_upcoming in upcoming_receipts:
 
         data = {
             'poliza_id': recibo.poliza_id,
@@ -367,6 +366,7 @@ def get_upcoming_receipts():
             'no_de_recibo': f"'{recibo.no_de_recibo}",  # Convert to string
             'cliente': f'{nombre} {apellido}',
             'notas': poliza.notas,
+            'serie': poliza.serie,
             'ramo': ramo,
             'subramo': subramo,
             'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
@@ -418,11 +418,11 @@ def get_upcoming_policies():
     aseguradora_id = request.form.get('aseguradora_id')
     cliente_id = request.form.get('cliente_id')
     grupo_id = request.form.get('grupo_id')
-    #vendedor
+    # vendedor
     vendedor_id = request.form.get('vendedor_id')
-    #agente
+    # agente
     agente_id = request.form.get('agente_id')
-    #ramo
+    # ramo
     ramo_id = request.form.get('ramo_id')
 
     # Client and grupo can not be asked both
@@ -437,7 +437,7 @@ def get_upcoming_policies():
         filtered_selected = False
     start_date = datetime.now() if not request.form.get(
         'start_date') else datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-    end_date = start_date  if not request.form.get(
+    end_date = start_date if not request.form.get(
         'end_date') else datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
 
     # Calculate the policy due date range
@@ -466,12 +466,12 @@ def get_upcoming_policies():
         .join(Subramo, Poliza.subramo_id == Subramo.id) \
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id) #\
-        #.filter(Poliza.fecha_termino >= policy_due_start,
-        #        Poliza.fecha_termino <= policy_due_end,
-        #        Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
-        #        Poliza.Poliza_renovada.in_(["No"])) \
-        #.order_by(Poliza.fecha_termino)
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id)  # \
+    # .filter(Poliza.fecha_termino >= policy_due_start,
+    #        Poliza.fecha_termino <= policy_due_end,
+    #        Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
+    #        Poliza.Poliza_renovada.in_(["No"])) \
+    # .order_by(Poliza.fecha_termino)
 
     upcoming_endosos_query = db.session.query(Endoso,
                                               Cliente.nombre.label(
@@ -498,8 +498,7 @@ def get_upcoming_policies():
                 Endoso.fecha_termino <= policy_due_end,
                 Endoso.status.in_(["Vigente", "Por Vencer"])) \
         .order_by(Endoso.fecha_termino)
-        
-        
+
     if not filtered_selected and not aseguradora_id and not cliente_id and not grupo_id:
         print("No filters", policy_due_start, policy_due_end)
         upcoming_policies_query = upcoming_policies_query \
@@ -515,19 +514,16 @@ def get_upcoming_policies():
                     Poliza.fecha_termino <= policy_due_end,
                     Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
                     Poliza.Poliza_renovada.in_(["No"])) \
-             .add_columns(
+            .add_columns(
                 (Poliza.fecha_termino >= policy_due_start).label('is_upcoming')) \
             .order_by(Poliza.fecha_termino)
 
-        
-        #\
-        #.filter(Poliza.fecha_termino >= policy_due_start,
+        # \
+        # .filter(Poliza.fecha_termino >= policy_due_start,
         #        Poliza.fecha_termino <= policy_due_end,
         #        Poliza.status.in_(["Vigente", "Por Vencer", "Finalizada"]),
         #        Poliza.Poliza_renovada.in_(["No"])) \
-        #.order_by(Poliza.fecha_termino)
-    
-
+        # .order_by(Poliza.fecha_termino)
 
     if aseguradora_id:
         upcoming_policies_query = upcoming_policies_query.filter(
@@ -549,19 +545,19 @@ def get_upcoming_policies():
             Poliza.cliente_id.in_(clients))
         upcoming_endosos_query = upcoming_endosos_query.filter(
             Endoso.cliente_id.in_(clients))
-    
+
     if agente_id:
         upcoming_policies_query = upcoming_policies_query.filter(
             Poliza.agente_id == int(agente_id))
         upcoming_endosos_query = upcoming_endosos_query.filter(
             Endoso.agente_id == int(agente_id))
-    
+
     if vendedor_id:
         upcoming_policies_query = upcoming_policies_query.filter(
             Poliza.vendedor_id == int(vendedor_id))
         upcoming_endosos_query = upcoming_endosos_query.filter(
             Endoso.vendedor_id == int(vendedor_id))
-    
+
     if ramo_id:
         upcoming_policies_query = upcoming_policies_query.filter(
             Poliza.ramo_id == int(ramo_id))
@@ -582,7 +578,7 @@ def get_upcoming_policies():
 
     # Prepare the response data
     response = []
-    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor,is_upcoming in upcoming_policies:
+    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor, is_upcoming in upcoming_policies:
 
         data = {
             'Poliza o Endoso': 'Poliza',
@@ -648,11 +644,12 @@ def get_upcoming_policies():
             title_str = "Pólizas y Endosos por vencer, al %s" % today
         return export_to_pdf(headers, response, 'upcoming_policies.pdf', real_headers, to_multiline, title_str)
 
-    #print(response)
+    # print(response)
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
         'data': response  # Data to display
     })
+
 
 """
 def export_to_csv(headers, jsondic, filename, real_headers=None):

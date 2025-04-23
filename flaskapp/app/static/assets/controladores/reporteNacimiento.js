@@ -19,6 +19,7 @@ $(function () {
     itemsOnPage
   ) {
     const { data, recordsTotal } = resp;
+    console.log(data, recordsTotal);
     const table = $('#table-nacimientos');
     table.html('');
     $.each(data, function (idx, cliente) {
@@ -46,14 +47,14 @@ $(function () {
 
   function getNacimientos(current_report = null, pageNumber = 1, start = 0) {
     const length = 15;
-    const params = $.param({ start, length });
+    let params = $.param({ start, length });
     if (current_report) {
-      console.log(current_report + '&' + params);
+      params = current_report + '&' + params;
     }
     $.ajax({
       ...ajaxConfig,
       url: '/reportes/fecha_nacimientos',
-      data: current_report ? current_report + '&' + params : params,
+      data: params,
       success: (resp) =>
         fillTableNacimientos(resp, current_report, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
@@ -68,10 +69,6 @@ $(function () {
     }
     const current_report = $('#current_report').serialize();
     getNacimientos(current_report);
-  });
-
-  $('#current_report').on('change', function () {
-    if (this.value == '') getNacimientos();
   });
 
   $('#btnExportar').click((e) => {
