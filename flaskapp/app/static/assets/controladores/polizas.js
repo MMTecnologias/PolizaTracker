@@ -38,6 +38,24 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
+  function formatNumber(num, options = {}) {
+    const { separator = ',', decimalPoint = '.', groupSize = 3 } = options;
+    const parts = num.toString().split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? parts[1] : '';
+    let result = '';
+    for (let i = 0; i < integerPart.length; i++) {
+      if (i > 0 && (integerPart.length - i) % groupSize === 0) {
+        result += separator;
+      }
+      result += integerPart[i];
+    }
+    if (decimalPart) {
+      result += decimalPoint + decimalPart;
+    }
+    return result;
+  }
+
   function alertConfirm(text = '') {
     return Swal.fire({
       title: '',
@@ -653,8 +671,8 @@ $(function () {
             <td>${recibo.numero}</td>
             <td>${recibo.fecha_recibo}</td>
             <td>${recibo.vencimiento}</td>
-            <td>${recibo.prima_neta}</td>
-            <td>${recibo.prima_total}</td>
+            <td>$${formatNumber(Number(recibo.prima_neta || 0))}</td>
+            <td>$${formatNumber(Number(recibo.prima_total || 0))}</td>
             <td>${recibo.moneda}</td>
             <td>
                 <input type="checkbox" id="check_pagado${

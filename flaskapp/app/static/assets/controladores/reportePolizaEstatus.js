@@ -50,6 +50,24 @@ $(function () {
 
   let years = [];
 
+  function formatNumber(num, options = {}) {
+    const { separator = ',', decimalPoint = '.', groupSize = 3 } = options;
+    const parts = num.toString().split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? parts[1] : '';
+    let result = '';
+    for (let i = 0; i < integerPart.length; i++) {
+      if (i > 0 && (integerPart.length - i) % groupSize === 0) {
+        result += separator;
+      }
+      result += integerPart[i];
+    }
+    if (decimalPart) {
+      result += decimalPoint + decimalPart;
+    }
+    return result;
+  }
+
   function createSeriesForCategory(data, categoryName, type, baseArray) {
     const categories = [...new Set(data.map((item) => item[categoryName]))];
     const series = categories.map((category) => ({
@@ -147,7 +165,11 @@ $(function () {
     const table = $('#table-poliza-status');
     table.html('');
     const bodyTable = `<tr class="tableOption">
-      ${data.map((total) => `<td>$${total.toFixed(2)}</td>`).join('')}
+      ${data
+        .map(
+          (total) => `<td>$${formatNumber(Number(total?.toFixed(2) || 0))}</td>`
+        )
+        .join('')}
     </tr>`;
     table.append(bodyTable);
   }

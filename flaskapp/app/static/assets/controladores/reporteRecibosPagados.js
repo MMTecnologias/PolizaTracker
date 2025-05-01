@@ -12,6 +12,24 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
+  function formatNumber(num, options = {}) {
+    const { separator = ',', decimalPoint = '.', groupSize = 3 } = options;
+    const parts = num.toString().split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? parts[1] : '';
+    let result = '';
+    for (let i = 0; i < integerPart.length; i++) {
+      if (i > 0 && (integerPart.length - i) % groupSize === 0) {
+        result += separator;
+      }
+      result += integerPart[i];
+    }
+    if (decimalPart) {
+      result += decimalPoint + decimalPart;
+    }
+    return result;
+  }
+
   function fillTableRecibosPagados(
     resp,
     formDataFechas,
@@ -33,8 +51,8 @@ $(function () {
           <td>${recibo.endoso !== null ? 'Endoso' : 'Poliza'}</td>
           <td>${recibo.endoso !== null ? recibo.endoso : recibo.poliza}</td>
           <td>${recibo.aseguradora}</td>
-          <td>$${recibo.prima_neta}</td>
-          <td>$${recibo.prima_total}</td>
+          <td>$${formatNumber(Number(recibo.prima_neta || 0))}</td>
+          <td>$${formatNumber(Number(recibo.prima_total || 0))}</td>
           <td>${recibo.moneda}</td>
           <td>${recibo.fecha_pago}</td>
           <td>${recibo.cliente}</td>
