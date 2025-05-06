@@ -1070,9 +1070,36 @@ $(function () {
       fecha_termino,
       tipo_pago_id,
     });
-    if ($('#title_poliza')?.text()?.includes('Endoso')) {
+    if ($('#title_poliza')?.text()?.includes('Editar')) {
       const poliza_id = $('#poliza_id').val();
-      params = `${params}&poliza_id=${poliza_id}&is_endoso=true`;
+      let newParams = $('#form-polizas').serialize();
+      newParams = `${newParams}&poliza_id=${poliza_id}`;
+      $.ajax({
+        url: 'polizas/edit',
+        method: 'POST',
+        dataType: 'json',
+        data: newParams,
+        success: function (resp) {
+          console.log(resp);
+          if (resp.error) {
+            alert(resp.msg, 'error', resp.title);
+          } else {
+            alert(resp.msg);
+          }
+        },
+        error: function (xhr, textStatus, error) {
+          console.error(error);
+          alert(
+            'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+            'error'
+          );
+        },
+      });
+    } else {
+      if ($('#title_poliza')?.text()?.includes('Endoso')) {
+        const poliza_id = $('#poliza_id').val();
+        params = `${params}&poliza_id=${poliza_id}&is_endoso=true`;
+      }
       $.ajax({
         url: 'polizas/get_policy_values',
         method: 'POST',
@@ -1091,34 +1118,9 @@ $(function () {
             $('#prima-neta').val(resp.netPremium);
             $('#prima-total').val(resp.totalPremium);
             $('#nopagos').val(resp.numReceipts);
-            $('iva').val(Number(resp.totalPremium) * 0.16);
+            $('#iva').val(Number(resp.totalPremium) * 0.16);
             $('#create-recib').modal({ backdrop: 'static', keyboard: false });
             $('#receipts_created').val('no');
-          }
-        },
-        error: function (xhr, textStatus, error) {
-          console.error(error);
-          alert(
-            'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-            'error'
-          );
-        },
-      });
-    } else if ($('#title_poliza')?.text()?.includes('Editar')) {
-      const poliza_id = $('#poliza_id').val();
-      let newParams = $('#form-polizas').serialize();
-      newParams = `${newParams}&poliza_id=${poliza_id}`;
-      $.ajax({
-        url: 'polizas/edit',
-        method: 'POST',
-        dataType: 'json',
-        data: newParams,
-        success: function (resp) {
-          console.log(resp);
-          if (resp.error) {
-            alert(resp.msg, 'error', resp.title);
-          } else {
-            alert(resp.msg);
           }
         },
         error: function (xhr, textStatus, error) {
