@@ -13,6 +13,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+from app.models import export_to_csv, export_to_pdf
 
 
 @polizas_route.route('/get_receipts', methods=['POST'])
@@ -133,6 +134,7 @@ def get():
             # Poliza.poliza.ilike(f'%{search_value}%'),
             Cliente.nombre.ilike(f'%{search_value}%'),
             Cliente.apellido.ilike(f'%{search_value}%'),
+            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(f'%{search_value}%'),
             # Search in poliza sarting with search_value
             Poliza.poliza.ilike(f'{search_value}%'),
             # Add more fields for searching as needed
@@ -182,6 +184,14 @@ def get():
 
         # Append to data list
         data.append(poliza_data)
+
+        # Configurar encabezados y columnas para exportar
+    headers = ['poliza', 'cliente', 'aseguradora', 'vigencia', 'ramo', 'subramo', 'tipoPago', 'agente', 'vendedor', 'prima_neta', 'prima_total', 'status']
+    real_headers = ['Póliza', 'Cliente', 'Aseguradora', 'Vigencia', 'Ramo', 'Subramo', 'Forma de Pago', 'Agente', 'Vendedor', 'Prima Neta', 'Prima Total', 'Estado']
+
+    # Exportar a CSV
+    if flask_request.form.get('export_csv'):
+        return export_to_csv(headers, response, 'polizas.csv', real_headers)
 
     # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response
