@@ -286,8 +286,13 @@ def prima_neta():
         'data': data  # Data to display
     }
     # export_to_csv or pdf
-    headers = ['year', 'month', 'total_prima_neta_pagada']
-    real_headers = ['Año', 'Mes', 'Prima Neta Pagada']
+    if type_report == 'month':
+        headers = ['year', 'month', 'total_prima_neta_pagada']
+        real_headers = ['Año', 'Mes', 'Prima Neta Pagada']
+    else:
+        headers = ['year', 'total_prima_neta_pagada']
+        real_headers = ['Año', 'Prima Neta Pagada']
+        
     if by:
         headers.append(by)
         real_headers.append(by.capitalize())
