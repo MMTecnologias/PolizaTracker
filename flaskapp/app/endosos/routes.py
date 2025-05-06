@@ -112,6 +112,8 @@ def get():
             Cliente.nombre.ilike(f'%{search_value}%'),
             Cliente.apellido.ilike(f'%{search_value}%'),
             Endoso.endoso.ilike(f'%{search_value}%'),
+            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
+                f'%{search_value}%'),
             # Add more fields for searching as needed
         ))
 
