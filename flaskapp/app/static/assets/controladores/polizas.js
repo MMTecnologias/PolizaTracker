@@ -374,6 +374,103 @@ $(function () {
     });
   }
 
+  async function editPoliza(poliza_id) {
+    const data = await resetForm();
+    // $('#btnGuardar').hide();
+    $('#poliza_id').val(poliza_id);
+    $.ajax({
+      ...ajaxConfig,
+      url: '/polizas/get',
+      data: $.param({ start: 0, length: 0, poliza_id }),
+      success: function (resp) {
+        $('#buscar-cliente').val(resp.data[0].cliente);
+        $('#Poliza').val(resp.data[0].poliza);
+        $('#selected-client-id').val(resp.data[0].cliente_id);
+        $('#VigenciaI').val(resp.data[0].fecha_inicio);
+        $('#VigenciaF').val(resp.data[0].fecha_termino);
+        $('#prima_neta').prop('disabled', false);
+        $('#prima_total').prop('disabled', false);
+        $('#serie').val(resp.data[0].serie);
+        $('#notas').val(resp.data[0].notas);
+        $('#Moneda').val(resp.data[0].moneda);
+        $('#prima_neta').val(resp.data[0].prima_neta);
+        $('#prima_total').val(resp.data[0].prima_total);
+        $('#prima_neta').prop('disabled', true);
+        $('#prima_total').prop('disabled', true);
+        $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
+            ${resp.data[0].ramo}
+            </option>
+        `);
+        $('#subramo').html(`<option value='${resp.data[0].subramo_id}'>
+            ${resp.data[0].subramo}
+            </option>
+        `);
+        $('#aseguradora').html(`<option value='${resp.data[0].aseguradora_id}'>
+            ${resp.data[0].aseguradora}
+            </option>
+        `);
+        $('#Pago').html(`<option value='${resp.data[0].tipo_pago_id}'>
+            ${resp.data[0].tipoPago}
+            </option>
+        `);
+        $('#vendedor').html(`<option value='${resp.data[0].vendedor_id}'>
+            ${resp.data[0].vendedor}
+            </option>
+        `);
+        $('#agente').html(`<option value='${resp.data[0].agente_id}'>
+            ${resp.data[0].agente}
+            </option>
+        `);
+        if (data) {
+          for (const ramo of data.Ramo) {
+            $('#ramo').append(`<option value='${ramo.id}'>
+        ${ramo.ramo}
+        </option>
+        `);
+          }
+          $('#ramo').append(`<option value="New">Nuevo Ramo</option>`);
+          for (const subramo of data.Subramo) {
+            $('#subramo').append(`<option value='${subramo.id}'>
+        ${subramo.subramo}
+        </option>
+        `);
+          }
+          $('#subramo').append(`<option value="New">Nuevo Subramo</option>`);
+          for (const aseguradora of data.Aseguradora) {
+            $('#aseguradora').append(`<option value='${aseguradora.id}'>
+        ${aseguradora.aseguradora}
+        </option>
+        `);
+          }
+          $('#aseguradora').append(
+            `<option value="New">Nueva Aseguradora</option>`
+          );
+          for (const pago of data.TipoPago) {
+            $('#Pago').append(`<option value='${pago.id}'>
+        ${pago.tipo_pago}
+        </option>
+        `);
+          }
+          for (const vendedor of data.Vendedor) {
+            $('#vendedor').append(`<option value='${vendedor.id}'>
+        ${vendedor.nombre}
+        </option>
+        `);
+          }
+          $('#vendedor').append(`<option value="New">Nuevo Vendedor</option>`);
+          for (const agente of data.Agente) {
+            $('#agente').append(`<option value='${agente.id}'>
+        ${agente.nombre}
+        </option>
+        `);
+          }
+          $('#agente').append(`<option value="New">Nuevo Agente</option>`);
+        }
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  }
+
   async function renewPoliza(poliza_id) {
     const data = await resetForm();
     $('#btnGuardar').html('Renovar póliza');
@@ -599,6 +696,15 @@ $(function () {
                 </a>
               </li>
               <li>
+                <a class="btn__icon_delete pointer" id="btnAddEndoso_${
+                  poliza.id
+                }">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
+                    poliza.status
+                  )}><path d="M120-320v-80h280v80H120Zm0-160v-80h440v80H120Zm0-160v-80h440v80H120Zm520 480v-160H480v-80h160v-160h80v160h160v80H720v160h-80Z"/></svg>
+                </a>
+              </li>
+              <li>
                 <a class="btn__icon_edit pointer" id="btnEdit_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
                     poliza.status
@@ -606,7 +712,9 @@ $(function () {
                 </a>
               </li>
               <li>
-                <a class="btn__icon_show pointer" id="btnEndoso_${poliza.id}">
+                <a class="btn__icon_show pointer" id="btnViewEndosos_${
+                  poliza.id
+                }">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
                     poliza.status
                   )}><path d="M120-220v-80h80v80h-80Zm0-140v-80h80v80h-80Zm0-140v-80h80v80h-80ZM260-80v-80h80v80h-80Zm100-160q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480Zm40 240v-80h80v80h-80Zm-200 0q-33 0-56.5-23.5T120-160h80v80Zm340 0v-80h80q0 33-23.5 56.5T540-80ZM120-640q0-33 23.5-56.5T200-720v80h-80Zm420 80Z"/></svg>
@@ -634,13 +742,18 @@ $(function () {
         $('#recib').modal();
         getRecibos(poliza.id);
       });
-      $(`#btnEdit_${poliza.id}`).on('click', (e) => {
+      $(`#btnAddEndoso_${poliza.id}`).on('click', (e) => {
         $('#poliza_id').val(poliza.id);
         $('#endoso-type').modal();
       });
+      $(`#btnEdit_${poliza.id}`).on('click', (e) => {
+        editPoliza(poliza.id);
+        $('#btnGuardar').html('Actualizar póliza');
+        $('#title_poliza').text('Editar póliza');
+      });
       $(`#btnDelete_${poliza.id}`).on('click', (e) => cancelPoliza(poliza.id));
       $(`#btnRenew_${poliza.id}`).on('click', (e) => renewPoliza(poliza.id));
-      $(`#btnEndoso_${poliza.id}`).on('click', (e) => {
+      $(`#btnViewEndosos_${poliza.id}`).on('click', (e) => {
         getEndosos(poliza.id);
         $('#endoso-list').modal();
       });
@@ -727,16 +840,28 @@ $(function () {
           endoso.status
         )}">
           <td>
-            <p class="td-clickable" id="td-clickable-endoso_${endoso.id}">
+            <p class="td-clickable" id="td-clickable-endoso_${
+              endoso.id
+            }" style="color: ${getTextColor(poliza.status)}">
                 ${endoso.endoso}
             </p>
           </td>
-          <td>${endoso.tipo_endoso}</td>
-          <td>${endoso.cliente}</td>
-          <td>${endoso.subramo}</td>
-          <td>${endoso.aseguradora}</td>
-          <td>${endoso.tipoPago}</td>
-          <td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+          endoso.tipo_endoso
+        }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+          endoso.cliente
+        }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+          endoso.subramo
+        }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+          endoso.aseguradora
+        }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+          endoso.tipoPago
+        }</td>
+          <td style="color: ${getTextColor(poliza.status)}">
             <ul class="btn_table_options">
             </ul>
           </td>
