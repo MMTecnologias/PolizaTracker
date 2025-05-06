@@ -345,6 +345,107 @@ def create():
     #    'title': 'Sin cambios'
     # })
 
+@polizas_route.route('/edit', methods=['POST'])
+@login_required
+def edit():
+    # Get the ID of the Poliza to edit
+    poliza_id = flask_request.form.get('poliza_id')
+    if not poliza_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó el ID de la póliza'})
+
+    # Fetch the Poliza from the database
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'No se encontró la póliza'})
+
+    # Define mappings for form fields to Poliza columns
+    column_name_mapping = {
+        'cliente_id': 'selected-client-id',
+        'fecha_inicio': 'VigenciaI',
+        'fecha_termino': 'VigenciaF',
+        'moneda': 'Moneda',
+        'tipo_pago_id': 'Pago',
+        'serie': 'serie',
+        'notas': 'notas',
+        'poliza_anterior': 'polizaAnterior',
+        'renovacion': 'renovacion',
+        'prima_neta': 'prima_neta',
+        'prima_total': 'prima_total',
+        'poliza': 'Poliza',
+        'conducta_pago': 'conducto_pago'
+    }
+
+    # Map form values to Poliza attributes
+    form_value_mapping = {
+        'selected-client-id': flask_request.form.get('selected-client-id'),
+        'VigenciaI': flask_request.form.get('VigenciaI'),
+        'VigenciaF': flask_request.form.get('VigenciaF'),
+        'Moneda': flask_request.form.get('Moneda'),
+        'Pago': flask_request.form.get('Pago'),
+        'serie': flask_request.form.get('serie'),
+        'notas': flask_request.form.get('notas'),
+        'polizaAnterior': flask_request.form.get('polizaAnterior'),
+        'renovacion': flask_request.form.get('renovacion'),
+        'prima_neta': flask_request.form.get('prima_neta'),
+        'prima_total': flask_request.form.get('prima_total'),
+        'Poliza': flask_request.form.get('Poliza'),
+        'conducto_pago': flask_request.form.get('conducto_pago')
+    }
+
+    # Update Poliza attributes
+    for col, form_field in column_name_mapping.items():
+        if form_value_mapping[form_field]:
+            setattr(poliza, col, form_value_mapping[form_field])
+
+    # Handle related entities (e.g., Ramo, Subramo, Aseguradora, etc.)
+    def check_new_form():
+        argdict = {}
+
+        ramo = flask_request.form.get('ramo')
+        nuevo_ramo = flask_request.form.get('nuevo_ramo')
+        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+
+        subramo = flask_request.form.get('subramo')
+        nuevo_subramo = flask_request.form.get('nuevo_subramo')
+        argdict["subramo_id"] = new_class(Subramo, subramo, nuevo_subramo, "subramo")
+
+        aseguradora = flask_request.form.get('aseguradora')
+        nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
+        argdict["aseguradora_id"] = new_class(Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
+
+        vendedor = flask_request.form.get('vendedor')
+        nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
+        argdict["vendedor_id"] = new_class(Vendedor, vendedor, nuevo_vendedor, "nombre")
+
+        agente = flask_request.form.get('agente')
+        nuevo_agente = flask_request.form.get('nuevo_agente')
+        argdict["agente_id"] = new_class(Agente, agente, nuevo_agente, "nombre")
+
+        return argdict
+
+    # Update related entities
+    related_entities = check_new_form()
+    for key, value in related_entities.items():
+        setattr(poliza, key, value)
+
+    # Save changes to the database
+    try:
+        db.session.commit()
+        # Log the edit action
+        request_entry = Request(
+            usuario_id=current_user.id,
+            description=f"Editar póliza {poliza.poliza}",
+            status="Aceptada",
+            table_name='Poliza',
+            row_id=poliza.id
+        )
+        db.session.add(request_entry)
+        db.session.commit()
+
+        return jsonify({'error': False, 'msg': 'Póliza actualizada exitosamente', 'poliza_id': poliza.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': True, 'msg': f'Error al actualizar la póliza: {str(e)}'})
 
 @polizas_route.route('/delete', methods=['POST'])
 @login_required
