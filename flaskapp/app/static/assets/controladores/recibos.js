@@ -38,8 +38,6 @@ $(function () {
     formMultiple
   ) {
     const { data, recordsTotal } = resp;
-    console.log(data);
-
     const table = $('#table-receipts');
     table.html('');
     $.each(data, function (idx, poliza) {
@@ -180,13 +178,11 @@ $(function () {
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    if ($('#start_date').val() && $('#end_date').val()) {
-      const formDataFechas = $('#form-fechas').serialize();
-      params = `${params}&${formDataFechas}`;
-    }
+    const formMultiple = $('#form-multiple').serialize();
+    params = `${params}&${formMultiple}`;
     $.ajax({
       type: 'POST',
-      url: '/reportes/prima_neta',
+      url: '/reportes/recibos_pagados',
       data: params,
       xhrFields: {
         responseType: 'blob',
@@ -195,7 +191,7 @@ $(function () {
         let a = document.createElement('a');
         let url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = `reporte_cobranza_${new Date().toLocaleDateString()}.csv`;
+        a.download = `recibos_pagados_${new Date().toLocaleDateString()}.csv`;
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);
