@@ -383,14 +383,14 @@ def get_upcoming_receipts():
 
         response.append(data)
 
-    headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'aseguradora', 'fecha_inicio',
+    headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'aseguradora', 'fecha_inicio',
                'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
-    real_headers = ['poliza', 'Recibo', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Aseguradora',
+    real_headers = ['poliza', 'Recibo', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Aseguradora',
                     'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Moneda', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'upcoming_receipts.csv', real_headers)
     if request.form.get('export_pdf'):
-        to_multiline = ['cliente', 'notas']
+        to_multiline = ['cliente', 'notas', 'ramo', 'aseguradora', 'agente']
         if filtered_selected:
             title_str = "Recibos por vencer en %s - %s" % (
                 payment_due_start.strftime('%d/%m/%y'), payment_due_end.strftime('%d/%m/%y'))
