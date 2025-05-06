@@ -628,10 +628,10 @@ def get_upcoming_policies():
 
     # 'Poliza o Endoso': 'Endoso'
     # Export to CSV
-    headers = ['Poliza o Endoso', 'poliza_id', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio',
-               'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'forma_pago', 'agente', 'vendedor', 'endoso', 'poliza_anterior']
-    real_headers = ['Tipo', 'id', 'poliza', 'Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio',
-                    'Final', 'Prima Neta', 'Prima Total', 'Moneda', 'Forma de pago', 'Agente', 'Vendedor', 'Endoso', 'Anterior']
+    headers = ['Poliza o Endoso', 'poliza', 'cliente', 'ramo', 'subramo', 'fecha_inicio',
+               'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'forma_pago', 'agente', 'endoso', 'poliza_anterior']
+    real_headers = ['Tipo', 'poliza', 'Nombre del cliente  ', 'Ramo', 'Subramo', 'Inicio',
+                    'Final', 'Prima Neta', 'Prima Total', 'Moneda', 'Forma de pago', 'Agente', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'upcoming_policies.csv', real_headers)
     if request.form.get('export_pdf'):

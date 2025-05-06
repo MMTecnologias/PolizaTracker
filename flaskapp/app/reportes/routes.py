@@ -805,14 +805,14 @@ def polizas_preprocessed():
     # Prepare the response
 
     # export_to_csv or pdf
-    headers = ['poliza_id', 'year', 'month', 'polizas_totales', 'polizas_nuevas',
+    headers = [ 'year', 'month', 'polizas_totales', 'polizas_nuevas',
                'polizas_renovadas', 'polizas_canceladas', 'renovaciones',
-               'aseguradora', 'grupo', 'ramo', 'agente', 'vendedor',
+               'aseguradora', 'grupo', 'ramo', 'agente',
                'poliza', 'cliente', 'fecha_inicio', 'fecha_fin',
                'prima_neta', 'prima_total', 'moneda']
-    real_headers = ['ID', 'Año', 'Mes', 'Total', 'Nueva',
+    real_headers = [ 'Año', 'Mes', 'Total', 'Nueva',
                     'Renovada', 'Cancelada', 'Renovación',
-                    'Aseguradora', 'Grupo', 'Ramo', 'Agente', 'Vendedor',
+                    'Aseguradora', 'Grupo', 'Ramo', 'Agente',
                     'Poliza', 'Cliente', 'Inicio', 'Fin',
                     'Prima Neta', 'Prima Total', 'Moneda']
 
