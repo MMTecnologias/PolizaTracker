@@ -376,7 +376,6 @@ $(function () {
 
   async function editPoliza(poliza_id) {
     const data = await resetForm();
-    // $('#btnGuardar').hide();
     $('#poliza_id').val(poliza_id);
     $.ajax({
       ...ajaxConfig,
@@ -1072,40 +1071,65 @@ $(function () {
       tipo_pago_id,
     });
     if ($('#title_poliza')?.text()?.includes('Endoso')) {
-      const polizaId = $('#poliza_id').val();
-      params = `${params}&poliza_id=${polizaId}&is_endoso=true`;
-    }
-    $.ajax({
-      url: 'polizas/get_policy_values',
-      method: 'POST',
-      dataType: 'json',
-      data: params,
-      success: function (resp) {
-        console.log(resp);
-        if (resp.error) {
-          alert(resp.msg, 'error', resp.title);
-          $('#create-recib').modal('hide');
-        } else {
-          if (resp.msg && resp.msg.includes('no coincidiran')) {
-            $('#alert_Modal').show();
-            $('#alert_Modal').text(resp.msg);
+      const poliza_id = $('#poliza_id').val();
+      params = `${params}&poliza_id=${poliza_id}&is_endoso=true`;
+      $.ajax({
+        url: 'polizas/get_policy_values',
+        method: 'POST',
+        dataType: 'json',
+        data: params,
+        success: function (resp) {
+          console.log(resp);
+          if (resp.error) {
+            alert(resp.msg, 'error', resp.title);
+            $('#create-recib').modal('hide');
+          } else {
+            if (resp.msg && resp.msg.includes('no coincidiran')) {
+              $('#alert_Modal').show();
+              $('#alert_Modal').text(resp.msg);
+            }
+            $('#prima-neta').val(resp.netPremium);
+            $('#prima-total').val(resp.totalPremium);
+            $('#nopagos').val(resp.numReceipts);
+            $('iva').val(Number(resp.totalPremium) * 0.16);
+            $('#create-recib').modal({ backdrop: 'static', keyboard: false });
+            $('#receipts_created').val('no');
           }
-          $('#prima-neta').val(resp.netPremium);
-          $('#prima-total').val(resp.totalPremium);
-          $('#nopagos').val(resp.numReceipts);
-          $('iva').val(Number(resp.totalPremium) * 0.16);
-          $('#create-recib').modal({ backdrop: 'static', keyboard: false });
-          $('#receipts_created').val('no');
-        }
-      },
-      error: function (xhr, textStatus, error) {
-        console.error(error);
-        alert(
-          'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-          'error'
-        );
-      },
-    });
+        },
+        error: function (xhr, textStatus, error) {
+          console.error(error);
+          alert(
+            'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+            'error'
+          );
+        },
+      });
+    } else if ($('#title_poliza')?.text()?.includes('Editar')) {
+      const poliza_id = $('#poliza_id').val();
+      let newParams = $('#form-polizas').serialize();
+      newParams = `${newParams}&poliza_id=${poliza_id}`;
+      $.ajax({
+        url: 'polizas/edit',
+        method: 'POST',
+        dataType: 'json',
+        data: newParams,
+        success: function (resp) {
+          console.log(resp);
+          if (resp.error) {
+            alert(resp.msg, 'error', resp.title);
+          } else {
+            alert(resp.msg);
+          }
+        },
+        error: function (xhr, textStatus, error) {
+          console.error(error);
+          alert(
+            'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+            'error'
+          );
+        },
+      });
+    }
   });
 
   $('#form_date_recib').submit(function (e) {

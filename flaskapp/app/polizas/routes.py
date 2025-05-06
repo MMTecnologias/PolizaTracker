@@ -134,7 +134,8 @@ def get():
             # Poliza.poliza.ilike(f'%{search_value}%'),
             Cliente.nombre.ilike(f'%{search_value}%'),
             Cliente.apellido.ilike(f'%{search_value}%'),
-            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(f'%{search_value}%'),
+            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
+                f'%{search_value}%'),
             # Search in poliza sarting with search_value
             Poliza.poliza.ilike(f'{search_value}%'),
             # Add more fields for searching as needed
@@ -186,8 +187,10 @@ def get():
         data.append(poliza_data)
 
         # Configurar encabezados y columnas para exportar
-    headers = ['poliza', 'cliente', 'aseguradora', 'vigencia', 'ramo', 'subramo', 'tipoPago', 'agente', 'vendedor', 'prima_neta', 'prima_total', 'status']
-    real_headers = ['Póliza', 'Cliente', 'Aseguradora', 'Vigencia', 'Ramo', 'Subramo', 'Forma de Pago', 'Agente', 'Vendedor', 'Prima Neta', 'Prima Total', 'Estado']
+    headers = ['poliza', 'cliente', 'aseguradora', 'vigencia', 'ramo', 'subramo',
+               'tipoPago', 'agente', 'vendedor', 'prima_neta', 'prima_total', 'status']
+    real_headers = ['Póliza', 'Cliente', 'Aseguradora', 'Vigencia', 'Ramo', 'Subramo',
+                    'Forma de Pago', 'Agente', 'Vendedor', 'Prima Neta', 'Prima Total', 'Estado']
 
     # Exportar a CSV
     if flask_request.form.get('export_csv'):
@@ -355,6 +358,7 @@ def create():
     #    'title': 'Sin cambios'
     # })
 
+
 @polizas_route.route('/edit', methods=['POST'])
 @login_required
 def edit():
@@ -417,19 +421,23 @@ def edit():
 
         subramo = flask_request.form.get('subramo')
         nuevo_subramo = flask_request.form.get('nuevo_subramo')
-        argdict["subramo_id"] = new_class(Subramo, subramo, nuevo_subramo, "subramo")
+        argdict["subramo_id"] = new_class(
+            Subramo, subramo, nuevo_subramo, "subramo")
 
         aseguradora = flask_request.form.get('aseguradora')
         nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
-        argdict["aseguradora_id"] = new_class(Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
+        argdict["aseguradora_id"] = new_class(
+            Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
         vendedor = flask_request.form.get('vendedor')
         nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
-        argdict["vendedor_id"] = new_class(Vendedor, vendedor, nuevo_vendedor, "nombre")
+        argdict["vendedor_id"] = new_class(
+            Vendedor, vendedor, nuevo_vendedor, "nombre")
 
         agente = flask_request.form.get('agente')
         nuevo_agente = flask_request.form.get('nuevo_agente')
-        argdict["agente_id"] = new_class(Agente, agente, nuevo_agente, "nombre")
+        argdict["agente_id"] = new_class(
+            Agente, agente, nuevo_agente, "nombre")
 
         return argdict
 
@@ -456,6 +464,7 @@ def edit():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': True, 'msg': f'Error al actualizar la póliza: {str(e)}'})
+
 
 @polizas_route.route('/delete', methods=['POST'])
 @login_required
