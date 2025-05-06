@@ -4,7 +4,7 @@ from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log,Endoso, new_class
+from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, Endoso, new_class
 from sqlalchemy import join, or_, desc, func, select
 import csv
 from io import StringIO
@@ -13,6 +13,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+
 
 @endosos_route.route('/get_receipts', methods=['POST'])
 @login_required
@@ -27,10 +28,10 @@ def get_receipts():
         recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
         poliza_id = Recibo.query.get(endoso_id).poliza_id
     else:
-        #Error
+        # Error
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se envió el ID del endoso.'})
 
-    moneda=Poliza.query.get(int(poliza_id)).moneda
+    moneda = Poliza.query.get(int(poliza_id)).moneda
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
@@ -42,17 +43,17 @@ def get_receipts():
     for recibo in recibos:
         data.append({
             'numero': recibo.no_de_recibo,
-            'fecha_recibo':recibo.fecha_inicio.strftime('%Y-%m-%d'),
-            "vencimiento" : recibo.fecha_vencimiento.strftime('%Y-%m-%d') ,
-            "prima_neta" : float(recibo.prima_neta) ,
-            "prima_total" : float(recibo.prima_total) ,
-            "comision" : float(recibo.comision) ,
-            "pagado" : True if recibo.status=='Liquidado' else False,
-            "fecha_pago" : "" if recibo.fecha_pago is None else  recibo.fecha_pago.strftime('%Y-%m-%d'),
-            "comprobante" : "" if recibo.comprobante is None else  recibo.comprobante ,
-            "cancelado" : True if poliza.status=='Cancelada' else False,
+            'fecha_recibo': recibo.fecha_inicio.strftime('%Y-%m-%d'),
+            "vencimiento": recibo.fecha_vencimiento.strftime('%Y-%m-%d'),
+            "prima_neta": float(recibo.prima_neta),
+            "prima_total": float(recibo.prima_total),
+            "comision": float(recibo.comision),
+            "pagado": True if recibo.status == 'Liquidado' else False,
+            "fecha_pago": "" if recibo.fecha_pago is None else recibo.fecha_pago.strftime('%Y-%m-%d'),
+            "comprobante": "" if recibo.comprobante is None else recibo.comprobante,
+            "cancelado": True if poliza.status == 'Cancelada' else False,
             'id': recibo.id,
-            'moneda':moneda
+            'moneda': moneda
             # Add more fields as needed
         })
     # 'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
@@ -78,14 +79,15 @@ def get():
     endoso_id = flask_request.form.get('endoso_id')
 
     endosos_query = db.session.query(Endoso,
-                                        Cliente.nombre.label("client_name"),
-                                        Cliente.apellido.label("client_lastname"),
-                                        Aseguradora.aseguradora.label("aseguradora"),
-                                        Ramo.ramo.label("ramo"),
-                                        Subramo.subramo.label("subramo"),
-                                        TipoPago.tipo_pago.label("tipo_pago"),
-                                        Agente.nombre.label("agente"),
-                                        Vendedor.nombre.label("vendedor")) \
+                                     Cliente.nombre.label("client_name"),
+                                     Cliente.apellido.label("client_lastname"),
+                                     Aseguradora.aseguradora.label(
+                                         "aseguradora"),
+                                     Ramo.ramo.label("ramo"),
+                                     Subramo.subramo.label("subramo"),
+                                     TipoPago.tipo_pago.label("tipo_pago"),
+                                     Agente.nombre.label("agente"),
+                                     Vendedor.nombre.label("vendedor")) \
         .select_from(Endoso) \
         .join(Cliente, Endoso.cliente_id == Cliente.id) \
         .join(Aseguradora, Endoso.aseguradora_id == Aseguradora.id) \
@@ -99,11 +101,11 @@ def get():
         endosos_query = endosos_query.order_by(desc(Endoso.fecha_inicio))
     else:
         endosos_query = endosos_query.order_by('endoso')
-        #endosos_query = endosos_query.order_by(desc(Endoso.id))
-    
+        # endosos_query = endosos_query.order_by(desc(Endoso.id))
+
     if endoso_id:
         endosos_query = endosos_query.filter(Endoso.id == int(endoso_id))
-    
+
     # Implement search functionality
     if search_value:
         endosos_query = endosos_query.filter(or_(
@@ -167,6 +169,7 @@ def get():
     }
     return jsonify(response)
 
+
 @endosos_route.route('/delete', methods=['POST'])
 @login_required
 def delete():
@@ -193,6 +196,7 @@ def delete():
         return jsonify({'error': False, 'title': 'Endoso cancelado', 'msg': 'El endoso ha sido cancelado con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:
         return jsonify({'error': True, 'title': 'Error', 'msg': 'No se encontró el endoso.'})
+
 
 @endosos_route.route('/process_receipt', methods=['POST'])
 @login_required
@@ -293,10 +297,10 @@ def process_receipt():
         elif delta <= 5:
             recibo.fecha_pago = nueva_fecha_pago
             request_entry = Request(usuario_id=current_user.id,
-                                description=f"Modificar fecha de pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza} a {nueva_fecha_pago.strftime('%Y-%m-%d')}",
-                                status="Aceptada",
-                                table_name='Recibo',
-                                row_id=recibo.id)
+                                    description=f"Modificar fecha de pago del recibo {recibo.no_de_recibo} de la poliza {poliza.poliza} a {nueva_fecha_pago.strftime('%Y-%m-%d')}",
+                                    status="Aceptada",
+                                    table_name='Recibo',
+                                    row_id=recibo.id)
             db.session.add(request_entry)
             db.session.commit()
             return jsonify({
@@ -323,4 +327,3 @@ def process_receipt():
                 'error': False,
                 'msg': 'Fecha de pago modificada exitosamente, esta accion esta sujeta a revision debido a registro tardio'
             })
-
