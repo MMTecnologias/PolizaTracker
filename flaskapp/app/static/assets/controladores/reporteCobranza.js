@@ -61,7 +61,6 @@ $(function () {
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>
-          <td>${poliza.subramo}</td>
           <td>${poliza.forma_pago}</td>
         </tr>`
       );

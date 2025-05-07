@@ -841,26 +841,26 @@ $(function () {
           <td>
             <p class="td-clickable" id="td-clickable-endoso_${
               endoso.id
-            }" style="color: ${getTextColor(poliza.status)}">
+            }" style="color: ${getTextColor(endoso.status)}">
                 ${endoso.endoso}
             </p>
           </td>
-          <td style="color: ${getTextColor(poliza.status)}">${
+          <td style="color: ${getTextColor(endoso.status)}">${
           endoso.tipo_endoso
         }</td>
-          <td style="color: ${getTextColor(poliza.status)}">${
+          <td style="color: ${getTextColor(endoso.status)}">${
           endoso.cliente
         }</td>
-          <td style="color: ${getTextColor(poliza.status)}">${
+          <td style="color: ${getTextColor(endoso.status)}">${
           endoso.subramo
         }</td>
-          <td style="color: ${getTextColor(poliza.status)}">${
+          <td style="color: ${getTextColor(endoso.status)}">${
           endoso.aseguradora
         }</td>
-          <td style="color: ${getTextColor(poliza.status)}">${
+          <td style="color: ${getTextColor(endoso.status)}">${
           endoso.tipoPago
         }</td>
-          <td style="color: ${getTextColor(poliza.status)}">
+          <td style="color: ${getTextColor(endoso.status)}">
             <ul class="btn_table_options">
             </ul>
           </td>
@@ -957,7 +957,7 @@ $(function () {
       sendObj = { start, length, order: true, poliza_id };
     }
     if (endoso_id && !poliza_id) {
-      sendObj = { start, length, order: true, poliza_id, endoso_id };
+      sendObj = { start, length, order: true, endoso_id };
     }
     $.ajax({
       ...ajaxConfig,
@@ -965,7 +965,7 @@ $(function () {
       data: $.param(sendObj),
       success: (resp) =>
         endoso_id
-          ? fillTableRecibosEndosos(resp, poliza_id)
+          ? fillTableRecibosEndosos(resp, pageNumber, length, endoso_id)
           : fillTableRecibos(resp, pageNumber, length, poliza_id),
       error: (xhr, status, error) => console.error(error),
     });

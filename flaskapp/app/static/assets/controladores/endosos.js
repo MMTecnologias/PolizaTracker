@@ -370,7 +370,7 @@ $(function () {
     });
   }
 
-  $('#searchPoliza').on('keyup', function (e) {
+  $('#searchEndoso').on('keyup', function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
     if (searchValue == '') return getEndosos();
@@ -378,7 +378,7 @@ $(function () {
       ...ajaxConfig,
       url: '/endosos/get',
       data: $.param({ start: 0, length: 10, searchValue }),
-      success: (resp) => fillTablePolizas(resp, 1, 9),
+      success: (resp) => fillTableEndosos(resp, 1, 10),
       error: (xhr, status, error) => console.error(error),
     });
   });

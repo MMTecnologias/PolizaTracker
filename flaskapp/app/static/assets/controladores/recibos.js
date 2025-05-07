@@ -54,14 +54,16 @@ $(function () {
           <td>${poliza.notas}</td>
           <td>${poliza.status}</td>
           <td>${poliza.aseguradora}</td>
-          <td>$${formatNumber(Number(poliza.prima_neta || 0))}</td>
-          <td>$${formatNumber(Number(poliza.prima_total || 0))}</td>
-          <td>${poliza.moneda}</td>
+          <td>$${formatNumber(Number(poliza.prima_neta || 0))} ${
+          poliza.moneda
+        }</td>
+          <td>$${formatNumber(Number(poliza.prima_total || 0))} ${
+          poliza.moneda
+        }</td>
           <td>${poliza.fecha_pago ? poliza.fecha_pago : ''}</td>
           <td>${poliza.cliente}</td>
           <td>${poliza.agente}</td>
           <td>${poliza.ramo}</td>
-          <td>${poliza.subramo}</td>
           <td>${poliza.forma_pago}</td>
         </tr>`
       );
