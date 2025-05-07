@@ -89,7 +89,7 @@ $(function () {
       $('#tipo').val('');
       $('#div_poliza_id').hide();
       $('#div_search_client').show();
-      $('#title_poliza').text('Póliza');
+      $('#title_poliza').text('Endoso');
       $('#prima_neta').prop('disabled', false);
       $('#prima_total').prop('disabled', false);
       $('#ramo').html('');
@@ -120,7 +120,7 @@ $(function () {
       data: $.param({ start: 0, length: 0, endoso_id }),
       success: function (resp) {
         $('#buscar-cliente').val(resp.data[0].cliente);
-        $('#Poliza').val(resp.data[0].poliza);
+        $('#Poliza').val(resp.data[0].endoso);
         $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#VigenciaI').val(resp.data[0].fecha_inicio);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
@@ -200,6 +200,7 @@ $(function () {
   function fillTableEndosos(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
     const table = $('#polizas-table');
+    console.log('Endosos =>', data);
     table.html('');
     $.each(data, function (idx, endoso) {
       table.append(
@@ -210,7 +211,7 @@ $(function () {
             <p class="td-clickable" id="td-clickable_${
               endoso.id
             }" style="color: ${getTextColor(endoso.status)}">
-                ${endoso.poliza}
+                ${endoso.endoso}
             </p>
           </td>
           <td style="color: ${getTextColor(endoso.status)}">${
