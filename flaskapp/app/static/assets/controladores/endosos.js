@@ -370,5 +370,18 @@ $(function () {
     });
   }
 
+  $('#searchPoliza').on('keyup', function (e) {
+    e.preventDefault();
+    const searchValue = e.target.value;
+    if (searchValue == '') return getEndosos();
+    $.ajax({
+      ...ajaxConfig,
+      url: '/endosos/get',
+      data: $.param({ start: 0, length: 10, searchValue }),
+      success: (resp) => fillTablePolizas(resp, 1, 9),
+      error: (xhr, status, error) => console.error(error),
+    });
+  });
+
   getEndosos();
 });
