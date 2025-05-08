@@ -194,7 +194,7 @@ def get():
 
     # Exportar a CSV
     if flask_request.form.get('export_csv'):
-        return export_to_csv(headers, response, 'polizas.csv', real_headers)
+        return export_to_csv(headers, data, 'polizas.csv', real_headers)
 
     # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response

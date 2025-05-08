@@ -1,5 +1,6 @@
 $(function () {
   let razonInput = '';
+  let totalPolizas = 0;
 
   const ajaxConfig = {
     url: '',
@@ -653,6 +654,7 @@ $(function () {
 
   function fillTablePolizas(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
+    totalPolizas = recordsTotal;
     const table = $('#polizas-table');
     table.html('');
     $.each(data, function (idx, poliza) {
@@ -1343,6 +1345,35 @@ $(function () {
     if (this.value === 'New') {
       $('#nuevo_agente_div').show();
     }
+  });
+
+  $('#btnExportar').click((e) => {
+    e.preventDefault();
+    let params = $.param({
+      start: 0,
+      length: totalPolizas,
+      export_csv: true,
+      searchValue: $('#searchPoliza').val(),
+    });
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/get',
+      data: params,
+      xhrFields: {
+        responseType: 'blob',
+      },
+      success: function (blob, status, xhr) {
+        let a = document.createElement('a');
+        let url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `polizas_${new Date().toLocaleDateString()}.csv`;
+        document.body.append(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
   });
 
   $('#endoso_tipo_a').click((e) => createEndozo($('#poliza_id').val(), 'B'));

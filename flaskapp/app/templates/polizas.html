@@ -275,10 +275,19 @@
                style="height: 703.59px;max-height: 703.59px;position: relative;padding-bottom: 20px;overflow: hidden;">
                <div class="table-polizas" id="table-polizas">
                   <h4 class="header-title">Tabla de Pólizas</h4>
-                  <form class="d-flex" role="search">
-                     <input class="form-control my-2" type="search" placeholder="Buscar Póliza" aria-label="Search"
-                        id="searchPoliza" />
-                  </form>
+                  <div class="row">
+                     <div class="col-10">
+                        <form class="d-flex" role="search">
+                           <input class="form-control my-2" type="search" placeholder="Buscar Póliza"
+                              aria-label="Search" id="searchPoliza" />
+                        </form>
+                     </div>
+                     <div class="col-2">
+                        <button class="btn px-4 py-2" type="button" id="btnExportar">
+                           Exportar a Excel
+                        </button>
+                     </div>
+                  </div>
                   <table class="table" style="overflow-y: scroll;">
                      <thead class="tableHeader">
                         <tr>

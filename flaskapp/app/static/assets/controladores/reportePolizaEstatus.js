@@ -107,6 +107,7 @@ $(function () {
       ramo: 'ramo',
       agente: 'agente',
       vendedor: 'vendedor',
+      status: 'status',
     };
     const series = createSeriesForCategory(
       data,
@@ -167,7 +168,7 @@ $(function () {
     const bodyTable = `<tr class="tableOption">
       ${data
         .map(
-          (total) => `<td>$${formatNumber(Number(total?.toFixed(2) || 0))}</td>`
+          (total) => `<td>${formatNumber(Number(total?.toFixed(2) || 0))}</td>`
         )
         .join('')}
     </tr>`;
@@ -213,6 +214,7 @@ $(function () {
       url: '/reportes/polizas_preprocessed',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
+        console.log(resp.data);
         if (formMultiple && formMultiple.includes('type_report=month')) {
           getBarChart(resp.data, 'month');
         } else {
