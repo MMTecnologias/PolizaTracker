@@ -1182,6 +1182,7 @@ $(function () {
     }
     const formDataPoliza = $('#form-polizas').serialize();
     if ($('#tipo').val()) {
+      console.log('Endoso', $('#tipo').val());
       $.ajax({
         type: 'POST',
         url: '/polizas/create_endoso',
@@ -1378,8 +1379,8 @@ $(function () {
     });
   });
 
-  $('#endoso_tipo_a').click((e) => createEndozo($('#poliza_id').val(), 'B'));
-  $('#endoso_tipo_b').click((e) => createEndozo($('#poliza_id').val(), 'A'));
+  $('#endoso_tipo_a').click((e) => createEndozo($('#poliza_id').val(), 'A'));
+  $('#endoso_tipo_b').click((e) => createEndozo($('#poliza_id').val(), 'B'));
   $('#endoso_tipo_d').click((e) => createEndozo($('#poliza_id').val(), 'D'));
 
   $('#div_poliza_id').hide();

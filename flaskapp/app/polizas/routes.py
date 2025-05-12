@@ -785,6 +785,7 @@ def save_receipts():
 def create_endoso():
     poliza_id = flask_request.form.get('poliza_id')
     tipo = flask_request.form.get('tipo')
+    print(tipo)
     if tipo not in ("A", "B", "D"):
         return jsonify({"error": True, "msg": "No se encuentra el tipo de endoso"})
     poliza = Poliza.query.get(poliza_id)
