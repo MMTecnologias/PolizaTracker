@@ -1021,6 +1021,7 @@ $(function () {
     const insurance = $('#derecho_poliza').val();
     const commission = $('#comision').val();
     const receipts = $('#nopagos').val();
+    const rec_pago = $('#rec_pago').val();
     const sendObj = {
       netPremium,
       totalPremium,
@@ -1029,6 +1030,7 @@ $(function () {
       commission,
       receipts,
       selectPoliza,
+      rec_pago,
     };
     if (endoso_id) sendObj.endoso_id = endoso_id;
     $.ajax({
@@ -1120,7 +1122,7 @@ $(function () {
             $('#prima-neta').val(resp.netPremium);
             $('#prima-total').val(resp.totalPremium);
             $('#nopagos').val(resp.numReceipts);
-            $('#iva').val(Number(resp.totalPremium) * 0.16);
+            $('#iva').val(16);
             $('#create-recib').modal({ backdrop: 'static', keyboard: false });
             $('#receipts_created').val('no');
           }
