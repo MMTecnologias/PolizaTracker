@@ -292,7 +292,7 @@ def prima_neta():
     else:
         headers = ['year', 'total_prima_neta_pagada']
         real_headers = ['Año', 'Prima Neta Pagada']
-        
+
     if by:
         headers.append(by)
         real_headers.append(by.capitalize())
@@ -982,6 +982,7 @@ def recibos_pagados():
             'no_de_recibo': f"'{recibo.no_de_recibo}",  # Convert to string
             'cliente': f'{nombre} {apellido}',
             'notas': poliza.notas,
+            'serie': poliza.serie,
             'ramo': ramo,
             'subramo': subramo,
             'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
@@ -995,7 +996,8 @@ def recibos_pagados():
             'vendedor': f'{vendedor}',
             'endoso': poliza.endoso,
             'poliza_anterior': poliza.poliza_anterior,
-            'aseguradora': aseguradora
+            'aseguradora': aseguradora,
+            'status': recibo.status
         }
 
         response.append(data)

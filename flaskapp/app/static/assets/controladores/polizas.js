@@ -176,6 +176,7 @@ $(function () {
   }
 
   async function createEndozo(poliza_id, tipo) {
+    console.log(tipo);
     const data = await resetForm();
     $('#endoso-type').modal('toggle');
     $('#tipo').val(tipo);

@@ -48,8 +48,10 @@ $(function () {
                 ${recibo.no_de_recibo}
             </p>
           </td>
-          <td>${recibo.endoso !== null ? 'Endoso' : 'Poliza'}</td>
-          <td>${recibo.endoso !== null ? recibo.endoso : recibo.poliza}</td>
+          <td>${recibo.endoso !== '' ? 'Endoso' : 'Poliza'}</td>
+          <td>${recibo.endoso !== '' ? recibo.endoso : recibo.poliza}</td>
+          <td>${recibo.serie}</td>
+          <td>${recibo.notas}</td>
           <td>${recibo.aseguradora}</td>
           <td>$${formatNumber(Number(recibo.prima_neta || 0))}</td>
           <td>$${formatNumber(Number(recibo.prima_total || 0))}</td>
@@ -58,7 +60,6 @@ $(function () {
           <td>${recibo.cliente}</td>
           <td>${recibo.agente}</td>
           <td>${recibo.ramo}</td>
-          <td>${recibo.subramo}</td>
           <td>${recibo.forma_pago}</td>
         </tr>`
       );
