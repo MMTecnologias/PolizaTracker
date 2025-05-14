@@ -123,6 +123,7 @@ $(function () {
       $('#nuevo_aseguradora_div').hide();
       $('#nuevo_vendedor_div').hide();
       $('#nuevo_agente_div').hide();
+      $('#only_show_poliza').hide();
       const data = await getFormData();
       for (const ramo of data.Ramo) {
         $('#ramo').append(`<option value='${ramo.id}'>
@@ -287,8 +288,11 @@ $(function () {
       url: '/polizas/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
+        $('#only_show_poliza').show();
         $('#buscar-cliente').val(resp.data[0].cliente);
         $('#Poliza').val(resp.data[0].poliza);
+        $('#poliza_anterior').val(resp.data[0].poliza_anterior);
+        $('#renovacion').val(resp.data[0].renovacion);
         $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#VigenciaI').val(resp.data[0].fecha_inicio);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
@@ -395,8 +399,6 @@ $(function () {
         $('#Moneda').val(resp.data[0].moneda);
         $('#prima_neta').val(resp.data[0].prima_neta);
         $('#prima_total').val(resp.data[0].prima_total);
-        $('#prima_neta').prop('disabled', true);
-        $('#prima_total').prop('disabled', true);
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -1384,6 +1386,7 @@ $(function () {
   $('#endoso_tipo_d').click((e) => createEndozo($('#poliza_id').val(), 'D'));
 
   $('#div_poliza_id').hide();
+  $('#only_show_poliza').hide();
   $('#div_poliza_anterior').hide();
   $('#nuevo_ramo_subramo_div').hide();
   $('#nuevo_aseguradora_div').hide();
