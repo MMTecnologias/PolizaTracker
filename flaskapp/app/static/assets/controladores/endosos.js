@@ -346,11 +346,12 @@ $(function () {
   }
 
   function getEndosos(pageNumber = 1, start = 0) {
-    const length = 9;
+    const length = 10;
+    const searchValue = $('#searchEndoso').val();
     $.ajax({
       ...ajaxConfig,
       url: '/endosos/get',
-      data: $.param({ start, length, order: true }),
+      data: $.param({ start, length, order: true, searchValue }),
       success: (resp) => fillTableEndosos(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });

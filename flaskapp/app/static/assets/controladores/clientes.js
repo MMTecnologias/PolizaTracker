@@ -163,10 +163,11 @@ $(function () {
 
   function getClients(pageNumber = 1, start = 0) {
     const length = 10;
+    const searchValue = $('#searchClient').val();
     $.ajax({
       ...ajaxConfig,
       url: '/clientes/get',
-      data: $.param({ start, length, order: true }),
+      data: $.param({ start, length, order: true, searchValue }),
       success: (resp) => fillTable(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
@@ -228,14 +229,13 @@ $(function () {
     e.preventDefault();
     const searchValue = e.target.value;
     if (searchValue == '') return getClients();
-    if (searchValue.length >= 3)
-      $.ajax({
-        ...ajaxConfig,
-        url: '/clientes/get',
-        data: $.param({ start: 0, length: 0, searchValue }),
-        success: (resp) => fillTable(resp, 1, 10),
-        error: (xhr, status, error) => console.error(error),
-      });
+    $.ajax({
+      ...ajaxConfig,
+      url: '/clientes/get',
+      data: $.param({ start: 0, length: 10, searchValue }),
+      success: (resp) => fillTable(resp, 1, 10),
+      error: (xhr, status, error) => console.error(error),
+    });
   });
 
   // $('#sortByName').click((e) => {

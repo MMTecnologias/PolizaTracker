@@ -934,11 +934,12 @@ $(function () {
   }
 
   function getPolizas(pageNumber = 1, start = 0) {
-    const length = 9;
+    const length = 10;
+    const searchValue = $('#searchPoliza').val();
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
-      data: $.param({ start, length, order: true }),
+      data: $.param({ start, length, order: true, searchValue }),
       success: (resp) => fillTablePolizas(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
@@ -1306,8 +1307,8 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
-      data: $.param({ start: 0, length: 9, searchValue }),
-      success: (resp) => fillTablePolizas(resp, 1, 9),
+      data: $.param({ start: 0, length: 10, searchValue }),
+      success: (resp) => fillTablePolizas(resp, 1, 10),
       error: (xhr, status, error) => console.error(error),
     });
   });

@@ -82,27 +82,27 @@ $(function () {
 
   function getVencimientos(pageNumber = 1, start = 0) {
     const length = 10;
+    const searchValue = $('#searchVencimiento').val();
     $.ajax({
       ...ajaxConfig,
       url: '/vencimientos/get',
-      data: $.param({ start, length, order: true }),
+      data: $.param({ start, length, order: true, searchValue }),
       success: (resp) => fillTableVencimientos(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
 
-  $('#searchPoliza').on('keyup', function (e) {
+  $('#searchVencimiento').on('keyup', function (e) {
     e.preventDefault();
     const searchValue = e.target.value;
-    if (searchValue == '') return getVencimientos();
-    if (searchValue.length >= 3)
-      $.ajax({
-        ...ajaxConfig,
-        url: '/polizas/get',
-        data: $.param({ start: 0, length: 0, searchValue }),
-        success: (resp) => fillTableVencimientos(resp, 1, 10),
-        error: (xhr, status, error) => console.error(error),
-      });
+    if (searchValue === '') return getVencimientos();
+    $.ajax({
+      ...ajaxConfig,
+      url: '/vencimientos/get',
+      data: $.param({ start: 0, length: 10, searchValue }),
+      success: (resp) => fillTableVencimientos(resp, 1, 10),
+      error: (xhr, status, error) => console.error(error),
+    });
   });
 
   getVencimientos();

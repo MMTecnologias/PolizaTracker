@@ -148,10 +148,11 @@ $(function () {
 
   function getAseguradoras(pageNumber = 1, start = 0) {
     const length = 5;
+    const search_value = $('#searchAseguradora').val();
     $.ajax({
       ...ajaxConfig,
       url: '/get_data_multiple',
-      data: $.param({ start, length, order: true }),
+      data: $.param({ start, length, order: true, search_value }),
       success: (resp) => fillTableAseguradoras(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
@@ -166,9 +167,7 @@ $(function () {
       data: search_value
         ? $.param({ start, length, search_value })
         : $.param({ start, length }),
-      success: (resp) => {
-        fillTableAcciones(resp, pageNumber, length);
-      },
+      success: (resp) => fillTableAcciones(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
   }
@@ -221,8 +220,8 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/get_data_multiple',
-      data: $.param({ start: 0, length: 0, searchValue }),
-      success: (resp) => fillTableAseguradoras(resp, 1, 5),
+      data: $.param({ start: 0, length: 10, searchValue }),
+      success: (resp) => fillTableAseguradoras(resp, 1, 10),
       error: (xhr, status, error) => console.error(error),
     });
   });
