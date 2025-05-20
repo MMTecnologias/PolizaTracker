@@ -224,7 +224,7 @@ def create():
         if not poliza_old:
             return jsonify({'error': True, 'msg': 'No se encontró la póliza a renovar'})
         if poliza_old.Poliza_renovada == "Si":
-            return jsonify({'error': True, 'msg': 'La poliza ya ha sido renovada'})
+            return jsonify({'error': True, 'msg': f'esta póliza ya ha sido renovada con el número de póliza {poliza_old.renovacion}'})
 
     if not poliza_id:
         return jsonify({'error': True, 'msg': 'No se encontró la póliza'})
@@ -305,7 +305,7 @@ def create():
     poliza = Poliza.query.filter(
         Poliza.poliza == arg_values["poliza"], Poliza.status != "Cancelada").first()
     if poliza:
-        return jsonify({'error': True, 'msg': 'Ya existe una póliza vigente con el mismo número', 'title': 'Ya existe una póliza vigente con el mismo número'})
+        return jsonify({'error': True, 'msg': f'Ya existe una póliza vigente con el mismo número {poliza.poliza}', 'title': 'Ya existe una póliza vigente con el mismo número'})
     # check for pending cancelation request of the same poliza
     request = Request.query.filter(Request.description == f"Cancelar póliza {arg_values['poliza']}",
                                    Request.status == "Pendiente").first()
