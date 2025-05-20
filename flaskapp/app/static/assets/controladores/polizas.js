@@ -1223,7 +1223,7 @@ $(function () {
         success: function (resp) {
           if (resp.error) {
             console.log(resp);
-            alert(resp.title, 'error');
+            alert(resp.msg, 'error', resp.title);
           } else {
             $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
