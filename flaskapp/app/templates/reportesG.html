@@ -58,13 +58,27 @@
             <div class="col-6 d-flex justify-content-center mt-5">
                 <div class="card w-100 m-0">
                     <div class="card-header">
-                        <h4><strong>Reportes por estatus de Póliza</strong></h4>
+                        <h4><strong>Reportes estatus de Póliza</strong></h4>
                     </div>
                     <div class="card-body">
                         <!-- <h5 class="card-title">Reporte de polizas que estan por vencer</h5> -->
                         <p class="card-text text-left">Polizas nuevas, Polizas emitidas contra renovaciones, Polizas
                             canceladas.</p>
                         <a class="btn btn-primary px-3" href="{{ url_for('main.reportePolizaEstatus') }}">Ver
+                            reportes</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 d-flex justify-content-center mt-5">
+                <div class="card w-100 m-0">
+                    <div class="card-header">
+                        <h4><strong>Reportes estatus de Póliza por Año</strong></h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- <h5 class="card-title">Reporte de polizas que estan por vencer</h5> -->
+                        <p class="card-text text-left">Polizas nuevas, Polizas emitidas contra renovaciones, Polizas
+                            canceladas por año</p>
+                        <a class="btn btn-primary px-3" href="{{ url_for('main.reportePolizaEstatusPorAnio') }}">Ver
                             reportes</a>
                     </div>
                 </div>

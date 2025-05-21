@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="x-ua-compatible" content="ie=edge" />
-  <title>Reporte Estatus Póliza</title>
+  <title>Reporte Estatus Póliza por Año</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="shortcut icon" type="image/png" href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}" />
   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
@@ -42,7 +42,7 @@
         <form class="row mt-2" id="form-multiple" novalidate>
           <div class="col-3">
             <div class="form__input-data input-sibling-child">
-              <label class="label-input-data" for="end_date">Fecha Fin</label>
+              <label class="label-input-data" for="end_date">Seleccionar años</label>
               <div class="input-group">
                 <select class="mul-select" name="years" id="years" multiple style="min-width: 100%">
                   <option valube="2022">2022</option>
@@ -53,35 +53,13 @@
               </div>
             </div>
           </div>
-          <div class="col-3">
-            <div class="form__input-data input-sibling-child">
-              <label class="label-input-data" for="start_date">Tipo(Mes o Año)</label>
-              <select class="custom-select" id="type_report" name="type_report">
-                <option value="year">Año</option>
-                <option value="month">Mes</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-3">
-            <div class="form__input-data input-sibling-child">
-              <label class="label-input-data" for="by">Mostrar por</label>
-              <select class="custom-select" id="by" name="by">
-                <option value="aseguradora">Aseguradora</option>
-                <option value="grupo">Grupo</option>
-                <option value="ramo">Ramo</option>
-                <option value="agente">Agente</option>
-                <option value="vendedor">Vendedor</option>
-                <option value="status">Estatus</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-3">
+          <div class="col">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="start_date">Aseguradora</label>
               <select class="custom-select" id="aseguradora_id" name="aseguradora_id"></select>
             </div>
           </div>
-          <div class="col-3">
+          <div class="col">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Grupo</label>
               <select class="custom-select" id="grupo_id" name="grupo_id"></select>
@@ -124,33 +102,6 @@
       </div>
     </div>
     <div class="row mt-2">
-      <div class="col-8">
-        <div class="w-100 card__shadow p-3 my-2" id="table-polizas">
-          <h4 class="header-title">Total de polizas por Año/mes</h4>
-          <table class="table">
-            <thead class="tableHeader">
-              <tr id="tr-poliza-status"></tr>
-            </thead>
-            <tbody id="table-poliza-status"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="col-4" style="min-height: 160px;">
-        <div class="w-100 card__shadow p-3 my-2" id="table-polizas">
-          <h4 class="header-title">Polizas por estatus</h4>
-          <table class="table">
-            <thead class="tableHeader">
-              <tr>
-                <th scope="col">Emitidas</th>
-                <th scope="col">Renovadas</th>
-                <th scope="col">Canceladas</th>
-                <th scope="col">Renovaciones</th>
-              </tr>
-            </thead>
-            <tbody id="table-polizastatus"></tbody>
-          </table>
-        </div>
-      </div>
       <div class="col-12 mt-2" id="chart-container"></div>
     </div>
   </div>
@@ -171,7 +122,8 @@
   <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
-  <script type="module" src="{{ url_for('static', filename='assets/controladores/reportePolizaEstatus.js') }}"></script>
+  <script type="module"
+    src="{{ url_for('static', filename='assets/controladores/reportePolizaEstatusPorAnio.js') }}"></script>
 </body>
 
 </html>

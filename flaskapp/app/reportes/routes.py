@@ -791,6 +791,7 @@ def polizas_preprocessed():
             'grupo': grupo,
             'ramo': ramo,
             'agente': agente,
+            'status': poliza.status,
             'vendedor': vendedor,
             # Then poliza information
             # 'Poliza o Endoso': 'Poliza',

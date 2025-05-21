@@ -165,6 +165,14 @@ def reportePrimaNeta():
 def reportePolizaEstatus():
     return render_template('reportePolizaEstatus.html')
 
+# Reportes por estatus de póliza
+
+
+@main.route('/reportePolizaEstatusPorAnio', methods=['GET'])
+@login_required
+def reportePolizaEstatusPorAnio():
+    return render_template('reportePolizaEstatusPorAnio.html')
+
 # Recibos
 
 
