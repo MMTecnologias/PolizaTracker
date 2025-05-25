@@ -72,6 +72,138 @@ def get_multiple_ids():
 # Usar group by month year func de SQLAlchemy
 
 
+@reportes_route.route('/prima_neta_compare', methods=['POST', 'GET'])
+@login_required
+def prima_neta_compare():
+    """
+    Punto de acceso para comparar la prima neta pagada entre dos conjuntos de años y meses.
+    Parámetros de la solicitud:
+    - year1: Año del primer conjunto
+    - months1: Lista de meses del primer conjunto (e.g., [1, 2])
+    - year2: Año del segundo conjunto
+    - months2: Lista de meses del segundo conjunto (e.g., [3, 4])
+    - aseguradora_id, grupo_id, ramo_id, agente_id, vendedor_id: Filtros opcionales
+
+    Respuesta:
+    - data: Lista de diccionarios con los resultados comparativos
+    """
+    # Obtener parámetros de la solicitud
+    year1 = int(request.form.get('year1'))
+    months1 = list(map(int, request.form.get('months1').split(',')))
+    year2 = int(request.form.get('year2'))
+    months2 = list(map(int, request.form.get('months2').split(',')))
+
+    aseguradora_id = request.form.get('aseguradora_id')
+    grupo_id = request.form.get('grupo_id')
+    ramo_id = request.form.get('ramo_id')
+    agente_id = request.form.get('agente_id')
+    vendedor_id = request.form.get('vendedor_id')
+    
+
+    # Validar parámetros
+    if not year1 or not months1 or not year2 or not months2:
+        return jsonify({'error': True, 'msg': 'Debe proporcionar ambos años y listas de meses'})
+
+    # Construir conjuntos de filtros para pólizas
+    polizas_sets = []
+
+    if aseguradora_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.aseguradora_id == int(aseguradora_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if grupo_id:
+        clients_query = db.session.query(Cliente.id).filter(
+            Cliente.grupo_id == int(grupo_id)).all()
+        clients = [client.id for client in clients_query]
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.cliente_id.in_(clients)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if ramo_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.ramo_id == int(ramo_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if agente_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.agente_id == int(agente_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.vendedor_id == int(vendedor_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+
+    if polizas_sets:
+        polizas = list(set.intersection(*polizas_sets))
+    else:
+        polizas = []
+
+    # Consultar la base de datos para los dos conjuntos de años y meses
+    def query_prima_neta(year, months):
+        query = db.session.query(
+            func.year(Recibo.fecha_pago).label('year'),
+            func.month(Recibo.fecha_pago).label('month'),
+            func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
+        ).join(Poliza, Recibo.poliza_id == Poliza.id) \
+            .filter(func.year(Recibo.fecha_pago) == year) \
+            .filter(func.month(Recibo.fecha_pago).in_(months))
+
+        if polizas:
+            query = query.filter(Recibo.poliza_id.in_(polizas))
+
+        return query.group_by(
+            func.year(Recibo.fecha_pago),
+            func.month(Recibo.fecha_pago)
+        ).order_by(
+            func.year(Recibo.fecha_pago),
+            func.month(Recibo.fecha_pago)
+        ).all()
+
+    # Ejecutar consultas para ambos conjuntos
+    records1 = query_prima_neta(year1, months1)
+    records2 = query_prima_neta(year2, months2)
+
+    # Preparar los datos para la respuesta
+    data = []
+
+    for record in records1:
+        data.append({
+            'year': record.year,
+            'month': record.month,
+            'total_prima_neta_pagada': record.total_prima_neta_pagada,
+            'comparison_group': 'Group 1'
+        })
+
+    for record in records2:
+        data.append({
+            'year': record.year,
+            'month': record.month,
+            'total_prima_neta_pagada': record.total_prima_neta_pagada,
+            'comparison_group': 'Group 2'
+        })
+
+    # Configurar encabezados para exportar
+    headers = ['year', 'month', 'total_prima_neta_pagada', 'comparison_group']
+    real_headers = ['Año', 'Mes', 'Prima Neta Pagada', 'Grupo de Comparación']
+
+    # Exportar a CSV
+    if request.form.get('export_csv'):
+        return export_to_csv(headers, data, 'prima_neta_compare.csv', real_headers)
+
+    # Exportar a PDF
+    if request.form.get('export_pdf'):
+        to_multiline = []
+        title_str = "Comparación de Prima Neta Pagada"
+        return export_to_pdf(headers, data, 'prima_neta_compare.pdf', real_headers, to_multiline, title_str)
+
+    # Respuesta JSON
+    return jsonify({
+        'recordsTotal': len(data),
+        'data': data
+    })
+
 @reportes_route.route('/prima_neta', methods=['POST', 'GET'])
 @login_required
 def prima_neta():
@@ -263,7 +395,7 @@ def prima_neta():
             # print(record)
             new_record = {}
             new_record[by] = getattr(record, by)
-            print(new_record[by])
+            #print(new_record[by])
             if type_report == 'month':
                 new_record['year'] = record.year
                 new_record['month'] = record.month
@@ -823,7 +955,7 @@ def polizas_preprocessed():
                     'Prima Neta', 'Prima Total', 'Moneda']
 
     if request.form.get('export_csv'):
-        print(response)
+        #print(response)
         return export_to_csv(headers, response, 'polizas.csv', real_headers)
 
     if request.form.get('export_pdf'):
@@ -835,6 +967,115 @@ def polizas_preprocessed():
                     'data': response
                     })
 
+@reportes_route.route('/polizas_preprocessed_compare', methods=['POST', 'GET'])
+@login_required
+def polizas_preprocessed_compare():
+    """
+    Punto de acceso para comparar las pólizas preprocesadas entre dos conjuntos de años y meses.
+    Parámetros de la solicitud:
+    - year1: Año del primer conjunto
+    - months1: Lista de meses del primer conjunto (e.g., [1, 2])
+    - year2: Año del segundo conjunto
+    - months2: Lista de meses del segundo conjunto (e.g., [3, 4])
+
+    Respuesta:
+    - data: Lista de diccionarios con los resultados comparativos
+    """
+    # Obtener parámetros de la solicitud
+    year1 = int(request.form.get('year1'))
+    months1 = list(map(int, request.form.get('months1').split(',')))
+    year2 = int(request.form.get('year2'))
+    months2 = list(map(int, request.form.get('months2').split(',')))
+
+    # Validar parámetros
+    if not year1 or not months1 or not year2 or not months2:
+        return jsonify({'error': True, 'msg': 'Debe proporcionar ambos años y listas de meses'})
+
+    # Consultar la base de datos para los dos conjuntos de años y meses
+    def query_polizas(year, months):
+        query = db.session.query(
+            Poliza,
+            func.year(Poliza.fecha_inicio).label('year'),
+            func.month(Poliza.fecha_inicio).label('month'),
+            Aseguradora.aseguradora.label('aseguradora'),
+            Grupo.grupo.label('grupo'),
+            Ramo.ramo.label('ramo'),
+            Agente.nombre.label('agente'),
+            Vendedor.nombre.label('vendedor'),
+            case((and_(Poliza.poliza_anterior == None, Poliza.status != 'Cancelada'), 1), else_=0).label('polizas_nuevas'),
+            case((Poliza.Poliza_renovada == 'Si', 1), else_=0).label('polizas_renovadas'),
+            case((Poliza.status == 'Cancelada', 1), else_=0).label('polizas_canceladas'),
+            case((and_(Poliza.poliza_anterior != None, Poliza.status != 'Cancelada'), 1), else_=0).label('renovaciones'),
+            Cliente.nombre.label('nombre'),
+            Cliente.apellido.label('apellido')
+        ).join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+         .join(Cliente, Poliza.cliente_id == Cliente.id) \
+         .join(Grupo, Cliente.grupo_id == Grupo.id) \
+         .join(Ramo, Poliza.ramo_id == Ramo.id) \
+         .join(Agente, Poliza.agente_id == Agente.id) \
+         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
+         .filter(func.year(Poliza.fecha_inicio) == year) \
+         .filter(func.month(Poliza.fecha_inicio).in_(months)) \
+         .order_by(func.year(Poliza.fecha_inicio), func.month(Poliza.fecha_inicio))
+        return query.all()
+
+    # Ejecutar consultas para ambos conjuntos
+    records1 = query_polizas(year1, months1)
+    records2 = query_polizas(year2, months2)
+
+    # Preparar los datos para la respuesta
+    response = []
+
+    def process_records(records, group_label):
+        for poliza, year, month, aseguradora, grupo, ramo, agente, vendedor, polizas_nuevas, polizas_renovadas, polizas_canceladas, renovaciones, nombre, apellido in records:
+            data = {
+                'year': year,
+                'month': month,
+                'polizas_totales': 1,
+                'polizas_nuevas': polizas_nuevas,
+                'polizas_renovadas': polizas_renovadas,
+                'polizas_canceladas': polizas_canceladas,
+                'renovaciones': renovaciones,
+                'aseguradora': aseguradora,
+                'grupo': grupo,
+                'ramo': ramo,
+                'agente': agente,
+                'vendedor': vendedor,
+                'cliente': f'{nombre} {apellido}',
+                'poliza': poliza.poliza,
+                'fecha_inicio': poliza.fecha_inicio.strftime('%d/%m/%y'),
+                'fecha_fin': poliza.fecha_termino.strftime('%d/%m/%y'),
+                'prima_neta': poliza.prima_neta,
+                'prima_total': poliza.prima_total,
+                'moneda': poliza.moneda,
+                'comparison_group': group_label
+            }
+            response.append(data)
+
+    process_records(records1, 'Group 1')
+    process_records(records2, 'Group 2')
+
+    # Configurar encabezados para exportar
+    headers = ['year', 'month', 'polizas_totales', 'polizas_nuevas', 'polizas_renovadas', 'polizas_canceladas', 'renovaciones',
+               'aseguradora', 'grupo', 'ramo', 'agente', 'vendedor', 'cliente', 'poliza', 'fecha_inicio', 'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'comparison_group']
+    real_headers = ['Año', 'Mes', 'Total', 'Nueva', 'Renovada', 'Cancelada', 'Renovación',
+                    'Aseguradora', 'Grupo', 'Ramo', 'Agente', 'Vendedor', 'Cliente', 'Poliza', 'Inicio', 'Fin', 'Prima Neta', 'Prima Total', 'Moneda', 'Grupo de Comparación']
+
+    # Exportar a CSV
+    if request.form.get('export_csv'):
+        return export_to_csv(headers, response, 'polizas_preprocessed_compare.csv', real_headers)
+
+    # Exportar a PDF
+    if request.form.get('export_pdf'):
+        to_multiline = ['cliente']
+        title_str = "Comparación de Pólizas Preprocesadas"
+        return export_to_pdf(headers, response, 'polizas_preprocessed_compare.pdf', real_headers, to_multiline, title_str)
+
+    # Respuesta JSON
+    return jsonify({
+        'recordsTotal': len(response),
+        'data': response
+    })
 
 # Reporte de recibos pagados con filtros por vendedor, por aseguradora, cliente,
 # grupo y fecha en ricbos pagados tambien añadir columnas de vendedor y
