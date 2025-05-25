@@ -195,6 +195,14 @@ def get():
     # Exportar a CSV
     if flask_request.form.get('export_csv'):
         return export_to_csv(headers, data, 'polizas.csv', real_headers)
+    # Exportar a PDF
+    if flask_request.form.get('export_pdf'):
+        to_multiline = ["Cliente", "Aseguradora", "Ramo", "Subramo","Agente", "Vendedor"]
+        title_str = "Pólizas"
+        return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, title_str)
+    
+
+
 
     # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response
