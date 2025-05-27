@@ -82,6 +82,8 @@ def prima_neta_compare():
     - months1: Lista de meses del primer conjunto (e.g., [1, 2])
     - year2: Año del segundo conjunto
     - months2: Lista de meses del segundo conjunto (e.g., [3, 4])
+    - year3: Año del tercer conjunto (opcional)
+    - months3: Lista de meses del tercer conjunto (opcional)
     - aseguradora_id, grupo_id, ramo_id, agente_id, vendedor_id: Filtros opcionales
 
     Respuesta:
@@ -92,6 +94,17 @@ def prima_neta_compare():
     months1 = list(map(int, request.form.get('months1').split(',')))
     year2 = int(request.form.get('year2'))
     months2 = list(map(int, request.form.get('months2').split(',')))
+
+    year3 = request.form.get('year3')
+    months3 = request.form.get('months3')
+    if year3 and months3:
+        year3 = int(year3)
+        months3 = list(map(int, months3.split(',')))
+        if not months3:
+            return jsonify({'error': True, 'msg': 'Debe proporcionar meses para el tercer conjunto'})
+    else:
+        year3 = None
+        months3 = None
 
     aseguradora_id = request.form.get('aseguradora_id')
     grupo_id = request.form.get('grupo_id')
@@ -164,6 +177,8 @@ def prima_neta_compare():
     # Ejecutar consultas para ambos conjuntos
     records1 = query_prima_neta(year1, months1)
     records2 = query_prima_neta(year2, months2)
+    if year3 and months3:
+        records3 = query_prima_neta(year3, months3)
 
     # Preparar los datos para la respuesta
     data = []
@@ -183,6 +198,14 @@ def prima_neta_compare():
             'total_prima_neta_pagada': record.total_prima_neta_pagada,
             'comparison_group': 'Group 2'
         })
+    if year3 and months3:
+        for record in records3:
+            data.append({
+                'year': record.year,
+                'month': record.month,
+                'total_prima_neta_pagada': record.total_prima_neta_pagada,
+                'comparison_group': 'Group 3'
+            })
 
     # Configurar encabezados para exportar
     headers = ['year', 'month', 'total_prima_neta_pagada', 'comparison_group']
