@@ -1383,6 +1383,37 @@ $(function () {
     });
   });
 
+  $('#btnPdf').click((e) => {
+    e.preventDefault();
+    let params = $.param({
+      export_pdf: true,
+      searchValue: $('#searchPoliza').val(),
+      start: 0,
+      length: totalPolizas,
+    });
+    const formMultiple = $('#form-multiple').serialize();
+    params = `${params}&${formMultiple}`;
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/get',
+      data: params,
+      xhrFields: {
+        responseType: 'blob',
+      },
+      success: function (blob, status, xhr) {
+        let a = document.createElement('a');
+        let url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `reporte_cobranza_${new Date().toLocaleDateString()}.pdf`;
+        document.body.append(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  });
+
   $('#endoso_tipo_a').click((e) => createEndozo($('#poliza_id').val(), 'A'));
   $('#endoso_tipo_b').click((e) => createEndozo($('#poliza_id').val(), 'B'));
   $('#endoso_tipo_d').click((e) => createEndozo($('#poliza_id').val(), 'D'));
