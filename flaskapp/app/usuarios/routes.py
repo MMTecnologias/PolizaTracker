@@ -233,7 +233,8 @@ def solicitudes_contrasenas():
 def get_requests():
     user_id = request.form.get('user_id')
     # Query to fetch clientes data from the database
-    requests_query = db.session.query(Request, Usuario.nombre.label('usuario_nombre'), Usuario.apellido.label('usuario_apellido')).join(Usuario, Request.usuario_id == Usuario.id).filter(Request.usuario_id == user_id)
+    requests_query = db.session.query(Request, Usuario.nombre.label('usuario_nombre'), 
+                                      Usuario.apellido.label('usuario_apellido')).join(Usuario, Request.usuario_id == Usuario.id).filter(Request.usuario_id == user_id).order_by(desc(Request.id))
 
     # Get total count of records without filtering
     total_records = requests_query.count()
