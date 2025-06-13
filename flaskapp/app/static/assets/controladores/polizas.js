@@ -939,7 +939,7 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
-      data: $.param({ start, length, order: true, searchValue }),
+      data: $.param({ start, length, order: true, searchValue,order: true }),
       success: (resp) => fillTablePolizas(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
@@ -1307,7 +1307,7 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
-      data: $.param({ start: 0, length: 10, searchValue }),
+      data: $.param({ start: 0, length: 10, searchValue ,order: true}),
       success: (resp) => fillTablePolizas(resp, 1, 10),
       error: (xhr, status, error) => console.error(error),
     });
