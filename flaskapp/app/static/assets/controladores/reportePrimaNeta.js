@@ -91,6 +91,7 @@ $(function () {
   }
 
   function getBarChart(data, type = 'year') {
+    console.log(data);
     if (!data.length) return;
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
@@ -153,51 +154,39 @@ $(function () {
     table.append(bodyTable);
   }
 
-  // function fillTablePrimaNeta(resp, currentPage, itemsOnPage, formMultiple) {
-  //   const { data, recordsTotal } = resp;
-  //   const table = $('#table-primaneta');
-  //   table.html('');
-  //   $.each(data, function (idx, poliza) {
-  //     table.append(
-  //       `<tr class="tableOption">
-  //         <td>${poliza.year}</td>
-  //         <td>${poliza.month ? poliza.month : ''}</td>
-  //         <td>${poliza.total_prima_neta_pagada}</td>
-  //       </tr>`
-  //     );
-  //   });
-  //   $('#pagination-primaneta').pagination({
-  //     items: recordsTotal,
-  //     prevText: 'Anterior',
-  //     nextText: 'Siguiente',
-  //     itemsOnPage,
-  //     currentPage,
-  //     onPageClick: (pageNumber, e) => {
-  //       const start = (pageNumber - 1) * itemsOnPage;
-  //       getPrimaNeta(pageNumber, start, formMultiple);
-  //     },
-  //   });
-  // }
-
   function getPrimaNeta(pageNumber = 1, start = 0, formMultiple = null) {
     const length = 12;
     if (!formMultiple) {
-      let years = '';
-      if ($('#years').val()) {
-        years = $('#years')
+      let months1 = '';
+      if ($('#months1').val()) {
+        months1 = $('#months1')
           .val()
           .reduce((acc, cur, i, arr) => {
-            let yerarStr = (acc += cur);
+            let months1Str = (acc += cur);
             if (i !== arr.length - 1) {
-              yerarStr += ',';
+              months1Str += ',';
             }
-            return yerarStr;
-          }, 'years=');
+            return months1Str;
+          }, 'months1=');
+      }
+      let months2 = '';
+      if ($('#months2').val()) {
+        months2 = $('#months2')
+          .val()
+          .reduce((acc, cur, i, arr) => {
+            let months2Str = (acc += cur);
+            if (i !== arr.length - 1) {
+              months2Str += ',';
+            }
+            return months2Str;
+          }, 'months2=');
       }
       let multiple = $($('#form-multiple')[0].elements)
-        .not('#years')
+        .not('#months1')
+        .not('#months2')
         .serialize();
-      if (years) multiple = `${multiple}&${years}`;
+      if (months1) multiple = `${multiple}&${months1}`;
+      if (months2) multiple = `${multiple}&${months2}`;
       formMultiple = multiple;
     }
     let params = $.param({ start, length });
@@ -206,7 +195,7 @@ $(function () {
     }
     $.ajax({
       ...ajaxConfig,
-      url: '/reportes/prima_neta',
+      url: '/reportes/prima_neta_compare',
       data: params,
       success: (resp) => {
         if (formMultiple && formMultiple.includes('type_report=month')) {
@@ -214,7 +203,6 @@ $(function () {
         } else {
           getBarChart(resp.data);
         }
-        // fillTablePrimaNeta(resp, pageNumber, length, formMultiple);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -269,44 +257,77 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    let years = '';
-    if ($('#years').val()) {
-      years = $('#years')
+    let months1 = '';
+    if ($('#months1').val()) {
+      months1 = $('#months1')
         .val()
         .reduce((acc, cur, i, arr) => {
-          let yerarStr = (acc += cur);
+          let months1Str = (acc += cur);
           if (i !== arr.length - 1) {
-            yerarStr += ',';
+            months1Str += ',';
           }
-          return yerarStr;
-        }, 'years=');
+          return months1Str;
+        }, 'months1=');
     }
-    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
-    if (years) multiple = `${multiple}&${years}`;
+    let months2 = '';
+    if ($('#months2').val()) {
+      months2 = $('#months2')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let months2Str = (acc += cur);
+          if (i !== arr.length - 1) {
+            months2Str += ',';
+          }
+          return months2Str;
+        }, 'months2=');
+    }
+    let multiple = $($('#form-multiple')[0].elements)
+      .not('#months1')
+      .not('#months2')
+      .serialize();
+    if (months1) multiple = `${multiple}&${months1}`;
+    if (months2) multiple = `${multiple}&${months2}`;
     getPrimaNeta(1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    let years = '';
-    if ($('#years').val()) {
-      years = $('#years')
+    let months1 = '';
+    if ($('#months1').val()) {
+      months1 = $('#months1')
         .val()
         .reduce((acc, cur, i, arr) => {
-          let yerarStr = (acc += cur);
+          let months1Str = (acc += cur);
           if (i !== arr.length - 1) {
-            yerarStr += ',';
+            months1Str += ',';
           }
-          return yerarStr;
-        }, 'years=');
+          return months1Str;
+        }, 'months1=');
     }
-    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
-    if (years) multiple = `${multiple}&${years}`;
+    let months2 = '';
+    if ($('#months2').val()) {
+      months2 = $('#months2')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let months2Str = (acc += cur);
+          if (i !== arr.length - 1) {
+            months2Str += ',';
+          }
+          return months2Str;
+        }, 'months2=');
+    }
+    let multiple = $($('#form-multiple')[0].elements)
+      .not('#months1')
+      .not('#months2')
+      .serialize();
+    if (months1) multiple = `${multiple}&${months1}`;
+    if (months2) multiple = `${multiple}&${months2}`;
     if (multiple) params = `${params}&${multiple}`;
+    console.log(params);
     $.ajax({
       type: 'POST',
-      url: '/reportes/prima_neta',
+      url: '/reportes/prima_neta_compare',
       data: params,
       xhrFields: {
         responseType: 'blob',
@@ -328,25 +349,41 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    let years = '';
-    if ($('#years').val()) {
-      years = $('#years')
+    let months1 = '';
+    if ($('#months1').val()) {
+      months1 = $('#months1')
         .val()
         .reduce((acc, cur, i, arr) => {
-          let yerarStr = (acc += cur);
+          let months1Str = (acc += cur);
           if (i !== arr.length - 1) {
-            yerarStr += ',';
+            months1Str += ',';
           }
-          return yerarStr;
-        }, 'years=');
+          return months1Str;
+        }, 'months1=');
     }
-    let multiple = $($('#form-multiple')[0].elements).not('#years').serialize();
-    if (years) multiple = `${multiple}&${years}`;
+    let months2 = '';
+    if ($('#months2').val()) {
+      months2 = $('#months2')
+        .val()
+        .reduce((acc, cur, i, arr) => {
+          let months2Str = (acc += cur);
+          if (i !== arr.length - 1) {
+            months2Str += ',';
+          }
+          return months2Str;
+        }, 'months2=');
+    }
+    let multiple = $($('#form-multiple')[0].elements)
+      .not('#months1')
+      .not('#months2')
+      .serialize();
+    if (months1) multiple = `${multiple}&${months1}`;
+    if (months2) multiple = `${multiple}&${months2}`;
     if (multiple) params = `${params}&${multiple}`;
     console.log(params);
     $.ajax({
       type: 'POST',
-      url: '/reportes/prima_neta',
+      url: '/reportes/prima_neta_compare',
       data: params,
       xhrFields: {
         responseType: 'blob',
@@ -365,8 +402,20 @@ $(function () {
     });
   });
 
-  $('#years').select2({
-    placeholder: 'seleciona los años',
+  $('#year1').select2({
+    placeholder: 'seleciona año inicio',
+    tags: true,
+  });
+  $('#months1').select2({
+    placeholder: 'seleciona meses inicio',
+    tags: true,
+  });
+  $('#year2').select2({
+    placeholder: 'seleciona año fin',
+    tags: true,
+  });
+  $('#months2').select2({
+    placeholder: 'seleciona meses fin',
     tags: true,
   });
 
