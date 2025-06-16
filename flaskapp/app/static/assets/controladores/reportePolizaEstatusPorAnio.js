@@ -2,75 +2,28 @@ $(function () {
   const ajaxConfig = {
     url: '',
     type: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     dataType: 'json',
   };
 
   const chartConfig = {
     title: { text: 'Stacked Line' },
     tooltip: { trigger: 'axis' },
-    legend: {
-      data: ['Email', 'Union Ads', 'Video Ads', 'Direct', 'Search Engine'],
-    },
+    legend: { data: [] },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
       containLabel: true,
     },
-    toolbox: {
-      feature: {
-        saveAsImage: {},
-      },
-    },
+    toolbox: { feature: { aveAsImage: {} } },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      data: [],
     },
-    yAxis: {
-      type: 'value',
-    },
-    series: [
-      {
-        name: 'Email',
-        type: 'line',
-        stack: 'Total',
-        data: [120, 132, 101, 134, 90, 230, 210],
-      },
-      {
-        name: 'Union Ads',
-        type: 'line',
-        stack: 'Total',
-        data: [220, 182, 191, 234, 290, 330, 310],
-      },
-      {
-        name: 'Video Ads',
-        type: 'line',
-        stack: 'Total',
-        data: [150, 232, 201, 154, 190, 330, 410],
-      },
-      {
-        name: 'Direct',
-        type: 'line',
-        stack: 'Total',
-        data: [320, 332, 301, 334, 390, 330, 320],
-      },
-      {
-        name: 'Search Engine',
-        type: 'line',
-        stack: 'Total',
-        data: [820, 932, 901, 934, 1290, 1330, 1320],
-      },
-    ],
-  };
-
-  const serieStatic = {
-    type: 'bar',
-    barGap: 0,
-    emphasis: { focus: 'series' },
+    yAxis: { type: 'value' },
+    series: [],
   };
 
   const meses = [
@@ -115,14 +68,10 @@ $(function () {
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
     const by = $('#by').val();
-
     years = [...new Set(data.map((item) => item.year))];
-
     chartConfig.legend.data = years;
     chartConfig.xAxis.data = meses;
-
     const series = createSeriesForCategory(data);
-
     chartConfig.series = series;
     console.log(series);
     // myChart.on('mouseover', 'series.bar', (params) => {

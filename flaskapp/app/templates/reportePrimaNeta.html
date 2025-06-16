@@ -40,7 +40,7 @@
     <div class="row">
       <div class="col-10">
         <form class="row mt-2" id="form-multiple" novalidate>
-          <div class="col-1">
+          <div class="col-2">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="year1">Año Inicio</label>
               <div class="input-group">
@@ -74,7 +74,7 @@
               </div>
             </div>
           </div>
-          <div class="col-1">
+          <div class="col-2">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="year2">Año Fin</label>
               <div class="input-group">
@@ -108,7 +108,7 @@
               </div>
             </div>
           </div>
-          <div class="col-3">
+          <!-- <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="start_date">Tipo(Mes o Año)</label>
               <select class="custom-select" id="type_report" name="type_report">
@@ -116,8 +116,8 @@
                 <option value="year">Año</option>
               </select>
             </div>
-          </div>
-          <div class="col-3">
+          </div> -->
+          <!-- <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="by">Mostrar por</label>
               <select class="custom-select" id="by" name="by">
@@ -128,14 +128,14 @@
                 <option value="vendedor">Vendedor</option>
               </select>
             </div>
-          </div>
-          <div class="col">
+          </div> -->
+          <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="start_date">Aseguradora</label>
               <select class="custom-select" id="aseguradora_id" name="aseguradora_id"></select>
             </div>
           </div>
-          <div class="col">
+          <div class="col-3">
             <div class="form__input-data input-sibling-child">
               <label class="label-input-data" for="end_date">Grupo</label>
               <select class="custom-select" id="grupo_id" name="grupo_id"></select>
@@ -180,13 +180,19 @@
     <div class="row">
       <div class="col-1"></div>
       <div class="col-10" style="min-height: 160px;">
-        <div class="w-100 card__shadow p-3 my-2" id="table-polizas">
+        <div class="w-100 card__shadow p-3 my-2" id="tables_prima_neta">
           <h4 class="header-title">Tabla totales prima neta acomulada</h4>
           <table class="table">
             <thead class="tableHeader">
-              <tr id="tr-primaneta"></tr>
+              <tr id="tr_table1"></tr>
             </thead>
-            <tbody id="table-primaneta"></tbody>
+            <tbody id="table_table1"></tbody>
+          </table>
+          <table class="table">
+            <thead class="tableHeader">
+              <tr id="tr_table2"></tr>
+            </thead>
+            <tbody id="table_table2"></tbody>
           </table>
         </div>
       </div>
