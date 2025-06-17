@@ -1506,8 +1506,8 @@ $(function () {
     });
   });
 
-  $('#endoso_tipo_a').click((e) => createEndozo($('#poliza_id').val(), 'A'));
-  $('#endoso_tipo_b').click((e) => createEndozo($('#poliza_id').val(), 'B'));
+  $('#endoso_tipo_a').click((e) => createEndozo($('#poliza_id').val(), 'B'));
+  $('#endoso_tipo_b').click((e) => createEndozo($('#poliza_id').val(), 'A'));
   $('#endoso_tipo_d').click((e) => createEndozo($('#poliza_id').val(), 'D'));
 
   $('#div_poliza_id').hide();
