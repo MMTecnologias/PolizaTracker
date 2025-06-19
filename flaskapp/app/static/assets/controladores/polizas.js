@@ -941,7 +941,7 @@ $(function () {
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
-      data: $.param({ start, length, order: true, searchValue, order: true }),
+      data: $.param({ start, length, order: true, searchValue }),
       success: (resp) => fillTablePolizas(resp, pageNumber, length),
       error: (xhr, status, error) => console.error(error),
     });
