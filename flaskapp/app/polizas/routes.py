@@ -784,69 +784,88 @@ def save_receipts():
         print(e)
         return jsonify({'error': True, 'msg': 'Error en la creación de recibos '+str(e)})
 
-@polizas_route.route('/check_delete_receipts', methods=['POST'])#, 'GET'])
+
+"""Endosos"""
+@polizas_route.route('/check_delete_receipts', methods=['POST'])
 @login_required
 def check_delete_receipts():
-    """Elimina recibos de una poliza para que puedan ser generados de nuevo,
+    """
+    Elimina recibos de una póliza o endoso para que puedan ser generados de nuevo.
 
     Los requisitos son:
-    - La poliza debe tener recibos generados
-    - La poliza no debe estar cancelada o finalizada
-    - No debe exitir un endoso con recibos generados
-    - No debe haber recibos pagados o cancelados
-    
+    - La póliza o endoso debe tener recibos generados.
+    - La póliza o endoso no debe estar cancelada o finalizada.
+    - No debe haber recibos pagados o cancelados.
+    - No debe haber endosos con recibos asociados a la póliza (si es una póliza).
     """
     poliza_id = flask_request.form.get('poliza_id')
-    #poliza_id = 289 # For testing purposes, replace with actual poliza_id from request
-    poliza = Poliza.query.get(poliza_id)
-    if not poliza:
-        return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
+    endoso_id = flask_request.form.get('endoso_id')
 
-    if poliza.recibos != "Generados":
+    # Determinar si se está trabajando con una póliza o un endoso
+    if endoso_id:
+        endoso_or_poliza = Endoso.query.get(endoso_id)
+        if not endoso_or_poliza:
+            return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+        poliza_id = endoso_or_poliza.poliza_id
+    else:
+        endoso_or_poliza = Poliza.query.get(poliza_id)
+        if not endoso_or_poliza:
+            return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+
+    # Validar estado de la póliza o endoso
+    if endoso_or_poliza.recibos != "Generados":
         return jsonify({'error': True, 'msg': 'No se han generado recibos para esta póliza/endoso'})
-    
-    if poliza.status in ["Cancelada", "Finalizada"]:
-        return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una póliza/endoso cancelada o finalizada'})
-    
-    
-    receipts = Recibo.query.filter(
-        Recibo.poliza_id == poliza_id)
-    #First check on receipts: Does any reciept has an endoso_id?
-    for receipt in receipts:
-        if receipt.endoso_id is not None:
-            return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una poliza con endosos que tienen recibos'})
-        if receipt.status in ["Liquidado", "Cancelado"]:
-            return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una póliza/endoso con recibos que ya han sido liquidados o cancelados'})
-    
-    # If all checks pass, delete receipts
 
+    if endoso_or_poliza.status in ["Cancelada", "Finalizada"]:
+        return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una póliza/endoso cancelada o finalizada'})
+
+    # Obtener los recibos asociados
+    if endoso_id:
+        receipts = Recibo.query.filter(
+            Recibo.poliza_id == poliza_id,
+            Recibo.endoso_id == endoso_id
+        ).all()
+    else:
+        receipts = Recibo.query.filter(
+            Recibo.poliza_id == poliza_id
+        ).all() 
+
+    # Validar recibos
+    for receipt in receipts:
+        if not endoso_id and receipt.endoso_id is not None:
+            return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una póliza con endosos que tienen recibos'})
+
+        if receipt.status in ["Liquidado", "Cancelado"]:
+            return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos que ya han sido liquidados o cancelados'})
+
+    # Si todas las validaciones pasan, eliminar recibos
     try:
         for receipt in receipts:
             db.session.delete(receipt)
-        poliza.recibos = "Por generar"
+
+        endoso_or_poliza.recibos = "Por generar"
         db.session.commit()
 
+        # Registrar la acción
         request_entry = Request(usuario_id=current_user.id,
-                                description=f"Eliminar recibos de póliza {poliza.poliza} con prima total previa {poliza.prima_total}",
+                                description=f"Eliminar recibos de {'endoso' if endoso_id else 'póliza'} {endoso_or_poliza.poliza} con prima total previa {endoso_or_poliza.prima_total}",
                                 status="Aceptada",
-                                table_name='Poliza',
-                                row_id=poliza.id)
+                                table_name='Endoso' if endoso_id else 'Poliza',
+                                row_id=endoso_or_poliza.id)
         db.session.add(request_entry)
         db.session.commit()
+
         log_entry = Log(request_id=request_entry.id,
                         column_name='recibos',
                         old_value="Generados",
                         new_value="Por generar")
         db.session.add(log_entry)
         db.session.commit()
+
         return jsonify({'error': False, 'msg': 'Recibos eliminados con éxito'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': True, 'msg': f'Error al eliminar recibos: {str(e)}'})
-
-
-"""Endosos"""
-
 
 @polizas_route.route('/create_endoso', methods=['POST'])
 @login_required
