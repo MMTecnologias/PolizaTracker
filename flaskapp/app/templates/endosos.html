@@ -43,15 +43,15 @@
           <h4 class="header-title">Endosos</h4>
           <form id="form-polizas" class="needs-validation form-data" novalidate>
             <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
+            <input type="hidden" id="endoso_id" name="endoso_id" value="New" />
             <input type="text" id="tipo" name="tipo" hidden />
             <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" hidden />
-
             <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
             <div class="form__input-data" id="div_search_client">
               <div class="input-group" style="background-color: aliceblue;">
                 <label class="label-input-data">Cliente</label>
                 <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
-                  aria-label="Search" aria-describedby="search-addon" autocomplete="off" disabled />
+                  aria-label="Search" aria-describedby="search-addon" autocomplete="off" />
                 <div class="dropdown-menu" id="client-options"></div>
                 <p class="invalid-feedback">Ingresa un dato valido</p>
               </div>
@@ -59,27 +59,27 @@
             <div class="form__input-data input-sibling-child" id="div_poliza_anterior">
               <label class="label-input-data" for="poliza-anterior">Póliza Anterior</label>
               <div class="input-group">
-                <input type="text" class="form-control" id="poliza-anterior" name="poliza-anterior" disabled />
+                <input type="text" class="form-control" id="poliza-anterior" name="poliza-anterior" />
               </div>
             </div>
             <div class="form__input-data" id="div_poliza_id">
               <label class="label-input-data">Endoso</label>
               <div class="input-group">
-                <input type="text" class="form-control" id="id_poliza" name="id_poliza" disabled />
+                <input type="text" class="form-control" id="id_poliza" name="id_poliza" />
               </div>
             </div>
             <div class="input-sibling">
               <div class="form__input-data input-sibling-child" id="div_poliza">
                 <label class="label-input-data" id="title_poliza">Endoso</label>
                 <div class="input-group">
-                  <input type="text" class="form-control" id="Poliza" name="Poliza" required disabled />
+                  <input type="text" class="form-control" id="Poliza" name="Poliza" required />
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">No. Serie</label>
                 <div class="input-group">
-                  <input type="text" class="form-control" id="serie" name="serie" required disabled />
+                  <input type="text" class="form-control" id="serie" name="serie" required />
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
@@ -88,20 +88,20 @@
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Inicio de Vigencia</label>
                 <div class="input-group">
-                  <input type="date" class="form-control" id="VigenciaI" name="VigenciaI" required disabled />
+                  <input type="date" class="form-control" id="VigenciaI" name="VigenciaI" required />
                 </div>
               </div>
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Fin de Vigencia</label>
                 <div class="input-group">
-                  <input type="date" class="form-control" id="VigenciaF" name="VigenciaF" required disabled />
+                  <input type="date" class="form-control" id="VigenciaF" name="VigenciaF" required />
                 </div>
               </div>
             </div>
             <div class="input-sibling">
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Ramo</label>
-                <select class="custom-select" id="ramo" name="ramo" required disabled>
+                <select class="custom-select" id="ramo" name="ramo" required>
                   <option value="">Selecciona...</option>
                   {% for ramo in ramos %}
                   <option value="{{ ramo.id }}">{{ ramo.ramo }}</option>
@@ -111,7 +111,7 @@
               </div>
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Subramo</label>
-                <select class="custom-select" id="subramo" name="subramo" required disabled>
+                <select class="custom-select" id="subramo" name="subramo" required>
                   <option value="">Selecciona...</option>
                   {% for subramo in subramos %}
                   <option value="{{ subramo.id }}">
@@ -122,22 +122,10 @@
                 </select>
               </div>
             </div>
-            <div class="input-sibling" id="nuevo_ramo_subramo_div">
-              <div class="form__input-data input-sibling-child" id="nuevo_ramo_div">
-                <label class="label-input-data">Nuevo Ramo</label>
-                <input type="text" class="form-control" id="nuevo_ramo" name="nuevo_ramo" disabled />
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-              <div class="form__input-data input-sibling-child" id="nuevo_subramo_div">
-                <label class="label-input-data">Nuevo Subramo</label>
-                <input type="text" class="form-control" id="nuevo_subramo" name="nuevo_subramo" disabled />
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-            </div>
             <div class="input-sibling">
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Moneda</label>
-                <select class="custom-select" id="Moneda" name="Moneda" required disabled>
+                <select class="custom-select" id="Moneda" name="Moneda" required>
                   <option value="">Selecciona...</option>
                   <option value="MXN">Nacional</option>
                   <option value="USD">Dolares</option>
@@ -146,7 +134,7 @@
               </div>
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Forma de Pago</label>
-                <select class="custom-select" id="Pago" name="Pago" required disabled>
+                <select class="custom-select" id="Pago" name="Pago" required>
                   <option value="">Selecciona...</option>
                   {% for pago in pagos %}
                   <option value="{{ pago.id }}">
@@ -160,67 +148,49 @@
             <div class="form__input-data">
               <label class="label-input-data" for="conducto_pago">Conducto de pago</label>
               <div class="">
-                <input type="text" class="form-control" id="conducto_pago" name="conducto_pago" disabled />
+                <input type="text" class="form-control" id="conducto_pago" name="conducto_pago" />
                 <p class="invalid-feedback">Ingresa un dato valido</p>
               </div>
             </div>
             <div class="input-sibling">
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Aseguradora</label>
-                <select class="custom-select" id="aseguradora" name="aseguradora" required disabled>
+                <select class="custom-select" id="aseguradora" name="aseguradora" required>
                   <option value="">Selecciona...</option>
                   {% for aseguradora in aseguradoras %}
                   <option value="{{ aseguradora.id }}">
                     {{ aseguradora.aseguradora }}
                   </option>
                   {% endfor %}
-                  <option value="New">Nueva Aseguradora</option>
                 </select>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-              <div class="form__input-data input-sibling-child" id="nuevo_aseguradora_div">
-                <label class="label-input-data">Nueva Aseguradora</label>
-                <input type="text" class="form-control" id="nuevo_aseguradora" name="nuevo_aseguradora" disabled />
                 <p class="invalid-feedback">Ingresa un dato valido</p>
               </div>
             </div>
             <div class="input-sibling">
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Vendedor</label>
-                <select class="custom-select" id="vendedor" name="vendedor" required disabled>
+                <select class="custom-select" id="vendedor" name="vendedor" required>
                   <option value="">Selecciona...</option>
                   {% for vendedor in vendedores %}
                   <option value="{{ vendedor.id }}">
                     {{ vendedor.nombre }}
                   </option>
                   {% endfor %}
-                  <option value="New">Nuevo Vendedor</option>
                 </select>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-              <div class="form__input-data input-sibling-child" id="nuevo_vendedor_div">
-                <label class="label-input-data">Nuevo Vendedor</label>
-                <input type="text" class="form-control" id="nuevo_vendedor" name="nuevo_vendedor" disabled />
                 <p class="invalid-feedback">Ingresa un dato valido</p>
               </div>
             </div>
             <div class="input-sibling">
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data">Agente</label>
-                <select class="custom-select" id="agente" name="agente" required disabled>
+                <select class="custom-select" id="agente" name="agente">
                   <option value="">Selecciona...</option>
                   {% for agente in agentes %}
                   <option value="{{ agente.id }}">
                     {{ agente.nombre }}
                   </option>
                   {% endfor %}
-                  <option value="New">Nuevo Agente</option>
                 </select>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-              <div class="form__input-data input-sibling-child" id="nuevo_agente_div">
-                <label class="label-input-data">Nuevo Agente</label>
-                <input type="text" class="form-control" id="nuevo_agente" name="nuevo_agente" disabled />
                 <p class="invalid-feedback">Ingresa un dato valido</p>
               </div>
             </div>
@@ -228,16 +198,14 @@
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data" for="prima_neta">Prima Neta</label>
                 <div class="input-group">
-                  <input type="number" class="form-control" id="prima_neta" name="prima_neta" step=".01" required
-                    disabled />
+                  <input type="number" class="form-control" id="prima_neta" name="prima_neta" step=".01" required />
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
               <div class="form__input-data input-sibling-child">
                 <label class="label-input-data" for="prima_total">Prima Total</label>
                 <div class="input-group">
-                  <input type="number" class="form-control" id="prima_total" name="prima_total" step=".01" required
-                    disabled />
+                  <input type="number" class="form-control" id="prima_total" name="prima_total" step=".01" required />
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
@@ -245,10 +213,17 @@
             <div class="form__input-data">
               <label class="label-input-data" for="notas">Notas</label>
               <div class="">
-                <textarea class="form-control" id="notas" name="notas" placeholder="Insertar notas" rows="3"
-                  disabled></textarea>
+                <textarea class="form-control" id="notas" name="notas" placeholder="Insertar notas" rows="3"></textarea>
                 <p class="invalid-feedback">Ingresa un dato valido</p>
               </div>
+            </div>
+            <div class="button-container">
+              <button class="btn" type="submit" id="btnGuardar">
+                Guardar
+              </button>
+              <button class="btn" type="reset" value="Cancelar" id="reset-btn">
+                Cancelar
+              </button>
             </div>
           </form>
         </div>
@@ -324,6 +299,156 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal create recibo -->
+  <div class="modal fade bd-example-modal-lg" id="create-recib" tabindex="-1" role="dialog" aria-labelledby="recib">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" id="closeModalCreateRecibos">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div id="alert_Modal" class="alert alert-warning" role="alert" style="display: none;"></div>
+        <div class="modal-body pt-1">
+          <div class="row pb-4">
+            <div class="col-12">
+              <h4 class="header-title">Generar Recibos</h4>
+              <form id="form-recibo" class="needs-validation form-data" novalidate>
+                <input type="text" id="receipts_created" name="receipts_created" value="no" hidden />
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima neta</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima-neta" name="prima-neta" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima total</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima-total" name="prima-total" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Número de recibos</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="nopagos" name="nopagos" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Derecho de poliza</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="derecho_poliza" name="derecho_poliza" required />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">IVA de poliza</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="iva" name="iva" value="16" required />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">% comisión</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="comision" name="comision" required />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Selecciona un opción</label>
+                    <div class="input-group">
+                      <select class="custom-select" id="rec_pago" name="rec_pago" required>
+                        <option value="primer_recibo">Cargar derecho de póliza en 1er recibo</option>
+                        <option value="dividir_recibos">Dividir en todos los recibos</option>
+                      </select>
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-100 py-3 d-flex justify-content-center">
+                  <button class="btn mx-5" type="button" id="btnCalcular" name="btnCalcular">
+                    Calcular totales
+                  </button>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima neta 1er recibo</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_neta_1er" name="prima_neta_1er" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima neta subsecuentes</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_neta_subs" name="prima_neta_subs" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima total 1er recibo</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_total_1er" name="prima_total_1er" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Prima total subsecuentes</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="prima_total_subs" name="prima_total_subs" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Comisión 1er recibo</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="comision_1er" name="comision_1er" required disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Comisión subsecuentes</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="comision_subs" name="comision_subs" required
+                        disabled />
+                      <p class="invalid-feedback">Ingresa un dato valido</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="button-container">
+                  <button class="btn" type="submit" id="btnGuardar-recibos" name="btnGuardar-recibos">
+                    Guardar
+                  </button>
+                  <button class="btn" type="reset" value="Cancelar" id="reset-btn-recibos">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
