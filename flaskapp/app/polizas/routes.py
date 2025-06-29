@@ -1051,6 +1051,108 @@ def get_endosos():
     }
     return jsonify(response)
 
+@polizas_route.route('/edit_endoso', methods=['POST'])
+@login_required
+def edit_endoso():
+    """
+    Edita un endoso existente basado en los valores proporcionados en el formulario.
+    """
+    # Obtener el ID del endoso a editar
+    endoso_id = flask_request.form.get('endoso_id')
+    if not endoso_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó el ID del endoso'})
+
+    # Buscar el endoso en la base de datos
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': True, 'msg': 'No se encontró el endoso'})
+
+    # Definir mapeos para los campos del formulario a las columnas del Endoso
+    column_name_mapping = {
+        'cliente_id': 'selected-client-id',
+        'fecha_inicio': 'VigenciaI',
+        'fecha_termino': 'VigenciaF',
+        'moneda': 'Moneda',
+        'tipo_pago_id': 'Pago',
+        'serie': 'serie',
+        'notas': 'notas',
+        'poliza_anterior': 'polizaAnterior',
+        'renovacion': 'renovacion',
+        'prima_neta': 'prima_neta',
+        'prima_total': 'prima_total',
+        'endoso': 'Poliza'
+    }
+
+    # Mapear valores del formulario a atributos del Endoso
+    form_value_mapping = {
+        'selected-client-id': flask_request.form.get('selected-client-id'),
+        'VigenciaI': flask_request.form.get('VigenciaI'),
+        'VigenciaF': flask_request.form.get('VigenciaF'),
+        'Moneda': flask_request.form.get('Moneda'),
+        'Pago': flask_request.form.get('Pago'),
+        'serie': flask_request.form.get('serie'),
+        'notas': flask_request.form.get('notas'),
+        'polizaAnterior': flask_request.form.get('polizaAnterior'),
+        'renovacion': flask_request.form.get('renovacion'),
+        'prima_neta': flask_request.form.get('prima_neta'),
+        'prima_total': flask_request.form.get('prima_total'),
+        'Poliza': flask_request.form.get('Poliza')
+    }
+
+    # Actualizar atributos del Endoso
+    for col, form_field in column_name_mapping.items():
+        if form_value_mapping[form_field]:
+            setattr(endoso, col, form_value_mapping[form_field])
+
+    # Manejar entidades relacionadas (e.g., Ramo, Subramo, Aseguradora, etc.)
+    def check_new_form():
+        argdict = {}
+
+        ramo = flask_request.form.get('ramo')
+        nuevo_ramo = flask_request.form.get('nuevo_ramo')
+        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+
+        subramo = flask_request.form.get('subramo')
+        nuevo_subramo = flask_request.form.get('nuevo_subramo')
+        argdict["subramo_id"] = new_class(Subramo, subramo, nuevo_subramo, "subramo")
+
+        aseguradora = flask_request.form.get('aseguradora')
+        nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
+        argdict["aseguradora_id"] = new_class(Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
+
+        vendedor = flask_request.form.get('vendedor')
+        nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
+        argdict["vendedor_id"] = new_class(Vendedor, vendedor, nuevo_vendedor, "nombre")
+
+        agente = flask_request.form.get('agente')
+        nuevo_agente = flask_request.form.get('nuevo_agente')
+        argdict["agente_id"] = new_class(Agente, agente, nuevo_agente, "nombre")
+
+        return argdict
+
+    # Actualizar entidades relacionadas
+    related_entities = check_new_form()
+    for key, value in related_entities.items():
+        setattr(endoso, key, value)
+
+    # Guardar cambios en la base de datos
+    try:
+        db.session.commit()
+        # Registrar la acción de edición
+        request_entry = Request(
+            usuario_id=current_user.id,
+            description=f"Editar endoso {endoso.endoso} para la póliza {endoso.poliza}",
+            status="Aceptada",
+            table_name='Endoso',
+            row_id=endoso.id
+        )
+        db.session.add(request_entry)
+        db.session.commit()
+
+        return jsonify({'error': False, 'msg': 'Endoso actualizado exitosamente', 'endoso_id': endoso.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': True, 'msg': f'Error al actualizar el endoso: {str(e)}'})
 
 @polizas_route.route('/process_receipt', methods=['POST'])
 @login_required
