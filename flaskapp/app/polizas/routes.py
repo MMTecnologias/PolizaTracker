@@ -28,6 +28,7 @@ def get_receipts():
     endoso_id = flask_request.form.get('endoso_id')
     if endoso_id:
         recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
+        print(f"Endoso ID: {endoso_id}")
         poliza_id = Recibo.query.get(endoso_id).poliza_id
         print(f"Poliza ID de endoso: {poliza_id}")
     else:
