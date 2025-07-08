@@ -56,7 +56,10 @@ def get_receipts():
             "comprobante": "" if recibo.comprobante is None else recibo.comprobante,
             "cancelado": True if poliza.status == 'Cancelada' else False,
             'id': recibo.id,
-            'moneda': moneda
+            'moneda': moneda,
+            'endoso_id': recibo.endoso_id,
+            'poliza_id': recibo.poliza_id,
+            'poliza_status': poliza.status
             # Add more fields as needed
         })
     # 'Liquidado', 'Pendiente', 'Vencido', 'Cancelado'), nullable=False,default='Pendiente')
