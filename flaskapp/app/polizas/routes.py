@@ -21,6 +21,7 @@ from app.models import export_to_csv, export_to_pdf
 def get_receipts():
     # Recibe
     poliza_id = flask_request.form.get('poliza_id')
+    print(f"Poliza ID: {poliza_id}")
     start = int(flask_request.form.get('start'))
     length = int(flask_request.form.get('length'))
 
