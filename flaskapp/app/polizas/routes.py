@@ -58,7 +58,7 @@ def get_receipts():
             'id': recibo.id,
             'moneda': moneda,
             'endoso_id': recibo.endoso_id,
-            'poliza_id': poliza.poliza_id,
+            'poliza_id': poliza.id,
             'poliza_status': poliza.status
             # Add more fields as needed
         })
