@@ -702,9 +702,9 @@ $(function () {
     }
     const endoso_id = $('#endoso_id').val();
     let newParams = $('#form-polizas').serialize();
-    newParams = `${newParams}&poliza_id=${poliza_id}`;
+    newParams = `${newParams}&endoso_id=${endoso_id}`;
     $.ajax({
-      url: 'polizas/edit',
+      url: 'polizas/edit_endoso',
       method: 'POST',
       dataType: 'json',
       data: newParams,

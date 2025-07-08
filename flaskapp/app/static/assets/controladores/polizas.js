@@ -289,6 +289,8 @@ $(function () {
       url: '/polizas/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
+        console.log(resp.data);
+        resp.data[0].renovacion ||= resp.data[0].poliza;
         $('#only_show_poliza').show();
         $('#buscar-cliente').val(resp.data[0].cliente);
         $('#Poliza').val(resp.data[0].poliza);
@@ -892,6 +894,7 @@ $(function () {
 
   function fillTableRecibosEndosos(resp, currentPage, itemsOnPage, endoso_id) {
     const { data, recordsTotal } = resp;
+    console.log(data);
     const table = $('#receiptsEndosoTable');
     table.html('');
     $.each(data, function (idx, recibo) {
