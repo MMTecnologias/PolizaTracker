@@ -404,6 +404,7 @@ $(function () {
         $('#prima_total').val(resp.data[0].prima_total);
         $('#old_prima_neta').val(resp.data[0].prima_neta);
         $('#old_prima_total').val(resp.data[0].prima_total);
+        $('#old_tipo_pago').val(resp.data[0].tipo_pago_id);
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -1078,6 +1079,7 @@ $(function () {
     const fecha_inicio = $('#VigenciaI').val();
     const fecha_termino = $('#VigenciaF').val();
     const tipo_pago_id = $('#Pago').val();
+    const old_tipo_pago = $('#old_tipo_pago').val();
     let params = $.param({
       prima_neta,
       prima_total,
@@ -1087,7 +1089,11 @@ $(function () {
     });
     if ($('#title_poliza')?.text()?.includes('Editar')) {
       const poliza_id = $('#poliza_id').val();
-      if (prima_neta !== old_prima_neta || prima_total !== old_prima_total) {
+      if (
+        prima_neta !== old_prima_neta ||
+        prima_total !== old_prima_total ||
+        tipo_pago_id !== old_tipo_pago
+      ) {
         const resp = await alertConfirm(
           '¿vamos a eliminar los recibos para generarlos nuevamente, estás seguro de continuar?'
         );
