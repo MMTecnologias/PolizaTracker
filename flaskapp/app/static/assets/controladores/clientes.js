@@ -108,11 +108,7 @@ $(function () {
         }
       },
       error: function (xhr, status, error) {
-        console.log(error);
-        alert(
-          'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-          'error'
-        );
+        console.error('Error en /clientes/delete', error);
       },
     });
   }
@@ -205,11 +201,7 @@ $(function () {
       },
       error: function (xhr, status, error) {
         resetForm();
-        alert(
-          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-          'error',
-          'Error inesperado'
-        );
+        console.error('Error en /clientes/create', error);
       },
     });
   });

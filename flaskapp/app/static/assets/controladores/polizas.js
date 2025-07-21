@@ -176,7 +176,6 @@ $(function () {
   }
 
   async function createEndozo(poliza_id, tipo) {
-    console.log(tipo);
     const data = await resetForm();
     $('#endoso-type').modal('toggle');
     $('#tipo').val(tipo);
@@ -190,9 +189,7 @@ $(function () {
       url: '/polizas/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
-        console.log(resp);
         $('#id_poliza').val(resp.data[0].poliza);
-        // $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
         if (tipo === 'B' || tipo === 'D') {
           $('#prima_neta').prop('disabled', false);
@@ -598,11 +595,11 @@ $(function () {
       url: '/polizas/delete',
       data: $.param({ poliza_id, razon: value.razon }),
       success: function (resp) {
-        if (!resp.error) {
+        if (resp.error) {
+          alert(resp.msg, 'error', resp.title);
+        } else {
           alert(resp.msg, undefined, resp.title);
           getPolizas();
-        } else {
-          alert(resp.msg, 'error');
         }
       },
       error: function (xhr, status, error) {
@@ -622,7 +619,7 @@ $(function () {
       data: $.param({ recibo_id, accion }),
       success: function (resp) {
         if (resp.error) {
-          alert(resp.msg, 'error');
+          alert(resp.msg, 'error', resp.title);
         } else {
           alert(resp.msg, 'success');
           getRecibos(poliza_id);
@@ -1057,10 +1054,11 @@ $(function () {
         }
       },
       error: function (xhr, status, error) {
-        console.error(error);
+        console.error('Error crear recibos', error);
         alert(
-          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-          'error'
+          `Ocurrio un error al crear los recibos ${error}`,
+          'error',
+          'Error al crear recibos'
         );
       },
     });
@@ -1135,20 +1133,12 @@ $(function () {
                 },
                 error: function (xhr, textStatus, error) {
                   console.error(error);
-                  alert(
-                    'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-                    'error'
-                  );
                 },
               });
             }
           },
           error: function (xhr, textStatus, error) {
             console.error(error);
-            alert(
-              'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-              'error'
-            );
           },
         });
       } else {
@@ -1169,10 +1159,6 @@ $(function () {
           },
           error: function (xhr, textStatus, error) {
             console.error(error);
-            alert(
-              'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-              'error'
-            );
           },
         });
       }
@@ -1205,10 +1191,6 @@ $(function () {
         },
         error: function (xhr, textStatus, error) {
           console.error(error);
-          alert(
-            'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-            'error'
-          );
         },
       });
     }
@@ -1241,11 +1223,7 @@ $(function () {
         }
       },
       error: function (xhr, status, error) {
-        console.error(error);
-        alert(
-          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-          'error'
-        );
+        console.error('Error en process_receipt', error);
       },
     });
   });
@@ -1276,11 +1254,7 @@ $(function () {
           }
         },
         error: function (xhr, status, error) {
-          console.error(error);
-          alert(
-            'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-            'error'
-          );
+          console.error('Error en create_endoso', error);
         },
       });
     } else if ($('#title_poliza')?.text()?.includes('Editar')) {
@@ -1305,18 +1279,16 @@ $(function () {
           }
         },
         error: function (xhr, textStatus, error) {
-          console.error(error);
-          alert(
-            'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-            'error'
-          );
+          console.error('Error al editar poliza /edit', error);
         },
       });
     } else {
+      $('#poliza_id').val('New');
+      const newParams = $('#form-polizas').serialize();
       $.ajax({
         type: 'POST',
         url: '/polizas/create',
-        data: formDataPoliza,
+        data: newParams,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -1335,11 +1307,7 @@ $(function () {
           }
         },
         error: function (xhr, status, error) {
-          console.error('Error al crear poliza', error);
-          alert(
-            'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-            'error'
-          );
+          console.error('Error al crear poliza /create', error);
         },
       });
     }
