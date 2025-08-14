@@ -853,8 +853,13 @@ $(function () {
             </p>
           </td>
           <td style="color: ${getTextColor(endoso.status)}">${
-          endoso.tipo_endoso
-        }</td>
+          endoso.tipo_endoso === 'D'
+            ? endoso.tipo_endoso
+            : endoso.tipo_endoso === 'A'
+            ? 'B'
+            : 'A'
+        }
+        </td>
           <td style="color: ${getTextColor(endoso.status)}">${
           endoso.cliente
         }</td>
