@@ -117,6 +117,7 @@ def get():
                                      Vendedor.nombre.label("vendedor")) \
         .select_from(Poliza) \
         .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .outerjoin(Grupo, Cliente.grupo_id == Grupo.id) \
         .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
         .join(Ramo, Poliza.ramo_id == Ramo.id)  \
         .join(Subramo, Poliza.subramo_id == Subramo.id)  \
@@ -135,16 +136,13 @@ def get():
 
     # Implement search functionality
     if search_value:
-
         polizas_query = polizas_query.filter(or_(
-            # Poliza.poliza.ilike(f'%{search_value}%'),
             Cliente.nombre.ilike(f'%{search_value}%'),
             Cliente.apellido.ilike(f'%{search_value}%'),
+            Grupo.grupo.ilike(f'%{search_value}%'),
             func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
                 f'%{search_value}%'),
-            # Search in poliza sarting with search_value
             Poliza.poliza.ilike(f'{search_value}%'),
-            # Add more fields for searching as needed
         ))
 
      # Get total count of records without filtering
@@ -203,12 +201,10 @@ def get():
         return export_to_csv(headers, data, 'polizas.csv', real_headers)
     # Exportar a PDF
     if flask_request.form.get('export_pdf'):
-        to_multiline = ["Cliente", "Aseguradora", "Ramo", "Subramo","Agente", "Vendedor"]
+        to_multiline = ["Cliente", "Aseguradora",
+                        "Ramo", "Subramo", "Agente", "Vendedor"]
         title_str = "Pólizas"
         return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, title_str)
-    
-
-
 
     # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
     # Prepare response
@@ -792,6 +788,8 @@ def save_receipts():
 
 
 """Endosos"""
+
+
 @polizas_route.route('/check_delete_receipts', methods=['POST'])
 @login_required
 def check_delete_receipts():
@@ -834,7 +832,7 @@ def check_delete_receipts():
     else:
         receipts = Recibo.query.filter(
             Recibo.poliza_id == poliza_id
-        ).all() 
+        ).all()
 
     # Validar recibos
     for receipt in receipts:
@@ -872,6 +870,7 @@ def check_delete_receipts():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': True, 'msg': f'Error al eliminar recibos: {str(e)}'})
+
 
 @polizas_route.route('/create_endoso', methods=['POST'])
 @login_required
@@ -1057,6 +1056,7 @@ def get_endosos():
     }
     return jsonify(response)
 
+
 @polizas_route.route('/edit_endoso', methods=['POST'])
 @login_required
 def edit_endoso():
@@ -1120,19 +1120,23 @@ def edit_endoso():
 
         subramo = flask_request.form.get('subramo')
         nuevo_subramo = flask_request.form.get('nuevo_subramo')
-        argdict["subramo_id"] = new_class(Subramo, subramo, nuevo_subramo, "subramo")
+        argdict["subramo_id"] = new_class(
+            Subramo, subramo, nuevo_subramo, "subramo")
 
         aseguradora = flask_request.form.get('aseguradora')
         nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
-        argdict["aseguradora_id"] = new_class(Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
+        argdict["aseguradora_id"] = new_class(
+            Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
         vendedor = flask_request.form.get('vendedor')
         nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
-        argdict["vendedor_id"] = new_class(Vendedor, vendedor, nuevo_vendedor, "nombre")
+        argdict["vendedor_id"] = new_class(
+            Vendedor, vendedor, nuevo_vendedor, "nombre")
 
         agente = flask_request.form.get('agente')
         nuevo_agente = flask_request.form.get('nuevo_agente')
-        argdict["agente_id"] = new_class(Agente, agente, nuevo_agente, "nombre")
+        argdict["agente_id"] = new_class(
+            Agente, agente, nuevo_agente, "nombre")
 
         return argdict
 
@@ -1159,6 +1163,7 @@ def edit_endoso():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': True, 'msg': f'Error al actualizar el endoso: {str(e)}'})
+
 
 @polizas_route.route('/process_receipt', methods=['POST'])
 @login_required

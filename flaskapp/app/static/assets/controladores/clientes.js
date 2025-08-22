@@ -82,6 +82,11 @@ $(function () {
                <option value='${grupo.id}'>${grupo.nombre}</option>
                `;
              });
+           })
+           .finally(() => {
+             document.querySelector('#grupo').innerHTML += `
+               <option value='New'>Nuevo Grupo</option>
+               `;
            })}
          `);
         $('#cuenta').val(resp.data[0].cuenta);
@@ -229,12 +234,6 @@ $(function () {
       error: (xhr, status, error) => console.error(error),
     });
   });
-
-  // $('#sortByName').click((e) => {
-  //   e.preventDefault();
-  //   ordered = !ordered;
-  //   getClients(ordered);
-  // });
 
   $('#Resetbtn').click(function () {
     resetForm();
