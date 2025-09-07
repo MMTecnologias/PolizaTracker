@@ -4,7 +4,7 @@ from app import db, app
 from sqlalchemy.sql import func
 from io import BytesIO, StringIO
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Image,Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Image, Spacer
 from reportlab.lib import colors, styles
 from reportlab.lib.styles import getSampleStyleSheet
 from flask import Response
@@ -325,15 +325,15 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     style.valign = 1
     style.bottomPadding = 6
 
-    #print(real_headers)
-    #print(jsondic)
+    # print(real_headers)
+    # print(jsondic)
     data = [real_headers] + [
         [Paragraph(
             '' if not data[header] else data[header], style) if header in to_multiline else data[header] for header in headers]
         for data in jsondic
     ]
-    #print("Porcessed")
-    #print(data)
+    # print("Porcessed")
+    # print(data)
     # Create the table and set its style
     table = Table(data)
     table.setStyle(TableStyle([
@@ -355,12 +355,12 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     # Build the PDF document
     elements = []
 
-    
     # Load the logo image
-    #logo_path = "static/assets/images/GGcorp_logo_for_Repor.png"  # Update this path to the actual location of your logo
-    logo_path = os.path.join(app.root_path, 'static/assets/images/GGcorp_logo_for_Repor.png')
+    # logo_path = "static/assets/images/GGcorp_logo_for_Repor.png"  # Update this path to the actual location of your logo
+    logo_path = os.path.join(
+        app.root_path, 'static/assets/images/GGcorp_logo_for_Repor.png')
     logo = Image(logo_path)
-    #og size is 615x1024
+    # og size is 615x1024
     logo.drawHeight = 102.4/2  # Adjust the height as needed
     logo.drawWidth = 61.5/2  # Adjust the width as needed
     """
@@ -378,7 +378,7 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     p = Paragraph(title_str, title_style)
     elements.append(p)
     """
-        # Custom header (logo on the right, title on the left)
+    # Custom header (logo on the right, title on the left)
     header_table_data = [
         [
             Paragraph(
@@ -390,12 +390,14 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     ]
     header_table = Table(
         header_table_data,
-        colWidths=[700, 50]  # Adjust column widths (e.g., 400px for title, 100px for logo)
+        # Adjust column widths (e.g., 400px for title, 100px for logo)
+        colWidths=[700, 50]
     )
     header_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (0, 0), 'LEFT'),  # Align the title to the left
         ('ALIGN', (1, 0), (1, 0), 'LEFT'),  # Align the logo to the right
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Vertically align to the middle
+        # Vertically align to the middle
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
     # Add the custom header
@@ -521,4 +523,3 @@ def export_to_pdf2(headers, jsondic, filename, real_headers=None, to_multiline=N
     response.headers.set("Content-Disposition",
                          "attachment", filename=filename)
     return response
-

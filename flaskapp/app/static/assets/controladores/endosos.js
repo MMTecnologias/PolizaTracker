@@ -587,6 +587,47 @@ $(function () {
     });
   }
 
+  function fetchClientOptions(query) {
+    $.ajax({
+      url: 'polizas/search_clients',
+      method: 'POST',
+      dataType: 'json',
+      data: { query },
+      success: function (response) {
+        const options = response.options;
+        const dropdownMenu = $('#client-options');
+        dropdownMenu.empty();
+        if (options.length === 0) {
+          dropdownMenu.append(
+            '<p class="dropdown-item no-results">No hay coincidencias</p>'
+          );
+        } else {
+          $.each(options, function (i, option) {
+            dropdownMenu.append(
+              `<a class="dropdown-item" id="client__${option.id}">
+                ${option.name}
+              </a>`
+            );
+            $(`#client__${option.id}`).on('click', (e) => {
+              $('#buscar-cliente').val(option.name);
+              $('#selected-client-id').val(option.id);
+              $('#client-options').hide();
+              $('#buscar-cliente')[0].setCustomValidity('');
+            });
+          });
+        }
+        dropdownMenu.show();
+      },
+      error: function (xhr, textStatus, error) {
+        console.error(error);
+        alert(
+          'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+          'error'
+        );
+      },
+    });
+  }
+
   $('#form-polizas').submit(async function (e) {
     e.preventDefault();
     if (!this.checkValidity()) {
@@ -793,6 +834,17 @@ $(function () {
       success: (resp) => fillTableEndosos(resp, 1, 10),
       error: (xhr, status, error) => console.error(error),
     });
+  });
+
+  $('#buscar-cliente').on('keyup', function (e) {
+    e.preventDefault();
+    const inputValue = e.target.value;
+    if (inputValue.length >= 3) {
+      fetchClientOptions(inputValue);
+    } else {
+      $('#client-options').hide();
+      $('#buscar-cliente')[0].setCustomValidity('');
+    }
   });
 
   getEndosos();

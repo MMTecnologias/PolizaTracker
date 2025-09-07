@@ -95,46 +95,76 @@ def search_clients():
     return jsonify({'options': options})
 
 
+def _build_polizas_query():
+    return db.session.query(Poliza,
+                            Cliente.nombre.label("client_name"),
+                            Cliente.apellido.label("client_lastname"),
+                            Aseguradora.aseguradora.label("aseguradora"),
+                            Ramo.ramo.label("ramo"),
+                            Subramo.subramo.label("subramo"),
+                            TipoPago.tipo_pago.label("tipo_pago"),
+                            Agente.nombre.label("agente"),
+                            Vendedor.nombre.label("vendedor")) \
+        .select_from(Poliza) \
+        .join(Cliente, Poliza.cliente_id == Cliente.id) \
+        .outerjoin(Grupo, Cliente.grupo_id == Grupo.id) \
+        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
+        .join(Ramo, Poliza.ramo_id == Ramo.id) \
+        .join(Subramo, Poliza.subramo_id == Subramo.id) \
+        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
+        .join(Agente, Poliza.agente_id == Agente.id) \
+        .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
+
+
+def _format_poliza_data(poliza_row):
+    poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor = poliza_row
+    poliza_data = {}
+    for column in Poliza.__table__.columns:
+        value = getattr(poliza, column.name)
+        if isinstance(value, date):
+            value = value.strftime('%Y-%m-%d')
+        elif isinstance(value, Decimal):
+            value = float(value)
+        poliza_data[column.name] = value
+
+    # Formatear notas con saltos de línea cada 16 caracteres
+    notas_text = poliza.notas if poliza.notas else ''
+    notas_formatted = '\n'.join([notas_text[i:i+16]
+                                for i in range(0, len(notas_text), 16)])
+
+    poliza_data.update({
+        'cliente': f"{nombre} {apellido}",
+        'aseguradora': aseguradora,
+        'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
+        'ramo': f"{ramo}",
+        'subramo': f"{subramo}",
+        'tipoPago': f"{tipo_pago}",
+        'agente': f"{agente}",
+        'Notas': notas_formatted,
+        'fecha_termino': poliza.fecha_termino.strftime('%Y-%m-%d')
+    })
+    return poliza_data
+
+
 @polizas_route.route('/get', methods=['POST'])
 @login_required
 def get():
-    # Estos datos los recibe desde la función en JS
     start = int(flask_request.form.get('start'))
     length = int(flask_request.form.get('length'))
     search_value = flask_request.form.get('searchValue')
     order = bool(flask_request.form.get('order'))
     poliza_id = flask_request.form.get('poliza_id')
 
-    polizas_query = db.session.query(Poliza,
-                                     Cliente.nombre.label("client_name"),
-                                     Cliente.apellido.label("client_lastname"),
-                                     Aseguradora.aseguradora.label(
-                                         "aseguradora"),
-                                     Ramo.ramo.label("ramo"),
-                                     Subramo.subramo.label("subramo"),
-                                     TipoPago.tipo_pago.label("tipo_pago"),
-                                     Agente.nombre.label("agente"),
-                                     Vendedor.nombre.label("vendedor")) \
-        .select_from(Poliza) \
-        .join(Cliente, Poliza.cliente_id == Cliente.id) \
-        .outerjoin(Grupo, Cliente.grupo_id == Grupo.id) \
-        .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
-        .join(Ramo, Poliza.ramo_id == Ramo.id)  \
-        .join(Subramo, Poliza.subramo_id == Subramo.id)  \
-        .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
-        .join(Agente, Poliza.agente_id == Agente.id) \
-        .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
+    polizas_query = _build_polizas_query()
 
     if order:
         polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))
     else:
         polizas_query = polizas_query.order_by('poliza')
-        # polizas_query = polizas_query.order_by(desc(Poliza.id))
 
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
 
-    # Implement search functionality
     if search_value:
         polizas_query = polizas_query.filter(or_(
             Cliente.nombre.ilike(f'%{search_value}%'),
@@ -145,75 +175,39 @@ def get():
             Poliza.poliza.ilike(f'{search_value}%'),
         ))
 
-     # Get total count of records without filtering
     total_records = polizas_query.count()
+    polizas = polizas_query.offset(start).limit(
+        length).all() if length and start else polizas_query.all()
 
-    # Apply pagination
-    if not length and not start:
-        polizas = polizas_query.all()
-    else:
-        polizas = polizas_query.offset(start).limit(length).all()
+    data = [_format_poliza_data(poliza_row) for poliza_row in polizas]
 
-    data = []
-    # Iterate through the query results
-    for poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in polizas:
-        # Extracting all columns from the Poliza object
-        poliza_data = {}
-        # Iterate through each column in the Poliza table
-        for column in Poliza.__table__.columns:
-            # Get the value of the column
-            value = getattr(poliza, column.name)
-            # Convert date to string if it's a date type
-            if isinstance(value, date):
-                value = value.strftime('%Y-%m-%d')
-            # Convert Decimal to float if it's a Decimal type
-            elif isinstance(value, Decimal):
-                value = float(value)
-            # Add column name and corresponding value to poliza_data dictionary
-            poliza_data[column.name] = value
-
-        # poliza_data = {column.name: getattr(poliza, column.name) for column in Poliza.__table__.columns}
-
-        # Append additional information
-        poliza_data.update({
-            'cliente': f"{nombre} {apellido}",
-            'aseguradora': aseguradora,
-            'vigencia': f"{poliza.fecha_inicio.strftime('%Y-%m-%d')} to {poliza.fecha_termino.strftime('%Y-%m-%d')}",
-            'ramo': f"{ramo}",
-            'subramo': f"{subramo}",
-            'tipoPago': f"{tipo_pago}",
-            'agente': f"{agente}",
-            'vendedor': f"{vendedor}",
-            'fecha_termino': poliza.fecha_termino.strftime('%Y-%m-%d')
-        })
-
-        # Append to data list
-        data.append(poliza_data)
-
-        # Configurar encabezados y columnas para exportar
     headers = ['poliza', 'cliente', 'aseguradora', 'vigencia', 'ramo', 'subramo',
-               'tipoPago', 'agente', 'vendedor', 'prima_neta', 'prima_total', 'status']
+               'tipoPago', 'agente', 'Notas', 'prima_neta', 'prima_total', 'status']
     real_headers = ['Póliza', 'Cliente', 'Aseguradora', 'Vigencia', 'Ramo', 'Subramo',
-                    'Forma de Pago', 'Agente', 'Vendedor', 'Prima Neta', 'Prima Total', 'Estado']
+                    'Forma de Pago', 'Agente', 'Notas', 'Prima Neta', 'Prima Total', 'Estado']
 
-    # Exportar a CSV
     if flask_request.form.get('export_csv'):
         return export_to_csv(headers, data, 'polizas.csv', real_headers)
-    # Exportar a PDF
     if flask_request.form.get('export_pdf'):
+        # Calcular totales
+        total_prima_neta = sum(float(row['prima_neta']) for row in data)
+        total_prima_total = sum(float(row['prima_total']) for row in data)
+
+        # Agregar fila de totales
+        total_row = {header: '' for header in headers}
+        total_row['agente'] = 'TOTAL:'
+        total_row['prima_neta'] = total_prima_neta
+        total_row['prima_total'] = total_prima_total
+        data.append(total_row)
+
         to_multiline = ["Cliente", "Aseguradora",
                         "Ramo", "Subramo", "Agente", "Vendedor"]
-        title_str = "Pólizas"
-        return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, title_str)
+        return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, "Pólizas")
 
-    # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
-    # Prepare response
-    response = {
-        # 'draw': draw,
-        'recordsTotal': total_records,  # Total records without filtering
-        'data': data  # Data to display
-    }
-    return jsonify(response)
+    return jsonify({
+        'recordsTotal': total_records,
+        'data': data
+    })
 
 
 @polizas_route.route('/create', methods=['POST'])
