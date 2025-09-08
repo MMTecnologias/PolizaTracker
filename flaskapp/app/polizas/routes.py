@@ -126,12 +126,10 @@ def _format_poliza_data(poliza_row):
         elif isinstance(value, Decimal):
             value = float(value)
         poliza_data[column.name] = value
-
     # Formatear notas con saltos de línea cada 16 caracteres
     notas_text = poliza.notas if poliza.notas else ''
     notas_formatted = '\n'.join([notas_text[i:i+16]
                                 for i in range(0, len(notas_text), 16)])
-
     poliza_data.update({
         'cliente': f"{nombre} {apellido}",
         'aseguradora': aseguradora,
@@ -140,7 +138,10 @@ def _format_poliza_data(poliza_row):
         'subramo': f"{subramo}",
         'tipoPago': f"{tipo_pago}",
         'agente': f"{agente}",
+        'vendedor': f"{vendedor}",
         'Notas': notas_formatted,
+        'prima_neta': f"{float(poliza.prima_neta):,.2f}",
+        'prima_total': f"{float(poliza.prima_total):,.2f}",
         'fecha_termino': poliza.fecha_termino.strftime('%Y-%m-%d')
     })
     return poliza_data
@@ -154,17 +155,13 @@ def get():
     search_value = flask_request.form.get('searchValue')
     order = bool(flask_request.form.get('order'))
     poliza_id = flask_request.form.get('poliza_id')
-
     polizas_query = _build_polizas_query()
-
     if order:
         polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))
     else:
         polizas_query = polizas_query.order_by('poliza')
-
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
-
     if search_value:
         polizas_query = polizas_query.filter(or_(
             Cliente.nombre.ilike(f'%{search_value}%'),
@@ -174,36 +171,31 @@ def get():
                 f'%{search_value}%'),
             Poliza.poliza.ilike(f'{search_value}%'),
         ))
-
     total_records = polizas_query.count()
     polizas = polizas_query.offset(start).limit(
         length).all() if length and start else polizas_query.all()
-
     data = [_format_poliza_data(poliza_row) for poliza_row in polizas]
-
     headers = ['poliza', 'cliente', 'aseguradora', 'vigencia', 'ramo', 'subramo',
-               'tipoPago', 'agente', 'Notas', 'prima_neta', 'prima_total', 'status']
+               'tipoPago', 'vendedor', 'Notas', 'prima_neta', 'prima_total', 'status']
     real_headers = ['Póliza', 'Cliente', 'Aseguradora', 'Vigencia', 'Ramo', 'Subramo',
-                    'Forma de Pago', 'Agente', 'Notas', 'Prima Neta', 'Prima Total', 'Estado']
-
+                    'Forma de Pago', 'vendedor', 'Notas', 'Prima Neta', 'Prima Total', 'Estado']
     if flask_request.form.get('export_csv'):
         return export_to_csv(headers, data, 'polizas.csv', real_headers)
     if flask_request.form.get('export_pdf'):
         # Calcular totales
-        total_prima_neta = sum(float(row['prima_neta']) for row in data)
-        total_prima_total = sum(float(row['prima_total']) for row in data)
-
+        total_prima_neta = sum(
+            float(row['prima_neta'].replace(',', '')) for row in data)
+        total_prima_total = sum(
+            float(row['prima_total'].replace(',', '')) for row in data)
         # Agregar fila de totales
         total_row = {header: '' for header in headers}
         total_row['agente'] = 'TOTAL:'
-        total_row['prima_neta'] = total_prima_neta
-        total_row['prima_total'] = total_prima_total
+        total_row['prima_neta'] = f"{total_prima_neta:,.2f}"
+        total_row['prima_total'] = f"{total_prima_total:,.2f}"
         data.append(total_row)
-
         to_multiline = ["Cliente", "Aseguradora",
                         "Ramo", "Subramo", "Agente", "Vendedor"]
         return export_to_pdf(headers, data, 'polizas.pdf', real_headers, to_multiline, "Pólizas")
-
     return jsonify({
         'recordsTotal': total_records,
         'data': data

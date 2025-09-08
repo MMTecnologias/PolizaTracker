@@ -314,7 +314,6 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     # Set up the PDF document
     doc = SimpleDocTemplate(buffer, pagesize=landscape(
         letter), leftMargin=4, rightMargin=4, topMargin=4, bottomMargin=4, title=title_str)
-
     # Create the table data
     style = getSampleStyleSheet()['Normal']
     style.fontName = 'Helvetica'
@@ -324,7 +323,6 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     style.alignment = 0
     style.valign = 1
     style.bottomPadding = 6
-
     # print(real_headers)
     # print(jsondic)
     data = [real_headers] + [
@@ -351,10 +349,8 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
-
     # Build the PDF document
     elements = []
-
     # Load the logo image
     # logo_path = "static/assets/images/GGcorp_logo_for_Repor.png"  # Update this path to the actual location of your logo
     logo_path = os.path.join(
@@ -366,14 +362,12 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     """
     # Add the logo to the document
     elements.append(logo)
-
     # Create a style for the title
     title_style = getSampleStyleSheet()['Title']
     title_style.fontName = 'Helvetica'
     title_style.fontSize = 14
     title_style.leading = 20
     title_style.alignment = 1  # Center alignment
-
     # Create the title paragraph
     p = Paragraph(title_str, title_style)
     elements.append(p)
@@ -399,20 +393,15 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
         # Vertically align to the middle
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
-
     # Add the custom header
     elements.append(header_table)
-
     # Add some spacing after the header
     elements.append(Spacer(1, 10))
-
     # Add the table with data
     elements.append(table)
     doc.build(elements)
-
     # Reset the buffer position
     buffer.seek(0)
-
     # Return the PDF data as a response
     response = Response(buffer, mimetype='application/pdf')
     response.headers.set("Content-Disposition",
