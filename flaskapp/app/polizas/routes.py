@@ -140,8 +140,8 @@ def _format_poliza_data(poliza_row):
         'agente': f"{agente}",
         'vendedor': f"{vendedor}",
         'Notas': notas_formatted,
-        'prima_neta': f"{float(poliza.prima_neta):,.2f}",
-        'prima_total': f"{float(poliza.prima_total):,.2f}",
+        'prima_neta': f"${float(poliza.prima_neta):,.2f}",
+        'prima_total': f"${float(poliza.prima_total):,.2f}",
         'fecha_termino': poliza.fecha_termino.strftime('%Y-%m-%d')
     })
     return poliza_data
@@ -184,14 +184,14 @@ def get():
     if flask_request.form.get('export_pdf'):
         # Calcular totales
         total_prima_neta = sum(
-            float(row['prima_neta'].replace(',', '')) for row in data)
+            float(row['prima_neta'].replace('$', '').replace(',', '')) for row in data)
         total_prima_total = sum(
-            float(row['prima_total'].replace(',', '')) for row in data)
+            float(row['prima_total'].replace('$', '').replace(',', '')) for row in data)
         # Agregar fila de totales
         total_row = {header: '' for header in headers}
         total_row['agente'] = 'TOTAL:'
-        total_row['prima_neta'] = f"{total_prima_neta:,.2f}"
-        total_row['prima_total'] = f"{total_prima_total:,.2f}"
+        total_row['prima_neta'] = f"${total_prima_neta:,.2f}"
+        total_row['prima_total'] = f"${total_prima_total:,.2f}"
         data.append(total_row)
         to_multiline = ["Cliente", "Aseguradora",
                         "Ramo", "Subramo", "Agente", "Vendedor"]
