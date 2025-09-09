@@ -189,7 +189,7 @@ def get():
             float(row['prima_total'].replace('$', '').replace(',', '')) for row in data)
         # Agregar fila de totales
         total_row = {header: '' for header in headers}
-        total_row['agente'] = 'TOTAL:'
+        total_row['Notas'] = 'TOTAL:'
         total_row['prima_neta'] = f"${total_prima_neta:,.2f}"
         total_row['prima_total'] = f"${total_prima_total:,.2f}"
         data.append(total_row)
