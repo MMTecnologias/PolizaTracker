@@ -409,8 +409,12 @@ $(function () {
         $('#prima_total').val(
           parseFloat(resp.data[0].prima_total.replace('$', '').replace(',', ''))
         );
-        $('#old_prima_neta').val(resp.data[0].prima_neta);
-        $('#old_prima_total').val(resp.data[0].prima_total);
+        $('#old_prima_neta').val(
+          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', ''))
+        );
+        $('#old_prima_total').val(
+          parseFloat(resp.data[0].prima_total.replace('$', '').replace(',', ''))
+        );
         $('#old_tipo_pago').val(resp.data[0].tipo_pago_id);
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
@@ -1102,6 +1106,9 @@ $(function () {
     });
     if ($('#title_poliza')?.text()?.includes('Editar')) {
       const poliza_id = $('#poliza_id').val();
+      console.log(old_prima_neta, prima_neta);
+      console.log(old_prima_total, prima_total);
+      console.log(old_tipo_pago, tipo_pago_id);
       if (
         prima_neta !== old_prima_neta ||
         prima_total !== old_prima_total ||
