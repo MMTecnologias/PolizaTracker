@@ -803,9 +803,8 @@ def check_delete_receipts():
             return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
 
     # Validar estado de la póliza o endoso
-    if endoso_or_poliza.recibos != "Generados":
+    if endoso_or_poliza.recibos != "Generados" and endoso_or_poliza.recibos != "Por generar":
         return jsonify({'error': True, 'msg': 'No se han generado recibos para esta póliza/endoso'})
-
     if endoso_or_poliza.status in ["Cancelada", "Finalizada"]:
         return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una póliza/endoso cancelada o finalizada'})
 

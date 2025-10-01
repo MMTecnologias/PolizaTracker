@@ -290,7 +290,6 @@ $(function () {
       url: '/polizas/get',
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
-        console.log(resp.data);
         resp.data[0].renovacion ||= resp.data[0].poliza;
         $('#only_show_poliza').show();
         $('#buscar-cliente').val(resp.data[0].cliente);
@@ -795,7 +794,7 @@ $(function () {
 
   function fillTableRecibos(resp, currentPage, itemsOnPage, poliza_id) {
     const { data, recordsTotal } = resp;
-    console.log(data);
+
     const table = $('#receiptsTable');
     table.html('');
     $.each(data, function (idx, recibo) {
@@ -911,7 +910,7 @@ $(function () {
 
   function fillTableRecibosEndosos(resp, currentPage, itemsOnPage, endoso_id) {
     const { data, recordsTotal } = resp;
-    console.log(data);
+
     const table = $('#receiptsEndosoTable');
     table.html('');
     $.each(data, function (idx, recibo) {
@@ -1104,11 +1103,9 @@ $(function () {
       fecha_termino,
       tipo_pago_id,
     });
+    console.log($('#title_poliza')?.text());
     if ($('#title_poliza')?.text()?.includes('Editar')) {
       const poliza_id = $('#poliza_id').val();
-      console.log(old_prima_neta, prima_neta);
-      console.log(old_prima_total, prima_total);
-      console.log(old_tipo_pago, tipo_pago_id);
       if (
         prima_neta !== old_prima_neta ||
         prima_total !== old_prima_total ||
@@ -1124,6 +1121,7 @@ $(function () {
           dataType: 'json',
           data: `poliza_id=${poliza_id}`,
           success: function (resp) {
+            console.log(resp);
             if (resp.error) {
               alert(resp.msg, 'error', resp.title);
             } else {
@@ -1258,7 +1256,6 @@ $(function () {
     }
     const formDataPoliza = $('#form-polizas').serialize();
     if ($('#tipo').val()) {
-      console.log('Endoso', $('#tipo').val());
       $.ajax({
         type: 'POST',
         url: '/polizas/create_endoso',
@@ -1288,7 +1285,6 @@ $(function () {
         dataType: 'json',
         data: newParams,
         success: function (resp) {
-          console.log(resp);
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
@@ -1317,7 +1313,6 @@ $(function () {
         dataType: 'json',
         success: function (resp) {
           if (resp.error) {
-            console.log(resp);
             alert(resp.msg, 'error', resp.title);
           } else {
             $('#create-recib').modal('toggle');
