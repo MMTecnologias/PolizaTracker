@@ -9,22 +9,14 @@ $(function () {
   };
 
   const chartConfig = {
-    title: { text: 'Stacked Line' },
-    tooltip: { trigger: 'axis' },
-    legend: { data: [] },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true,
-    },
-    toolbox: { feature: { aveAsImage: {} } },
+    title: { text: 'Comparación Prima neta' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: {},
     xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: [],
+      type: 'value',
+      boundaryGap: [0, 0.01],
     },
-    yAxis: { type: 'value' },
+    yAxis: { type: 'category', data: [] },
     series: [],
   };
 
@@ -64,28 +56,8 @@ $(function () {
   }
 
   function createSeriesForCategory(data, categoryName, type, baseArray) {
-    // const categories = [...new Set(data.map((item) => item[categoryName]))];
-    // const series = categories.map((category) => ({
-    //   ...serieStatic,
-    //   name: category,
-    //   data: Array.from(baseArray, () => 0),
-    // }));
-    // for (const dat of data) {
-    //   const i =
-    //     type === 'year'
-    //       ? baseArray.findIndex((y) => y === dat.year)
-    //       : dat.month - 1;
-    //   const categoryIndex = categories.findIndex(
-    //     (c) => c === dat[categoryName]
-    //   );
-    //   if (categoryIndex !== -1 && i !== -1) {
-    //     series[categoryIndex]['data'][i] += Number(dat.total_prima_neta_pagada);
-    //   }
-    // }
-    // return series;
     const series = years.map((year) => ({
-      type: 'line',
-      stack: 'Total',
+      type: 'bar',
       name: year,
       data: Array.from(meses, () => 0),
     }));
@@ -99,48 +71,19 @@ $(function () {
     return series;
   }
 
-  function getBarChart(data, type = 'month') {
-    console.log(data);
+  function getBarChart(data) {
     if (!data.length) return;
     $('#chart-container').html(
       '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
     );
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
-    const by = $('#by').val();
     years = [...new Set(data.map((item) => item.year))];
-    const baseArray = type === 'month' ? meses : years;
-    const categoryMap = {
-      aseguradora: 'aseguradora',
-      grupo: 'grupo',
-      ramo: 'ramo',
-      agente: 'agente',
-      vendedor: 'vendedor',
-    };
-    // const series = createSeriesForCategory(
-    //   data,
-    //   categoryMap[by],
-    //   type,
-    //   baseArray
-    // );
-    chartConfig.legend.data = years;
-    chartConfig.xAxis.data = meses;
+    chartConfig.yAxis.data = meses;
     const series = createSeriesForCategory(data);
     console.log(series);
     chartConfig.series = series;
-    // const sumSeries = series.reduce((acc, curr) => {
-    //   curr.data.forEach((value, index) => {
-    //     if (!acc[index]) acc[index] = 0;
-    //     acc[index] += value;
-    //   });
-    //   return acc;
-    // }, []);
     fillTablePrimaNeta(series);
-    // const option = {
-    //   ...chartConfig,
-    //   xAxis: [{ type: 'category', data: baseArray }],
-    //   series,
-    // };
     myChart.setOption(chartConfig);
   }
 
@@ -157,7 +100,7 @@ $(function () {
               <tr id="tr_table1">
                 ${meses.reduce(
                   (acc, curr) => (acc += `<th scope="col">${curr}</th>`),
-                  ``
+                  ''
                 )}
               </tr>
             </thead>
@@ -168,7 +111,7 @@ $(function () {
                     (acc += `<td>$
                   ${formatNumber(Number(curr?.toFixed(2) || 0))}
                 </td>`),
-                  ``
+                  ''
                 )}
               </tr>
             </tbody>
@@ -192,6 +135,8 @@ $(function () {
             }
             return months1Str;
           }, 'months1=');
+      } else {
+        months1 = 'months1=1,2,3,4,5,6,7,8,9,10,11,12';
       }
       let months2 = '';
       if ($('#months2').val()) {
@@ -204,6 +149,8 @@ $(function () {
             }
             return months2Str;
           }, 'months2=');
+      } else {
+        months2 = 'months2=1,2,3,4,5,6,7,8,9,10,11,12';
       }
       let multiple = $($('#form-multiple')[0].elements)
         .not('#months1')
@@ -222,11 +169,7 @@ $(function () {
       url: '/reportes/prima_neta_compare',
       data: params,
       success: (resp) => {
-        getBarChart(resp.data, 'month');
-        // if (formMultiple && formMultiple.includes('type_report=month')) {
-        // } else {
-        //   getBarChart(resp.data);
-        // }
+        getBarChart(resp.data);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -292,6 +235,8 @@ $(function () {
           }
           return months1Str;
         }, 'months1=');
+    } else {
+      months1 = 'months1=1,2,3,4,5,6,7,8,9,10,11,12';
     }
     let months2 = '';
     if ($('#months2').val()) {
@@ -304,6 +249,8 @@ $(function () {
           }
           return months2Str;
         }, 'months2=');
+    } else {
+      months2 = 'months2=1,2,3,4,5,6,7,8,9,10,11,12';
     }
     let multiple = $($('#form-multiple')[0].elements)
       .not('#months1')
