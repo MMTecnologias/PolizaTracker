@@ -74,7 +74,7 @@ $(function () {
   function getBarChart(data) {
     if (!data.length) return;
     $('#chart-container').html(
-      '<div id="bar_chart" style="width: 100%;height:500px;"></div>'
+      '<div id="bar_chart" style="width: 100%;height:600px;"></div>'
     );
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
@@ -102,6 +102,7 @@ $(function () {
                   (acc, curr) => (acc += `<th scope="col">${curr}</th>`),
                   ''
                 )}
+                <th scope="col">Total</th>
               </tr>
             </thead>
             <tbody id="table_table1">
@@ -113,6 +114,15 @@ $(function () {
                 </td>`),
                   ''
                 )}
+                <td>
+                  ${formatNumber(
+                    Number(
+                      serie.data
+                        .reduce((acc, curr) => (acc += Number(curr)), 0)
+                        .toFixed(2)
+                    )
+                  )}
+                </td>
               </tr>
             </tbody>
           </table>
