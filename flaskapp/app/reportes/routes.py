@@ -111,7 +111,7 @@ def prima_neta_compare():
     ramo_id = request.form.get('ramo_id')
     agente_id = request.form.get('agente_id')
     vendedor_id = request.form.get('vendedor_id')
-    
+
 
     # Validar parámetros
     if not year1 or not months1 or not year2 or not months2:
@@ -1135,15 +1135,23 @@ def recibos_pagados():
                  ) if request.form.get('length') else None
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
-    # start_date = '2023-01-01'  # Default value for testing
-    # end_date = '2024-12-31'  # Default value for testing
-    if not start_date or not end_date:
-        year = datetime.now().year
-        start_date = datetime(year, 1, 1)
-        end_date = datetime(year, 12, 31)
-    else:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    status_recibo = request.form.get('status')
+    
+    # Validate and parse dates
+    valid_start_date = None
+    valid_end_date = None
+    
+    if start_date and len(start_date.strip()) >= 8:
+        try:
+            valid_start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        except ValueError:
+            valid_start_date = None
+    
+    if end_date and len(end_date.strip()) >= 8:
+        try:
+            valid_end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        except ValueError:
+            valid_end_date = None
 
     # Commenting out request for testing purposes
     aseguradora_id = request.form.get('aseguradora_id')
@@ -1196,6 +1204,8 @@ def recibos_pagados():
     else:
         polizas = []
 
+
+    
     # Query the database
     paid_recipts_query = db.session.query(Recibo,
                                           Poliza,
@@ -1221,10 +1231,22 @@ def recibos_pagados():
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .filter(Recibo.fecha_pago >= start_date,
-                Recibo.fecha_pago <= end_date,
-                Recibo.status == "Liquidado") \
         .order_by(desc(Recibo.fecha_pago))
+
+    # Apply date filters only if valid dates are provided
+    if valid_start_date and valid_end_date:
+        paid_recipts_query = paid_recipts_query.filter(
+            Recibo.fecha_pago >= valid_start_date,
+            Recibo.fecha_pago <= valid_end_date
+        )
+    elif valid_start_date:
+        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_pago >= valid_start_date)
+    elif valid_end_date:
+        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_pago <= valid_end_date)
+
+    # Apply status filter only if status_recibo is provided and not empty
+    if status_recibo and status_recibo.strip():
+        paid_recipts_query = paid_recipts_query.filter(Recibo.status == status_recibo)
 
     if polizas:
         paid_recipts_query = paid_recipts_query.filter(
@@ -1232,10 +1254,14 @@ def recibos_pagados():
 
     total_records = paid_recipts_query.count()
 
-    if not length and not start:
+    # For exports, get all records; for JSON response, apply pagination
+    if request.form.get('export_csv') or request.form.get('export_pdf'):
         records = paid_recipts_query.all()
     else:
-        records = paid_recipts_query.limit(length).offset(start).all()
+        if not length and not start:
+            records = paid_recipts_query.all()
+        else:
+            records = paid_recipts_query.limit(length).offset(start).all()
 
     # Prepare the response data
     response = []
@@ -1267,17 +1293,20 @@ def recibos_pagados():
 
         response.append(data)
 
-    headers = ['poliza', 'no_de_recibo', 'cliente', 'notas', 'ramo', 'subramo', 'aseguradora', 'fecha_inicio',
+    headers = ['poliza', 'no_de_recibo', 'status', 'cliente', 'notas', 'ramo', 'subramo', 'aseguradora', 'fecha_inicio',
                'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'forma_pago', 'agente', 'vendedor', 'endoso', 'poliza_anterior']
-    real_headers = ['poliza', 'Recibo', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Aseguradora',
+    real_headers = ['poliza', 'Recibo', 'estatus', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Aseguradora',
                     'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Moneda', 'Forma de pago', 'Agente', 'Vendedor', 'Endoso', 'Anterior']
     if request.form.get('export_csv'):
-        return export_to_csv(headers, response, 'upcoming_receipts.csv', real_headers)
+        return export_to_csv(headers, response, 'recibos_pagados.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['cliente', 'notas']
-        title_str = "Recibos pagados en %s - %s" % (
-            start_date.strftime('%d/%m/%y'), end_date.strftime('%d/%m/%y'))
-        return export_to_pdf(headers, response, 'upcoming_receipts.pdf', real_headers, to_multiline, title_str)
+        if valid_start_date and valid_end_date:
+            title_str = "Recibos pagados en %s - %s" % (
+                valid_start_date.strftime('%d/%m/%y'), valid_end_date.strftime('%d/%m/%y'))
+        else:
+            title_str = "Recibos pagados"
+        return export_to_pdf(headers, response, 'recibos_pagados.pdf', real_headers, to_multiline, title_str)
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering

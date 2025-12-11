@@ -286,20 +286,27 @@ def export_to_csv(headers, jsondic, filename, real_headers=None):
         f = StringIO()
         writer = csv.writer(f)
 
-        # Escribir los encabezados solo una vez
+        # Escribir los encabezados
         writer.writerow(real_headers)
-
+        
+        # Escribir los datos
         for data in jsondic:
-            row = [data[header] for header in headers]
+            row = []
+            for header in headers:
+                value = data.get(header, '')
+                # Manejar valores None
+                if value is None:
+                    value = ''
+                row.append(str(value))
             writer.writerow(row)
 
-        f.seek(0)
-        yield f.read()
+        content = f.getvalue()
         f.close()
+        return content
 
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition",
-                         "attachment", filename=filename)
+    csv_content = generate()
+    response = Response(csv_content, mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename=filename)
     return response
 
 
