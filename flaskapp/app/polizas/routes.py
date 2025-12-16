@@ -1327,66 +1327,56 @@ def get_all_receipts():
 
     aseguradora_id = flask_request.form.get('aseguradora_id')
     cliente_id = flask_request.form.get('cliente_id')
-    grupo_id = flask_request.form.get('grupo_id')
-    vendedor_id = flask_request.form.get('vendedor_id')
-    agente_id = flask_request.form.get('agente_id')
-    ramo_id = flask_request.form.get('ramo_id')
-
     status = flask_request.form.get('status')
+    grupo_id = flask_request.form.get('grupo_id')
+    ramo_id = flask_request.form.get('ramo_id')
+    agente_id = flask_request.form.get('agente_id')
+    vendedor_id = flask_request.form.get('vendedor_id')
+
     # ENUM('Liquidado', 'Pendiente', 'Vencido', 'Cancelado')
     if status and status not in ('Liquidado', 'Pendiente', 'Vencido', 'Cancelado'):
         return jsonify({'error': True, 'msg': 'Estado no válido, debe estar en [Liquidado, Pendiente, Vencido, Cancelado]'})
 
-    # Get valid list of policies
-    polizas = []
-    if cliente_id:
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.cliente_id == int(cliente_id)).all()
-        polizas = [poliza.id for poliza in polizas_query]
-
-    if grupo_id:
-        clients_query = db.session.query(Cliente) \
-            .filter(Cliente.grupo_id == int(grupo_id)).all()
-        clients = [client.id for client in clients_query]
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.cliente_id.in_(clients)).all()
-        polizas = [poliza.id for poliza in polizas_query]
-
+    # Get valid list of policies using intersection logic
+    polizas_sets = []
+    
     if aseguradora_id:
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.aseguradora_id == int(aseguradora_id)).all()
-        if polizas == []:
-            polizas = [poliza.id for poliza in polizas_query]
-        else:
-            polizas = list(set(polizas).intersection(
-                [poliza.id for poliza in polizas_query]))
-
-    if vendedor_id:
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.vendedor_id == int(vendedor_id)).all()
-        if polizas == []:
-            polizas = [poliza.id for poliza in polizas_query]
-        else:
-            polizas = list(set(polizas).intersection(
-                [poliza.id for poliza in polizas_query]))
-
-    if agente_id:
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.agente_id == int(agente_id)).all()
-        if polizas == []:
-            polizas = [poliza.id for poliza in polizas_query]
-        else:
-            polizas = list(set(polizas).intersection(
-                [poliza.id for poliza in polizas_query]))
-
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.aseguradora_id == int(aseguradora_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    
+    if grupo_id:
+        clients_query = db.session.query(Cliente.id).filter(
+            Cliente.grupo_id == int(grupo_id)).all()
+        clients = [client.id for client in clients_query]
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.cliente_id.in_(clients)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    
     if ramo_id:
-        polizas_query = db.session.query(Poliza) \
-            .filter(Poliza.ramo_id == int(ramo_id)).all()
-        if polizas == []:
-            polizas = [poliza.id for poliza in polizas_query]
-        else:
-            polizas = list(set(polizas).intersection(
-                [poliza.id for poliza in polizas_query]))
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.ramo_id == int(ramo_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    
+    if agente_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.agente_id == int(agente_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.vendedor_id == int(vendedor_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    
+    if cliente_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.cliente_id == int(cliente_id)).all()
+        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
+    
+    if polizas_sets:
+        polizas = list(set.intersection(*polizas_sets))
+    else:
+        polizas = None  # No filters applied, get all policies
 
     # Client and grupo can not be asked both
     if cliente_id and grupo_id:
@@ -1419,17 +1409,39 @@ def get_all_receipts():
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id)
 
-    if aseguradora_id or cliente_id or grupo_id:
+    if polizas is not None:
         upcoming_receipts_query = upcoming_receipts_query.filter(
             Recibo.poliza_id.in_(polizas))
 
-    if flask_request.form.get('start_date') and flask_request.form.get('end_date'):
-        start_date = datetime.strptime(
-            flask_request.form.get('start_date'), '%Y-%m-%d')
-        end_date = datetime.strptime(
-            flask_request.form.get('end_date'), '%Y-%m-%d')
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= start_date,
-                                                                 Recibo.fecha_inicio <= end_date)
+    # Validate and apply date filters
+    start_date_param = flask_request.form.get('start_date')
+    end_date_param = flask_request.form.get('end_date')
+    
+    valid_start_date = None
+    valid_end_date = None
+    
+    if start_date_param and len(start_date_param.strip()) >= 8:
+        try:
+            valid_start_date = datetime.strptime(start_date_param, '%Y-%m-%d')
+        except ValueError:
+            valid_start_date = None
+    
+    if end_date_param and len(end_date_param.strip()) >= 8:
+        try:
+            valid_end_date = datetime.strptime(end_date_param, '%Y-%m-%d')
+        except ValueError:
+            valid_end_date = None
+    
+    # Apply date filters only if valid dates are provided
+    if valid_start_date and valid_end_date:
+        upcoming_receipts_query = upcoming_receipts_query.filter(
+            Recibo.fecha_inicio >= valid_start_date,
+            Recibo.fecha_inicio <= valid_end_date
+        )
+    elif valid_start_date:
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= valid_start_date)
+    elif valid_end_date:
+        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= valid_end_date)
     upcoming_receipts_query = upcoming_receipts_query.order_by(
         Recibo.fecha_inicio)
 
@@ -1466,6 +1478,7 @@ def get_all_receipts():
             'moneda': poliza.moneda,
             'forma_pago': tipo_pago,
             'agente': f'{agente}',
+            'vendedor': f'{vendedor}',
             'endoso': poliza.endoso,
             'poliza_anterior': poliza.poliza_anterior,
             'aseguradora': aseguradora,

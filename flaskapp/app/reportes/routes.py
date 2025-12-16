@@ -1133,20 +1133,21 @@ def recibos_pagados():
                 ) if request.form.get('start') else None
     length = int(request.form.get('length')
                  ) if request.form.get('length') else None
+
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
-    status_recibo = request.form.get('status')
-    
+
+
     # Validate and parse dates
     valid_start_date = None
     valid_end_date = None
-    
+
     if start_date and len(start_date.strip()) >= 8:
         try:
             valid_start_date = datetime.strptime(start_date, '%Y-%m-%d')
         except ValueError:
             valid_start_date = None
-    
+
     if end_date and len(end_date.strip()) >= 8:
         try:
             valid_end_date = datetime.strptime(end_date, '%Y-%m-%d')
@@ -1155,11 +1156,12 @@ def recibos_pagados():
 
     # Commenting out request for testing purposes
     aseguradora_id = request.form.get('aseguradora_id')
+    cliente_id = request.form.get('cliente_id')
+    status_recibo = request.form.get('status')
     grupo_id = request.form.get('grupo_id')
     ramo_id = request.form.get('ramo_id')
     agente_id = request.form.get('agente_id')
     vendedor_id = request.form.get('vendedor_id')
-    cliente_id = request.form.get('cliente_id')
 
     # aseguradora_id = None  # Esta en tabla de polizas 3
     # grupo_id = None  # Esta en tabla de clientes
@@ -1202,10 +1204,8 @@ def recibos_pagados():
     if polizas_sets:
         polizas = list(set.intersection(*polizas_sets))
     else:
-        polizas = []
+        polizas = None  # No filters applied, get all policies
 
-
-    
     # Query the database
     paid_recipts_query = db.session.query(Recibo,
                                           Poliza,
@@ -1248,7 +1248,7 @@ def recibos_pagados():
     if status_recibo and status_recibo.strip():
         paid_recipts_query = paid_recipts_query.filter(Recibo.status == status_recibo)
 
-    if polizas:
+    if polizas is not None:
         paid_recipts_query = paid_recipts_query.filter(
             Recibo.poliza_id.in_(polizas))
 
