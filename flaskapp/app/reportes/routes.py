@@ -1231,18 +1231,18 @@ def recibos_pagados():
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .order_by(desc(Recibo.fecha_pago))
+        .order_by(Recibo.fecha_inicio)
 
     # Apply date filters only if valid dates are provided
     if valid_start_date and valid_end_date:
         paid_recipts_query = paid_recipts_query.filter(
-            Recibo.fecha_pago >= valid_start_date,
-            Recibo.fecha_pago <= valid_end_date
+            Recibo.fecha_inicio >= valid_start_date,
+            Recibo.fecha_inicio <= valid_end_date
         )
     elif valid_start_date:
-        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_pago >= valid_start_date)
+        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_inicio >= valid_start_date)
     elif valid_end_date:
-        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_pago <= valid_end_date)
+        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_inicio <= valid_end_date)
 
     # Apply status filter only if status_recibo is provided and not empty
     if status_recibo and status_recibo.strip():
