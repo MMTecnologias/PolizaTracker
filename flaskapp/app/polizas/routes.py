@@ -576,10 +576,9 @@ def get_policy_values():
         deltames = 12/tipo_pago.pagos_anuales
         if deltames > policy_duration_months:
             return jsonify({'error': True, 'msg': 'Este tipo de pago no es valido para la duracion de la poliza/endoso. Porfavor, intente con otro'})
-        if policy_duration_months % deltames == 0:
-            num_payments = policy_duration_months // deltames
-        else:
-            return jsonify({'error': True, 'msg': 'Este tipo de pago no es válido para la duración de la póliza/endoso. Por favor, intente con otro'})
+        # Calcular número de pagos redondeando hacia arriba
+        import math
+        num_payments = math.ceil(policy_duration_months / deltames)
 
     # Devolver los valores como un objeto JSON
     return jsonify({'error': False,
