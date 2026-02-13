@@ -519,16 +519,29 @@ def get_policy_values():
     tipo_pago_id = flask_request.form.get('tipo_pago_id')
     prima_neta = flask_request.form.get('prima_neta')
     prima_total = flask_request.form.get('prima_total')
+    
+    # Para endosos, usar las fechas del endoso guardado si existe
+    endoso_id = flask_request.form.get('endoso_id')
+    if endoso_id:
+        endoso = Endoso.query.get(endoso_id)
+        if endoso:
+            fecha_inicio = endoso.fecha_inicio.strftime('%Y-%m-%d')
+            fecha_termino = endoso.fecha_termino.strftime('%Y-%m-%d')
+            print(f"DEBUG - Usando fechas del endoso: {fecha_inicio} a {fecha_termino}")
 
     # Calcular la duración de la póliza en años, considerando años bisiestos
     start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d')
     end_date = datetime.strptime(fecha_termino, '%Y-%m-%d')
 
-    # Calcular la duracion en meses con funcion de floor
-    def diff_month(d1, d2):
-        return (d1.year - d2.year) * 12 + d1.month - d2.month
-
-    policy_duration_months = diff_month(end_date, start_date)
+    # Calcular la duracion en meses usando relativedelta
+    from dateutil.relativedelta import relativedelta
+    delta = relativedelta(end_date, start_date)
+    policy_duration_months = delta.years * 12 + delta.months
+    
+    # Debug: imprimir valores
+    print(f"DEBUG - Fecha inicio: {start_date}, Fecha fin: {end_date}")
+    print(f"DEBUG - Delta: {delta.years} años, {delta.months} meses, {delta.days} días")
+    print(f"DEBUG - Duración en meses: {policy_duration_months}")
 
     # Duración en años, considerando años bisiestos y redondeado a entero
     # policy_duration = int(round((end_date - start_date).days / 365.2425))
@@ -574,11 +587,14 @@ def get_policy_values():
     else:
         # De lo contrario, el número de pagos es igual a los pagos mensuales
         deltames = 12/tipo_pago.pagos_anuales
+        print(f"DEBUG - Meses por pago (deltames): {deltames}")
+        print(f"DEBUG - Pagos anuales: {tipo_pago.pagos_anuales}")
         if deltames > policy_duration_months:
             return jsonify({'error': True, 'msg': 'Este tipo de pago no es valido para la duracion de la poliza/endoso. Porfavor, intente con otro'})
         # Calcular número de pagos redondeando hacia arriba
         import math
         num_payments = math.ceil(policy_duration_months / deltames)
+        print(f"DEBUG - Número de pagos calculado: {num_payments}")
 
     # Devolver los valores como un objeto JSON
     return jsonify({'error': False,
