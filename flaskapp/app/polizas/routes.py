@@ -22,25 +22,41 @@ def get_receipts():
     # Recibe
     poliza_id = flask_request.form.get('poliza_id')
     print(f"Poliza ID: {poliza_id}")
-    start = int(flask_request.form.get('start'))
-    length = int(flask_request.form.get('length'))
+    start_param = flask_request.form.get('start')
+    length_param = flask_request.form.get('length')
+    
+    if not start_param or not length_param:
+        return jsonify({'error': True, 'msg': 'Parámetros inválidos'})
+    
+    start = int(start_param)
+    length = int(length_param)
 
     endoso_id = flask_request.form.get('endoso_id')
     if endoso_id:
         recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
         print(f"Endoso ID: {endoso_id}")
-        poliza_id = Endoso.query.get(endoso_id).poliza_id
+        endoso = Endoso.query.get(endoso_id)
+        if not endoso:
+            return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+        poliza_id = endoso.poliza_id
         print(f"Poliza ID de endoso: {poliza_id}")
     else:
         recibos_query = Recibo.query.filter_by(
             poliza_id=poliza_id, endoso_id=None)
-    moneda = Poliza.query.get(int(poliza_id)).moneda
+    
+    if not poliza_id:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+    
+    poliza = Poliza.query.get(int(poliza_id))
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+    
+    moneda = poliza.moneda
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
     recibos = recibos_query.offset(start).limit(length).all()
 
-    poliza = Poliza.query.get(poliza_id)
     # Format data as required by DataTables
     data = []
     for recibo in recibos:
@@ -639,10 +655,12 @@ def calcular_recibos():
 
 
 def add_months(start_date, num_months):
-    # Convertir la cadena de fecha en un objeto datetime
-
-    start_date = str(start_date)
-    start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    # Si start_date es string, convertir a datetime
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    # Si es date, convertir a datetime
+    elif isinstance(start_date, date) and not isinstance(start_date, datetime):
+        start_date = datetime.combine(start_date, datetime.min.time())
 
     new_date = start_date + relativedelta(months=num_months)
     # Devolver la nueva fecha como cadena
