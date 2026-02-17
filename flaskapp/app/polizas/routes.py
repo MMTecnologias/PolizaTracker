@@ -95,11 +95,12 @@ def get_receipts():
 def search_clients():
     # Get search query from request data
     search_query = flask_request.form.get('query')
+    search_normalized = search_query.strip().lower()
     clients_query = db.session.query(Cliente.id, Cliente.nombre, Cliente.apellido) \
         .filter(Cliente.status == 'Activo') \
         .filter(or_(
-            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
-                f'%{search_query}%')
+            func.lower(func.concat(Cliente.nombre, ' ', Cliente.apellido)).like(
+                f'%{search_normalized}%')
         )) \
         .order_by(desc(Cliente.id)) \
         .limit(20)
@@ -179,13 +180,14 @@ def get():
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
     if search_value:
+        search_normalized = search_value.strip().lower()
         polizas_query = polizas_query.filter(or_(
-            Cliente.nombre.ilike(f'%{search_value}%'),
-            Cliente.apellido.ilike(f'%{search_value}%'),
-            Grupo.grupo.ilike(f'%{search_value}%'),
-            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
-                f'%{search_value}%'),
-            Poliza.poliza.ilike(f'{search_value}%'),
+            func.lower(Cliente.nombre).like(f'%{search_normalized}%'),
+            func.lower(Cliente.apellido).like(f'%{search_normalized}%'),
+            func.lower(Grupo.grupo).like(f'%{search_normalized}%'),
+            func.lower(func.concat(Cliente.nombre, ' ', Cliente.apellido)).like(
+                f'%{search_normalized}%'),
+            func.lower(Poliza.poliza).like(f'{search_normalized}%'),
         ))
     total_records = polizas_query.count()
     polizas = polizas_query.offset(start).limit(
