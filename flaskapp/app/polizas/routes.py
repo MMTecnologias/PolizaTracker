@@ -24,10 +24,10 @@ def get_receipts():
     print(f"Poliza ID: {poliza_id}")
     start_param = flask_request.form.get('start')
     length_param = flask_request.form.get('length')
-    
+
     if not start_param or not length_param:
         return jsonify({'error': True, 'msg': 'Parámetros inválidos'})
-    
+
     start = int(start_param)
     length = int(length_param)
 
@@ -43,14 +43,14 @@ def get_receipts():
     else:
         recibos_query = Recibo.query.filter_by(
             poliza_id=poliza_id, endoso_id=None)
-    
+
     if not poliza_id:
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
-    
+
     poliza = Poliza.query.get(int(poliza_id))
     if not poliza:
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
-    
+
     moneda = poliza.moneda
     # Get total count of records without filtering
     total_records = recibos_query.count()
@@ -175,21 +175,32 @@ def get():
     polizas_query = _build_polizas_query()
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
-    if search_value:
+    elif search_value:
+        print('entro en search value')
         search_normalized = ' '.join(search_value.strip().lower().split())
         polizas_query = polizas_query.filter(or_(
-            func.lower(func.replace(Cliente.nombre, ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
-            func.lower(func.replace(Cliente.apellido, ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
-            func.lower(func.replace(Grupo.grupo, ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
-            func.lower(func.replace(func.concat(Cliente.nombre, ' ', Cliente.apellido), ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
-            func.lower(func.replace(Poliza.poliza, ' ', '')).like(f'{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Cliente.nombre, ' ', '')).like(
+                f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Cliente.apellido, ' ', '')).like(
+                f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Grupo.grupo, ' ', '')).like(
+                f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(func.concat(Cliente.nombre, ' ', Cliente.apellido), ' ', '')).like(
+                f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Poliza.poliza, ' ', '')).like(
+                f'{search_normalized.replace(" ", "")}%'),
         ))
     total_records = polizas_query.count()
     if order:
         polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))
     else:
         polizas_query = polizas_query.order_by('poliza')
-    polizas = polizas_query.offset(start).limit(length).all() if length is not None else polizas_query.all()
+
+    if poliza_id:
+        polizas = polizas_query.all()
+    else:
+        polizas = polizas_query.offset(start).limit(
+            length).all() if length is not None else polizas_query.all()
     data = [_format_poliza_data(poliza_row) for poliza_row in polizas]
     headers = ['poliza', 'cliente', 'aseguradora', 'vigencia', 'ramo', 'subramo',
                'tipoPago', 'vendedor', 'Notas', 'prima_neta', 'prima_total', 'status']
@@ -519,7 +530,7 @@ def get_policy_values():
     tipo_pago_id = flask_request.form.get('tipo_pago_id')
     prima_neta = flask_request.form.get('prima_neta')
     prima_total = flask_request.form.get('prima_total')
-    
+
     # Para endosos, usar las fechas del endoso guardado si existe
     endoso_id = flask_request.form.get('endoso_id')
     if endoso_id:
@@ -527,7 +538,8 @@ def get_policy_values():
         if endoso:
             fecha_inicio = endoso.fecha_inicio.strftime('%Y-%m-%d')
             fecha_termino = endoso.fecha_termino.strftime('%Y-%m-%d')
-            print(f"DEBUG - Usando fechas del endoso: {fecha_inicio} a {fecha_termino}")
+            print(
+                f"DEBUG - Usando fechas del endoso: {fecha_inicio} a {fecha_termino}")
 
     # Calcular la duración de la póliza en años, considerando años bisiestos
     start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d')
@@ -537,10 +549,11 @@ def get_policy_values():
     from dateutil.relativedelta import relativedelta
     delta = relativedelta(end_date, start_date)
     policy_duration_months = delta.years * 12 + delta.months
-    
+
     # Debug: imprimir valores
     print(f"DEBUG - Fecha inicio: {start_date}, Fecha fin: {end_date}")
-    print(f"DEBUG - Delta: {delta.years} años, {delta.months} meses, {delta.days} días")
+    print(
+        f"DEBUG - Delta: {delta.years} años, {delta.months} meses, {delta.days} días")
     print(f"DEBUG - Duración en meses: {policy_duration_months}")
 
     # Duración en años, considerando años bisiestos y redondeado a entero
@@ -1372,12 +1385,12 @@ def get_all_receipts():
 
     # Get valid list of policies using intersection logic
     polizas_sets = []
-    
+
     if aseguradora_id:
         polizas_query = db.session.query(Poliza.id).filter(
             Poliza.aseguradora_id == int(aseguradora_id)).all()
         polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-    
+
     if grupo_id:
         clients_query = db.session.query(Cliente.id).filter(
             Cliente.grupo_id == int(grupo_id)).all()
@@ -1385,27 +1398,27 @@ def get_all_receipts():
         polizas_query = db.session.query(Poliza.id).filter(
             Poliza.cliente_id.in_(clients)).all()
         polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-    
+
     if ramo_id:
         polizas_query = db.session.query(Poliza.id).filter(
             Poliza.ramo_id == int(ramo_id)).all()
         polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-    
+
     if agente_id:
         polizas_query = db.session.query(Poliza.id).filter(
             Poliza.agente_id == int(agente_id)).all()
         polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-    
+
     if vendedor_id:
         polizas_query = db.session.query(Poliza.id).filter(
             Poliza.vendedor_id == int(vendedor_id)).all()
         polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-    
+
     if cliente_id:
         polizas_query = db.session.query(Poliza.id).filter(
             Poliza.cliente_id == int(cliente_id)).all()
         polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-    
+
     if polizas_sets:
         polizas = list(set.intersection(*polizas_sets))
     else:
@@ -1449,22 +1462,22 @@ def get_all_receipts():
     # Validate and apply date filters
     start_date_param = flask_request.form.get('start_date')
     end_date_param = flask_request.form.get('end_date')
-    
+
     valid_start_date = None
     valid_end_date = None
-    
+
     if start_date_param and len(start_date_param.strip()) >= 8:
         try:
             valid_start_date = datetime.strptime(start_date_param, '%Y-%m-%d')
         except ValueError:
             valid_start_date = None
-    
+
     if end_date_param and len(end_date_param.strip()) >= 8:
         try:
             valid_end_date = datetime.strptime(end_date_param, '%Y-%m-%d')
         except ValueError:
             valid_end_date = None
-    
+
     # Apply date filters only if valid dates are provided
     if valid_start_date and valid_end_date:
         upcoming_receipts_query = upcoming_receipts_query.filter(
@@ -1472,9 +1485,11 @@ def get_all_receipts():
             Recibo.fecha_inicio <= valid_end_date
         )
     elif valid_start_date:
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio >= valid_start_date)
+        upcoming_receipts_query = upcoming_receipts_query.filter(
+            Recibo.fecha_inicio >= valid_start_date)
     elif valid_end_date:
-        upcoming_receipts_query = upcoming_receipts_query.filter(Recibo.fecha_inicio <= valid_end_date)
+        upcoming_receipts_query = upcoming_receipts_query.filter(
+            Recibo.fecha_inicio <= valid_end_date)
     upcoming_receipts_query = upcoming_receipts_query.order_by(
         Recibo.fecha_inicio)
 
