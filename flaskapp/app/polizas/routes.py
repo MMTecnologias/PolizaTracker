@@ -173,25 +173,23 @@ def get():
     order = bool(flask_request.form.get('order'))
     poliza_id = flask_request.form.get('poliza_id')
     polizas_query = _build_polizas_query()
+    if poliza_id:
+        polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
+    if search_value:
+        search_normalized = ' '.join(search_value.strip().lower().split())
+        polizas_query = polizas_query.filter(or_(
+            func.lower(func.replace(Cliente.nombre, ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Cliente.apellido, ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Grupo.grupo, ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(func.concat(Cliente.nombre, ' ', Cliente.apellido), ' ', '')).like(f'%{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Poliza.poliza, ' ', '')).like(f'{search_normalized.replace(" ", "")}%'),
+        ))
+    total_records = polizas_query.count()
     if order:
         polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))
     else:
         polizas_query = polizas_query.order_by('poliza')
-    if poliza_id:
-        polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
-    if search_value:
-        search_normalized = search_value.strip().lower()
-        polizas_query = polizas_query.filter(or_(
-            func.lower(Cliente.nombre).like(f'%{search_normalized}%'),
-            func.lower(Cliente.apellido).like(f'%{search_normalized}%'),
-            func.lower(Grupo.grupo).like(f'%{search_normalized}%'),
-            func.lower(func.concat(Cliente.nombre, ' ', Cliente.apellido)).like(
-                f'%{search_normalized}%'),
-            func.lower(Poliza.poliza).like(f'{search_normalized}%'),
-        ))
-    total_records = polizas_query.count()
-    polizas = polizas_query.offset(start).limit(
-        length).all() if length and start else polizas_query.all()
+    polizas = polizas_query.offset(start).limit(length).all() if length is not None else polizas_query.all()
     data = [_format_poliza_data(poliza_row) for poliza_row in polizas]
     headers = ['poliza', 'cliente', 'aseguradora', 'vigencia', 'ramo', 'subramo',
                'tipoPago', 'vendedor', 'Notas', 'prima_neta', 'prima_total', 'status']
