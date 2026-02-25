@@ -190,10 +190,10 @@ def delete():
         log_entry = Log(request_id=request_entry.id,
                         column_name='status',
                         old_value=endoso.status,
-                        new_value='Cancelado')
+                        new_value='Cancelada')
 
         db.session.add(log_entry)
-        endoso.status = "Cancelado"
+        endoso.status = "Cancelada"
         db.session.commit()
         return jsonify({'error': False, 'title': 'Endoso cancelado', 'msg': 'El endoso ha sido cancelado con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:
