@@ -17,6 +17,50 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+   <style>
+      .pdf-upload-area {
+         border: 2px dashed #cbd5e0;
+         border-radius: 8px;
+         padding: 15px 20px;
+         text-align: center;
+         background-color: #f7fafc;
+         transition: all 0.3s ease;
+         cursor: pointer;
+      }
+      .pdf-upload-area:hover {
+         border-color: #4299e1;
+         background-color: #ebf8ff;
+      }
+      .pdf-upload-area.drag-over {
+         border-color: #4299e1;
+         background-color: #ebf8ff;
+         transform: scale(1.02);
+      }
+      .upload-content svg {
+         color: #4299e1;
+         margin-bottom: 5px;
+      }
+      .upload-text {
+         font-size: 13px;
+         color: #4a5568;
+         margin: 5px 0 3px 0;
+      }
+      .upload-link {
+         color: #4299e1;
+         font-weight: 600;
+      }
+      .upload-hint {
+         font-size: 12px;
+         color: #a0aec0;
+         margin: 0;
+      }
+      .upload-loading {
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         justify-content: center;
+      }
+   </style>
    <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
 </head>
@@ -49,6 +93,25 @@
                   <input type="text" id="recibo_id" name="id_recibo" hidden />
                   <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" hidden />
                   <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
+                  <div class="form__input-data">
+                     <label class="label-input-data">Cargar PDF de Póliza</label>
+                     <div class="pdf-upload-area" id="pdf_drop_zone">
+                        <input type="file" id="pdf_file" accept=".pdf" style="display: none;" />
+                        <div class="upload-content">
+                           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="17 8 12 3 7 8"></polyline>
+                              <line x1="12" y1="3" x2="12" y2="15"></line>
+                           </svg>
+                           <p class="upload-text">Arrastra tu PDF aquí o <span class="upload-link">haz clic para seleccionar</span></p>
+                           <p class="upload-hint">Solo archivos PDF</p>
+                        </div>
+                        <div class="upload-loading" style="display: none;">
+                           <div class="spinner-border text-primary" role="status"></div>
+                           <p class="mt-2">Procesando PDF...</p>
+                        </div>
+                     </div>
+                  </div>
                   <div class="form__input-data" id="div_search_client">
                      <div class="label-option">
                         <label class="label-input-data">Buscar cliente</label>

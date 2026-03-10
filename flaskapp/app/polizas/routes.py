@@ -1,13 +1,17 @@
-# app/main/routes.py
-from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response
+import io
+import pdfplumber
+import json
+import re
+import os
+import uuid
+from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory
 from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, Endoso, new_class
 from sqlalchemy import join, or_, desc, func, select
-import csv
-from io import StringIO
 from . import polizas_route
 from datetime import datetime, date
 from decimal import Decimal
@@ -1539,3 +1543,246 @@ def get_all_receipts():
         'recordsTotal': total_records,  # Total records without filtering
         'data': response  # Data to display
     })
+
+
+JSON_SCHEMA = {
+    "descripcion": "string",
+    "desde": "string",
+    "fecha_de_expedicion": "string",
+    "forma_de_pago": "string",
+    "hasta": "string",
+    "modelo": "integer",
+    "placas": "string",
+    "moneda": "string",
+    "nombre_cliente": "string",
+    "aseguradora": "string",
+    "forma_de_pago": "string",
+    "numero_de_poliza": "string",
+    "pague_antes_de": "string",
+    "prima_neta": "string",
+    "prima_total": "string",
+    "rfc": "string",
+    "endoso": "string"
+}
+
+
+def extract_text_from_pdf(pdf_path: str) -> str:
+    text = ""
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                text += page.extract_text() + "\n"
+    except Exception as e:
+        print(f"Error al leer el PDF '{pdf_path}': {e}")
+        raise
+    return text
+
+
+def extract_text_from_pdf_file(file) -> str:
+    text = ""
+    try:
+        with pdfplumber.open(io.BytesIO(file.read())) as pdf:
+            for page in pdf.pages[:3]:  # Solo primeras 3 páginas
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+    except Exception as e:
+        print(f"Error al leer el PDF: {e}")
+        raise
+    # Limitar a 4000 caracteres
+    return text[:4000] if len(text) > 4000 else text
+
+
+def call_ollama_model(text_content: str, schema: dict) -> dict:
+    ollama_url = "http://localhost:11434/api/generate"
+    prompt_instruction = f"""Extrae estos datos de la póliza y devuelve SOLO JSON:
+
+{{
+  "numero_de_poliza": "número de póliza",
+  "nombre_cliente": "nombre del cliente",
+  "aseguradora": "aseguradora",
+  "prima_neta": "monto prima neta",
+  "prima_total": "monto prima total",
+  "moneda": "MXN/USD/Udis",
+  "desde": "fecha inicio DD/MM/YYYY",
+  "hasta": "fecha fin DD/MM/YYYY",
+  "forma_de_pago": "forma de pago",
+  "descripcion": "descripción",
+  "endoso": "número endoso",
+  "rfc": "RFC"
+}}
+
+Texto:
+{text_content[:2000]}
+
+JSON:"""
+
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "model": "llama3.1:8b",
+        "prompt": prompt_instruction,
+        "format": "json",
+        "stream": False,
+        "temperature": 0.1,
+        "num_predict": 500
+    }
+
+    print("Enviando solicitud a Ollama...")
+    try:
+        response = requests.post(ollama_url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        if "response" in data:
+            try:
+                extracted_json = json.loads(data["response"])
+                normalized = {
+                    "numero_de_poliza": extracted_json.get("numero_de_poliza") or extracted_json.get("numero_poliza") or extracted_json.get("poliza"),
+                    "nombre_cliente": extracted_json.get("nombre_cliente") or extracted_json.get("cliente"),
+                    "aseguradora": extracted_json.get("aseguradora"),
+                    "prima_neta": extracted_json.get("prima_neta"),
+                    "prima_total": extracted_json.get("prima_total"),
+                    "moneda": extracted_json.get("moneda"),
+                    "desde": extracted_json.get("desde") or extracted_json.get("fecha_inicio"),
+                    "hasta": extracted_json.get("hasta") or extracted_json.get("fecha_fin"),
+                    "forma_de_pago": extracted_json.get("forma_de_pago"),
+                    "descripcion": extracted_json.get("descripcion"),
+                    "endoso": extracted_json.get("endoso"),
+                    "rfc": extracted_json.get("rfc")
+                }
+                print(f"Datos extraídos: {normalized}")
+                return normalized
+            except json.JSONDecodeError as e:
+                print(
+                    f"Error JSON: {e}, Respuesta: {data.get('response', '')[:200]}")
+                raise ValueError("Respuesta JSON inválida")
+        else:
+            raise ValueError("Respuesta inesperada de Ollama")
+    except requests.exceptions.Timeout:
+        raise Exception(
+            "Ollama tardó demasiado. Intenta con un PDF más pequeño o verifica que Ollama esté funcionando correctamente")
+    except requests.exceptions.ConnectionError:
+        raise ConnectionError(
+            "Ollama no está disponible en http://localhost:11434")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error en Ollama: {e}")
+
+
+def normalize_filename(filename: str, poliza_num: str = None) -> str:
+    """
+    Normaliza el nombre del archivo para evitar problemas de caracteres especiales
+    y conflictos de nombres duplicados.
+    """
+    base_name = secure_filename(filename)
+    base_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '', base_name)
+    base_name = base_name.replace(' ', '_')
+    base_name = base_name.lower()
+    
+    if poliza_num:
+        safe_poliza = re.sub(r'[^a-zA-Z0-9_\-]', '', str(poliza_num))
+        name_without_ext = base_name.rsplit('.', 1)[0] if '.' in base_name else base_name
+        ext = base_name.rsplit('.', 1)[1] if '.' in base_name else 'pdf'
+        base_name = f"{name_without_ext}_{safe_poliza}"
+    
+    unique_id = uuid.uuid4().hex[:8]
+    name_without_ext = base_name.rsplit('.', 1)[0] if '.' in base_name else base_name
+    ext = base_name.rsplit('.', 1)[1] if '.' in base_name else 'pdf'
+    
+    return f"{name_without_ext}_{unique_id}.{ext}"
+
+
+def save_pdf_file(file, poliza_num: str = None) -> str:
+    """
+    Guarda el archivo PDF en el directorio de static/polizas_pdf.
+    Retorna la ruta relativa del archivo guardado.
+    """
+    upload_folder = os.path.join(
+        current_app.root_path, 'static', 'polizas_pdf'
+    )
+    
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    
+    normalized_filename = normalize_filename(file.filename, poliza_num)
+    
+    file_path = os.path.join(upload_folder, normalized_filename)
+    file.seek(0)
+    file.save(file_path)
+    
+    return f"polizas_pdf/{normalized_filename}"
+
+
+@polizas_route.route('/upload_pdf', methods=['POST'])
+@login_required
+def upload_pdf():
+    if 'pdf_file' not in flask_request.files:
+        return jsonify({'error': True, 'msg': 'No se proporcionó archivo PDF'})
+
+    file = flask_request.files['pdf_file']
+    if file.filename == '':
+        return jsonify({'error': True, 'msg': 'No se seleccionó archivo'})
+
+    if not file.filename.endswith('.pdf'):
+        return jsonify({'error': True, 'msg': 'El archivo debe ser PDF'})
+
+    poliza_id = flask_request.form.get('poliza_id')
+    poliza_num = None
+    
+    if poliza_id and poliza_id != "New":
+        try:
+            poliza_id = int(poliza_id)
+            poliza = Poliza.query.get(poliza_id)
+            if poliza:
+                poliza_num = poliza.poliza
+        except (ValueError, TypeError):
+            pass
+
+    try:
+        pdf_path = save_pdf_file(file, poliza_num)
+        
+        text = extract_text_from_pdf_file(file)
+        extracted_data = call_ollama_model(text, JSON_SCHEMA)
+        
+        if poliza_id and poliza_id != "New":
+            poliza = Poliza.query.get(poliza_id)
+            if poliza:
+                old_pdf_path = poliza.pdf_path
+                if old_pdf_path:
+                    old_full_path = os.path.join(
+                        current_app.root_path, 'static', old_pdf_path
+                    )
+                    if os.path.exists(old_full_path):
+                        try:
+                            os.remove(old_full_path)
+                        except Exception as e:
+                            print(f"Error al eliminar PDF anterior: {e}")
+                
+                poliza.pdf_path = pdf_path
+                db.session.commit()
+        
+        return jsonify({'error': False, 'data': extracted_data, 'pdf_path': pdf_path})
+    except Exception as e:
+        print(f"Error procesando PDF: {e}")
+        return jsonify({'error': True, 'msg': f'Error al procesar PDF: {str(e)}'})
+
+
+@polizas_route.route('/download_pdf/<int:poliza_id>', methods=['GET'])
+@login_required
+def download_pdf(poliza_id):
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+    
+    if not poliza.pdf_path:
+        return jsonify({'error': True, 'msg': 'No hay PDF asociado a esta póliza'})
+    
+    pdf_path = os.path.join(current_app.root_path, 'static', poliza.pdf_path)
+    
+    if not os.path.exists(pdf_path):
+        return jsonify({'error': True, 'msg': 'El archivo PDF no existe'})
+    
+    return send_from_directory(
+        os.path.join(current_app.root_path, 'static'),
+        poliza.pdf_path,
+        as_attachment=True,
+        download_name=f"poliza_{poliza.poliza}.pdf"
+    )

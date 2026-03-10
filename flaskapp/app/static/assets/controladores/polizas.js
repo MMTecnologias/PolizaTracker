@@ -11,6 +11,337 @@ $(function () {
     dataType: 'json',
   };
 
+  // Drag & Drop y auto-upload para PDF
+  const dropZone = $('#pdf_drop_zone');
+  const fileInput = $('#pdf_file');
+  const uploadContent = dropZone.find('.upload-content');
+  const uploadLoading = dropZone.find('.upload-loading');
+
+  // Click para abrir selector de archivos
+  dropZone.on('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInput.trigger('click');
+  });
+
+  // Prevenir que el click del input se propague
+  fileInput.on('click', function (e) {
+    e.stopPropagation();
+  });
+
+  // Prevenir comportamiento por defecto en drag
+  dropZone.on('dragover dragenter', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.addClass('drag-over');
+  });
+
+  dropZone.on('dragleave dragend', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.removeClass('drag-over');
+  });
+
+  // Manejar drop
+  dropZone.on('drop', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.removeClass('drag-over');
+
+    const files = e.originalEvent.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput[0].files = files;
+      uploadPDF();
+    }
+  });
+
+  // Auto-upload al seleccionar archivo
+  fileInput.on('change', function (e) {
+    e.stopPropagation();
+    if (this.files.length > 0) {
+      uploadPDF();
+    }
+  });
+
+  function uploadPDF() {
+    const file = fileInput[0].files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Solo se permiten archivos PDF', 'warning', 'Archivo inválido');
+      fileInput.val('');
+      return;
+    }
+
+    uploadContent.hide();
+    uploadLoading.show();
+
+    Swal.fire({
+      title: 'Procesando PDF...',
+      text: 'Extrayendo información con IA',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    const formData = new FormData();
+    formData.append('pdf_file', file);
+    
+    const polizaIdInput = document.getElementById('poliza_id');
+    if (polizaIdInput) {
+      const polizaId = polizaIdInput.value;
+      if (polizaId && polizaId !== 'New') {
+        formData.append('poliza_id', polizaId);
+      }
+    }
+
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/upload_pdf',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (response) {
+        Swal.close();
+        uploadLoading.hide();
+        uploadContent.show();
+        fileInput.val('');
+
+        console.log('Respuesta completa:', response);
+
+        if (response.error) {
+          alert(response.msg, 'error', 'Error');
+        } else {
+          if (response.data) {
+            fillFormWithPdfData(response.data);
+            alert('Datos extraídos correctamente', 'success', 'Éxito');
+          } else {
+            console.error('No se encontró poliza_data en la respuesta');
+            alert(
+              'Error: datos no encontrados en la respuesta',
+              'error',
+              'Error',
+            );
+          }
+        }
+      },
+      error: function () {
+        Swal.close();
+        uploadLoading.hide();
+        uploadContent.show();
+        fileInput.val('');
+        alert('Error al procesar el PDF', 'error', 'Error');
+      },
+    });
+  }
+
+  $('#btn_upload_pdf').on('click', function () {
+    const fileInput = $('#pdf_file')[0];
+    if (!fileInput.files.length) {
+      alert('Selecciona un archivo PDF', 'warning', 'Sin archivo');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('pdf_file', fileInput.files[0]);
+    
+    const polizaIdInput = document.getElementById('poliza_id');
+    if (polizaIdInput) {
+      const polizaId = polizaIdInput.value;
+      if (polizaId && polizaId !== 'New') {
+        formData.append('poliza_id', polizaId);
+      }
+    }
+
+    Swal.fire({
+      title: 'Procesando PDF...',
+      text: 'Extrayendo información con IA',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/upload_pdf',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (response) {
+        Swal.close();
+        if (response.error) {
+          alert(response.msg, 'error', 'Error');
+        } else {
+          console.log(response);
+          fillFormWithPdfData(response.data);
+          alert('Datos extraídos correctamente', 'success', 'Éxito');
+        }
+      },
+      error: function () {
+        Swal.close();
+        alert('Error al procesar el PDF', 'error', 'Error');
+      },
+    });
+  });
+
+  function fillFormWithPdfData(data) {
+    if (!data) {
+      console.error('No se recibieron datos para llenar el formulario');
+      return;
+    }
+
+    console.log('Datos extraídos del PDF:', data);
+    console.log('Llenando formulario...');
+
+    // Póliza
+    if (data.numero_de_poliza) {
+      console.log('Poliza:', data.numero_de_poliza);
+      $('#Poliza').val(data.numero_de_poliza);
+      $('#serie').val(data.numero_de_poliza);
+    }
+
+    // Cliente
+    if (data.nombre_cliente) {
+      console.log('Cliente:', data.nombre_cliente);
+      $('#buscar-cliente').val(data.nombre_cliente);
+    }
+
+    // Primas
+    if (data.prima_neta) {
+      const primaNeta = parseFloat(data.prima_neta.replace(/[^0-9.-]/g, ''));
+      console.log('Prima Neta:', primaNeta);
+      if (!isNaN(primaNeta)) $('#prima_neta').val(primaNeta.toFixed(2));
+    }
+    if (data.prima_total) {
+      const primaTotal = parseFloat(data.prima_total.replace(/[^0-9.-]/g, ''));
+      console.log('Prima Total:', primaTotal);
+      if (!isNaN(primaTotal)) $('#prima_total').val(primaTotal.toFixed(2));
+    }
+
+    // Moneda
+    if (data.moneda) {
+      const monedaMap = {
+        MXN: 'MXN',
+        PESOS: 'MXN',
+        NACIONAL: 'MXN',
+        PESO: 'MXN',
+        USD: 'USD',
+        DOLARES: 'USD',
+        DÓLARES: 'USD',
+        DOLAR: 'USD',
+        UDIS: 'Udis',
+        UDI: 'Udis',
+      };
+      const monedaNorm = data.moneda.toUpperCase();
+      const monedaVal = monedaMap[monedaNorm] || 'MXN';
+      console.log('Moneda:', monedaVal);
+      $('#Moneda').val(monedaVal);
+    }
+
+    // Fechas
+    if (data.desde) {
+      const fechaInicio = formatDateFromPdf(data.desde);
+      console.log('Fecha Inicio:', fechaInicio);
+      if (fechaInicio) $('#VigenciaI').val(fechaInicio);
+    }
+    if (data.hasta) {
+      const fechaFin = formatDateFromPdf(data.hasta);
+      console.log('Fecha Fin:', fechaFin);
+      if (fechaFin) $('#VigenciaF').val(fechaFin);
+    }
+
+    // Endoso
+    if (data.endoso) {
+      console.log('Endoso:', data.endoso);
+      $('#renovacion').val(data.endoso);
+    }
+
+    // Descripción/Notas
+    if (data.descripcion) {
+      console.log('Descripción:', data.descripcion);
+      const notasActuales = $('#notas').val();
+      $('#notas').val(
+        notasActuales
+          ? notasActuales + '\n' + data.descripcion
+          : data.descripcion,
+      );
+    }
+
+    // Forma de pago - buscar en el select
+    if (data.forma_de_pago) {
+      console.log('Forma de pago:', data.forma_de_pago);
+      const formaPagoNorm = data.forma_de_pago.toUpperCase();
+
+      // Buscar opción que coincida
+      $('#Pago option').each(function () {
+        const optionText = $(this).text().toUpperCase();
+        if (optionText.includes('CONTADO') || optionText.includes('ÚNICO')) {
+          if (
+            formaPagoNorm.includes('CONTADO') ||
+            formaPagoNorm.includes('ÚNICO')
+          ) {
+            $('#Pago').val($(this).val());
+            return false;
+          }
+        }
+      });
+    }
+
+    console.log('Formulario llenado completamente');
+  }
+
+  function formatDateFromPdf(dateStr) {
+    if (!dateStr) return '';
+
+    // Mapa de meses en español
+    const meses = {
+      ENE: '01',
+      FEB: '02',
+      MAR: '03',
+      ABR: '04',
+      MAY: '05',
+      JUN: '06',
+      JUL: '07',
+      AGO: '08',
+      SEP: '09',
+      OCT: '10',
+      NOV: '11',
+      DIC: '12',
+    };
+
+    // Formato: 01/NOV/2025
+    const monthNameMatch = dateStr.match(/(\d{2})\/(\w{3})\/(\d{4})/);
+    if (monthNameMatch) {
+      const dia = monthNameMatch[1];
+      const mes = meses[monthNameMatch[2].toUpperCase()] || '01';
+      const anio = monthNameMatch[3];
+      return `${anio}-${mes}-${dia}`;
+    }
+
+    const patterns = [
+      {
+        regex: /(\d{2})\/(\d{2})\/(\d{4})/,
+        format: (m) => `${m[3]}-${m[2]}-${m[1]}`,
+      },
+      {
+        regex: /(\d{4})-(\d{2})-(\d{2})/,
+        format: (m) => `${m[1]}-${m[2]}-${m[3]}`,
+      },
+      {
+        regex: /(\d{2})-(\d{2})-(\d{4})/,
+        format: (m) => `${m[3]}-${m[2]}-${m[1]}`,
+      },
+    ];
+
+    for (let { regex, format } of patterns) {
+      const match = dateStr.match(regex);
+      if (match) return format(match);
+    }
+
+    return '';
+  }
+
   function getBackColor(status) {
     if (!status) return '';
     switch (status) {

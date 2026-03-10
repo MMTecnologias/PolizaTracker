@@ -118,6 +118,7 @@ class Poliza(db.Model):
     # ALTER TABLE `ggsystem`.`polizas`
     # ADD COLUMN `Poliza_renovada` ENUM('Si', 'No') NOT NULL DEFAULT 'No' AFTER `conducta_pago`;
     Poliza_renovada = Column(Enum('Si', 'No'), nullable=False, default='No')
+    pdf_path = Column(String(255), nullable=True)
 
 
 class Endoso(db.Model):
