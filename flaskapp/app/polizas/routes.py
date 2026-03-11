@@ -4,6 +4,7 @@ import json
 import re
 import os
 import uuid
+import requests
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory
 from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
@@ -325,6 +326,12 @@ def create():
     # if poliza_id == "New":
     arg_values.update(check_new_form())
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
+    
+    # Vincular PDF si fue subido
+    pdf_path = flask_request.form.get('pdf_path')
+    if pdf_path:
+        arg_values["pdf_path"] = pdf_path
+    
     # Create a new client
 
     # check if there is a poliza with the same number and not canceled
@@ -1566,31 +1573,234 @@ JSON_SCHEMA = {
 }
 
 
-def extract_text_from_pdf(pdf_path: str) -> str:
-    text = ""
-    try:
-        with pdfplumber.open(pdf_path) as pdf:
-            for page in pdf.pages:
-                text += page.extract_text() + "\n"
-    except Exception as e:
-        print(f"Error al leer el PDF '{pdf_path}': {e}")
-        raise
-    return text
+# def extract_text_from_pdf(pdf_path: str) -> str:
+#     text = ""
+#     try:
+#         with pdfplumber.open(pdf_path) as pdf:
+#             if not pdf.pages:
+#                 raise ValueError("El PDF no contiene páginas")
+
+#             for page in pdf.pages:
+#                 page_text = page.extract_text()
+#                 if page_text:
+#                     text += page_text + "\n"
+
+#         if not text.strip():
+#             raise ValueError("No se pudo extraer texto del PDF")
+
+#         return text
+#     except Exception as e:
+#         print(f"Error al leer el PDF '{pdf_path}': {e}")
+#         if 'No /Root object' in str(e):
+#             raise Exception("El archivo PDF está corrupto o no es un PDF válido")
+#         raise
 
 
-def extract_text_from_pdf_file(file) -> str:
-    text = ""
+def extract_text_from_pdf_content(file_content: bytes) -> str:
     try:
-        with pdfplumber.open(io.BytesIO(file.read())) as pdf:
+        # Validar que el archivo comience con el header de PDF
+        if not file_content.startswith(b'%PDF'):
+            raise ValueError("El archivo no es un PDF válido")
+        
+        text = ""
+        with pdfplumber.open(io.BytesIO(file_content)) as pdf:
+            if not pdf.pages:
+                raise ValueError("El PDF no contiene páginas")
+
             for page in pdf.pages[:3]:  # Solo primeras 3 páginas
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text + "\n"
+
+        if not text.strip():
+            raise ValueError("No se pudo extraer texto del PDF")
+
+        # Limitar a 4000 caracteres
+        return text[:4000] if len(text) > 4000 else text
     except Exception as e:
-        print(f"Error al leer el PDF: {e}")
+        error_msg = str(e)
+        print(f"Error al leer el PDF: {error_msg}")
+        
+        if 'No /Root object' in error_msg or 'PdfReadError' in error_msg:
+            raise Exception("El archivo PDF está corrupto o no es válido")
+        elif 'password' in error_msg.lower() or 'encrypted' in error_msg.lower():
+            raise Exception("El PDF está protegido con contraseña")
+        elif "no es un PDF válido" in error_msg:
+            raise Exception(error_msg)
         raise
-    # Limitar a 4000 caracteres
-    return text[:4000] if len(text) > 4000 else text
+
+
+def find_or_create_cliente(nombre_completo: str, rfc: str = None):
+    """Busca o crea un cliente. Retorna el ID."""
+    if not nombre_completo or not nombre_completo.strip():
+        return None
+    
+    # Buscar por RFC si está disponible
+    if rfc and rfc.strip():
+        cliente = Cliente.query.filter_by(rfc=rfc.strip().upper()).first()
+        if cliente:
+            print(f"Cliente encontrado por RFC: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
+            return cliente.id
+    
+    # Buscar por nombre similar
+    clientes = Cliente.query.all()
+    for cliente in clientes:
+        nombre_bd = f"{cliente.nombre} {cliente.apellido}".lower().strip()
+        nombre_buscar = nombre_completo.lower().strip()
+        
+        from difflib import SequenceMatcher
+        ratio = SequenceMatcher(None, nombre_buscar, nombre_bd).ratio() * 100
+        
+        if ratio >= 80:
+            print(f"Cliente encontrado por nombre: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
+            return cliente.id
+    
+    # Crear nuevo cliente
+    partes = nombre_completo.strip().split(maxsplit=1)
+    nombre = partes[0][:50]
+    apellido = partes[1][:50] if len(partes) > 1 else ""
+    
+    # Obtener o crear grupo "General"
+    grupo = Grupo.query.filter_by(grupo="General").first()
+    if not grupo:
+        grupo = Grupo(grupo="General")
+        db.session.add(grupo)
+        db.session.flush()
+    
+    nuevo = Cliente(
+        nombre=nombre,
+        apellido=apellido,
+        grupo_id=grupo.id,
+        rfc=rfc.strip().upper()[:13] if rfc and rfc.strip() else "XAXX010101000",
+        status='Activo'
+    )
+    db.session.add(nuevo)
+    db.session.flush()
+    print(f"Nuevo cliente creado: {nombre} {apellido} (ID: {nuevo.id})")
+    return nuevo.id
+
+
+def find_or_create_aseguradora(nombre: str):
+    """Busca o crea una aseguradora. Retorna el ID."""
+    if not nombre or not nombre.strip():
+        return None
+    
+    aseguradoras = Aseguradora.query.all()
+    aseguradora_id = find_best_match(nombre, aseguradoras)
+    
+    if not aseguradora_id:
+        nueva = Aseguradora(aseguradora=nombre.strip()[:40])
+        db.session.add(nueva)
+        db.session.flush()
+        aseguradora_id = nueva.id
+        print(f"Nueva aseguradora creada: {nombre} (ID: {aseguradora_id})")
+    
+    return aseguradora_id
+
+
+def find_or_create_agente(nombre: str):
+    """Busca o crea un agente. Retorna el ID."""
+    if not nombre or not nombre.strip():
+        return None
+    
+    agentes = Agente.query.all()
+    agente_id = find_best_match(nombre, agentes)
+    
+    if not agente_id:
+        nuevo = Agente(nombre=nombre.strip()[:50])
+        db.session.add(nuevo)
+        db.session.flush()
+        agente_id = nuevo.id
+        print(f"Nuevo agente creado: {nombre} (ID: {agente_id})")
+    
+    return agente_id
+
+
+def find_or_create_vendedor(nombre: str):
+    """Busca o crea un vendedor. Retorna el ID."""
+    if not nombre or not nombre.strip():
+        return None
+    
+    vendedores = Vendedor.query.all()
+    vendedor_id = find_best_match(nombre, vendedores)
+    
+    if not vendedor_id:
+        nuevo = Vendedor(nombre=nombre.strip()[:50])
+        db.session.add(nuevo)
+        db.session.flush()
+        vendedor_id = nuevo.id
+        print(f"Nuevo vendedor creado: {nombre} (ID: {vendedor_id})")
+    
+    return vendedor_id
+
+
+def find_or_create_ramo(nombre: str):
+    """Busca o crea un ramo. Retorna el ID."""
+    if not nombre or not nombre.strip():
+        return None
+    
+    ramos = Ramo.query.all()
+    ramo_id = find_best_match(nombre, ramos, threshold=70, attr_name='ramo')
+    
+    if not ramo_id:
+        nuevo = Ramo(ramo=nombre.strip()[:30])
+        db.session.add(nuevo)
+        db.session.flush()
+        ramo_id = nuevo.id
+        print(f"Nuevo ramo creado: {nombre} (ID: {ramo_id})")
+    
+    return ramo_id
+
+
+def find_or_create_subramo(nombre: str):
+    """Busca o crea un subramo. Retorna el ID."""
+    if not nombre or not nombre.strip():
+        return None
+    
+    subramos = Subramo.query.all()
+    subramo_id = find_best_match(nombre, subramos, threshold=70, attr_name='subramo')
+    
+    if not subramo_id:
+        nuevo = Subramo(subramo=nombre.strip()[:30])
+        db.session.add(nuevo)
+        db.session.flush()
+        subramo_id = nuevo.id
+        print(f"Nuevo subramo creado: {nombre} (ID: {subramo_id})")
+    
+    return subramo_id
+
+
+def find_best_match(extracted_name: str, db_records, threshold=70, attr_name=None):
+    """
+    Encuentra el mejor match entre el nombre extraído y los registros de la BD.
+    Retorna el ID del registro o None si no hay match suficientemente bueno.
+    """
+    if not extracted_name or not db_records:
+        return None
+    
+    from difflib import SequenceMatcher
+    
+    extracted_clean = extracted_name.lower().strip()
+    best_match = None
+    best_ratio = 0
+    
+    for record in db_records:
+        if attr_name:
+            record_name = getattr(record, attr_name, None)
+        else:
+            record_name = getattr(record, 'nombre', None) or getattr(record, 'aseguradora', None)
+        
+        if not record_name:
+            continue
+            
+        record_clean = record_name.lower().strip()
+        ratio = SequenceMatcher(None, extracted_clean, record_clean).ratio() * 100
+        
+        if ratio > best_ratio and ratio >= threshold:
+            best_ratio = ratio
+            best_match = record.id
+    
+    return best_match
 
 
 def call_ollama_model(text_content: str, schema: dict) -> dict:
@@ -1600,7 +1810,11 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
 {{
   "numero_de_poliza": "número de póliza",
   "nombre_cliente": "nombre del cliente",
-  "aseguradora": "aseguradora",
+  "aseguradora": "nombre de la aseguradora",
+  "agente": "nombre del agente",
+  "vendedor": "nombre del vendedor",
+  "ramo": "tipo de seguro o ramo (ej: Autos, Vida, Gastos Médicos)",
+  "subramo": "subtipo o subramo del seguro",
   "prima_neta": "monto prima neta",
   "prima_total": "monto prima total",
   "moneda": "MXN/USD/Udis",
@@ -1635,10 +1849,36 @@ JSON:"""
         if "response" in data:
             try:
                 extracted_json = json.loads(data["response"])
+                
+                # Mapear o crear aseguradora, agente, vendedor, ramo y subramo
+                aseguradora_id = find_or_create_aseguradora(extracted_json.get("aseguradora"))
+                agente_id = find_or_create_agente(extracted_json.get("agente"))
+                vendedor_id = find_or_create_vendedor(extracted_json.get("vendedor"))
+                ramo_id = find_or_create_ramo(extracted_json.get("ramo"))
+                subramo_id = find_or_create_subramo(extracted_json.get("subramo"))
+                
+                # Mapear o crear cliente
+                nombre_cliente = extracted_json.get("nombre_cliente") or extracted_json.get("cliente")
+                rfc_cliente = extracted_json.get("rfc")
+                cliente_id = find_or_create_cliente(nombre_cliente, rfc_cliente)
+                
+                # Commit de los nuevos registros
+                db.session.commit()
+                
                 normalized = {
                     "numero_de_poliza": extracted_json.get("numero_de_poliza") or extracted_json.get("numero_poliza") or extracted_json.get("poliza"),
-                    "nombre_cliente": extracted_json.get("nombre_cliente") or extracted_json.get("cliente"),
+                    "nombre_cliente": nombre_cliente,
+                    "cliente_id": cliente_id,
                     "aseguradora": extracted_json.get("aseguradora"),
+                    "aseguradora_id": aseguradora_id,
+                    "agente": extracted_json.get("agente"),
+                    "agente_id": agente_id,
+                    "vendedor": extracted_json.get("vendedor"),
+                    "vendedor_id": vendedor_id,
+                    "ramo": extracted_json.get("ramo"),
+                    "ramo_id": ramo_id,
+                    "subramo": extracted_json.get("subramo"),
+                    "subramo_id": subramo_id,
                     "prima_neta": extracted_json.get("prima_neta"),
                     "prima_total": extracted_json.get("prima_total"),
                     "moneda": extracted_json.get("moneda"),
@@ -1647,7 +1887,7 @@ JSON:"""
                     "forma_de_pago": extracted_json.get("forma_de_pago"),
                     "descripcion": extracted_json.get("descripcion"),
                     "endoso": extracted_json.get("endoso"),
-                    "rfc": extracted_json.get("rfc")
+                    "rfc": rfc_cliente
                 }
                 print(f"Datos extraídos: {normalized}")
                 return normalized
@@ -1676,38 +1916,40 @@ def normalize_filename(filename: str, poliza_num: str = None) -> str:
     base_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '', base_name)
     base_name = base_name.replace(' ', '_')
     base_name = base_name.lower()
-    
+
     if poliza_num:
         safe_poliza = re.sub(r'[^a-zA-Z0-9_\-]', '', str(poliza_num))
-        name_without_ext = base_name.rsplit('.', 1)[0] if '.' in base_name else base_name
+        name_without_ext = base_name.rsplit(
+            '.', 1)[0] if '.' in base_name else base_name
         ext = base_name.rsplit('.', 1)[1] if '.' in base_name else 'pdf'
         base_name = f"{name_without_ext}_{safe_poliza}"
-    
+
     unique_id = uuid.uuid4().hex[:8]
-    name_without_ext = base_name.rsplit('.', 1)[0] if '.' in base_name else base_name
+    name_without_ext = base_name.rsplit(
+        '.', 1)[0] if '.' in base_name else base_name
     ext = base_name.rsplit('.', 1)[1] if '.' in base_name else 'pdf'
-    
+
     return f"{name_without_ext}_{unique_id}.{ext}"
 
 
-def save_pdf_file(file, poliza_num: str = None) -> str:
+def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None) -> str:
     """
-    Guarda el archivo PDF en el directorio de static/polizas_pdf.
+    Guarda el contenido del PDF en el directorio de static/polizas_pdf.
     Retorna la ruta relativa del archivo guardado.
     """
     upload_folder = os.path.join(
         current_app.root_path, 'static', 'polizas_pdf'
     )
-    
+
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
-    
-    normalized_filename = normalize_filename(file.filename, poliza_num)
-    
+
+    normalized_filename = normalize_filename(filename, poliza_num)
     file_path = os.path.join(upload_folder, normalized_filename)
-    file.seek(0)
-    file.save(file_path)
     
+    with open(file_path, 'wb') as f:
+        f.write(file_content)
+
     return f"polizas_pdf/{normalized_filename}"
 
 
@@ -1718,15 +1960,27 @@ def upload_pdf():
         return jsonify({'error': True, 'msg': 'No se proporcionó archivo PDF'})
 
     file = flask_request.files['pdf_file']
-    if file.filename == '':
+    if not file.filename or file.filename == '':
         return jsonify({'error': True, 'msg': 'No se seleccionó archivo'})
 
-    if not file.filename.endswith('.pdf'):
+    if not file.filename.lower().endswith('.pdf'):
         return jsonify({'error': True, 'msg': 'El archivo debe ser PDF'})
+    
+    # Leer el contenido del archivo UNA SOLA VEZ
+    file_content = file.read()
+    
+    # Validar tamaño del archivo
+    file_size = len(file_content)
+    
+    if file_size > 10 * 1024 * 1024:  # 10MB
+        return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
+    
+    if file_size == 0:
+        return jsonify({'error': True, 'msg': 'El archivo está vacío.'})
 
     poliza_id = flask_request.form.get('poliza_id')
     poliza_num = None
-    
+
     if poliza_id and poliza_id != "New":
         try:
             poliza_id = int(poliza_id)
@@ -1737,11 +1991,15 @@ def upload_pdf():
             pass
 
     try:
-        pdf_path = save_pdf_file(file, poliza_num)
+        # Extraer texto primero (valida el PDF)
+        text = extract_text_from_pdf_content(file_content)
         
-        text = extract_text_from_pdf_file(file)
+        # Si la extracción fue exitosa, guardar el archivo
+        pdf_path = save_pdf_content(file_content, file.filename, poliza_num)
+        
+        # Procesar con Ollama
         extracted_data = call_ollama_model(text, JSON_SCHEMA)
-        
+
         if poliza_id and poliza_id != "New":
             poliza = Poliza.query.get(poliza_id)
             if poliza:
@@ -1755,14 +2013,57 @@ def upload_pdf():
                             os.remove(old_full_path)
                         except Exception as e:
                             print(f"Error al eliminar PDF anterior: {e}")
-                
+
                 poliza.pdf_path = pdf_path
                 db.session.commit()
-        
+
         return jsonify({'error': False, 'data': extracted_data, 'pdf_path': pdf_path})
     except Exception as e:
         print(f"Error procesando PDF: {e}")
-        return jsonify({'error': True, 'msg': f'Error al procesar PDF: {str(e)}'})
+        error_msg = str(e)
+        
+        # Si hay error, eliminar el PDF guardado
+        if 'pdf_path' in locals():
+            try:
+                full_path = os.path.join(current_app.root_path, 'static', pdf_path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    print(f"PDF eliminado por error: {pdf_path}")
+            except Exception as del_err:
+                print(f"Error al eliminar PDF: {del_err}")
+        
+        if 'corrupto' in error_msg or 'no es válido' in error_msg:
+            return jsonify({'error': True, 'msg': error_msg})
+        elif 'contraseña' in error_msg or 'password' in error_msg.lower():
+            return jsonify({'error': True, 'msg': 'El PDF está protegido con contraseña. Use un PDF sin protección.'})
+        elif 'No /Root object' in error_msg:
+            return jsonify({'error': True, 'msg': 'El archivo PDF está corrupto o no es válido. Intente con otro archivo.'})
+        elif 'Ollama' in error_msg:
+            return jsonify({'error': True, 'msg': error_msg})
+        else:
+            return jsonify({'error': True, 'msg': f'Error al procesar PDF: {error_msg}'})
+
+
+@polizas_route.route('/delete_temp_pdf', methods=['POST'])
+@login_required
+def delete_temp_pdf():
+    """Elimina un PDF temporal si la póliza no se guardó"""
+    pdf_path = flask_request.json.get('pdf_path')
+    
+    if not pdf_path:
+        return jsonify({'error': True, 'msg': 'No se proporcionó ruta del PDF'})
+    
+    try:
+        full_path = os.path.join(current_app.root_path, 'static', pdf_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+            print(f"PDF temporal eliminado: {pdf_path}")
+            return jsonify({'error': False, 'msg': 'PDF eliminado'})
+        else:
+            return jsonify({'error': False, 'msg': 'PDF no encontrado'})
+    except Exception as e:
+        print(f"Error al eliminar PDF: {e}")
+        return jsonify({'error': True, 'msg': f'Error al eliminar PDF: {str(e)}'})
 
 
 @polizas_route.route('/download_pdf/<int:poliza_id>', methods=['GET'])
@@ -1771,15 +2072,15 @@ def download_pdf(poliza_id):
     poliza = Poliza.query.get(poliza_id)
     if not poliza:
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
-    
+
     if not poliza.pdf_path:
         return jsonify({'error': True, 'msg': 'No hay PDF asociado a esta póliza'})
-    
+
     pdf_path = os.path.join(current_app.root_path, 'static', poliza.pdf_path)
-    
+
     if not os.path.exists(pdf_path):
         return jsonify({'error': True, 'msg': 'El archivo PDF no existe'})
-    
+
     return send_from_directory(
         os.path.join(current_app.root_path, 'static'),
         poliza.pdf_path,
