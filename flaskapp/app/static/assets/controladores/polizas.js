@@ -288,7 +288,161 @@ $(function () {
       });
     }
 
-    console.log('Formulario llenado completamente');
+    // Aseguradora - esperar a que estén cargados los selects y usar ID
+    function fillSelectWithData() {
+      const ramoSelect = $('#ramo');
+      const subramoSelect = $('#subramo');
+      const aseguradoraSelect = $('#aseguradora');
+      const vendedorSelect = $('#vendedor');
+      const agenteSelect = $('#agente');
+
+      // Verificar si los selects están vacíos (no cargados)
+      const selectsEmpty = ramoSelect.children('option').length <= 1 && 
+                          aseguradoraSelect.children('option').length <= 1;
+
+      if (selectsEmpty) {
+        console.log('Selects vacíos, cargando datos del formulario...');
+        getFormData().then(formData => {
+          if (formData) {
+            // Poblar selects si están vacíos
+            if (ramoSelect.children('option').length <= 1) {
+              for (const ramo of formData.Ramo) {
+                $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+              }
+              $('#ramo').append(`<option value="New">Nuevo Ramo</option>`);
+            }
+            if (subramoSelect.children('option').length <= 1) {
+              for (const subramo of formData.Subramo) {
+                $('#subramo').append(`<option value='${subramo.id}'>${subramo.subramo}</option>`);
+              }
+              $('#subramo').append(`<option value="New">Nuevo Subramo</option>`);
+            }
+            if (aseguradoraSelect.children('option').length <= 1) {
+              for (const aseguradora of formData.Aseguradora) {
+                $('#aseguradora').append(`<option value='${aseguradora.id}'>${aseguradora.aseguradora}</option>`);
+              }
+              $('#aseguradora').append(`<option value="New">Nueva Aseguradora</option>`);
+            }
+            if (vendedorSelect.children('option').length <= 1) {
+              for (const vendedor of formData.Vendedor) {
+                $('#vendedor').append(`<option value='${vendedor.id}'>${vendedor.nombre}</option>`);
+              }
+              $('#vendedor').append(`<option value="New">Nuevo Vendedor</option>`);
+            }
+            if (agenteSelect.children('option').length <= 1) {
+              for (const agente of formData.Agente) {
+                $('#agente').append(`<option value='${agente.id}'>${agente.nombre}</option>`);
+              }
+              $('#agente').append(`<option value="New">Nuevo Agente</option>`);
+            }
+            
+            // Poblar select de forma de pago también si está vacío
+            const pagoSelect = $('#Pago');
+            if (pagoSelect.children('option').length <= 1) {
+              for (const pago of formData.TipoPago) {
+                $('#Pago').append(`<option value='${pago.id}'>${pago.tipo_pago}</option>`);
+              }
+            }
+            
+            // Ahora llenar los valores
+            setValuesInSelects(data);
+          }
+        }).catch(err => {
+          console.error('Error al cargar datos del formulario:', err);
+        });
+      } else {
+        // Los selects ya están poblados, llenar valores directamente
+        setValuesInSelects(data);
+      }
+    }
+
+    // Función para establecer valores en los selects
+    function setValuesInSelects(data) {
+      // Aseguradora - usar ID si está disponible
+      if (data.aseguradora_id) {
+        console.log('Aseguradora ID:', data.aseguradora_id);
+        const aseguradoraId = String(data.aseguradora_id);
+        const aseguradoraSelect = $('#aseguradora');
+        const optionExists = aseguradoraSelect.find(`option[value="${aseguradoraId}"]`).length > 0;
+        if (optionExists) {
+          aseguradoraSelect.val(aseguradoraId);
+        } else {
+          console.log('Aseguradora no encontrada en select, creando nueva:', data.aseguradora);
+          $('#nuevo_aseguradora').val(data.aseguradora);
+          aseguradoraSelect.val('New');
+          $('#nuevo_aseguradora_div').show();
+        }
+      }
+
+      // Ramo - usar ID si está disponible
+      if (data.ramo_id) {
+        console.log('Ramo ID:', data.ramo_id);
+        const ramoId = String(data.ramo_id);
+        const ramoSelect = $('#ramo');
+        const optionExists = ramoSelect.find(`option[value="${ramoId}"]`).length > 0;
+        if (optionExists) {
+          ramoSelect.val(ramoId);
+        } else {
+          console.log('Ramo no encontrado en select, creando nuevo:', data.ramo);
+          $('#nuevo_ramo').val(data.ramo);
+          ramoSelect.val('New');
+          $('#nuevo_ramo_div').show();
+        }
+      }
+
+      // Subramo - usar ID si está disponible
+      if (data.subramo_id) {
+        console.log('Subramo ID:', data.subramo_id);
+        const subramoId = String(data.subramo_id);
+        const subramoSelect = $('#subramo');
+        const optionExists = subramoSelect.find(`option[value="${subramoId}"]`).length > 0;
+        if (optionExists) {
+          subramoSelect.val(subramoId);
+        } else {
+          console.log('Subramo no encontrado en select, creando nuevo:', data.subramo);
+          $('#nuevo_subramo').val(data.subramo);
+          subramoSelect.val('New');
+          $('#nuevo_subramo_div').show();
+        }
+      }
+
+      // Vendedor - usar ID si está disponible
+      if (data.vendedor_id) {
+        console.log('Vendedor ID:', data.vendedor_id);
+        const vendedorId = String(data.vendedor_id);
+        const vendedorSelect = $('#vendedor');
+        const optionExists = vendedorSelect.find(`option[value="${vendedorId}"]`).length > 0;
+        if (optionExists) {
+          vendedorSelect.val(vendedorId);
+        } else {
+          console.log('Vendedor no encontrado en select, creando nuevo:', data.vendedor);
+          $('#nuevo_vendedor').val(data.vendedor);
+          vendedorSelect.val('New');
+          $('#nuevo_vendedor_div').show();
+        }
+      }
+
+      // Agente - usar ID si está disponible
+      if (data.agente_id) {
+        console.log('Agente ID:', data.agente_id);
+        const agenteId = String(data.agente_id);
+        const agenteSelect = $('#agente');
+        const optionExists = agenteSelect.find(`option[value="${agenteId}"]`).length > 0;
+        if (optionExists) {
+          agenteSelect.val(agenteId);
+        } else {
+          console.log('Agente no encontrado en select, creando nuevo:', data.agente);
+          $('#nuevo_agente').val(data.agente);
+          agenteSelect.val('New');
+          $('#nuevo_agente_div').show();
+        }
+      }
+
+      console.log('Formulario llenado completamente');
+    }
+
+    // Iniciar el proceso de llenado
+    fillSelectWithData();
   }
 
   function formatDateFromPdf(dateStr) {

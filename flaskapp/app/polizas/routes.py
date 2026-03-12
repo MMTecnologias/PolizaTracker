@@ -326,12 +326,12 @@ def create():
     # if poliza_id == "New":
     arg_values.update(check_new_form())
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
-    
+
     # Vincular PDF si fue subido
     pdf_path = flask_request.form.get('pdf_path')
     if pdf_path:
         arg_values["pdf_path"] = pdf_path
-    
+
     # Create a new client
 
     # check if there is a poliza with the same number and not canceled
@@ -1555,19 +1555,18 @@ def get_all_receipts():
 JSON_SCHEMA = {
     "descripcion": "string",
     "desde": "string",
-    "fecha_de_expedicion": "string",
+    "numero_de_poliza": "string",
     "forma_de_pago": "string",
     "hasta": "string",
-    "modelo": "integer",
-    "placas": "string",
-    "moneda": "string",
-    "nombre_cliente": "string",
+    "nombre_cliente": "integer",
     "aseguradora": "string",
-    "forma_de_pago": "string",
-    "numero_de_poliza": "string",
-    "pague_antes_de": "string",
+    "agente": "string",
+    "vendedor": "string",
+    "ramo": "string",
+    "subramo": "string",
     "prima_neta": "string",
     "prima_total": "string",
+    "moneda": "string",
     "rfc": "string",
     "endoso": "string"
 }
@@ -1601,7 +1600,7 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
         # Validar que el archivo comience con el header de PDF
         if not file_content.startswith(b'%PDF'):
             raise ValueError("El archivo no es un PDF válido")
-        
+
         text = ""
         with pdfplumber.open(io.BytesIO(file_content)) as pdf:
             if not pdf.pages:
@@ -1616,11 +1615,11 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
             raise ValueError("No se pudo extraer texto del PDF")
 
         # Limitar a 4000 caracteres
-        return text[:4000] if len(text) > 4000 else text
+        return text[:6000] if len(text) > 6000 else text
     except Exception as e:
         error_msg = str(e)
         print(f"Error al leer el PDF: {error_msg}")
-        
+
         if 'No /Root object' in error_msg or 'PdfReadError' in error_msg:
             raise Exception("El archivo PDF está corrupto o no es válido")
         elif 'password' in error_msg.lower() or 'encrypted' in error_msg.lower():
@@ -1634,44 +1633,47 @@ def find_or_create_cliente(nombre_completo: str, rfc: str = None):
     """Busca o crea un cliente. Retorna el ID."""
     if not nombre_completo or not nombre_completo.strip():
         return None
-    
+
     # Buscar por RFC si está disponible
     if rfc and rfc.strip():
         cliente = Cliente.query.filter_by(rfc=rfc.strip().upper()).first()
         if cliente:
-            print(f"Cliente encontrado por RFC: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
+            print(
+                f"Cliente encontrado por RFC: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
             return cliente.id
-    
+
     # Buscar por nombre similar
     clientes = Cliente.query.all()
     for cliente in clientes:
         nombre_bd = f"{cliente.nombre} {cliente.apellido}".lower().strip()
         nombre_buscar = nombre_completo.lower().strip()
-        
+
         from difflib import SequenceMatcher
         ratio = SequenceMatcher(None, nombre_buscar, nombre_bd).ratio() * 100
-        
+
         if ratio >= 80:
-            print(f"Cliente encontrado por nombre: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
+            print(
+                f"Cliente encontrado por nombre: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
             return cliente.id
-    
+
     # Crear nuevo cliente
     partes = nombre_completo.strip().split(maxsplit=1)
     nombre = partes[0][:50]
     apellido = partes[1][:50] if len(partes) > 1 else ""
-    
+
     # Obtener o crear grupo "General"
     grupo = Grupo.query.filter_by(grupo="General").first()
     if not grupo:
         grupo = Grupo(grupo="General")
         db.session.add(grupo)
         db.session.flush()
-    
+
     nuevo = Cliente(
         nombre=nombre,
         apellido=apellido,
         grupo_id=grupo.id,
-        rfc=rfc.strip().upper()[:13] if rfc and rfc.strip() else "XAXX010101000",
+        rfc=rfc.strip().upper()[
+            :13] if rfc and rfc.strip() else "XAXX010101000",
         status='Activo'
     )
     db.session.add(nuevo)
@@ -1684,17 +1686,17 @@ def find_or_create_aseguradora(nombre: str):
     """Busca o crea una aseguradora. Retorna el ID."""
     if not nombre or not nombre.strip():
         return None
-    
+
     aseguradoras = Aseguradora.query.all()
     aseguradora_id = find_best_match(nombre, aseguradoras)
-    
+
     if not aseguradora_id:
         nueva = Aseguradora(aseguradora=nombre.strip()[:40])
         db.session.add(nueva)
         db.session.flush()
         aseguradora_id = nueva.id
         print(f"Nueva aseguradora creada: {nombre} (ID: {aseguradora_id})")
-    
+
     return aseguradora_id
 
 
@@ -1702,17 +1704,17 @@ def find_or_create_agente(nombre: str):
     """Busca o crea un agente. Retorna el ID."""
     if not nombre or not nombre.strip():
         return None
-    
+
     agentes = Agente.query.all()
     agente_id = find_best_match(nombre, agentes)
-    
+
     if not agente_id:
         nuevo = Agente(nombre=nombre.strip()[:50])
         db.session.add(nuevo)
         db.session.flush()
         agente_id = nuevo.id
         print(f"Nuevo agente creado: {nombre} (ID: {agente_id})")
-    
+
     return agente_id
 
 
@@ -1720,17 +1722,17 @@ def find_or_create_vendedor(nombre: str):
     """Busca o crea un vendedor. Retorna el ID."""
     if not nombre or not nombre.strip():
         return None
-    
+
     vendedores = Vendedor.query.all()
     vendedor_id = find_best_match(nombre, vendedores)
-    
+
     if not vendedor_id:
         nuevo = Vendedor(nombre=nombre.strip()[:50])
         db.session.add(nuevo)
         db.session.flush()
         vendedor_id = nuevo.id
         print(f"Nuevo vendedor creado: {nombre} (ID: {vendedor_id})")
-    
+
     return vendedor_id
 
 
@@ -1738,17 +1740,17 @@ def find_or_create_ramo(nombre: str):
     """Busca o crea un ramo. Retorna el ID."""
     if not nombre or not nombre.strip():
         return None
-    
+
     ramos = Ramo.query.all()
     ramo_id = find_best_match(nombre, ramos, threshold=70, attr_name='ramo')
-    
+
     if not ramo_id:
         nuevo = Ramo(ramo=nombre.strip()[:30])
         db.session.add(nuevo)
         db.session.flush()
         ramo_id = nuevo.id
         print(f"Nuevo ramo creado: {nombre} (ID: {ramo_id})")
-    
+
     return ramo_id
 
 
@@ -1756,17 +1758,18 @@ def find_or_create_subramo(nombre: str):
     """Busca o crea un subramo. Retorna el ID."""
     if not nombre or not nombre.strip():
         return None
-    
+
     subramos = Subramo.query.all()
-    subramo_id = find_best_match(nombre, subramos, threshold=70, attr_name='subramo')
-    
+    subramo_id = find_best_match(
+        nombre, subramos, threshold=70, attr_name='subramo')
+
     if not subramo_id:
         nuevo = Subramo(subramo=nombre.strip()[:30])
         db.session.add(nuevo)
         db.session.flush()
         subramo_id = nuevo.id
         print(f"Nuevo subramo creado: {nombre} (ID: {subramo_id})")
-    
+
     return subramo_id
 
 
@@ -1777,29 +1780,31 @@ def find_best_match(extracted_name: str, db_records, threshold=70, attr_name=Non
     """
     if not extracted_name or not db_records:
         return None
-    
+
     from difflib import SequenceMatcher
-    
+
     extracted_clean = extracted_name.lower().strip()
     best_match = None
     best_ratio = 0
-    
+
     for record in db_records:
         if attr_name:
             record_name = getattr(record, attr_name, None)
         else:
-            record_name = getattr(record, 'nombre', None) or getattr(record, 'aseguradora', None)
-        
+            record_name = getattr(record, 'nombre', None) or getattr(
+                record, 'aseguradora', None)
+
         if not record_name:
             continue
-            
+
         record_clean = record_name.lower().strip()
-        ratio = SequenceMatcher(None, extracted_clean, record_clean).ratio() * 100
-        
+        ratio = SequenceMatcher(None, extracted_clean,
+                                record_clean).ratio() * 100
+
         if ratio > best_ratio and ratio >= threshold:
             best_ratio = ratio
             best_match = record.id
-    
+
     return best_match
 
 
@@ -1808,7 +1813,11 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
     prompt_instruction = f"""Extrae estos datos de la póliza y devuelve SOLO JSON:
 
 {{
+  "descripcion": "descripción",
+  "desde": "fecha inicio DD/MM/YYYY",
   "numero_de_poliza": "número de póliza",
+  "forma_de_pago": "forma de pago",
+  "hasta": "fecha fin DD/MM/YYYY",
   "nombre_cliente": "nombre del cliente",
   "aseguradora": "nombre de la aseguradora",
   "agente": "nombre del agente",
@@ -1818,12 +1827,8 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
   "prima_neta": "monto prima neta",
   "prima_total": "monto prima total",
   "moneda": "MXN/USD/Udis",
-  "desde": "fecha inicio DD/MM/YYYY",
-  "hasta": "fecha fin DD/MM/YYYY",
-  "forma_de_pago": "forma de pago",
-  "descripcion": "descripción",
-  "endoso": "número endoso",
   "rfc": "RFC"
+  "endoso": "número endoso",
 }}
 
 Texto:
@@ -1849,22 +1854,27 @@ JSON:"""
         if "response" in data:
             try:
                 extracted_json = json.loads(data["response"])
-                
+
                 # Mapear o crear aseguradora, agente, vendedor, ramo y subramo
-                aseguradora_id = find_or_create_aseguradora(extracted_json.get("aseguradora"))
+                aseguradora_id = find_or_create_aseguradora(
+                    extracted_json.get("aseguradora"))
                 agente_id = find_or_create_agente(extracted_json.get("agente"))
-                vendedor_id = find_or_create_vendedor(extracted_json.get("vendedor"))
+                vendedor_id = find_or_create_vendedor(
+                    extracted_json.get("vendedor"))
                 ramo_id = find_or_create_ramo(extracted_json.get("ramo"))
-                subramo_id = find_or_create_subramo(extracted_json.get("subramo"))
-                
+                subramo_id = find_or_create_subramo(
+                    extracted_json.get("subramo"))
+
                 # Mapear o crear cliente
-                nombre_cliente = extracted_json.get("nombre_cliente") or extracted_json.get("cliente")
+                nombre_cliente = extracted_json.get(
+                    "nombre_cliente") or extracted_json.get("cliente")
                 rfc_cliente = extracted_json.get("rfc")
-                cliente_id = find_or_create_cliente(nombre_cliente, rfc_cliente)
-                
+                cliente_id = find_or_create_cliente(
+                    nombre_cliente, rfc_cliente)
+
                 # Commit de los nuevos registros
                 db.session.commit()
-                
+
                 normalized = {
                     "numero_de_poliza": extracted_json.get("numero_de_poliza") or extracted_json.get("numero_poliza") or extracted_json.get("poliza"),
                     "nombre_cliente": nombre_cliente,
@@ -1946,7 +1956,7 @@ def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None)
 
     normalized_filename = normalize_filename(filename, poliza_num)
     file_path = os.path.join(upload_folder, normalized_filename)
-    
+
     with open(file_path, 'wb') as f:
         f.write(file_content)
 
@@ -1965,16 +1975,16 @@ def upload_pdf():
 
     if not file.filename.lower().endswith('.pdf'):
         return jsonify({'error': True, 'msg': 'El archivo debe ser PDF'})
-    
+
     # Leer el contenido del archivo UNA SOLA VEZ
     file_content = file.read()
-    
+
     # Validar tamaño del archivo
     file_size = len(file_content)
-    
+
     if file_size > 10 * 1024 * 1024:  # 10MB
         return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
-    
+
     if file_size == 0:
         return jsonify({'error': True, 'msg': 'El archivo está vacío.'})
 
@@ -1993,10 +2003,10 @@ def upload_pdf():
     try:
         # Extraer texto primero (valida el PDF)
         text = extract_text_from_pdf_content(file_content)
-        
+
         # Si la extracción fue exitosa, guardar el archivo
         pdf_path = save_pdf_content(file_content, file.filename, poliza_num)
-        
+
         # Procesar con Ollama
         extracted_data = call_ollama_model(text, JSON_SCHEMA)
 
@@ -2021,17 +2031,18 @@ def upload_pdf():
     except Exception as e:
         print(f"Error procesando PDF: {e}")
         error_msg = str(e)
-        
+
         # Si hay error, eliminar el PDF guardado
         if 'pdf_path' in locals():
             try:
-                full_path = os.path.join(current_app.root_path, 'static', pdf_path)
+                full_path = os.path.join(
+                    current_app.root_path, 'static', pdf_path)
                 if os.path.exists(full_path):
                     os.remove(full_path)
                     print(f"PDF eliminado por error: {pdf_path}")
             except Exception as del_err:
                 print(f"Error al eliminar PDF: {del_err}")
-        
+
         if 'corrupto' in error_msg or 'no es válido' in error_msg:
             return jsonify({'error': True, 'msg': error_msg})
         elif 'contraseña' in error_msg or 'password' in error_msg.lower():
@@ -2049,10 +2060,10 @@ def upload_pdf():
 def delete_temp_pdf():
     """Elimina un PDF temporal si la póliza no se guardó"""
     pdf_path = flask_request.json.get('pdf_path')
-    
+
     if not pdf_path:
         return jsonify({'error': True, 'msg': 'No se proporcionó ruta del PDF'})
-    
+
     try:
         full_path = os.path.join(current_app.root_path, 'static', pdf_path)
         if os.path.exists(full_path):
