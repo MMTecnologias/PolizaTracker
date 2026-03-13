@@ -1,6 +1,8 @@
 $(function () {
   let razonInput = '';
   let totalPolizas = 0;
+  let pdfMode = null; // 'renew', 'endoso', or null
+  let pdfUploaded = false; // Track if PDF was uploaded
 
   const ajaxConfig = {
     url: '',
@@ -83,12 +85,12 @@ $(function () {
       allowEscapeKey: false,
       allowEnterKey: false,
       showConfirmButton: false,
-      didOpen: () => Swal.showLoading()
+      didOpen: () => Swal.showLoading(),
     });
 
     const formData = new FormData();
     formData.append('pdf_file', file);
-    
+
     const polizaIdInput = document.getElementById('poliza_id');
     if (polizaIdInput) {
       const polizaId = polizaIdInput.value;
@@ -146,7 +148,7 @@ $(function () {
 
     const formData = new FormData();
     formData.append('pdf_file', fileInput.files[0]);
-    
+
     const polizaIdInput = document.getElementById('poliza_id');
     if (polizaIdInput) {
       const polizaId = polizaIdInput.value;
@@ -172,15 +174,21 @@ $(function () {
         Swal.close();
         if (response.error) {
           alert(response.msg, 'error', 'Error');
+          pdfMode = null;
         } else {
           console.log(response);
+          pdfUploaded = true;
           fillFormWithPdfData(response.data);
           alert('Datos extraídos correctamente', 'success', 'Éxito');
+          
+          // Resetear modo después de usar
+          pdfMode = null;
         }
       },
       error: function () {
         Swal.close();
         alert('Error al procesar el PDF', 'error', 'Error');
+        pdfMode = null;
       },
     });
   });
@@ -198,7 +206,6 @@ $(function () {
     if (data.numero_de_poliza) {
       console.log('Poliza:', data.numero_de_poliza);
       $('#Poliza').val(data.numero_de_poliza);
-      $('#serie').val(data.numero_de_poliza);
     }
 
     // Cliente
@@ -268,6 +275,23 @@ $(function () {
       );
     }
 
+    // Serie del vehículo (número de serie/VIN)
+    if (data.serie) {
+      console.log('Serie del vehículo:', data.serie);
+      $('#serie').val(data.serie);
+    }
+
+    // Observaciones (marca y modelo del vehículo)
+    if (data.observaciones) {
+      console.log('Observaciones (marca/modelo):', data.observaciones);
+      const notasActuales = $('#notas').val();
+      $('#notas').val(
+        notasActuales
+          ? notasActuales + '\n' + data.observaciones
+          : data.observaciones,
+      );
+    }
+
     // Forma de pago - buscar en el select
     if (data.forma_de_pago) {
       console.log('Forma de pago:', data.forma_de_pago);
@@ -288,6 +312,15 @@ $(function () {
       });
     }
 
+    // Derecho de póliza (también puede ser "gastos de expedición")
+    if (data.derecho_poliza) {
+      const derechoPoliza = parseFloat(data.derecho_poliza.replace(/[^0-9.-]/g, ''));
+      console.log('Derecho de Póliza:', derechoPoliza);
+      if (!isNaN(derechoPoliza)) {
+        $('#derecho_poliza').val(derechoPoliza.toFixed(2));
+      }
+    }
+
     // Aseguradora - esperar a que estén cargados los selects y usar ID
     function fillSelectWithData() {
       const ramoSelect = $('#ramo');
@@ -297,59 +330,82 @@ $(function () {
       const agenteSelect = $('#agente');
 
       // Verificar si los selects están vacíos (no cargados)
-      const selectsEmpty = ramoSelect.children('option').length <= 1 && 
-                          aseguradoraSelect.children('option').length <= 1;
+      const selectsEmpty =
+        ramoSelect.children('option').length <= 1 &&
+        aseguradoraSelect.children('option').length <= 1;
 
       if (selectsEmpty) {
         console.log('Selects vacíos, cargando datos del formulario...');
-        getFormData().then(formData => {
-          if (formData) {
-            // Poblar selects si están vacíos
-            if (ramoSelect.children('option').length <= 1) {
-              for (const ramo of formData.Ramo) {
-                $('#ramo').append(`<option value='${ramo.id}'>${ramo.ramo}</option>`);
+        getFormData()
+          .then((formData) => {
+            if (formData) {
+              // Poblar selects si están vacíos
+              if (ramoSelect.children('option').length <= 1) {
+                for (const ramo of formData.Ramo) {
+                  $('#ramo').append(
+                    `<option value='${ramo.id}'>${ramo.ramo}</option>`,
+                  );
+                }
+                $('#ramo').append(`<option value="New">Nuevo Ramo</option>`);
               }
-              $('#ramo').append(`<option value="New">Nuevo Ramo</option>`);
-            }
-            if (subramoSelect.children('option').length <= 1) {
-              for (const subramo of formData.Subramo) {
-                $('#subramo').append(`<option value='${subramo.id}'>${subramo.subramo}</option>`);
+              if (subramoSelect.children('option').length <= 1) {
+                for (const subramo of formData.Subramo) {
+                  $('#subramo').append(
+                    `<option value='${subramo.id}'>${subramo.subramo}</option>`,
+                  );
+                }
+                $('#subramo').append(
+                  `<option value="New">Nuevo Subramo</option>`,
+                );
               }
-              $('#subramo').append(`<option value="New">Nuevo Subramo</option>`);
-            }
-            if (aseguradoraSelect.children('option').length <= 1) {
-              for (const aseguradora of formData.Aseguradora) {
-                $('#aseguradora').append(`<option value='${aseguradora.id}'>${aseguradora.aseguradora}</option>`);
+              if (aseguradoraSelect.children('option').length <= 1) {
+                for (const aseguradora of formData.Aseguradora) {
+                  $('#aseguradora').append(
+                    `<option value='${aseguradora.id}'>${aseguradora.aseguradora}</option>`,
+                  );
+                }
+                $('#aseguradora').append(
+                  `<option value="New">Nueva Aseguradora</option>`,
+                );
               }
-              $('#aseguradora').append(`<option value="New">Nueva Aseguradora</option>`);
-            }
-            if (vendedorSelect.children('option').length <= 1) {
-              for (const vendedor of formData.Vendedor) {
-                $('#vendedor').append(`<option value='${vendedor.id}'>${vendedor.nombre}</option>`);
+              if (vendedorSelect.children('option').length <= 1) {
+                for (const vendedor of formData.Vendedor) {
+                  $('#vendedor').append(
+                    `<option value='${vendedor.id}'>${vendedor.nombre}</option>`,
+                  );
+                }
+                $('#vendedor').append(
+                  `<option value="New">Nuevo Vendedor</option>`,
+                );
               }
-              $('#vendedor').append(`<option value="New">Nuevo Vendedor</option>`);
-            }
-            if (agenteSelect.children('option').length <= 1) {
-              for (const agente of formData.Agente) {
-                $('#agente').append(`<option value='${agente.id}'>${agente.nombre}</option>`);
+              if (agenteSelect.children('option').length <= 1) {
+                for (const agente of formData.Agente) {
+                  $('#agente').append(
+                    `<option value='${agente.id}'>${agente.nombre}</option>`,
+                  );
+                }
+                $('#agente').append(
+                  `<option value="New">Nuevo Agente</option>`,
+                );
               }
-              $('#agente').append(`<option value="New">Nuevo Agente</option>`);
-            }
-            
-            // Poblar select de forma de pago también si está vacío
-            const pagoSelect = $('#Pago');
-            if (pagoSelect.children('option').length <= 1) {
-              for (const pago of formData.TipoPago) {
-                $('#Pago').append(`<option value='${pago.id}'>${pago.tipo_pago}</option>`);
+
+              // Poblar select de forma de pago también si está vacío
+              const pagoSelect = $('#Pago');
+              if (pagoSelect.children('option').length <= 1) {
+                for (const pago of formData.TipoPago) {
+                  $('#Pago').append(
+                    `<option value='${pago.id}'>${pago.tipo_pago}</option>`,
+                  );
+                }
               }
+
+              // Ahora llenar los valores
+              setValuesInSelects(data);
             }
-            
-            // Ahora llenar los valores
-            setValuesInSelects(data);
-          }
-        }).catch(err => {
-          console.error('Error al cargar datos del formulario:', err);
-        });
+          })
+          .catch((err) => {
+            console.error('Error al cargar datos del formulario:', err);
+          });
       } else {
         // Los selects ya están poblados, llenar valores directamente
         setValuesInSelects(data);
@@ -363,11 +419,15 @@ $(function () {
         console.log('Aseguradora ID:', data.aseguradora_id);
         const aseguradoraId = String(data.aseguradora_id);
         const aseguradoraSelect = $('#aseguradora');
-        const optionExists = aseguradoraSelect.find(`option[value="${aseguradoraId}"]`).length > 0;
+        const optionExists =
+          aseguradoraSelect.find(`option[value="${aseguradoraId}"]`).length > 0;
         if (optionExists) {
           aseguradoraSelect.val(aseguradoraId);
         } else {
-          console.log('Aseguradora no encontrada en select, creando nueva:', data.aseguradora);
+          console.log(
+            'Aseguradora no encontrada en select, creando nueva:',
+            data.aseguradora,
+          );
           $('#nuevo_aseguradora').val(data.aseguradora);
           aseguradoraSelect.val('New');
           $('#nuevo_aseguradora_div').show();
@@ -379,11 +439,15 @@ $(function () {
         console.log('Ramo ID:', data.ramo_id);
         const ramoId = String(data.ramo_id);
         const ramoSelect = $('#ramo');
-        const optionExists = ramoSelect.find(`option[value="${ramoId}"]`).length > 0;
+        const optionExists =
+          ramoSelect.find(`option[value="${ramoId}"]`).length > 0;
         if (optionExists) {
           ramoSelect.val(ramoId);
         } else {
-          console.log('Ramo no encontrado en select, creando nuevo:', data.ramo);
+          console.log(
+            'Ramo no encontrado en select, creando nuevo:',
+            data.ramo,
+          );
           $('#nuevo_ramo').val(data.ramo);
           ramoSelect.val('New');
           $('#nuevo_ramo_div').show();
@@ -395,11 +459,15 @@ $(function () {
         console.log('Subramo ID:', data.subramo_id);
         const subramoId = String(data.subramo_id);
         const subramoSelect = $('#subramo');
-        const optionExists = subramoSelect.find(`option[value="${subramoId}"]`).length > 0;
+        const optionExists =
+          subramoSelect.find(`option[value="${subramoId}"]`).length > 0;
         if (optionExists) {
           subramoSelect.val(subramoId);
         } else {
-          console.log('Subramo no encontrado en select, creando nuevo:', data.subramo);
+          console.log(
+            'Subramo no encontrado en select, creando nuevo:',
+            data.subramo,
+          );
           $('#nuevo_subramo').val(data.subramo);
           subramoSelect.val('New');
           $('#nuevo_subramo_div').show();
@@ -411,11 +479,15 @@ $(function () {
         console.log('Vendedor ID:', data.vendedor_id);
         const vendedorId = String(data.vendedor_id);
         const vendedorSelect = $('#vendedor');
-        const optionExists = vendedorSelect.find(`option[value="${vendedorId}"]`).length > 0;
+        const optionExists =
+          vendedorSelect.find(`option[value="${vendedorId}"]`).length > 0;
         if (optionExists) {
           vendedorSelect.val(vendedorId);
         } else {
-          console.log('Vendedor no encontrado en select, creando nuevo:', data.vendedor);
+          console.log(
+            'Vendedor no encontrado en select, creando nuevo:',
+            data.vendedor,
+          );
           $('#nuevo_vendedor').val(data.vendedor);
           vendedorSelect.val('New');
           $('#nuevo_vendedor_div').show();
@@ -427,11 +499,15 @@ $(function () {
         console.log('Agente ID:', data.agente_id);
         const agenteId = String(data.agente_id);
         const agenteSelect = $('#agente');
-        const optionExists = agenteSelect.find(`option[value="${agenteId}"]`).length > 0;
+        const optionExists =
+          agenteSelect.find(`option[value="${agenteId}"]`).length > 0;
         if (optionExists) {
           agenteSelect.val(agenteId);
         } else {
-          console.log('Agente no encontrado en select, creando nuevo:', data.agente);
+          console.log(
+            'Agente no encontrado en select, creando nuevo:',
+            data.agente,
+          );
           $('#nuevo_agente').val(data.agente);
           agenteSelect.val('New');
           $('#nuevo_agente_div').show();
@@ -439,6 +515,64 @@ $(function () {
       }
 
       console.log('Formulario llenado completamente');
+
+      // Calcular recibos automáticamente con 10% de comisión
+      setTimeout(() => {
+        const primaNeta = parseFloat($('#prima_neta').val()) || 0;
+        const primaTotal = parseFloat($('#prima_total').val()) || 0;
+        const derechoPoliza = parseFloat($('#derecho_poliza').val()) || 0;
+        
+        if (primaNeta > 0 && primaTotal > 0) {
+          // Establecer 10% de comisión por defecto
+          $('#comision').val('10');
+          
+          // Establecer IVA por defecto (16%)
+          if (!$('#iva').val()) {
+            $('#iva').val('16');
+          }
+
+          // Llamar a calculate_receipts
+          const netPremium = primaNeta;
+          const totalPremium = primaTotal;
+          const iva = parseFloat($('#iva').val()) || 16;
+          const insurance = derechoPoliza;
+          const commission = 10;
+          const receipts = $('#nopagos').val() || 1;
+          const rec_pago = $('#rec_pago').val() || 'primer_recibo';
+
+          $.ajax({
+            ...ajaxConfig,
+            url: '/polizas/calculate_receipts',
+            data: $.param({
+              netPremium,
+              totalPremium,
+              iva,
+              insurance,
+              commission,
+              receipts,
+              rec_pago,
+            }),
+            success: function (resp) {
+              $('#prima_neta_1er').val(resp.firstpay.netPremium);
+              $('#prima_neta_subs').val(resp.subspay.netPremium);
+              $('#prima_total_1er').val(resp.firstpay.totalPremium);
+              $('#prima_total_subs').val(resp.subspay.totalPremium);
+              $('#comision_1er').val(resp.firstpay.comision);
+              $('#comision_subs').val(resp.subspay.comision);
+              console.log('Recibos calculados automáticamente');
+              
+              // Abrir modal de recibos si se subió PDF
+              if (pdfUploaded) {
+                setTimeout(() => {
+                  $('#create-recib').modal({ backdrop: 'static', keyboard: false });
+                }, 500);
+                pdfUploaded = false;
+              }
+            },
+            error: (xhr, status, error) => console.error('Error al calcular recibos:', error),
+          });
+        }
+      }, 1000);
     }
 
     // Iniciar el proceso de llenado
@@ -661,6 +795,7 @@ $(function () {
   }
 
   async function createEndozo(poliza_id, tipo) {
+    pdfMode = 'endoso';
     const data = await resetForm();
     $('#endoso-type').modal('toggle');
     $('#tipo').val(tipo);
@@ -985,6 +1120,7 @@ $(function () {
   }
 
   async function renewPoliza(poliza_id) {
+    pdfMode = 'renew';
     const data = await resetForm();
     $('#btnGuardar').html('Renovar póliza');
     $('#div_poliza_anterior').show();
@@ -1203,14 +1339,25 @@ $(function () {
           <td>
             <ul class="btn_table_options">
               <li>
-                <a class="btn__icon_delete pointer" id="btnDelete_${poliza.id}">
+                <a title="Cancelar poliza" class="btn__icon_delete pointer" id="btnDelete_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
                     poliza.status,
                   )}><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"/></svg>
                 </a>
               </li>
+              ${
+                poliza.pdf_path
+                  ? `
               <li>
-                <a class="btn__icon_delete pointer" id="btnAddEndoso_${
+                <a title="Ver pdf" class="btn__icon_show pointer" id="btnViewPdf_${poliza.id}" title="Ver PDF">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M240-160q-33 0-56.5-23.5T160-240v-320q0-33 23.5-56.5T240-640h240l120 120v400q0 33-23.5 56.5T240-160Zm400-80v-480l-120-120v-80q0-33-23.5-56.5T520-960h240q33 0 56.5 23.5T840-880v640q0 33-23.5 56.5T760-160H640Zm-40-200v-80h80v80H600Zm0 120v-80h80v80H600Zm120-120v-80h80v80H720Z"/></svg>
+                </a>
+              </li>
+              `
+                  : ''
+              }
+              <li>
+                <a title="Crear endoso" class="btn__icon_delete pointer" id="btnAddEndoso_${
                   poliza.id
                 }">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
@@ -1219,14 +1366,14 @@ $(function () {
                 </a>
               </li>
               <li>
-                <a class="btn__icon_edit pointer" id="btnEdit_${poliza.id}">
+                <a title="Editar poliza" class="btn__icon_edit pointer" id="btnEdit_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
                     poliza.status,
                   )}><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
                 </a>
               </li>
               <li>
-                <a class="btn__icon_show pointer" id="btnViewEndosos_${
+                <a title="Ver endosos" class="btn__icon_show pointer" id="btnViewEndosos_${
                   poliza.id
                 }">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
@@ -1235,14 +1382,14 @@ $(function () {
                 </a>
               </li>
               <li>
-                <a class="btn__icon_show pointer" id="btnShow_${poliza.id}">
+                <a title="Ver detalle de poliza" class="btn__icon_show pointer" id="btnShow_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
                     poliza.status,
                   )}><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
                 </a>
               </li>
               <li>
-                <a class="btn__icon_renew pointer" id="btnRenew_${poliza.id}">
+                <a title="Renovar poliza" class="btn__icon_renew pointer" id="btnRenew_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
                     poliza.status,
                   )}><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v240h-80v-80H200v400h280v80H200ZM760 0q-73 0-127.5-45.5T564-160h62q13 44 49.5 72T760-60q58 0 99-41t41-99q0-58-41-99t-99-41q-29 0-54 10.5T662-300h58v60H560v-160h60v57q27-26 63-41.5t77-15.5q83 0 141.5 58.5T960-200q0 83-58.5 141.5T760 0ZM200-640h560v-80H200v80Zm0 0v-80 80Z"/></svg>
@@ -1272,6 +1419,11 @@ $(function () {
         $('#endoso-list').modal();
       });
       $(`#btnShow_${poliza.id}`).on('click', (e) => showPoliza(poliza.id));
+      $(`#btnViewPdf_${poliza.id}`).on('click', (e) => {
+        if (poliza.pdf_path) {
+          window.open(`/static/${poliza.pdf_path}`, '_blank');
+        }
+      });
     });
     if (!data.length) return;
     $('#pagination').pagination({

@@ -1568,7 +1568,12 @@ JSON_SCHEMA = {
     "prima_total": "string",
     "moneda": "string",
     "rfc": "string",
-    "endoso": "string"
+    "endoso": "string",
+    "marca": "string",
+    "modelo": "string",
+    "numero_serie": "string",
+    "derecho_poliza": "string",
+    "gastos_expedicion": "string"
 }
 
 
@@ -1827,8 +1832,13 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
   "prima_neta": "monto prima neta",
   "prima_total": "monto prima total",
   "moneda": "MXN/USD/Udis",
-  "rfc": "RFC"
+  "rfc": "RFC",
   "endoso": "número endoso",
+  "marca": "marca del vehículo",
+  "modelo": "modelo del vehículo",
+  "numero_serie": "número de serie o VIN del vehículo",
+  "derecho_poliza": "derecho de póliza",
+  "gastos_expedicion": "gastos de expedición"
 }}
 
 Texto:
@@ -1897,7 +1907,10 @@ JSON:"""
                     "forma_de_pago": extracted_json.get("forma_de_pago"),
                     "descripcion": extracted_json.get("descripcion"),
                     "endoso": extracted_json.get("endoso"),
-                    "rfc": rfc_cliente
+                    "rfc": rfc_cliente,
+                    "serie": extracted_json.get("numero_serie") or extracted_json.get("num_serie") or extracted_json.get("vin"),
+                    "observaciones": f"{extracted_json.get('marca', '')} {extracted_json.get('modelo', '')}".strip(),
+                    "derecho_poliza": extracted_json.get("derecho_poliza") or extracted_json.get("gastos_expedicion") or "0"
                 }
                 print(f"Datos extraídos: {normalized}")
                 return normalized
