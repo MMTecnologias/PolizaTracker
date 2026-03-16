@@ -2015,12 +2015,17 @@ def normalize_filename(filename: str, poliza_num: str = None) -> str:
 
 def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None) -> str:
     """
-    Guarda el contenido del PDF en el directorio de static/polizas_pdf.
-    Retorna la ruta relativa del archivo guardado.
+    Guarda el contenido del PDF.
+    Si PDF_UPLOAD_FOLDER está definido en config, usa esa ruta absoluta.
+    De lo contrario usa static/polizas_pdf dentro de la app.
+    Retorna la ruta que se guardará en BD.
     """
-    upload_folder = os.path.join(
-        current_app.root_path, 'static', 'polizas_pdf'
-    )
+    custom_folder = current_app.config.get('PDF_UPLOAD_FOLDER')
+
+    if custom_folder:
+        upload_folder = custom_folder
+    else:
+        upload_folder = os.path.join(current_app.root_path, 'static', 'polizas_pdf')
 
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
@@ -2031,6 +2036,9 @@ def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None)
     with open(file_path, 'wb') as f:
         f.write(file_content)
 
+    # Si es ruta personalizada, guardar la ruta absoluta completa en BD
+    if custom_folder:
+        return file_path
     return f"polizas_pdf/{normalized_filename}"
 
 
@@ -2163,14 +2171,22 @@ def download_pdf(poliza_id):
     if not poliza.pdf_path:
         return jsonify({'error': True, 'msg': 'No hay PDF asociado a esta póliza'})
 
-    pdf_path = os.path.join(current_app.root_path, 'static', poliza.pdf_path)
+    # Soporta tanto ruta absoluta (PDF_UPLOAD_FOLDER) como relativa (static/polizas_pdf)
+    if os.path.isabs(poliza.pdf_path):
+        pdf_full_path = poliza.pdf_path
+        directory = os.path.dirname(pdf_full_path)
+        filename = os.path.basename(pdf_full_path)
+    else:
+        pdf_full_path = os.path.join(current_app.root_path, 'static', poliza.pdf_path)
+        directory = os.path.join(current_app.root_path, 'static')
+        filename = poliza.pdf_path
 
-    if not os.path.exists(pdf_path):
+    if not os.path.exists(pdf_full_path):
         return jsonify({'error': True, 'msg': 'El archivo PDF no existe'})
 
     return send_from_directory(
-        os.path.join(current_app.root_path, 'static'),
-        poliza.pdf_path,
+        directory,
+        filename,
         as_attachment=True,
         download_name=f"poliza_{poliza.poliza}.pdf"
     )
