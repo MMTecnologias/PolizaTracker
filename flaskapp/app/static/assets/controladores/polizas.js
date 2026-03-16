@@ -116,6 +116,10 @@ $(function () {
         if (response.error) {
           alert(response.msg, 'error', 'Error');
         } else {
+          if (response.pdf_path) {
+            $('#pdf_path').val(response.pdf_path);
+            console.log('PDF path guardado (drag&drop):', response.pdf_path);
+          }
           if (response.data) {
             fillFormWithPdfData(response.data);
             alert('Datos extraídos correctamente', 'success', 'Éxito');
@@ -178,9 +182,16 @@ $(function () {
         } else {
           console.log(response);
           pdfUploaded = true;
+
+          // Guardar pdf_path en campo oculto
+          if (response.pdf_path) {
+            $('#pdf_path').val(response.pdf_path);
+            console.log('PDF path guardado:', response.pdf_path);
+          }
+
           fillFormWithPdfData(response.data);
           alert('Datos extraídos correctamente', 'success', 'Éxito');
-          
+
           // Resetear modo después de usar
           pdfMode = null;
         }
@@ -212,6 +223,10 @@ $(function () {
     if (data.nombre_cliente) {
       console.log('Cliente:', data.nombre_cliente);
       $('#buscar-cliente').val(data.nombre_cliente);
+    }
+    if (data.cliente_id) {
+      console.log('Cliente ID:', data.cliente_id);
+      $('#selected-client-id').val(data.cliente_id);
     }
 
     // Primas
@@ -314,7 +329,9 @@ $(function () {
 
     // Derecho de póliza (también puede ser "gastos de expedición")
     if (data.derecho_poliza) {
-      const derechoPoliza = parseFloat(data.derecho_poliza.replace(/[^0-9.-]/g, ''));
+      const derechoPoliza = parseFloat(
+        data.derecho_poliza.replace(/[^0-9.-]/g, ''),
+      );
       console.log('Derecho de Póliza:', derechoPoliza);
       if (!isNaN(derechoPoliza)) {
         $('#derecho_poliza').val(derechoPoliza.toFixed(2));
@@ -521,11 +538,11 @@ $(function () {
         const primaNeta = parseFloat($('#prima_neta').val()) || 0;
         const primaTotal = parseFloat($('#prima_total').val()) || 0;
         const derechoPoliza = parseFloat($('#derecho_poliza').val()) || 0;
-        
+
         if (primaNeta > 0 && primaTotal > 0) {
           // Establecer 10% de comisión por defecto
           $('#comision').val('10');
-          
+
           // Establecer IVA por defecto (16%)
           if (!$('#iva').val()) {
             $('#iva').val('16');
@@ -559,17 +576,22 @@ $(function () {
               $('#prima_total_subs').val(resp.subspay.totalPremium);
               $('#comision_1er').val(resp.firstpay.comision);
               $('#comision_subs').val(resp.subspay.comision);
+              $('#recibos').val('Por generar');
               console.log('Recibos calculados automáticamente');
-              
+
               // Abrir modal de recibos si se subió PDF
               if (pdfUploaded) {
                 setTimeout(() => {
-                  $('#create-recib').modal({ backdrop: 'static', keyboard: false });
+                  $('#create-recib').modal({
+                    backdrop: 'static',
+                    keyboard: false,
+                  });
                 }, 500);
                 pdfUploaded = false;
               }
             },
-            error: (xhr, status, error) => console.error('Error al calcular recibos:', error),
+            error: (xhr, status, error) =>
+              console.error('Error al calcular recibos:', error),
           });
         }
       }, 1000);
@@ -1350,7 +1372,7 @@ $(function () {
                   ? `
               <li>
                 <a title="Ver pdf" class="btn__icon_show pointer" id="btnViewPdf_${poliza.id}" title="Ver PDF">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M240-160q-33 0-56.5-23.5T160-240v-320q0-33 23.5-56.5T240-640h240l120 120v400q0 33-23.5 56.5T240-160Zm400-80v-480l-120-120v-80q0-33-23.5-56.5T520-960h240q33 0 56.5 23.5T840-880v640q0 33-23.5 56.5T760-160H640Zm-40-200v-80h80v80H600Zm0 120v-80h80v80H600Zm120-120v-80h80v80H720Z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/></svg>
                 </a>
               </li>
               `

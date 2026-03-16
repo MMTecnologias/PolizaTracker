@@ -300,7 +300,11 @@ def create():
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
         'poliza': 'Poliza',
-        'conducta_pago': 'conducto_pago'
+        'conducta_pago': 'conducto_pago',
+        'derecho_poliza': 'derecho_poliza',
+        'iva': 'iva',
+        'comision': 'comision',
+        'recibos': 'recibos'
     }
     form_value_mapping = {
         'selected-client-id': flask_request.form.get('selected-client-id'),
@@ -315,12 +319,25 @@ def create():
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
         'Poliza': flask_request.form.get('Poliza'),
-        'conducto_pago': flask_request.form.get('conducto_pago')
+        'conducto_pago': flask_request.form.get('conducto_pago'),
+        'derecho_poliza': flask_request.form.get('derecho_poliza'),
+        'iva': flask_request.form.get('iva'),
+        'comision': flask_request.form.get('comision'),
+        'recibos': flask_request.form.get('recibos')
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
-    # print(form_value_mapping)
-    # return arg_values
+    
+    # Validar que cliente_id no sea None o "None"
+    cliente_id_val = arg_values.get('cliente_id')
+    if not cliente_id_val or str(cliente_id_val).strip() in ('', 'None', 'none'):
+        return jsonify({'error': True, 'msg': 'Debe seleccionar un cliente', 'title': 'Cliente requerido'})
+
+    # Convertir cliente_id a entero
+    try:
+        arg_values['cliente_id'] = int(cliente_id_val)
+    except (ValueError, TypeError):
+        return jsonify({'error': True, 'msg': 'ID de cliente inválido', 'title': 'Cliente inválido'})
 
     # If cliente_id is "New", then it's a new client creation
     # if poliza_id == "New":
@@ -329,8 +346,12 @@ def create():
 
     # Vincular PDF si fue subido
     pdf_path = flask_request.form.get('pdf_path')
+    print(f"[CREATE] pdf_path recibido del form: '{pdf_path}'")
     if pdf_path:
         arg_values["pdf_path"] = pdf_path
+        print(f"[CREATE] pdf_path asignado a arg_values: '{pdf_path}'")
+    else:
+        print(f"[CREATE] ADVERTENCIA: pdf_path está vacío o None, no se guardará en BD")
 
     # Create a new client
 
@@ -346,10 +367,24 @@ def create():
     if request:
         return jsonify({'error': True, 'msg': 'Existe una solicitud de cancelación pendiente para esta póliza', 'title': 'Existe una solicitud de cancelación pendiente para esta póliza'})
 
+    # Asegurar valores por defecto para campos que pueden ser None
+    if not arg_values.get('pdf_path'):
+        arg_values['pdf_path'] = ''
+    if not arg_values.get('derecho_poliza') or str(arg_values.get('derecho_poliza')).strip() in ('', 'None', 'none'):
+        arg_values['derecho_poliza'] = 0
+    if not arg_values.get('iva') or str(arg_values.get('iva')).strip() in ('', 'None', 'none'):
+        arg_values['iva'] = 0
+    if not arg_values.get('comision') or str(arg_values.get('comision')).strip() in ('', 'None', 'none'):
+        arg_values['comision'] = 0
+    # La póliza siempre se crea con recibos 'Por generar'; se actualizan en /save_receipts
+    arg_values['recibos'] = 'Por generar'
+
     new_poliza = Poliza(**arg_values)
+    print(f"[CREATE] Poliza a guardar - poliza: '{arg_values.get('poliza')}', pdf_path: '{arg_values.get('pdf_path', 'NO DEFINIDO')}', recibos: '{arg_values.get('recibos')}'")
     # Save the new client to the database
     db.session.add(new_poliza)
     db.session.commit()
+    print(f"[CREATE] Poliza guardada en BD - ID: {new_poliza.id}, pdf_path en BD: '{new_poliza.pdf_path}', recibos: '{new_poliza.recibos}'")
 
     if poliza_old:
         poliza_old.Poliza_renovada = "Si"
@@ -442,8 +477,14 @@ def edit():
 
     # Update Poliza attributes
     for col, form_field in column_name_mapping.items():
-        if form_value_mapping[form_field]:
-            setattr(poliza, col, form_value_mapping[form_field])
+        if form_value_mapping[form_field] and str(form_value_mapping[form_field]).strip() not in ('', 'None', 'none'):
+            if col == 'cliente_id':
+                try:
+                    setattr(poliza, col, int(form_value_mapping[form_field]))
+                except (ValueError, TypeError):
+                    return jsonify({'error': True, 'msg': 'ID de cliente inválido', 'title': 'Cliente inválido'})
+            else:
+                setattr(poliza, col, form_value_mapping[form_field])
 
     # Handle related entities (e.g., Ramo, Subramo, Aseguradora, etc.)
     def check_new_form():
@@ -636,6 +677,8 @@ def calcular_recibos():
     prima_neta = float(flask_request.form.get('netPremium'))
     iva = float(flask_request.form.get('iva'))
     derecho_poliza = float(flask_request.form.get('insurance'))
+    print(f"[CALCULAR_RECIBOS] totalPremium={prima_total}, netPremium={prima_neta}, iva={iva}, insurance={derecho_poliza}")
+    print(f"[CALCULAR_RECIBOS] receipts={flask_request.form.get('receipts')}, commission={flask_request.form.get('commission')}, rec_pago={flask_request.form.get('rec_pago')}, selectPoliza={flask_request.form.get('selectPoliza')}")
     derecho_poliza_con_iva = derecho_poliza * (1+iva / 100)
     iva = prima_total*iva / (100+iva)
     commission = float(flask_request.form.get('commission'))
@@ -721,6 +764,10 @@ def save_receipts():
 
     poliza = Poliza.query.get(poliza_id)
     endoso_id = flask_request.form.get('endoso_id')
+    print(f"[SAVE_RECEIPTS] poliza_id='{poliza_id}', endoso_id='{endoso_id}'")
+    print(f"[SAVE_RECEIPTS] poliza encontrada: {poliza is not None}")
+    if poliza:
+        print(f"[SAVE_RECEIPTS] poliza.recibos='{poliza.recibos}', poliza.poliza='{poliza.poliza}'")
     multiplier = 1
     endoso_or_poliza = poliza
     is_endoso = False
@@ -745,8 +792,10 @@ def save_receipts():
         is_endoso = True
 
     elif not poliza:
+        print(f"[SAVE_RECEIPTS] ERROR: Poliza con id='{poliza_id}' no encontrada en BD")
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
     elif poliza.recibos == "Generados":
+        print(f"[SAVE_RECEIPTS] ERROR: La poliza '{poliza.poliza}' ya tiene recibos generados")
         return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
 
     try:
@@ -821,7 +870,7 @@ def save_receipts():
 
         # Realiza el commit después de completar las inserciones
         db.session.commit()
-
+        print(f"[SAVE_RECEIPTS] Recibos guardados exitosamente para poliza_id='{poliza_id}', total recibos={response['nopagos']}")
         return jsonify({'error': False, 'msg': 'Recibos generados con exito'})
     except Exception as e:
         # Si ocurre algún error, realiza un rollback
@@ -985,8 +1034,17 @@ def create_endoso():
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
-    # print(form_value_mapping)
-    # return arg_values
+    
+    # Validar que cliente_id no sea None o "None"
+    cliente_id_val = arg_values.get('cliente_id')
+    if not cliente_id_val or str(cliente_id_val).strip() in ('', 'None', 'none'):
+        # Usar el cliente de la póliza original si no se proporciona
+        arg_values['cliente_id'] = poliza.cliente_id
+    else:
+        try:
+            arg_values['cliente_id'] = int(cliente_id_val)
+        except (ValueError, TypeError):
+            arg_values['cliente_id'] = poliza.cliente_id
 
     arg_values.update(check_new_form())
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
@@ -2039,6 +2097,11 @@ def upload_pdf():
 
                 poliza.pdf_path = pdf_path
                 db.session.commit()
+                print(f"[UPLOAD_PDF] PDF actualizado en BD para poliza_id={poliza_id}, pdf_path='{pdf_path}'")
+            else:
+                print(f"[UPLOAD_PDF] poliza_id={poliza_id} no encontrada en BD, pdf_path NO guardado en BD")
+        else:
+            print(f"[UPLOAD_PDF] poliza_id='{poliza_id}' (New o None), pdf_path='{pdf_path}' NO guardado en BD aún — debe enviarse en /create")
 
         return jsonify({'error': False, 'data': extracted_data, 'pdf_path': pdf_path})
     except Exception as e:
