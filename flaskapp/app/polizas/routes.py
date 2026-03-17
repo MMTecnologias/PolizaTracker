@@ -1669,7 +1669,7 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
             if not pdf.pages:
                 raise ValueError("El PDF no contiene páginas")
 
-            for page in pdf.pages[:3]:  # Solo primeras 3 páginas
+            for page in pdf.pages[:8]:  # Primeras 8 páginas
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text + "\n"
@@ -1677,8 +1677,7 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
         if not text.strip():
             raise ValueError("No se pudo extraer texto del PDF")
 
-        # Limitar a 4000 caracteres
-        return text[:6000] if len(text) > 6000 else text
+        return text[:12000] if len(text) > 12000 else text
     except Exception as e:
         error_msg = str(e)
         print(f"Error al leer el PDF: {error_msg}")
@@ -1900,7 +1899,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
 }}
 
 Texto:
-{text_content[:2000]}
+{text_content[:6000]}
 
 JSON:"""
 
@@ -1911,7 +1910,7 @@ JSON:"""
         "format": "json",
         "stream": False,
         "temperature": 0.1,
-        "num_predict": 500
+        "num_predict": 1000
     }
 
     print("Enviando solicitud a Ollama...")
