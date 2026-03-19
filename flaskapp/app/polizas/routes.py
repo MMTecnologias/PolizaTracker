@@ -1670,14 +1670,19 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
                 raise ValueError("El PDF no contiene páginas")
 
             for page in pdf.pages[:8]:  # Primeras 8 páginas
-                page_text = page.extract_text()
+                page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
                 if page_text:
                     text += page_text + "\n"
+                for table in page.extract_tables():
+                    for row in table:
+                        row_text = " | ".join(cell.strip() if cell else "" for cell in row)
+                        if row_text.strip(" |"):
+                            text += row_text + "\n"
 
         if not text.strip():
             raise ValueError("No se pudo extraer texto del PDF")
 
-        return text[:12000] if len(text) > 12000 else text
+        return text[:10000] if len(text) > 10000 else text
     except Exception as e:
         error_msg = str(e)
         print(f"Error al leer el PDF: {error_msg}")
@@ -1706,17 +1711,16 @@ def find_or_create_cliente(nombre_completo: str, rfc: str = None):
 
     # Buscar por nombre similar
     clientes = Cliente.query.all()
-    for cliente in clientes:
-        nombre_bd = f"{cliente.nombre} {cliente.apellido}".lower().strip()
-        nombre_buscar = nombre_completo.lower().strip()
-
-        from difflib import SequenceMatcher
-        ratio = SequenceMatcher(None, nombre_buscar, nombre_bd).ratio() * 100
-
-        if ratio >= 80:
-            print(
-                f"Cliente encontrado por nombre: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
-            return cliente.id
+    # Crear registros temporales con atributo 'nombre' combinado para reusar find_best_match
+    class _ClienteProxy:
+        def __init__(self, c):
+            self.id = c.id
+            self.nombre = f"{c.nombre} {c.apellido}".strip()
+    proxies = [_ClienteProxy(c) for c in clientes]
+    cliente_id = find_best_match(nombre_completo, proxies)
+    if cliente_id:
+        print(f"Cliente encontrado por nombre (ID: {cliente_id})")
+        return cliente_id
 
     # Crear nuevo cliente
     partes = nombre_completo.strip().split(maxsplit=1)
@@ -1804,7 +1808,7 @@ def find_or_create_ramo(nombre: str):
         return None
 
     ramos = Ramo.query.all()
-    ramo_id = find_best_match(nombre, ramos, threshold=70, attr_name='ramo')
+    ramo_id = find_best_match(nombre, ramos, attr_name='ramo')
 
     if not ramo_id:
         nuevo = Ramo(ramo=nombre.strip()[:30])
@@ -1823,7 +1827,7 @@ def find_or_create_subramo(nombre: str):
 
     subramos = Subramo.query.all()
     subramo_id = find_best_match(
-        nombre, subramos, threshold=70, attr_name='subramo')
+        nombre, subramos, attr_name='subramo')
 
     if not subramo_id:
         nuevo = Subramo(subramo=nombre.strip()[:30])
@@ -1835,9 +1839,9 @@ def find_or_create_subramo(nombre: str):
     return subramo_id
 
 
-def find_best_match(extracted_name: str, db_records, threshold=70, attr_name=None):
+def find_best_match(extracted_name: str, db_records, threshold=85, attr_name=None):
     """
-    Encuentra el mejor match entre el nombre extraído y los registros de la BD.
+    Busca el mejor match: exacto → contains → fuzzy.
     Retorna el ID del registro o None si no hay match suficientemente bueno.
     """
     if not extracted_name or not db_records:
@@ -1850,18 +1854,23 @@ def find_best_match(extracted_name: str, db_records, threshold=70, attr_name=Non
     best_ratio = 0
 
     for record in db_records:
-        if attr_name:
-            record_name = getattr(record, attr_name, None)
-        else:
-            record_name = getattr(record, 'nombre', None) or getattr(
-                record, 'aseguradora', None)
-
+        record_name = getattr(record, attr_name, None) if attr_name else (
+            getattr(record, 'nombre', None) or getattr(record, 'aseguradora', None)
+        )
         if not record_name:
             continue
 
         record_clean = record_name.lower().strip()
-        ratio = SequenceMatcher(None, extracted_clean,
-                                record_clean).ratio() * 100
+
+        # 1. Exacto
+        if extracted_clean == record_clean:
+            return record.id
+
+        # 2. Uno contiene al otro (útil para "AXA Seguros" vs "AXA")
+        if extracted_clean in record_clean or record_clean in extracted_clean:
+            ratio = 95
+        else:
+            ratio = SequenceMatcher(None, extracted_clean, record_clean).ratio() * 100
 
         if ratio > best_ratio and ratio >= threshold:
             best_ratio = ratio
@@ -1872,34 +1881,38 @@ def find_best_match(extracted_name: str, db_records, threshold=70, attr_name=Non
 
 def call_ollama_model(text_content: str, schema: dict) -> dict:
     ollama_url = "http://localhost:11434/api/generate"
-    prompt_instruction = f"""Extrae estos datos de la póliza y devuelve SOLO JSON:
+    prompt_instruction = f"""Eres un extractor de datos de pólizas de seguros mexicanas. Analiza el texto y devuelve SOLO un JSON con los campos indicados.
 
-{{
-  "descripcion": "descripción",
-  "desde": "fecha inicio DD/MM/YYYY",
-  "numero_de_poliza": "número de póliza",
-  "forma_de_pago": "forma de pago",
-  "hasta": "fecha fin DD/MM/YYYY",
-  "nombre_cliente": "nombre del cliente",
-  "aseguradora": "nombre de la aseguradora",
-  "agente": "nombre del agente",
-  "vendedor": "nombre del vendedor",
-  "ramo": "tipo de seguro o ramo (ej: Autos, Vida, Gastos Médicos)",
-  "subramo": "subtipo o subramo del seguro",
-  "prima_neta": "monto prima neta",
-  "prima_total": "monto prima total",
-  "moneda": "MXN/USD/Udis",
-  "rfc": "RFC",
-  "endoso": "número endoso",
-  "marca": "marca del vehículo",
-  "modelo": "modelo del vehículo",
-  "numero_serie": "número de serie o VIN del vehículo",
-  "derecho_poliza": "derecho de póliza",
-  "gastos_expedicion": "gastos de expedición"
-}}
+Instrucciones:
+- Si un campo no existe en el texto, devuelve null
+- Las fechas deben estar en formato DD/MM/YYYY
+- Los montos deben ser solo números (sin símbolos de moneda ni comas)
 
-Texto:
-{text_content[:6000]}
+Campos a buscar (con sus posibles nombres en el documento):
+- "numero_de_poliza": "Póliza No.", "No. de Póliza", "Número de Póliza", "Póliza", "Policy"
+- "desde": "Vigencia Desde", "Inicio de Vigencia", "Fecha Inicio", "Desde", "Vigencia De"
+- "hasta": "Vigencia Hasta", "Fin de Vigencia", "Fecha Vencimiento", "Hasta", "Vigencia A"
+- "forma_de_pago": "Forma de Pago", "Frecuencia de Pago", "Plan de Pago"
+- "nombre_cliente": "Contratante", "Asegurado", "Cliente", "Nombre del Asegurado"
+- "aseguradora": nombre de la compañía aseguradora emisora
+- "agente": "Agente", "Intermediario", "Promotor", "Clave Agente"
+- "vendedor": "Vendedor", "Ejecutivo", "Asesor"
+- "ramo": "Ramo", "Tipo de Seguro", "Producto" (ej: Autos, Vida, Gastos Médicos, GMM)
+- "subramo": "Subramo", "Plan", "Tipo de Plan", "Cobertura"
+- "prima_neta": "Prima Neta", "Prima sin IVA", "Neta"
+- "prima_total": "Prima Total", "Total a Pagar", "Prima con IVA", "Importe Total"
+- "moneda": "Moneda" (MXN, USD, Udis)
+- "rfc": "RFC", "R.F.C."
+- "endoso": "Endoso", "No. Endoso"
+- "marca": marca del vehículo
+- "modelo": modelo o año del vehículo
+- "numero_serie": "No. Serie", "VIN", "Número de Serie"
+- "derecho_poliza": "Derecho de Póliza", "Derecho"
+- "gastos_expedicion": "Gastos de Expedición", "Gastos Expedición"
+- "descripcion": descripción general del seguro o bien asegurado
+
+Texto de la póliza:
+{text_content[:10000]}
 
 JSON:"""
 
@@ -1909,7 +1922,8 @@ JSON:"""
         "prompt": prompt_instruction,
         "format": "json",
         "stream": False,
-        "temperature": 0.1,
+        "temperature": 0,
+        "seed": 42,
         "num_predict": 1000
     }
 
