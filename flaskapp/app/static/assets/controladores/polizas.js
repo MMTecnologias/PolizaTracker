@@ -231,12 +231,12 @@ $(function () {
 
     // Primas
     if (data.prima_neta) {
-      const primaNeta = parseFloat(data.prima_neta.replace(/[^0-9.-]/g, ''));
+      const primaNeta = parseFloat(String(data.prima_neta).replace(/[^0-9.-]/g, ''));
       console.log('Prima Neta:', primaNeta);
       if (!isNaN(primaNeta)) $('#prima_neta').val(primaNeta.toFixed(2));
     }
     if (data.prima_total) {
-      const primaTotal = parseFloat(data.prima_total.replace(/[^0-9.-]/g, ''));
+      const primaTotal = parseFloat(String(data.prima_total).replace(/[^0-9.-]/g, ''));
       console.log('Prima Total:', primaTotal);
       if (!isNaN(primaTotal)) $('#prima_total').val(primaTotal.toFixed(2));
     }
@@ -310,27 +310,50 @@ $(function () {
     // Forma de pago - buscar en el select
     if (data.forma_de_pago) {
       console.log('Forma de pago:', data.forma_de_pago);
-      const formaPagoNorm = data.forma_de_pago.toUpperCase();
+      const formaPagoNorm = data.forma_de_pago.toUpperCase().trim();
 
-      // Buscar opción que coincida
+      let matched = false;
       $('#Pago option').each(function () {
         const optionText = $(this).text().toUpperCase();
-        if (optionText.includes('CONTADO') || optionText.includes('ÚNICO')) {
-          if (
-            formaPagoNorm.includes('CONTADO') ||
-            formaPagoNorm.includes('ÚNICO')
-          ) {
-            $('#Pago').val($(this).val());
-            return false;
-          }
+        if (
+          optionText.includes(formaPagoNorm) ||
+          formaPagoNorm.includes(optionText.replace(/[^A-ZÁÉÍÓÚÑ]/gi, ''))
+        ) {
+          $('#Pago').val($(this).val());
+          matched = true;
+          return false;
         }
       });
+
+      // Fallback: mapeo de palabras clave comunes
+      if (!matched) {
+        const pagoMap = {
+          MENSUAL: 'MENSUAL',
+          TRIMESTRAL: 'TRIMESTRAL',
+          SEMESTRAL: 'SEMESTRAL',
+          ANUAL: 'ANUAL',
+          CONTADO: 'CONTADO',
+          ÚNICO: 'CONTADO',
+          UNICO: 'CONTADO',
+        };
+        for (const [key, val] of Object.entries(pagoMap)) {
+          if (formaPagoNorm.includes(key)) {
+            $('#Pago option').each(function () {
+              if ($(this).text().toUpperCase().includes(val)) {
+                $('#Pago').val($(this).val());
+                return false;
+              }
+            });
+            break;
+          }
+        }
+      }
     }
 
     // Derecho de póliza (también puede ser "gastos de expedición")
     if (data.derecho_poliza) {
       const derechoPoliza = parseFloat(
-        data.derecho_poliza.replace(/[^0-9.-]/g, ''),
+        String(data.derecho_poliza).replace(/[^0-9.-]/g, ''),
       );
       console.log('Derecho de Póliza:', derechoPoliza);
       if (!isNaN(derechoPoliza)) {

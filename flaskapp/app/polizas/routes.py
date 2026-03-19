@@ -11,7 +11,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from app import app, db, login_manager
-from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, Endoso, new_class
+from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, Endoso, new_class, new_class_deferred
 from sqlalchemy import join, or_, desc, func, select
 from . import polizas_route
 from datetime import datetime, date
@@ -262,26 +262,26 @@ def create():
 
         ramo = flask_request.form.get('ramo')
         nuevo_ramo = flask_request.form.get('nuevo_ramo')
-        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+        argdict["ramo_id"] = new_class_deferred(Ramo, ramo, nuevo_ramo, "ramo")
 
         subramo = flask_request.form.get('subramo')
         nuevo_subramo = flask_request.form.get('nuevo_subramo')
-        argdict["subramo_id"] = new_class(
+        argdict["subramo_id"] = new_class_deferred(
             Subramo, subramo, nuevo_subramo, "subramo")
 
         aseguradora = flask_request.form.get('aseguradora')
         nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
-        argdict["aseguradora_id"] = new_class(
+        argdict["aseguradora_id"] = new_class_deferred(
             Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
         vendedor = flask_request.form.get('vendedor')
         nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
-        argdict["vendedor_id"] = new_class(
+        argdict["vendedor_id"] = new_class_deferred(
             Vendedor, vendedor, nuevo_vendedor, "nombre")
 
         agente = flask_request.form.get('agente')
         nuevo_agente = flask_request.form.get('nuevo_agente')
-        argdict["agente_id"] = new_class(
+        argdict["agente_id"] = new_class_deferred(
             Agente, agente, nuevo_agente, "nombre")
         return argdict
 
@@ -492,26 +492,26 @@ def edit():
 
         ramo = flask_request.form.get('ramo')
         nuevo_ramo = flask_request.form.get('nuevo_ramo')
-        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+        argdict["ramo_id"] = new_class_deferred(Ramo, ramo, nuevo_ramo, "ramo")
 
         subramo = flask_request.form.get('subramo')
         nuevo_subramo = flask_request.form.get('nuevo_subramo')
-        argdict["subramo_id"] = new_class(
+        argdict["subramo_id"] = new_class_deferred(
             Subramo, subramo, nuevo_subramo, "subramo")
 
         aseguradora = flask_request.form.get('aseguradora')
         nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
-        argdict["aseguradora_id"] = new_class(
+        argdict["aseguradora_id"] = new_class_deferred(
             Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
         vendedor = flask_request.form.get('vendedor')
         nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
-        argdict["vendedor_id"] = new_class(
+        argdict["vendedor_id"] = new_class_deferred(
             Vendedor, vendedor, nuevo_vendedor, "nombre")
 
         agente = flask_request.form.get('agente')
         nuevo_agente = flask_request.form.get('nuevo_agente')
-        argdict["agente_id"] = new_class(
+        argdict["agente_id"] = new_class_deferred(
             Agente, agente, nuevo_agente, "nombre")
 
         return argdict
@@ -980,26 +980,26 @@ def create_endoso():
 
         ramo = flask_request.form.get('ramo')
         nuevo_ramo = flask_request.form.get('nuevo_ramo')
-        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+        argdict["ramo_id"] = new_class_deferred(Ramo, ramo, nuevo_ramo, "ramo")
 
         subramo = flask_request.form.get('subramo')
         nuevo_subramo = flask_request.form.get('nuevo_subramo')
-        argdict["subramo_id"] = new_class(
+        argdict["subramo_id"] = new_class_deferred(
             Subramo, subramo, nuevo_subramo, "subramo")
 
         aseguradora = flask_request.form.get('aseguradora')
         nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
-        argdict["aseguradora_id"] = new_class(
+        argdict["aseguradora_id"] = new_class_deferred(
             Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
         vendedor = flask_request.form.get('vendedor')
         nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
-        argdict["vendedor_id"] = new_class(
+        argdict["vendedor_id"] = new_class_deferred(
             Vendedor, vendedor, nuevo_vendedor, "nombre")
 
         agente = flask_request.form.get('agente')
         nuevo_agente = flask_request.form.get('nuevo_agente')
-        argdict["agente_id"] = new_class(
+        argdict["agente_id"] = new_class_deferred(
             Agente, agente, nuevo_agente, "nombre")
         return argdict
 
@@ -1216,26 +1216,26 @@ def edit_endoso():
 
         ramo = flask_request.form.get('ramo')
         nuevo_ramo = flask_request.form.get('nuevo_ramo')
-        argdict["ramo_id"] = new_class(Ramo, ramo, nuevo_ramo, "ramo")
+        argdict["ramo_id"] = new_class_deferred(Ramo, ramo, nuevo_ramo, "ramo")
 
         subramo = flask_request.form.get('subramo')
         nuevo_subramo = flask_request.form.get('nuevo_subramo')
-        argdict["subramo_id"] = new_class(
+        argdict["subramo_id"] = new_class_deferred(
             Subramo, subramo, nuevo_subramo, "subramo")
 
         aseguradora = flask_request.form.get('aseguradora')
         nuevo_aseguradora = flask_request.form.get('nuevo_aseguradora')
-        argdict["aseguradora_id"] = new_class(
+        argdict["aseguradora_id"] = new_class_deferred(
             Aseguradora, aseguradora, nuevo_aseguradora, "aseguradora")
 
         vendedor = flask_request.form.get('vendedor')
         nuevo_vendedor = flask_request.form.get('nuevo_vendedor')
-        argdict["vendedor_id"] = new_class(
+        argdict["vendedor_id"] = new_class_deferred(
             Vendedor, vendedor, nuevo_vendedor, "nombre")
 
         agente = flask_request.form.get('agente')
         nuevo_agente = flask_request.form.get('nuevo_agente')
-        argdict["agente_id"] = new_class(
+        argdict["agente_id"] = new_class_deferred(
             Agente, agente, nuevo_agente, "nombre")
 
         return argdict

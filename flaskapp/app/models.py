@@ -255,6 +255,23 @@ def new_class(clase, form_id, nuevo, columname):
     return id
 
 
+def new_class_deferred(clase, form_id, nuevo, columname):
+    """Como new_class pero sin commit: solo hace flush para obtener el ID.
+    Los nuevos registros se persisten junto con el commit final de la póliza."""
+    if form_id == "New":
+        existente = clase.query.filter(
+            getattr(clase, columname) == nuevo).first()
+        if existente:
+            return existente.id
+        kwargs = {columname: nuevo}
+        obj = clase(**kwargs)
+        db.session.add(obj)
+        db.session.flush()
+        return obj.id
+    else:
+        return int(form_id)
+
+
 def new_class_edit(clase, form_id, nuevo, columname):
     if form_id == "New":
         existente = clase.query.filter(
