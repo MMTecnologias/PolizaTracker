@@ -1,11 +1,12 @@
 import io
 import pdfplumber
+from pdfminer.high_level import extract_text as pdfminer_extract_text
 import json
 import re
 import os
 import uuid
 import requests
-from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory
+from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory, has_app_context
 from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -327,7 +328,7 @@ def create():
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
-    
+
     # Validar que cliente_id no sea None o "None"
     cliente_id_val = arg_values.get('cliente_id')
     if not cliente_id_val or str(cliente_id_val).strip() in ('', 'None', 'none'):
@@ -380,11 +381,13 @@ def create():
     arg_values['recibos'] = 'Por generar'
 
     new_poliza = Poliza(**arg_values)
-    print(f"[CREATE] Poliza a guardar - poliza: '{arg_values.get('poliza')}', pdf_path: '{arg_values.get('pdf_path', 'NO DEFINIDO')}', recibos: '{arg_values.get('recibos')}'")
+    print(
+        f"[CREATE] Poliza a guardar - poliza: '{arg_values.get('poliza')}', pdf_path: '{arg_values.get('pdf_path', 'NO DEFINIDO')}', recibos: '{arg_values.get('recibos')}'")
     # Save the new client to the database
     db.session.add(new_poliza)
     db.session.commit()
-    print(f"[CREATE] Poliza guardada en BD - ID: {new_poliza.id}, pdf_path en BD: '{new_poliza.pdf_path}', recibos: '{new_poliza.recibos}'")
+    print(
+        f"[CREATE] Poliza guardada en BD - ID: {new_poliza.id}, pdf_path en BD: '{new_poliza.pdf_path}', recibos: '{new_poliza.recibos}'")
 
     if poliza_old:
         poliza_old.Poliza_renovada = "Si"
@@ -677,7 +680,8 @@ def calcular_recibos():
     prima_neta = float(flask_request.form.get('netPremium'))
     iva = float(flask_request.form.get('iva'))
     derecho_poliza = float(flask_request.form.get('insurance'))
-    print(f"[CALCULAR_RECIBOS] totalPremium={prima_total}, netPremium={prima_neta}, iva={iva}, insurance={derecho_poliza}")
+    print(
+        f"[CALCULAR_RECIBOS] totalPremium={prima_total}, netPremium={prima_neta}, iva={iva}, insurance={derecho_poliza}")
     print(f"[CALCULAR_RECIBOS] receipts={flask_request.form.get('receipts')}, commission={flask_request.form.get('commission')}, rec_pago={flask_request.form.get('rec_pago')}, selectPoliza={flask_request.form.get('selectPoliza')}")
     derecho_poliza_con_iva = derecho_poliza * (1+iva / 100)
     iva = prima_total*iva / (100+iva)
@@ -767,7 +771,8 @@ def save_receipts():
     print(f"[SAVE_RECEIPTS] poliza_id='{poliza_id}', endoso_id='{endoso_id}'")
     print(f"[SAVE_RECEIPTS] poliza encontrada: {poliza is not None}")
     if poliza:
-        print(f"[SAVE_RECEIPTS] poliza.recibos='{poliza.recibos}', poliza.poliza='{poliza.poliza}'")
+        print(
+            f"[SAVE_RECEIPTS] poliza.recibos='{poliza.recibos}', poliza.poliza='{poliza.poliza}'")
     multiplier = 1
     endoso_or_poliza = poliza
     is_endoso = False
@@ -792,10 +797,12 @@ def save_receipts():
         is_endoso = True
 
     elif not poliza:
-        print(f"[SAVE_RECEIPTS] ERROR: Poliza con id='{poliza_id}' no encontrada en BD")
+        print(
+            f"[SAVE_RECEIPTS] ERROR: Poliza con id='{poliza_id}' no encontrada en BD")
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
     elif poliza.recibos == "Generados":
-        print(f"[SAVE_RECEIPTS] ERROR: La poliza '{poliza.poliza}' ya tiene recibos generados")
+        print(
+            f"[SAVE_RECEIPTS] ERROR: La poliza '{poliza.poliza}' ya tiene recibos generados")
         return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
 
     try:
@@ -870,7 +877,8 @@ def save_receipts():
 
         # Realiza el commit después de completar las inserciones
         db.session.commit()
-        print(f"[SAVE_RECEIPTS] Recibos guardados exitosamente para poliza_id='{poliza_id}', total recibos={response['nopagos']}")
+        print(
+            f"[SAVE_RECEIPTS] Recibos guardados exitosamente para poliza_id='{poliza_id}', total recibos={response['nopagos']}")
         return jsonify({'error': False, 'msg': 'Recibos generados con exito'})
     except Exception as e:
         # Si ocurre algún error, realiza un rollback
@@ -1034,7 +1042,7 @@ def create_endoso():
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
-    
+
     # Validar que cliente_id no sea None o "None"
     cliente_id_val = arg_values.get('cliente_id')
     if not cliente_id_val or str(cliente_id_val).strip() in ('', 'None', 'none'):
@@ -1616,10 +1624,9 @@ JSON_SCHEMA = {
     "numero_de_poliza": "string",
     "forma_de_pago": "string",
     "hasta": "string",
-    "nombre_cliente": "integer",
+    "nombre_cliente": "string",
     "aseguradora": "string",
     "agente": "string",
-    "vendedor": "string",
     "ramo": "string",
     "subramo": "string",
     "prima_neta": "string",
@@ -1633,6 +1640,39 @@ JSON_SCHEMA = {
     "derecho_poliza": "string",
     "gastos_expedicion": "string"
 }
+
+DEFAULT_POLICY_VENDEDOR = "GUILLERMO GARDUÑO"
+
+LOCAL_POLICY_MODEL_CANDIDATES = [
+    "qwen2.5:7b",
+    "llama3.1:8b",
+    "mistral:7b-instruct",
+    "gemma2:9b"
+]
+
+CRITICAL_POLICY_FIELDS = (
+    "numero_de_poliza",
+    "nombre_cliente",
+    "desde",
+    "hasta",
+    "prima_total"
+)
+
+
+def log_policy_event(stage: str, message: str, **kwargs):
+    """Log ligero con contexto uniforme para depurar la extracción de pólizas."""
+    extra = " ".join(
+        f"{key}={json.dumps(value, ensure_ascii=False)}"
+        for key, value in kwargs.items() if value is not None
+    )
+    log_message = f"[POLICY_AI][{stage}] {message}"
+    if extra:
+        log_message = f"{log_message} | {extra}"
+
+    if has_app_context():
+        current_app.logger.info(log_message)
+    else:
+        print(log_message)
 
 
 # def extract_text_from_pdf(pdf_path: str) -> str:
@@ -1665,19 +1705,45 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
             raise ValueError("El archivo no es un PDF válido")
 
         text = ""
+        page_summaries = []
         with pdfplumber.open(io.BytesIO(file_content)) as pdf:
             if not pdf.pages:
                 raise ValueError("El PDF no contiene páginas")
 
-            for page in pdf.pages[:8]:  # Primeras 8 páginas
+            # Primeras 8 páginas
+            for page_index, page in enumerate(pdf.pages[:8], start=1):
                 page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
+                page_text_len = len(page_text.strip()) if page_text else 0
+                table_count = 0
                 if page_text:
                     text += page_text + "\n"
                 for table in page.extract_tables():
+                    table_count += 1
                     for row in table:
-                        row_text = " | ".join(cell.strip() if cell else "" for cell in row)
+                        row_text = " | ".join(
+                            cell.strip() if cell else "" for cell in row)
                         if row_text.strip(" |"):
                             text += row_text + "\n"
+                page_summaries.append({
+                    "page": page_index,
+                    "text_chars": page_text_len,
+                    "tables": table_count
+                })
+
+        # Fallback con pdfminer para PDFs de texto plano (ej. AXXA)
+        if not text.strip():
+            log_policy_event(
+                "pdf_extract", "pdfplumber no extrajo texto, usando fallback pdfminer")
+            text = pdfminer_extract_text(
+                io.BytesIO(file_content), maxpages=8) or ""
+
+        log_policy_event(
+            "pdf_extract",
+            "extracción de texto completada",
+            bytes=len(file_content),
+            chars=len(text),
+            pages=page_summaries
+        )
 
         if not text.strip():
             raise ValueError("No se pudo extraer texto del PDF")
@@ -1685,7 +1751,8 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
         return text[:10000] if len(text) > 10000 else text
     except Exception as e:
         error_msg = str(e)
-        print(f"Error al leer el PDF: {error_msg}")
+        log_policy_event("pdf_extract_error",
+                         "error al leer el PDF", error=error_msg)
 
         if 'No /Root object' in error_msg or 'PdfReadError' in error_msg:
             raise Exception("El archivo PDF está corrupto o no es válido")
@@ -1696,22 +1763,509 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
         raise
 
 
-def find_or_create_cliente(nombre_completo: str, rfc: str = None):
-    """Busca o crea un cliente. Retorna el ID."""
+def clean_extracted_text(text: str) -> str:
+    """Normaliza el texto del PDF conservando saltos de línea útiles para tablas."""
+    if not text:
+        return ""
+
+    text = text.replace("\r", "\n").replace("\t", " ")
+    text = re.sub(r'[ \xa0]+', ' ', text)
+    text = re.sub(r' *\| *', ' | ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def extract_json_object(text: str) -> dict:
+    """Extrae el primer objeto JSON válido incluso si viene con fences o texto extra."""
+    if not text:
+        raise ValueError("Respuesta vacía del modelo")
+
+    cleaned = text.strip()
+    fence_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', cleaned, re.S)
+    if fence_match:
+        cleaned = fence_match.group(1)
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        start = cleaned.find('{')
+        end = cleaned.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            return json.loads(cleaned[start:end + 1])
+        raise
+
+
+def sanitize_text_value(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return str(value)
+    if not isinstance(value, str):
+        value = str(value)
+    value = re.sub(r'\s+', ' ', value).strip()
+    return value or None
+
+
+def sanitize_name_candidate(value: str) -> str:
+    value = sanitize_text_value(value)
+    if not value:
+        return None
+
+    for token in (
+        r'\bDomicilio\b',
+        r'\bCiudad\b',
+        r'\bR\.?F\.?C\.?\b',
+        r'\bTel[eé]fono\b',
+        r'\bP[oó]liza\b',
+        r'\bSolicitud\b',
+        r'\bFecha\b'
+    ):
+        value = re.split(token, value, maxsplit=1, flags=re.I)[0].strip(" :|-")
+
+    value = re.sub(r'\s+[A-Z0-9-]{6,}$', '', value).strip(" :|-")
+    return sanitize_text_value(value)
+
+
+def split_name_and_policy_suffix(value: str):
+    """Separa un posible número de póliza pegado al final del nombre."""
+    value = sanitize_text_value(value)
+    if not value:
+        return None, None
+
+    match = re.match(r'^(.*?)(?:\s+([A-Z0-9-]{5,}))$', value)
+    if not match:
+        return value, None
+
+    candidate = sanitize_text_value(match.group(2))
+    if not candidate:
+        return value, None
+
+    has_letter = bool(re.search(r'[A-Z]', candidate))
+    has_digit = bool(re.search(r'\d', candidate))
+    if not (has_letter and has_digit):
+        return value, None
+
+    clean_name = sanitize_name_candidate(match.group(1))
+    if not clean_name:
+        return value, None
+
+    return clean_name, candidate
+
+
+def normalize_amount_value(value):
+    value = sanitize_text_value(value)
+    if not value:
+        return None
+    amount = re.sub(r'[^0-9.]', '', value)
+    return amount or None
+
+
+def extract_amount_near_label(text: str, labels) -> str:
+    for label in labels:
+        pattern = rf'{label}[^\n]{{0,80}}?((?:\d{{1,3}}(?:,\d{{3}})+|\d+)(?:\.\d{{2}})?)'
+        match = re.search(pattern, text, re.I)
+        if match:
+            return normalize_amount_value(match.group(1))
+    return None
+
+
+def extract_policy_number_value(text: str) -> str:
+    patterns = [
+        r'(?im)^\s*P[oó]liza\s*[:|]\s*([A-Z0-9-]{5,})\b',
+        r'(?is)(?:^|\n)\s*P[oó]liza\s*\n+\s*([A-Z0-9-]{5,})\b',
+        r'(?im)^\s*P[oó]liza\s*\|\s*([A-Z0-9-]{5,})\b',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            candidate = sanitize_text_value(match.group(1))
+            if candidate and re.fullmatch(r'[A-Z0-9-]{5,}', candidate):
+                return candidate
+    return None
+
+
+def extract_agent_name_value(text: str) -> str:
+    patterns = [
+        r'(?im)^\s*Agente\s*[:|]\s*(?:\d{4,}\s+)?([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ.\s]+?)\s*$',
+        r'(?is)(?:^|\n)\s*Agente\s*[:|]\s*\n+\s*(?:\d{4,}\s+)?([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ.\s]+?)(?:\n|$)',
+        r'(?im)^\s*Agente\s*\|\s*(?:\d{4,}\s*\|\s*)?([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ.\s]+?)\s*$',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return sanitize_name_candidate(match.group(1))
+    return None
+
+
+def extract_value_after_label(text: str, labels, stop_tokens=None) -> str:
+    stop_tokens = stop_tokens or []
+    for label in labels:
+        pattern = rf'{label}\s*[:|]?\s*([^\n]+)'
+        match = re.search(pattern, text, re.I)
+        if not match:
+            continue
+        value = match.group(1).strip(" :|-")
+        for token in stop_tokens:
+            value = re.split(token, value, maxsplit=1, flags=re.I)[0].strip()
+        value = re.sub(r'\s{2,}', ' ', value).strip(" :|-")
+        if value:
+            return value
+    return None
+
+
+def build_field_snippets(text: str) -> dict:
+    field_patterns = {
+        "numero_de_poliza": [r'P[oó]liza', r'Solicitud'],
+        "nombre_cliente": [r'Datos del contratante', r'Asegurado Titular', r'Nombre'],
+        "rfc": [r'R\.?F\.?C\.?'],
+        "agente": [r'^\s*Agente\s*[:|]', r'^\s*Agente\s*\|'],
+        "desde": [r'Fecha de inicio de vigencia'],
+        "hasta": [r'Fecha de fin de vigencia'],
+        "forma_de_pago": [r'Frecuencia de pago', r'Tipo de pago'],
+        "subramo": [r'Tipo de plan', r'Gastos M[ée]dicos Mayores'],
+        "prima_neta": [r'Prima Neta'],
+        "prima_total": [r'Prima anual total', r'Prima Total'],
+        "derecho_poliza": [r'Derecho de p[oó]liza', r'Gastos de expedici[oó]n'],
+    }
+    snippets = {}
+    for field, patterns in field_patterns.items():
+        for pattern in patterns:
+            match = re.search(pattern, text, re.I | re.M)
+            if match:
+                start = max(0, match.start() - 80)
+                end = min(len(text), match.end() + 220)
+                snippets[field] = text[start:end].strip()
+                break
+    return snippets
+
+
+def build_rule_based_hints(text: str) -> dict:
+    """Extrae campos de alta confianza sin depender del modelo."""
+    hints = {key: None for key in JSON_SCHEMA.keys()}
+
+    insurer_map = {
+        "AXA": "AXA",
+        "GNP": "GNP",
+        "QUALITAS": "Quálitas",
+        "QUÁLITAS": "Quálitas",
+        "MAPFRE": "Mapfre",
+        "HDI": "HDI"
+    }
+    upper_text = text.upper()
+    for token, insurer in insurer_map.items():
+        if token in upper_text:
+            hints["aseguradora"] = insurer
+            break
+
+    hints["numero_de_poliza"] = extract_policy_number_value(text)
+    hints["forma_de_pago"] = extract_value_after_label(
+        text, [r'Frecuencia de pago', r'Forma de pago', r'Plan de pago']
+    )
+    hints["descripcion"] = extract_value_after_label(
+        text, [r'Tipo de plan'], stop_tokens=[r'\bSolicitud\b']
+    )
+    hints["subramo"] = hints["descripcion"]
+
+    ramo_match = re.search(
+        r'(Gastos M[ée]dicos(?: Mayores)?(?: Individual / Familiar)?)', text, re.I)
+    if ramo_match:
+        ramo = sanitize_text_value(ramo_match.group(1))
+        hints["ramo"] = "Gastos Médicos"
+        if not hints["subramo"]:
+            hints["subramo"] = ramo
+
+    inicio_match = re.search(
+        r'Fecha de inicio de vigencia\s*[:|]?\s*(\d{2}/\d{2}/\d{4})', text, re.I)
+    if inicio_match:
+        hints["desde"] = inicio_match.group(1)
+
+    fin_match = re.search(
+        r'Fecha de fin de vigencia\s*[:|]?\s*(\d{2}/\d{2}/\d{4})', text, re.I)
+    if fin_match:
+        hints["hasta"] = fin_match.group(1)
+
+    hints["rfc"] = extract_value_after_label(
+        text, [r'R\.?F\.?C\.?'], stop_tokens=[r'Tel[eé]fono']
+    )
+
+    contratante_match = re.search(
+        r'Datos del contratante.*?Nombre\s*[:|]?\s*([^\n]+)', text, re.I | re.S)
+    if contratante_match:
+        nombre_cliente, policy_from_name = split_name_and_policy_suffix(
+            contratante_match.group(1))
+        hints["nombre_cliente"] = nombre_cliente
+        if not hints["numero_de_poliza"] and policy_from_name:
+            hints["numero_de_poliza"] = policy_from_name
+            log_policy_event(
+                "rule_hints",
+                "número de póliza inferido desde el nombre del cliente",
+                nombre_cliente=nombre_cliente,
+                numero_de_poliza=policy_from_name
+            )
+    else:
+        titular_match = re.search(
+            r'Datos del Asegurado Titular.*?Nombre\s*[:|]?\s*([^\n]+)', text, re.I | re.S)
+        if titular_match:
+            nombre_cliente, policy_from_name = split_name_and_policy_suffix(
+                titular_match.group(1))
+            hints["nombre_cliente"] = nombre_cliente
+            if not hints["numero_de_poliza"] and policy_from_name:
+                hints["numero_de_poliza"] = policy_from_name
+                log_policy_event(
+                    "rule_hints",
+                    "número de póliza inferido desde el nombre del titular",
+                    nombre_cliente=nombre_cliente,
+                    numero_de_poliza=policy_from_name
+                )
+
+    hints["agente"] = extract_agent_name_value(text)
+
+    if ' M.N.' in text or ' PESOS ' in f' {upper_text} ':
+        hints["moneda"] = "MXN"
+
+    hints["prima_neta"] = extract_amount_near_label(text, [r'Prima Neta'])
+    hints["prima_total"] = extract_amount_near_label(
+        text, [r'Prima anual total', r'Prima Total', r'Total a pagar']
+    )
+    hints["derecho_poliza"] = extract_amount_near_label(
+        text, [r'Derecho de p[oó]liza', r'Gastos de expedici[oó]n']
+    )
+    hints["gastos_expedicion"] = hints["derecho_poliza"]
+
+    normalized_hints = {key: sanitize_text_value(
+        value) for key, value in hints.items()}
+    log_policy_event(
+        "rule_hints",
+        "pistas determinísticas generadas",
+        found_fields=sorted(
+            [key for key, value in normalized_hints.items() if value]),
+        critical_found=count_populated_fields(
+            normalized_hints, CRITICAL_POLICY_FIELDS)
+    )
+    return normalized_hints
+
+
+def get_available_ollama_models(ollama_url: str) -> list:
+    try:
+        response = requests.get(ollama_url.replace(
+            '/generate', '/tags'))
+        response.raise_for_status()
+        data = response.json()
+        models = [model.get("name") for model in data.get(
+            "models", []) if model.get("name")]
+        log_policy_event(
+            "ollama_models", "modelos detectados en Ollama", models=models)
+        return models
+    except Exception as exc:
+        log_policy_event(
+            "ollama_models", "no se pudieron listar modelos instalados", error=str(exc))
+        return []
+
+
+def choose_local_policy_models(available_models: list) -> list:
+    preferred = os.getenv("OLLAMA_POLICY_MODELS")
+    if preferred:
+        candidates = [model.strip()
+                      for model in preferred.split(',') if model.strip()]
+    else:
+        candidates = list(LOCAL_POLICY_MODEL_CANDIDATES)
+
+    if available_models:
+        selected = [model for model in candidates if model in available_models]
+        if not selected and available_models:
+            selected = available_models[:2]
+    else:
+        selected = candidates[:2]
+
+    chosen = selected[:2] if selected else ["llama3.1:8b"]
+    log_policy_event(
+        "ollama_models",
+        "candidatos elegidos para extracción",
+        available=available_models,
+        chosen=chosen
+    )
+    return chosen
+
+
+def build_policy_extraction_prompt(text_content: str, hints: dict, snippets: dict) -> str:
+    hints_json = json.dumps(
+        {k: v for k, v in hints.items() if v}, ensure_ascii=False, indent=2)
+    snippets_json = json.dumps(snippets, ensure_ascii=False, indent=2)
+    return f"""Analiza el siguiente texto de una póliza de seguro mexicana y extrae los datos.
+
+TEXTO NORMALIZADO DEL PDF:
+{text_content[:10000]}
+
+PISTAS DETERMINÍSTICAS EXTRAÍDAS POR REGLAS:
+{hints_json}
+
+FRAGMENTOS MÁS RELEVANTES POR CAMPO:
+{snippets_json}
+
+Usa SOLO la información del texto anterior. Las pistas sirven para resolver tablas y columnas, pero no inventes datos. Responde ÚNICAMENTE con JSON válido, sin explicaciones, sin markdown. Todos los valores deben ser strings o null.
+
+Prioridades:
+- Cuando haya una tabla de primas, usa la etiqueta exacta de cada importe. No confundas "Prima Neta" con "Prima anual total".
+- Si aparece "Solicitud", no la uses como número de póliza.
+- Si aparece "Tipo de plan", normalmente corresponde a la descripción comercial o subramo.
+- Para "nombre_cliente", prioriza "Datos del contratante"; si no existe, usa el "Asegurado Titular".
+- Para "forma_de_pago", prioriza "Frecuencia de pago" o "Forma de pago".
+
+Devuelve este JSON:
+{{
+  "numero_de_poliza": null,
+  "nombre_cliente": null,
+  "rfc": null,
+  "aseguradora": null,
+  "agente": null,
+  "ramo": null,
+  "subramo": null,
+  "desde": null,
+  "hasta": null,
+  "forma_de_pago": null,
+  "prima_neta": null,
+  "prima_total": null,
+  "moneda": null,
+  "endoso": null,
+  "marca": null,
+  "modelo": null,
+  "numero_serie": null,
+  "derecho_poliza": null,
+  "gastos_expedicion": null,
+  "descripcion": null
+}}"""
+
+
+def build_policy_reconciliation_prompt(text_content: str, hints: dict, model_output: dict) -> str:
+    return f"""Corrige y valida la extracción de una póliza mexicana. Responde SOLO con JSON válido.
+
+TEXTO NORMALIZADO:
+{text_content[:6000]}
+
+PISTAS DE ALTA CONFIANZA:
+{json.dumps({k: v for k, v in hints.items() if v}, ensure_ascii=False, indent=2)}
+
+EXTRACCIÓN PREVIA:
+{json.dumps(model_output, ensure_ascii=False, indent=2)}
+
+Reglas:
+- Conserva los campos correctos de la extracción previa.
+- Si una pista de alta confianza contradice un campo ambiguo, corrígelo.
+- No inventes valores.
+- Todos los valores deben ser strings o null.
+- "prima_total" debe corresponder al total anual o total a pagar, no a deducible, suma asegurada, IVA ni recargo.
+- "derecho_poliza" debe ser el cargo de derecho o expedición, no otro importe.
+"""
+
+
+def query_ollama_json(model: str, prompt: str) -> dict:
+    ollama_url = "http://localhost:11434/api/generate"
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "format": "json",
+        "stream": False,
+        "temperature": 0,
+        "seed": 42,
+        "num_predict": 1200
+    }
+    log_policy_event(
+        "ollama_request",
+        "enviando prompt a Ollama",
+        model=model,
+        prompt_chars=len(prompt)
+    )
+    response = requests.post(ollama_url, headers=headers, json=payload)
+    response.raise_for_status()
+    data = response.json()
+    if "response" not in data:
+        raise ValueError("Respuesta inesperada de Ollama")
+    parsed = extract_json_object(data["response"])
+    parsed = flatten_ollama_response(parsed)
+    log_policy_event(
+        "ollama_response",
+        "respuesta parseada del modelo",
+        model=model,
+        response_chars=len(data.get("response", "")),
+        found_fields=sorted(
+            [key for key, value in parsed.items() if sanitize_text_value(value)]),
+        critical_found=count_populated_fields(parsed, CRITICAL_POLICY_FIELDS)
+    )
+    return parsed
+
+
+def count_populated_fields(data: dict, fields) -> int:
+    return sum(1 for field in fields if sanitize_text_value(data.get(field)))
+
+
+def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
+    merged = {}
+    model_result = model_result or {}
+
+    trusted_rule_fields = {
+        "numero_de_poliza",
+        "nombre_cliente",
+        "rfc",
+        "aseguradora",
+        "agente",
+        "desde",
+        "hasta",
+        "forma_de_pago",
+        "prima_neta",
+        "prima_total",
+        "moneda",
+        "derecho_poliza",
+        "gastos_expedicion",
+        "descripcion"
+    }
+
+    for key in JSON_SCHEMA.keys():
+        model_value = sanitize_text_value(model_result.get(key))
+        rule_value = sanitize_text_value(rule_hints.get(key))
+        merged[key] = model_value
+
+        if key in ("prima_neta", "prima_total", "derecho_poliza", "gastos_expedicion"):
+            model_value = normalize_amount_value(model_value)
+            rule_value = normalize_amount_value(rule_value)
+            merged[key] = rule_value or model_value
+        elif key in trusted_rule_fields:
+            merged[key] = rule_value or model_value
+        else:
+            merged[key] = model_value or rule_value
+
+    log_policy_event(
+        "merge",
+        "fusión de reglas y modelo completada",
+        rule_fields=sorted(
+            [key for key, value in rule_hints.items() if sanitize_text_value(value)]),
+        model_fields=sorted(
+            [key for key, value in model_result.items() if sanitize_text_value(value)]),
+        merged_fields=sorted(
+            [key for key, value in merged.items() if sanitize_text_value(value)]),
+        critical_found=count_populated_fields(merged, CRITICAL_POLICY_FIELDS)
+    )
+    return merged
+
+
+def find_existing_cliente(nombre_completo: str, rfc: str = None):
+    """Busca un cliente existente. Retorna el ID o None."""
     if not nombre_completo or not nombre_completo.strip():
         return None
 
-    # Buscar por RFC si está disponible
     if rfc and rfc.strip():
         cliente = Cliente.query.filter_by(rfc=rfc.strip().upper()).first()
         if cliente:
-            print(
-                f"Cliente encontrado por RFC: {cliente.nombre} {cliente.apellido} (ID: {cliente.id})")
+            log_policy_event(
+                "entity_lookup",
+                "cliente encontrado por RFC",
+                cliente_id=cliente.id,
+                nombre=f"{cliente.nombre} {cliente.apellido}".strip()
+            )
             return cliente.id
 
-    # Buscar por nombre similar
     clientes = Cliente.query.all()
-    # Crear registros temporales con atributo 'nombre' combinado para reusar find_best_match
+
     class _ClienteProxy:
         def __init__(self, c):
             self.id = c.id
@@ -1719,123 +2273,100 @@ def find_or_create_cliente(nombre_completo: str, rfc: str = None):
     proxies = [_ClienteProxy(c) for c in clientes]
     cliente_id = find_best_match(nombre_completo, proxies)
     if cliente_id:
-        print(f"Cliente encontrado por nombre (ID: {cliente_id})")
+        log_policy_event(
+            "entity_lookup",
+            "cliente encontrado por nombre",
+            cliente_id=cliente_id,
+            nombre=nombre_completo
+        )
         return cliente_id
 
-    # Crear nuevo cliente
-    partes = nombre_completo.strip().split(maxsplit=1)
-    nombre = partes[0][:50]
-    apellido = partes[1][:50] if len(partes) > 1 else ""
-
-    # Obtener o crear grupo "General"
-    grupo = Grupo.query.filter_by(grupo="General").first()
-    if not grupo:
-        grupo = Grupo(grupo="General")
-        db.session.add(grupo)
-        db.session.flush()
-
-    nuevo = Cliente(
-        nombre=nombre,
-        apellido=apellido,
-        grupo_id=grupo.id,
-        rfc=rfc.strip().upper()[
-            :13] if rfc and rfc.strip() else "XAXX010101000",
-        status='Activo'
+    log_policy_event(
+        "entity_lookup",
+        "cliente no encontrado",
+        nombre=nombre_completo,
+        rfc=rfc
     )
-    db.session.add(nuevo)
-    db.session.flush()
-    print(f"Nuevo cliente creado: {nombre} {apellido} (ID: {nuevo.id})")
-    return nuevo.id
+    return None
 
 
-def find_or_create_aseguradora(nombre: str):
-    """Busca o crea una aseguradora. Retorna el ID."""
+def find_existing_aseguradora(nombre: str):
+    """Busca una aseguradora existente. Retorna el ID o None."""
     if not nombre or not nombre.strip():
         return None
 
     aseguradoras = Aseguradora.query.all()
     aseguradora_id = find_best_match(nombre, aseguradoras)
-
-    if not aseguradora_id:
-        nueva = Aseguradora(aseguradora=nombre.strip()[:40])
-        db.session.add(nueva)
-        db.session.flush()
-        aseguradora_id = nueva.id
-        print(f"Nueva aseguradora creada: {nombre} (ID: {aseguradora_id})")
-
+    log_policy_event(
+        "entity_lookup",
+        "resultado búsqueda aseguradora",
+        nombre=nombre,
+        aseguradora_id=aseguradora_id
+    )
     return aseguradora_id
 
 
-def find_or_create_agente(nombre: str):
-    """Busca o crea un agente. Retorna el ID."""
+def find_existing_agente(nombre: str):
+    """Busca un agente existente. Retorna el ID o None."""
     if not nombre or not nombre.strip():
         return None
 
     agentes = Agente.query.all()
     agente_id = find_best_match(nombre, agentes)
-
-    if not agente_id:
-        nuevo = Agente(nombre=nombre.strip()[:50])
-        db.session.add(nuevo)
-        db.session.flush()
-        agente_id = nuevo.id
-        print(f"Nuevo agente creado: {nombre} (ID: {agente_id})")
-
+    log_policy_event(
+        "entity_lookup",
+        "resultado búsqueda agente",
+        nombre=nombre,
+        agente_id=agente_id
+    )
     return agente_id
 
 
-def find_or_create_vendedor(nombre: str):
-    """Busca o crea un vendedor. Retorna el ID."""
+def find_existing_vendedor(nombre: str):
+    """Busca un vendedor existente. Retorna el ID o None."""
     if not nombre or not nombre.strip():
         return None
 
     vendedores = Vendedor.query.all()
     vendedor_id = find_best_match(nombre, vendedores)
-
-    if not vendedor_id:
-        nuevo = Vendedor(nombre=nombre.strip()[:50])
-        db.session.add(nuevo)
-        db.session.flush()
-        vendedor_id = nuevo.id
-        print(f"Nuevo vendedor creado: {nombre} (ID: {vendedor_id})")
-
+    log_policy_event(
+        "entity_lookup",
+        "resultado búsqueda vendedor",
+        nombre=nombre,
+        vendedor_id=vendedor_id
+    )
     return vendedor_id
 
 
-def find_or_create_ramo(nombre: str):
-    """Busca o crea un ramo. Retorna el ID."""
+def find_existing_ramo(nombre: str):
+    """Busca un ramo existente. Retorna el ID o None."""
     if not nombre or not nombre.strip():
         return None
 
     ramos = Ramo.query.all()
     ramo_id = find_best_match(nombre, ramos, attr_name='ramo')
-
-    if not ramo_id:
-        nuevo = Ramo(ramo=nombre.strip()[:30])
-        db.session.add(nuevo)
-        db.session.flush()
-        ramo_id = nuevo.id
-        print(f"Nuevo ramo creado: {nombre} (ID: {ramo_id})")
-
+    log_policy_event(
+        "entity_lookup",
+        "resultado búsqueda ramo",
+        nombre=nombre,
+        ramo_id=ramo_id
+    )
     return ramo_id
 
 
-def find_or_create_subramo(nombre: str):
-    """Busca o crea un subramo. Retorna el ID."""
+def find_existing_subramo(nombre: str):
+    """Busca un subramo existente. Retorna el ID o None."""
     if not nombre or not nombre.strip():
         return None
 
     subramos = Subramo.query.all()
-    subramo_id = find_best_match(
-        nombre, subramos, attr_name='subramo')
-
-    if not subramo_id:
-        nuevo = Subramo(subramo=nombre.strip()[:30])
-        db.session.add(nuevo)
-        db.session.flush()
-        subramo_id = nuevo.id
-        print(f"Nuevo subramo creado: {nombre} (ID: {subramo_id})")
-
+    subramo_id = find_best_match(nombre, subramos, attr_name='subramo')
+    log_policy_event(
+        "entity_lookup",
+        "resultado búsqueda subramo",
+        nombre=nombre,
+        subramo_id=subramo_id
+    )
     return subramo_id
 
 
@@ -1855,22 +2386,22 @@ def find_best_match(extracted_name: str, db_records, threshold=85, attr_name=Non
 
     for record in db_records:
         record_name = getattr(record, attr_name, None) if attr_name else (
-            getattr(record, 'nombre', None) or getattr(record, 'aseguradora', None)
+            getattr(record, 'nombre', None) or getattr(
+                record, 'aseguradora', None)
         )
         if not record_name:
             continue
 
         record_clean = record_name.lower().strip()
 
-        # 1. Exacto
         if extracted_clean == record_clean:
             return record.id
 
-        # 2. Uno contiene al otro (útil para "AXA Seguros" vs "AXA")
         if extracted_clean in record_clean or record_clean in extracted_clean:
             ratio = 95
         else:
-            ratio = SequenceMatcher(None, extracted_clean, record_clean).ratio() * 100
+            ratio = SequenceMatcher(
+                None, extracted_clean, record_clean).ratio() * 100
 
         if ratio > best_ratio and ratio >= threshold:
             best_ratio = ratio
@@ -1879,125 +2410,344 @@ def find_best_match(extracted_name: str, db_records, threshold=85, attr_name=Non
     return best_match
 
 
-def call_ollama_model(text_content: str, schema: dict) -> dict:
-    ollama_url = "http://localhost:11434/api/generate"
-    prompt_instruction = f"""Eres un extractor de datos de pólizas de seguros mexicanas. Analiza el texto y devuelve SOLO un JSON con los campos indicados.
+def flatten_ollama_response(raw: dict) -> dict:
+    """
+    Normaliza cualquier estructura que devuelva Ollama a un dict plano con las claves esperadas.
+    Estrategia: primero sube raíces únicas, luego aplana sub-objetos conocidos,
+    luego mapea alias de claves comunes.
+    """
+    # 1. Si hay una sola llave raíz con un dict adentro, subir un nivel
+    while len(raw) == 1:
+        val = next(iter(raw.values()))
+        if isinstance(val, dict):
+            raw = val
+        else:
+            break
 
-Instrucciones:
-- Si un campo no existe en el texto, devuelve null
-- Las fechas deben estar en formato DD/MM/YYYY
-- Los montos deben ser solo números (sin símbolos de moneda ni comas)
+    flat = dict(raw)
 
-Campos a buscar (con sus posibles nombres en el documento):
-- "numero_de_poliza": "Póliza No.", "No. de Póliza", "Número de Póliza", "Póliza", "Policy"
-- "desde": "Vigencia Desde", "Inicio de Vigencia", "Fecha Inicio", "Desde", "Vigencia De"
-- "hasta": "Vigencia Hasta", "Fin de Vigencia", "Fecha Vencimiento", "Hasta", "Vigencia A"
-- "forma_de_pago": "Forma de Pago", "Frecuencia de Pago", "Plan de Pago"
-- "nombre_cliente": "Contratante", "Asegurado", "Cliente", "Nombre del Asegurado"
-- "aseguradora": nombre de la compañía aseguradora emisora
-- "agente": "Agente", "Intermediario", "Promotor", "Clave Agente"
-- "vendedor": "Vendedor", "Ejecutivo", "Asesor"
-- "ramo": "Ramo", "Tipo de Seguro", "Producto" (ej: Autos, Vida, Gastos Médicos, GMM)
-- "subramo": "Subramo", "Plan", "Tipo de Plan", "Cobertura"
-- "prima_neta": "Prima Neta", "Prima sin IVA", "Neta"
-- "prima_total": "Prima Total", "Total a Pagar", "Prima con IVA", "Importe Total"
-- "moneda": "Moneda" (MXN, USD, Udis)
-- "rfc": "RFC", "R.F.C."
-- "endoso": "Endoso", "No. Endoso"
-- "marca": marca del vehículo
-- "modelo": modelo o año del vehículo
-- "numero_serie": "No. Serie", "VIN", "Número de Serie"
-- "derecho_poliza": "Derecho de Póliza", "Derecho"
-- "gastos_expedicion": "Gastos de Expedición", "Gastos Expedición"
-- "descripcion": descripción general del seguro o bien asegurado
+    # 2. Rescatar fechas de sub-objetos antes del aplanado genérico
+    # Caso: {"desde": {"fecha": "24/03/2026", ...}, "hasta": {"fecha": "24/03/2027", ...}}
+    for date_key in ("desde", "hasta"):
+        val = flat.get(date_key)
+        if isinstance(val, dict):
+            flat[date_key] = val.get("fecha") or val.get(
+                "date") or val.get("value") or None
 
-Texto de la póliza:
-{text_content[:10000]}
+    # 4. Aplanar sub-objetos: buscar dicts anidados y extraer sus valores al nivel raíz
+    for key, val in list(flat.items()):
+        if isinstance(val, dict):
+            for subkey, subval in val.items():
+                flat.setdefault(subkey, subval)
+            flat.pop(key)
+        elif isinstance(val, list) and val and isinstance(val[0], dict):
+            # Tomar el primer elemento de listas de objetos
+            for subkey, subval in val[0].items():
+                flat.setdefault(subkey, subval)
+            flat.pop(key)
 
-JSON:"""
-
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "model": "llama3.1:8b",
-        "prompt": prompt_instruction,
-        "format": "json",
-        "stream": False,
-        "temperature": 0,
-        "seed": 42,
-        "num_predict": 1000
+    # 5. Tabla de alias: clave_alternativa -> clave_esperada
+    ALIASES = {
+        "identificador": "numero_de_poliza",
+        "numero_poliza": "numero_de_poliza",
+        "poliza": "numero_de_poliza",
+        "no_poliza": "numero_de_poliza",
+        "policy": "numero_de_poliza",
+        "contratante": "nombre_cliente",
+        "asegurado": "nombre_cliente",
+        "titular": "nombre_cliente",
+        "cliente": "nombre_cliente",
+        "fecha_inicio_vigencia": "desde",
+        "fecha_inicio": "desde",
+        "vigencia_desde": "desde",
+        "vigencia_de": "desde",
+        "inicio_vigencia": "desde",
+        "fecha_fin_vigencia": "hasta",
+        "fecha_fin": "hasta",
+        "vigencia_hasta": "hasta",
+        "vigencia_a": "hasta",
+        "fin_vigencia": "hasta",
+        "frecuencia_pago": "forma_de_pago",
+        "frecuencia_de_pago": "forma_de_pago",
+        "plan_pago": "forma_de_pago",
+        "tipo_de_plan": "subramo",
+        "plan": "subramo",
+        "cobertura": "subramo",
+        "tipo_seguro": "ramo",
+        "producto": "ramo",
+        "num_serie": "numero_serie",
+        "vin": "numero_serie",
+        "no_serie": "numero_serie",
+        "prima": "prima_neta",
+        "neta": "prima_neta",
+        "prima_anual": "prima_neta",
+        "importe": "prima_neta",
+        "total": "prima_total",
+        "importe_total": "prima_total",
+        "prima_anual_total": "prima_total",
+        "r_f_c": "rfc",
+        "derecho": "derecho_poliza",
+        "gastos_expedicion": "derecho_poliza",
     }
 
-    print("Enviando solicitud a Ollama...")
+    for alias, target in ALIASES.items():
+        if alias in flat and target not in flat:
+            flat[target] = flat.pop(alias)
+        elif alias in flat:
+            flat.pop(alias)
+
+    # 4. Normalizar fechas a DD/MM/YYYY
+    DATE_FIELDS = ("desde", "hasta")
+    for field in DATE_FIELDS:
+        val = flat.get(field)
+        if not val:
+            continue
+        # ISO format: 2026-03-24 o 2026-03-24T00:00:00Z
+        iso_match = re.match(r'(\d{4})-(\d{2})-(\d{2})', str(val))
+        if iso_match:
+            flat[field] = f"{iso_match.group(3)}/{iso_match.group(2)}/{iso_match.group(1)}"
+
+    # 5. Limpiar montos: quitar símbolos de moneda y comas
+    AMOUNT_FIELDS = ("prima_neta", "prima_total",
+                     "derecho_poliza", "gastos_expedicion")
+    for field in AMOUNT_FIELDS:
+        val = flat.get(field)
+        if val and isinstance(val, str):
+            flat[field] = re.sub(r'[^\d.]', '', val) or None
+
+    return flat
+
+
+def call_ollama_model(text_content: str, schema: dict) -> dict:
+    ollama_url = "http://localhost:11434/api/generate"
+    cleaned_text = clean_extracted_text(text_content)
+    extraction_id = uuid.uuid4().hex[:8]
+    log_policy_event(
+        "pipeline_start",
+        "iniciando extracción híbrida",
+        extraction_id=extraction_id,
+        raw_chars=len(text_content or ""),
+        cleaned_chars=len(cleaned_text)
+    )
+    rule_hints = build_rule_based_hints(cleaned_text)
+    field_snippets = build_field_snippets(cleaned_text)
+    extraction_prompt = build_policy_extraction_prompt(
+        cleaned_text, rule_hints, field_snippets)
+    model_candidates = choose_local_policy_models(
+        get_available_ollama_models(ollama_url))
+
+    log_policy_event(
+        "pipeline_context",
+        "contexto preparado para la extracción",
+        extraction_id=extraction_id,
+        snippet_fields=sorted(field_snippets.keys()),
+        candidate_models=model_candidates,
+        preview=cleaned_text[:500]
+    )
+
+    last_error = None
+    extracted_json = {}
     try:
-        response = requests.post(ollama_url, headers=headers, json=payload)
-        response.raise_for_status()
-        data = response.json()
-        if "response" in data:
+        for model in model_candidates:
             try:
-                extracted_json = json.loads(data["response"])
+                log_policy_event(
+                    "model_attempt",
+                    "probando modelo de extracción",
+                    extraction_id=extraction_id,
+                    model=model
+                )
+                extracted_json = query_ollama_json(
+                    model, extraction_prompt)
+                critical_found = count_populated_fields(
+                    extracted_json, CRITICAL_POLICY_FIELDS)
+                log_policy_event(
+                    "model_attempt_result",
+                    "modelo respondió",
+                    extraction_id=extraction_id,
+                    model=model,
+                    critical_found=critical_found,
+                    found_fields=sorted(
+                        [key for key, value in extracted_json.items() if sanitize_text_value(value)])
+                )
+                if critical_found >= 4:
+                    break
+            except json.JSONDecodeError as exc:
+                last_error = ValueError(
+                    f"Respuesta JSON inválida del modelo {model}: {exc}")
+                log_policy_event(
+                    "model_attempt_error",
+                    "respuesta JSON inválida",
+                    extraction_id=extraction_id,
+                    model=model,
+                    error=str(last_error)
+                )
+            except ValueError as exc:
+                last_error = exc
+                log_policy_event(
+                    "model_attempt_error",
+                    "respuesta no utilizable",
+                    extraction_id=extraction_id,
+                    model=model,
+                    error=str(exc)
+                )
+            except requests.exceptions.RequestException as exc:
+                last_error = exc
+                log_policy_event(
+                    "model_attempt_error",
+                    "error de red o de Ollama",
+                    extraction_id=extraction_id,
+                    model=model,
+                    error=str(exc)
+                )
 
-                # Mapear o crear aseguradora, agente, vendedor, ramo y subramo
-                aseguradora_id = find_or_create_aseguradora(
-                    extracted_json.get("aseguradora"))
-                agente_id = find_or_create_agente(extracted_json.get("agente"))
-                vendedor_id = find_or_create_vendedor(
-                    extracted_json.get("vendedor"))
-                ramo_id = find_or_create_ramo(extracted_json.get("ramo"))
-                subramo_id = find_or_create_subramo(
-                    extracted_json.get("subramo"))
+        if not extracted_json and last_error:
+            raise last_error
 
-                # Mapear o crear cliente
-                nombre_cliente = extracted_json.get(
-                    "nombre_cliente") or extracted_json.get("cliente")
-                rfc_cliente = extracted_json.get("rfc")
-                cliente_id = find_or_create_cliente(
-                    nombre_cliente, rfc_cliente)
+        merged_json = merge_extraction_results(rule_hints, extracted_json)
 
-                # Commit de los nuevos registros
-                db.session.commit()
+        if count_populated_fields(merged_json, CRITICAL_POLICY_FIELDS) < 4:
+            reconciliation_model = model_candidates[-1]
+            reconciliation_prompt = build_policy_reconciliation_prompt(
+                cleaned_text, rule_hints, merged_json)
+            try:
+                log_policy_event(
+                    "reconciliation",
+                    "iniciando reconciliación",
+                    extraction_id=extraction_id,
+                    model=reconciliation_model,
+                    critical_before=count_populated_fields(
+                        merged_json, CRITICAL_POLICY_FIELDS)
+                )
+                reconciled_json = query_ollama_json(
+                    reconciliation_model, reconciliation_prompt)
+                merged_json = merge_extraction_results(
+                    rule_hints, reconciled_json)
+            except Exception as exc:
+                log_policy_event(
+                    "reconciliation_error",
+                    "reconciliación omitida por error",
+                    extraction_id=extraction_id,
+                    model=reconciliation_model,
+                    error=str(exc)
+                )
 
-                normalized = {
-                    "numero_de_poliza": extracted_json.get("numero_de_poliza") or extracted_json.get("numero_poliza") or extracted_json.get("poliza"),
-                    "nombre_cliente": nombre_cliente,
-                    "cliente_id": cliente_id,
-                    "aseguradora": extracted_json.get("aseguradora"),
-                    "aseguradora_id": aseguradora_id,
-                    "agente": extracted_json.get("agente"),
-                    "agente_id": agente_id,
-                    "vendedor": extracted_json.get("vendedor"),
-                    "vendedor_id": vendedor_id,
-                    "ramo": extracted_json.get("ramo"),
-                    "ramo_id": ramo_id,
-                    "subramo": extracted_json.get("subramo"),
-                    "subramo_id": subramo_id,
-                    "prima_neta": extracted_json.get("prima_neta"),
-                    "prima_total": extracted_json.get("prima_total"),
-                    "moneda": extracted_json.get("moneda"),
-                    "desde": extracted_json.get("desde") or extracted_json.get("fecha_inicio"),
-                    "hasta": extracted_json.get("hasta") or extracted_json.get("fecha_fin"),
-                    "forma_de_pago": extracted_json.get("forma_de_pago"),
-                    "descripcion": extracted_json.get("descripcion"),
-                    "endoso": extracted_json.get("endoso"),
-                    "rfc": rfc_cliente,
-                    "serie": extracted_json.get("numero_serie") or extracted_json.get("num_serie") or extracted_json.get("vin"),
-                    "observaciones": f"{extracted_json.get('marca', '')} {extracted_json.get('modelo', '')}".strip(),
-                    "derecho_poliza": extracted_json.get("derecho_poliza") or extracted_json.get("gastos_expedicion") or "0"
-                }
-                print(f"Datos extraídos: {normalized}")
-                return normalized
-            except json.JSONDecodeError as e:
-                print(
-                    f"Error JSON: {e}, Respuesta: {data.get('response', '')[:200]}")
-                raise ValueError("Respuesta JSON inválida")
-        else:
-            raise ValueError("Respuesta inesperada de Ollama")
+        log_policy_event(
+            "pipeline_result",
+            "json final fusionado",
+            extraction_id=extraction_id,
+            critical_found=count_populated_fields(
+                merged_json, CRITICAL_POLICY_FIELDS),
+            missing_critical=[field for field in CRITICAL_POLICY_FIELDS if not sanitize_text_value(
+                merged_json.get(field))]
+        )
+
+        # Buscar catálogos existentes sin crear registros nuevos
+        aseguradora_id = find_existing_aseguradora(
+            merged_json.get("aseguradora"))
+        agente_extraido = merged_json.get("agente")
+        agente_id = find_existing_agente(agente_extraido)
+        vendedor_id = find_existing_vendedor(DEFAULT_POLICY_VENDEDOR)
+        ramo_id = find_existing_ramo(merged_json.get("ramo"))
+        subramo_id = find_existing_subramo(
+            merged_json.get("subramo"))
+
+        # Reaplicar heurística por si el modelo devolvió la póliza pegada al cliente
+        nombre_cliente_extraido = merged_json.get(
+            "nombre_cliente") or merged_json.get("cliente")
+        nombre_cliente_extraido, policy_from_name = split_name_and_policy_suffix(
+            nombre_cliente_extraido)
+        if policy_from_name and not sanitize_text_value(merged_json.get("numero_de_poliza")):
+            merged_json["numero_de_poliza"] = policy_from_name
+            log_policy_event(
+                "pipeline_normalization",
+                "número de póliza recuperado desde el nombre del cliente",
+                extraction_id=extraction_id,
+                nombre_cliente=nombre_cliente_extraido,
+                numero_de_poliza=policy_from_name
+            )
+
+        # Buscar cliente existente; si no hay match, dejarlo en blanco
+        rfc_cliente = merged_json.get("rfc")
+        cliente_id = find_existing_cliente(
+            nombre_cliente_extraido, rfc_cliente)
+        nombre_cliente = nombre_cliente_extraido if cliente_id else ""
+        agente_nombre = agente_extraido if agente_id else ""
+
+        log_policy_event(
+            "entity_resolution",
+            "resolución final de entidades sin persistencia",
+            extraction_id=extraction_id,
+            cliente_extraido=nombre_cliente_extraido,
+            cliente_id=cliente_id,
+            agente_extraido=agente_extraido,
+            agente_id=agente_id
+        )
+
+        normalized = {
+            "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
+            "nombre_cliente": nombre_cliente,
+            "cliente_id": cliente_id,
+            "aseguradora": merged_json.get("aseguradora"),
+            "aseguradora_id": aseguradora_id,
+            "agente": agente_nombre,
+            "agente_id": agente_id,
+            "vendedor": DEFAULT_POLICY_VENDEDOR,
+            "vendedor_id": vendedor_id,
+            "ramo": merged_json.get("ramo"),
+            "ramo_id": ramo_id,
+            "subramo": merged_json.get("subramo"),
+            "subramo_id": subramo_id,
+            "prima_neta": normalize_amount_value(merged_json.get("prima_neta")),
+            "prima_total": normalize_amount_value(merged_json.get("prima_total")),
+            "moneda": merged_json.get("moneda"),
+            "desde": merged_json.get("desde") or merged_json.get("fecha_inicio"),
+            "hasta": merged_json.get("hasta") or merged_json.get("fecha_fin"),
+            "forma_de_pago": merged_json.get("forma_de_pago"),
+            "descripcion": merged_json.get("descripcion"),
+            "endoso": merged_json.get("endoso"),
+            "rfc": rfc_cliente,
+            "serie": merged_json.get("numero_serie") or merged_json.get("num_serie") or merged_json.get("vin"),
+            "observaciones": f"{sanitize_text_value(merged_json.get('marca')) or ''} {sanitize_text_value(merged_json.get('modelo')) or ''}".strip(),
+            "derecho_poliza": normalize_amount_value(
+                merged_json.get("derecho_poliza") or merged_json.get(
+                    "gastos_expedicion")
+            ) or "0"
+        }
+        log_policy_event(
+            "pipeline_normalized",
+            "datos normalizados para el frontend",
+            extraction_id=extraction_id,
+            numero_de_poliza=normalized.get("numero_de_poliza"),
+            cliente=normalized.get("nombre_cliente"),
+            prima_total=normalized.get("prima_total"),
+            derecho_poliza=normalized.get("derecho_poliza"),
+            missing_output=[key for key in ("numero_de_poliza", "nombre_cliente", "desde",
+                                            "hasta", "prima_total") if not sanitize_text_value(normalized.get(key))]
+        )
+        return normalized
     except requests.exceptions.Timeout:
+        log_policy_event(
+            "pipeline_error",
+            "timeout llamando a Ollama",
+            extraction_id=extraction_id
+        )
         raise Exception(
             "Ollama tardó demasiado. Intenta con un PDF más pequeño o verifica que Ollama esté funcionando correctamente")
     except requests.exceptions.ConnectionError:
+        log_policy_event(
+            "pipeline_error",
+            "no se pudo conectar a Ollama",
+            extraction_id=extraction_id
+        )
         raise ConnectionError(
             "Ollama no está disponible en http://localhost:11434")
     except requests.exceptions.RequestException as e:
+        log_policy_event(
+            "pipeline_error",
+            "error general de request hacia Ollama",
+            extraction_id=extraction_id,
+            error=str(e)
+        )
         raise Exception(f"Error en Ollama: {e}")
 
 
@@ -2038,7 +2788,8 @@ def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None)
     if custom_folder:
         upload_folder = custom_folder
     else:
-        upload_folder = os.path.join(current_app.root_path, 'static', 'polizas_pdf')
+        upload_folder = os.path.join(
+            current_app.root_path, 'static', 'polizas_pdf')
 
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
@@ -2073,6 +2824,14 @@ def upload_pdf():
 
     # Validar tamaño del archivo
     file_size = len(file_content)
+    upload_trace_id = uuid.uuid4().hex[:8]
+    log_policy_event(
+        "upload_pdf",
+        "inicio de procesamiento de PDF",
+        trace_id=upload_trace_id,
+        filename=file.filename,
+        size_bytes=file_size
+    )
 
     if file_size > 10 * 1024 * 1024:  # 10MB
         return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
@@ -2095,12 +2854,33 @@ def upload_pdf():
     try:
         # Extraer texto primero (valida el PDF)
         text = extract_text_from_pdf_content(file_content)
+        log_policy_event(
+            "upload_pdf",
+            "texto extraído del PDF",
+            trace_id=upload_trace_id,
+            extracted_chars=len(text),
+            preview=text[:300]
+        )
 
         # Si la extracción fue exitosa, guardar el archivo
         pdf_path = save_pdf_content(file_content, file.filename, poliza_num)
+        log_policy_event(
+            "upload_pdf",
+            "pdf guardado temporalmente",
+            trace_id=upload_trace_id,
+            pdf_path=pdf_path
+        )
 
         # Procesar con Ollama
         extracted_data = call_ollama_model(text, JSON_SCHEMA)
+        log_policy_event(
+            "upload_pdf",
+            "extracción completada",
+            trace_id=upload_trace_id,
+            numero_de_poliza=extracted_data.get("numero_de_poliza"),
+            cliente=extracted_data.get("nombre_cliente"),
+            prima_total=extracted_data.get("prima_total")
+        )
 
         if poliza_id and poliza_id != "New":
             poliza = Poliza.query.get(poliza_id)
@@ -2118,15 +2898,38 @@ def upload_pdf():
 
                 poliza.pdf_path = pdf_path
                 db.session.commit()
-                print(f"[UPLOAD_PDF] PDF actualizado en BD para poliza_id={poliza_id}, pdf_path='{pdf_path}'")
+                log_policy_event(
+                    "upload_pdf",
+                    "pdf asociado a póliza existente",
+                    trace_id=upload_trace_id,
+                    poliza_id=poliza_id,
+                    pdf_path=pdf_path
+                )
             else:
-                print(f"[UPLOAD_PDF] poliza_id={poliza_id} no encontrada en BD, pdf_path NO guardado en BD")
+                log_policy_event(
+                    "upload_pdf_warning",
+                    "poliza_id no encontrada al intentar asociar PDF",
+                    trace_id=upload_trace_id,
+                    poliza_id=poliza_id,
+                    pdf_path=pdf_path
+                )
         else:
-            print(f"[UPLOAD_PDF] poliza_id='{poliza_id}' (New o None), pdf_path='{pdf_path}' NO guardado en BD aún — debe enviarse en /create")
+            log_policy_event(
+                "upload_pdf",
+                "pdf temporal listo para enviarse a create",
+                trace_id=upload_trace_id,
+                poliza_id=poliza_id,
+                pdf_path=pdf_path
+            )
 
         return jsonify({'error': False, 'data': extracted_data, 'pdf_path': pdf_path})
     except Exception as e:
-        print(f"Error procesando PDF: {e}")
+        log_policy_event(
+            "upload_pdf_error",
+            "error procesando PDF",
+            trace_id=upload_trace_id,
+            error=str(e)
+        )
         error_msg = str(e)
 
         # Si hay error, eliminar el PDF guardado
@@ -2136,9 +2939,20 @@ def upload_pdf():
                     current_app.root_path, 'static', pdf_path)
                 if os.path.exists(full_path):
                     os.remove(full_path)
-                    print(f"PDF eliminado por error: {pdf_path}")
+                    log_policy_event(
+                        "upload_pdf_cleanup",
+                        "pdf eliminado por error",
+                        trace_id=upload_trace_id,
+                        pdf_path=pdf_path
+                    )
             except Exception as del_err:
-                print(f"Error al eliminar PDF: {del_err}")
+                log_policy_event(
+                    "upload_pdf_cleanup_error",
+                    "error al eliminar PDF tras fallo",
+                    trace_id=upload_trace_id,
+                    pdf_path=pdf_path,
+                    error=str(del_err)
+                )
 
         if 'corrupto' in error_msg or 'no es válido' in error_msg:
             return jsonify({'error': True, 'msg': error_msg})
@@ -2190,7 +3004,8 @@ def download_pdf(poliza_id):
         directory = os.path.dirname(pdf_full_path)
         filename = os.path.basename(pdf_full_path)
     else:
-        pdf_full_path = os.path.join(current_app.root_path, 'static', poliza.pdf_path)
+        pdf_full_path = os.path.join(
+            current_app.root_path, 'static', poliza.pdf_path)
         directory = os.path.join(current_app.root_path, 'static')
         filename = poliza.pdf_path
 
