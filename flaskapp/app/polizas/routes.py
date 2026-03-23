@@ -5,6 +5,7 @@ import json
 import re
 import os
 import uuid
+import unicodedata
 import requests
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory, has_app_context
 from flask import request as flask_request
@@ -1636,12 +1637,29 @@ JSON_SCHEMA = {
     "endoso": "string",
     "marca": "string",
     "modelo": "string",
+    "motor": "string",
+    "placas": "string",
     "numero_serie": "string",
     "derecho_poliza": "string",
     "gastos_expedicion": "string"
 }
 
 DEFAULT_POLICY_VENDEDOR = "GUILLERMO GARDUÑO"
+ALLOWED_POLICY_LOG_STAGES = {
+    "pdf_extract",
+    "pdf_extract_error",
+    "pipeline_context",
+    "rule_hints",
+    "ollama_response",
+    "model_attempt_error",
+    "reconciliation_error",
+    "prima_total",
+    "premium_validation",
+    "pipeline_recovery",
+    "pipeline_result",
+    "subramo_resolution",
+    "forma_pago_resolution",
+}
 
 LOCAL_POLICY_MODEL_CANDIDATES = [
     "qwen2.5:7b",
@@ -1661,6 +1679,9 @@ CRITICAL_POLICY_FIELDS = (
 
 def log_policy_event(stage: str, message: str, **kwargs):
     """Log ligero con contexto uniforme para depurar la extracción de pólizas."""
+    if stage not in ALLOWED_POLICY_LOG_STAGES:
+        return
+
     extra = " ".join(
         f"{key}={json.dumps(value, ensure_ascii=False)}"
         for key, value in kwargs.items() if value is not None
@@ -1742,13 +1763,23 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
             "extracción de texto completada",
             bytes=len(file_content),
             chars=len(text),
-            pages=page_summaries
+            pages=page_summaries,
+            contains_agent=("AGENTE" in text.upper()),
+            contains_prima=("PRIMA" in text.upper() or "IMPORTE A PAGAR" in text.upper() or "TOTAL DEL MOVIMIENTO" in text.upper())
         )
 
         if not text.strip():
             raise ValueError("No se pudo extraer texto del PDF")
 
-        return text[:10000] if len(text) > 10000 else text
+        max_chars = 30000
+        if len(text) > max_chars:
+            log_policy_event(
+                "pdf_extract",
+                "texto del PDF truncado para procesamiento",
+                original_chars=len(text),
+                kept_chars=max_chars
+            )
+        return text[:max_chars] if len(text) > max_chars else text
     except Exception as e:
         error_msg = str(e)
         log_policy_event("pdf_extract_error",
@@ -1822,8 +1853,65 @@ def sanitize_name_candidate(value: str) -> str:
     ):
         value = re.split(token, value, maxsplit=1, flags=re.I)[0].strip(" :|-")
 
-    value = re.sub(r'\s+[A-Z0-9-]{6,}$', '', value).strip(" :|-")
+    suffix_match = re.search(r'\s+([A-Z0-9-]{5,})$', value)
+    if suffix_match:
+        suffix = suffix_match.group(1)
+        if re.search(r'[A-Z]', suffix) and re.search(r'\d', suffix):
+            value = value[:suffix_match.start()].strip(" :|-")
     return sanitize_text_value(value)
+
+
+def normalize_person_name_tokens(value: str) -> list:
+    value = sanitize_text_value(value)
+    if not value:
+        return []
+
+    normalized = unicodedata.normalize('NFKD', value)
+    normalized = ''.join(ch for ch in normalized if not unicodedata.combining(ch))
+    tokens = re.findall(r'[A-Za-z]+', normalized.lower())
+    stopwords = {'de', 'del', 'la', 'las', 'los', 'y', 'mc'}
+    return [token for token in tokens if token not in stopwords]
+
+
+def normalize_ascii_upper(value: str) -> str:
+    value = sanitize_text_value(value)
+    if not value:
+        return ""
+    normalized = unicodedata.normalize('NFKD', value)
+    normalized = ''.join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.upper()
+    return re.sub(r'[^A-Z]', '', normalized)
+
+
+def find_agent_match_by_tokens(nombre: str, agentes) -> int:
+    query_tokens = normalize_person_name_tokens(nombre)
+    if not query_tokens:
+        return None
+
+    best_agent_id = None
+    best_score = 0.0
+
+    for agente in agentes:
+        record_tokens = normalize_person_name_tokens(agente.nombre)
+        if not record_tokens:
+            continue
+
+        common_tokens = set(query_tokens) & set(record_tokens)
+        common_count = len(common_tokens)
+        if common_count == 0:
+            continue
+
+        subset_ratio = common_count / max(1, min(len(query_tokens), len(record_tokens)))
+        coverage_ratio = common_count / max(len(query_tokens), len(record_tokens))
+        score = (subset_ratio * 0.7) + (coverage_ratio * 0.3)
+
+        if common_count >= 2 and score > best_score:
+            best_score = score
+            best_agent_id = agente.id
+
+    if best_score >= 0.65:
+        return best_agent_id
+    return None
 
 
 def split_name_and_policy_suffix(value: str):
@@ -1860,13 +1948,228 @@ def normalize_amount_value(value):
     return amount or None
 
 
+def to_float_amount(value):
+    normalized = normalize_amount_value(value)
+    if not normalized:
+        return None
+    try:
+        return float(normalized)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_flexible_label_pattern(label: str) -> str:
+    """Permite que el OCR una palabras como PRIMANETA o FECHADEEMISION."""
+    label = label.strip()
+    label = re.sub(r'\s+', r'\\s*', label)
+    return label
+
+
 def extract_amount_near_label(text: str, labels) -> str:
     for label in labels:
-        pattern = rf'{label}[^\n]{{0,80}}?((?:\d{{1,3}}(?:,\d{{3}})+|\d+)(?:\.\d{{2}})?)'
+        flexible_label = build_flexible_label_pattern(label)
+        pattern = rf'{flexible_label}(?:\s*[:|]?\s*|\s*\n\s*){{0,2}}[^\n]{{0,120}}?((?:\d{{1,3}}(?:,\d{{3}})+|\d+)(?:\.\d{{2}})?)'
         match = re.search(pattern, text, re.I)
         if match:
             return normalize_amount_value(match.group(1))
     return None
+
+
+def extract_money_amount_near_label(text: str, labels) -> str:
+    money_pattern = r'((?:\$\s*)?(?:\d{1,3}(?:,\d{3})+|\d+\.\d{2}|\d{4,})(?:\.\d{2})?)'
+    for label in labels:
+        flexible_label = build_flexible_label_pattern(label)
+        pattern = rf'{flexible_label}(?:\s*[:|]?\s*|\s*\n\s*){{0,2}}[^\n]{{0,140}}?{money_pattern}'
+        match = re.search(pattern, text, re.I)
+        if match:
+            return normalize_amount_value(match.group(1))
+    return None
+
+
+def is_suspicious_premium_amount(amount_value: str, text: str) -> bool:
+    amount = to_float_amount(amount_value)
+    if amount is None:
+        return False
+
+    suma_asegurada = to_float_amount(
+        extract_money_amount_near_label(text, [r'Suma asegurada'])
+    )
+    if suma_asegurada and abs(amount - suma_asegurada) / max(suma_asegurada, 1) < 0.01:
+        return True
+
+    if amount >= 10000000:
+        return True
+
+    return False
+
+
+def sanitize_premium_fields(text: str, data: dict) -> dict:
+    cleaned = dict(data or {})
+    for field in ("prima_neta", "prima_total"):
+        value = cleaned.get(field)
+        if value and is_suspicious_premium_amount(value, text):
+            log_policy_event(
+                "premium_validation",
+                "monto de prima descartado por sospechoso",
+                field=field,
+                value=value
+            )
+            cleaned[field] = None
+    return cleaned
+
+
+def extract_prima_neta_value(text: str, prima_total: str = None, derecho_poliza: str = None) -> str:
+    direct_labels = [
+        r'Prima neta',
+        r'Prima del movimiento',
+        r'Prima básica',
+        r'Prima base',
+        r'Prima'
+    ]
+    direct_value = extract_money_amount_near_label(text, direct_labels)
+    if direct_value and not is_suspicious_premium_amount(direct_value, text):
+        return direct_value
+
+    prima_section_match = re.search(r'(?:Prima|Recibo|Importe a pagar)(.{0,2200})', text, re.I | re.S)
+    prima_section = prima_section_match.group(0) if prima_section_match else text
+
+    section_value = extract_money_amount_near_label(prima_section, direct_labels)
+    if section_value and not is_suspicious_premium_amount(section_value, text):
+        return section_value
+
+    prima_total_val = to_float_amount(prima_total) or to_float_amount(
+        extract_prima_total_value(prima_section)
+    )
+    derecho_val = to_float_amount(derecho_poliza) or to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Derecho de p[oó]liza', r'Gastos de expedici[oó]n'])
+    ) or 0.0
+    iva_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'I\.?V\.?A\.?', r'IVA'])
+    ) or 0.0
+    recargo_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Recargo por pago fraccionado', r'Recargo', r'Financiamiento'])
+    ) or 0.0
+    descuento_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Descuento familiar', r'Descuento', r'Bonificaci[oó]n'])
+    ) or 0.0
+    cesion_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Cesi[oó]n de comisi[oó]n', r'Cesi[oó]n'])
+    ) or 0.0
+
+    if prima_total_val is None:
+        return None
+
+    inferred_neta = prima_total_val - derecho_val - iva_val - recargo_val + descuento_val + cesion_val
+    if inferred_neta <= 0:
+        return None
+
+    inferred_value = f"{inferred_neta:.2f}"
+    if is_suspicious_premium_amount(inferred_value, text):
+        return None
+
+    log_policy_event(
+        "prima_total",
+        "prima neta inferida desde componentes",
+        prima_total=prima_total_val,
+        derecho_poliza=derecho_val,
+        iva=iva_val,
+        recargo=recargo_val,
+        descuento=descuento_val,
+        cesion=cesion_val,
+        prima_neta=inferred_value
+    )
+    return inferred_value
+
+
+def extract_prima_total_value(text: str, prima_neta: str = None, derecho_poliza: str = None) -> str:
+    direct_labels = [
+        r'Prima anual total',
+        r'Prima total anual',
+        r'Prima total',
+        r'Total a pagar',
+        r'Importe total',
+        r'Prima al cobro',
+        r'Prima del movimiento',
+        r'Prima total del movimiento',
+        r'Total del movimiento',
+        r'Total del recibo',
+        r'Importe a pagar'
+    ]
+    direct_value = extract_money_amount_near_label(text, direct_labels)
+    if direct_value:
+        log_policy_event(
+            "prima_total",
+            "prima total encontrada por etiqueta directa",
+            prima_total=direct_value
+        )
+        return direct_value
+
+    prima_section_match = re.search(r'(?:Prima|Recibo|Importe a pagar)(.{0,2200})', text, re.I | re.S)
+    if prima_section_match:
+        prima_section = prima_section_match.group(0)
+        section_value = extract_money_amount_near_label(prima_section, direct_labels)
+        if section_value:
+            log_policy_event(
+                "prima_total",
+                "prima total encontrada dentro de la sección Prima",
+                prima_total=section_value
+            )
+            return section_value
+    else:
+        prima_section = text
+
+    prima_neta_val = to_float_amount(prima_neta) or to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Prima neta', r'Prima anual', r'Prima del movimiento'])
+    )
+    if prima_neta_val is not None and is_suspicious_premium_amount(f"{prima_neta_val:.2f}", text):
+        log_policy_event(
+            "prima_total",
+            "inferencia omitida porque prima_neta parece suma asegurada",
+            prima_neta=prima_neta_val
+        )
+        return None
+    derecho_val = to_float_amount(derecho_poliza) or to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Derecho de p[oó]liza', r'Gastos de expedici[oó]n'])
+    ) or 0.0
+    iva_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'I\.?V\.?A\.?', r'IVA'])
+    ) or 0.0
+    recargo_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Recargo por pago fraccionado', r'Recargo', r'Financiamiento'])
+    ) or 0.0
+    descuento_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Descuento familiar', r'Descuento', r'Bonificaci[oó]n'])
+    ) or 0.0
+    cesion_val = to_float_amount(
+        extract_money_amount_near_label(prima_section, [r'Cesi[oó]n de comisi[oó]n', r'Cesi[oó]n'])
+    ) or 0.0
+
+    if prima_neta_val is None:
+        return None
+
+    present_components = sum(
+        1 for val in (derecho_val, iva_val, recargo_val, descuento_val, cesion_val) if val and val > 0
+    )
+    if present_components == 0:
+        return None
+
+    inferred_total = prima_neta_val + derecho_val + iva_val + recargo_val - descuento_val - cesion_val
+    if inferred_total <= 0:
+        return None
+
+    inferred_value = f"{inferred_total:.2f}"
+    log_policy_event(
+        "prima_total",
+        "prima total inferida desde componentes",
+        prima_neta=prima_neta_val,
+        derecho_poliza=derecho_val,
+        iva=iva_val,
+        recargo=recargo_val,
+        descuento=descuento_val,
+        cesion=cesion_val,
+        prima_total=inferred_value
+    )
+    return inferred_value
 
 
 def extract_policy_number_value(text: str) -> str:
@@ -1886,21 +2189,211 @@ def extract_policy_number_value(text: str) -> str:
 
 def extract_agent_name_value(text: str) -> str:
     patterns = [
-        r'(?im)^\s*Agente\s*[:|]\s*(?:\d{4,}\s+)?([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ.\s]+?)\s*$',
-        r'(?is)(?:^|\n)\s*Agente\s*[:|]\s*\n+\s*(?:\d{4,}\s+)?([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ.\s]+?)(?:\n|$)',
-        r'(?im)^\s*Agente\s*\|\s*(?:\d{4,}\s*\|\s*)?([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ.\s]+?)\s*$',
+        r'(?im)^\s*Agente\s*[:|]\s*(?:\d{4,}\s+)?([^\n]+)$',
+        r'(?im)^\s*AGENTE\s*[:|]\s*(?:\d{4,}\s+)?([^\n]+)$',
+        r'(?is)(?:^|\n)\s*Agente\s*[:|]\s*\n+\s*(?:\d{4,}\s+)?([^\n]+?)(?:\n|$)',
+        r'(?im)^\s*Agente\s*\|\s*(?:\d{4,}\s*\|\s*)?([^\n]+)$',
     ]
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
-            return sanitize_name_candidate(match.group(1))
+            value = match.group(1)
+            value = re.split(r'CLAVE\s+DE\s+AGENTE', value, maxsplit=1, flags=re.I)[0]
+            value = re.split(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', value, maxsplit=1, flags=re.I)[0]
+            value = re.split(r'\b(?:CEL|TEL[EÉ]FONO|TEL)\b', value, maxsplit=1, flags=re.I)[0]
+            value = re.split(r'\b\d{7,}\b', value, maxsplit=1, flags=re.I)[0]
+            cleaned = sanitize_name_candidate(value)
+            if cleaned:
+                return cleaned
+    return None
+
+
+def normalize_forma_pago_value(value: str) -> str:
+    value = sanitize_text_value(value)
+    if not value:
+        return None
+
+    normalized = normalize_ascii_upper(value)
+    alias_map = {
+        "CONTADO": "Contado",
+        "UNICO": "Contado",
+        "PAGOUNICO": "Contado",
+        "ANUAL": "Anual",
+        "MULTIANUAL": "Multianual",
+        "SEMESTRAL": "Semestral",
+        "TRIMESTRAL": "Trimestral",
+        "MENSUAL": "Mensual",
+        "QUINCENAL": "Quincenal",
+        "FRACCIONADO": "Fraccionado",
+    }
+
+    for token, resolved in alias_map.items():
+        if token in normalized:
+            return resolved
+
+    if "MASTERCARD" in normalized or "VISA" in normalized or "AMEX" in normalized:
+        if "MENSUAL" in normalized:
+            return "Mensual"
+        if "TRIMESTRAL" in normalized:
+            return "Trimestral"
+        if "SEMESTRAL" in normalized:
+            return "Semestral"
+        if "ANUAL" in normalized:
+            return "Anual"
+
+    receipt_fraction_match = re.search(r'(\d{1,2})\s*/\s*(\d{1,2})', normalized)
+    if receipt_fraction_match:
+        total_payments = int(receipt_fraction_match.group(2))
+        payment_map = {
+            1: "Contado",
+            2: "Semestral",
+            4: "Trimestral",
+            12: "Mensual",
+        }
+        if total_payments in payment_map:
+            return payment_map[total_payments]
+
+    return None
+
+
+def extract_forma_pago_value(text: str) -> str:
+    common_values = [
+        r'ANUAL',
+        r'MULTIANUAL',
+        r'SEMESTRAL',
+        r'TRIMESTRAL',
+        r'MENSUAL',
+        r'QUINCENAL',
+        r'CONTADO',
+        r'FRACCIONADO'
+    ]
+
+    explicit_value = extract_value_after_label(
+        text,
+        [
+            r'Forma de pago',
+            r'Frecuencia de pago',
+            r'Periodicidad de pago',
+            r'Periodicidad',
+            r'Plan de pago',
+            r'Conducto de cobro'
+        ],
+        stop_tokens=[r'\bPrima\b', r'\bRecibo\b', r'\bVigencia\b']
+    )
+    if explicit_value:
+        normalized = normalize_forma_pago_value(explicit_value)
+        if normalized:
+            return normalized
+
+    label_candidates = [
+        r'Forma de pago',
+        r'Frecuencia de pago',
+        r'Periodicidad de pago',
+        r'Periodicidad',
+        r'Plan de pago',
+        r'Conducto de cobro'
+    ]
+    stop_line_pattern = re.compile(
+        r'^(?:Datos\s*adicionales|Coberturas|Contratante|Cliente|Vigencia|Prima|P[oó]liza|No\.?\s*de\s*cliente)\b',
+        re.I
+    )
+    ignored_line_pattern = re.compile(
+        r'^(?:Servicio|Tipo|Normal)\s*[:|-]',
+        re.I
+    )
+
+    for label in label_candidates:
+        flexible_label = build_flexible_label_pattern(label)
+        pattern = rf'(?is){flexible_label}\s*[:|]?\s*(?:\n\s*)?((?:[^\n]*\n){{0,3}}[^\n]{{0,160}})'
+        match = re.search(pattern, text, re.I)
+        if not match:
+            continue
+
+        block = match.group(1) or ""
+        block = re.sub(r'[ \t]+', ' ', block)
+        candidate_lines = [sanitize_text_value(line) for line in block.splitlines()]
+        for line in candidate_lines:
+            if not line:
+                continue
+            if stop_line_pattern.search(line):
+                break
+            if ignored_line_pattern.search(line):
+                continue
+            for value in common_values:
+                if re.search(rf'\b{value}\b', line, re.I):
+                    return normalize_forma_pago_value(value)
+            normalized_line = normalize_forma_pago_value(line)
+            if normalized_line and normalized_line != line:
+                return normalized_line
+
+    for value in common_values:
+        label_pattern = r'(?:Forma\s*de\s*pago|Frecuencia\s*de\s*pago|Periodicidad(?:\s*de\s*pago)?|Plan\s*de\s*pago|Conducto\s*de\s*cobro)'
+        pattern = rf'(?is){label_pattern}.{{0,120}}?\b({value})\b'
+        match = re.search(pattern, text, re.I)
+        if match:
+            return normalize_forma_pago_value(match.group(1))
+
+    for value in common_values:
+        pattern = rf'(?is)\b(?:Recibo|Pago|Fraccionado|Periodicidad).{{0,40}}?\b({value})\b'
+        match = re.search(pattern, text, re.I)
+        if match:
+            return normalize_forma_pago_value(match.group(1))
+
+    keyword_aliases = {
+        r'\bPAGO ANUAL\b': 'Anual',
+        r'\bRECIBO ANUAL\b': 'Anual',
+        r'\bPAGO MENSUAL\b': 'Mensual',
+        r'\bRECIBO MENSUAL\b': 'Mensual',
+        r'\bPAGO TRIMESTRAL\b': 'Trimestral',
+        r'\bRECIBO TRIMESTRAL\b': 'Trimestral',
+        r'\bPAGO SEMESTRAL\b': 'Semestral',
+        r'\bRECIBO SEMESTRAL\b': 'Semestral',
+        r'\bCONTADO\b': 'Contado',
+        r'\bPAGO FRACCIONADO\b': 'Fraccionado',
+        r'\bPRIMA FRACCIONADA\b': 'Fraccionado',
+        r'\bMENSUAL\s*-\s*(?:MASTERCARD|VISA|AMEX|TARJETA)\b': 'Mensual',
+        r'\bTRIMESTRAL\s*-\s*(?:MASTERCARD|VISA|AMEX|TARJETA)\b': 'Trimestral',
+        r'\bSEMESTRAL\s*-\s*(?:MASTERCARD|VISA|AMEX|TARJETA)\b': 'Semestral',
+        r'\bANUAL\s*-\s*(?:MASTERCARD|VISA|AMEX|TARJETA)\b': 'Anual',
+    }
+    for pattern, normalized in keyword_aliases.items():
+        if re.search(pattern, text, re.I):
+            return normalized
+
+    receipt_fraction_match = re.search(
+        r'(?is)\b(?:recibo|pagos?|fracci(?:ó|o)?n|periodicidad)\b.{0,80}?(\d{1,2})\s*/\s*(\d{1,2})',
+        text,
+        re.I
+    )
+    if receipt_fraction_match:
+        total_payments = int(receipt_fraction_match.group(2))
+        payment_map = {
+            1: "Contado",
+            2: "Semestral",
+            4: "Trimestral",
+            12: "Mensual",
+        }
+        if total_payments in payment_map:
+            return payment_map[total_payments]
+
+    return None
+
+
+def extract_diagnostic_snippet(text: str, patterns, radius: int = 180) -> str:
+    for pattern in patterns:
+        match = re.search(pattern, text, re.I | re.M)
+        if match:
+            start = max(0, match.start() - radius)
+            end = min(len(text), match.end() + radius)
+            return text[start:end].strip()
     return None
 
 
 def extract_value_after_label(text: str, labels, stop_tokens=None) -> str:
     stop_tokens = stop_tokens or []
     for label in labels:
-        pattern = rf'{label}\s*[:|]?\s*([^\n]+)'
+        flexible_label = build_flexible_label_pattern(label)
+        pattern = rf'{flexible_label}\s*[:|]?\s*([^\n]+)'
         match = re.search(pattern, text, re.I)
         if not match:
             continue
@@ -1913,18 +2406,206 @@ def extract_value_after_label(text: str, labels, stop_tokens=None) -> str:
     return None
 
 
+def clean_vehicle_attribute_value(value: str, field: str = None) -> str:
+    value = sanitize_text_value(value)
+    if not value:
+        return None
+
+    value = re.split(
+        r'\b(?:Agente|Cliente|Contratante|Coberturas|Prima|Vigencia|Forma\s*de\s*pago|Datos\s*adicionales|No\.?\s*de\s*cliente|Servicio)\b',
+        value,
+        maxsplit=1,
+        flags=re.I
+    )[0].strip(" :|-")
+    value = re.sub(r'\s{2,}', ' ', value).strip()
+
+    suspicious_tokens = {
+        "AGENTE",
+        "CLIENTE",
+        "CONTRATANTE",
+        "COBERTURAS",
+        "PRIMA",
+        "VIGENCIA",
+        "FORMADEPAGO",
+        "DATOSADICIONALES",
+        "SERVICIO",
+        "PARTICULAR",
+        "MASTERCARD",
+        "VISA",
+        "AMEX",
+    }
+    compact_value = normalize_ascii_upper(value)
+    if any(token in compact_value for token in suspicious_tokens):
+        return None
+
+    token_count = len(value.split())
+    if field in {"marca", "modelo"} and (len(value) > 40 or token_count > 5):
+        return None
+    if field == "placas" and (len(value) > 15 or token_count > 3):
+        return None
+    if field in {"motor", "numero_serie"} and len(value) > 30:
+        return None
+
+    return value or None
+
+
+def extract_vehicle_value(text: str, labels) -> str:
+    stop_tokens = [
+        r'\bMarca\b',
+        r'\bModelo\b',
+        r'\bMotor\b',
+        r'\bNo\.?\s*de\s*motor\b',
+        r'\bN[uú]mero\s*de\s*motor\b',
+        r'\bPlacas\b',
+        r'\bSerie\b',
+        r'\bVIN\b',
+        r'\bNo\.?\s*de\s*serie\b',
+        r'\bN[uú]mero\s*de\s*serie\b',
+        r'\bColor\b',
+        r'\bUso\b',
+        r'\bServicio\b',
+        r'\bVigencia\b',
+        r'\bPrima\b',
+    ]
+    value = extract_value_after_label(text, labels, stop_tokens=stop_tokens)
+    primary_label = labels[0] if labels else ""
+    field_map = {
+        r'\bMarca\b': 'marca',
+        r'\bModelo\b': 'modelo',
+        r'\bMotor\b': 'motor',
+        r'No\.?\s*de\s*motor': 'motor',
+        r'N[uú]mero\s*de\s*motor': 'motor',
+        r'\bPlacas\b': 'placas',
+        r'No\.?\s*de\s*placas': 'placas',
+        r'VIN': 'numero_serie',
+        r'No\.?\s*de\s*serie': 'numero_serie',
+        r'N[uú]mero\s*de\s*serie': 'numero_serie',
+        r'\bSerie\b': 'numero_serie',
+    }
+    return clean_vehicle_attribute_value(value, field_map.get(primary_label))
+
+
+def score_policy_ramo_candidates(text: str) -> dict:
+    header_text = text[:8000]
+    body_text = text
+
+    # Priorizamos el contexto principal del documento y evitamos falsos positivos
+    # por coberturas aisladas como "Gastos Medicos Ocupantes" en autos.
+    ramo_patterns = {
+        "Automóvil": {
+            "header": [
+                (r'\bAUTOM[ÓO]VIL\b', 6),
+                (r'\bAUTOS?\b', 4),
+                (r'P[ÓO]LIZA\s+DE\s+AUTO', 6),
+                (r'COBERTURAS\s*AMPARADAS', 4),
+                (r'DA[ÑN]OS\s*MATERIALES', 6),
+                (r'ROBO\s+TOTAL', 6),
+                (r'RESPONSABILIDAD\s+CIVIL', 5),
+                (r'DEFENSA\s+LEGAL', 4),
+                (r'CONDUCTORES', 4),
+                (r'N[OÚU]\.?\s*DE\s*SERIE', 4),
+                (r'\bVIN\b', 4),
+                (r'\bMARCA\b', 3),
+                (r'\bMODELO\b', 3),
+                (r'GASTOS\s*M[EÉ]DICOS\s+OCUPANTES', 6),
+            ],
+            "body": [
+                (r'COBERTURAS\s*AMPARADAS', 2),
+                (r'DA[ÑN]OS\s*MATERIALES', 3),
+                (r'ROBO\s+TOTAL', 3),
+                (r'RESPONSABILIDAD\s+CIVIL', 2),
+                (r'DEFENSA\s+LEGAL', 2),
+                (r'CONDUCTORES', 2),
+                (r'GASTOS\s*M[EÉ]DICOS\s+OCUPANTES', 4),
+            ],
+        },
+        "Gastos Médicos": {
+            "header": [
+                (r'GASTOS\s*M[EÉ]DICOS\s+MAYORES', 7),
+                (r'CAR[ÁA]TULA\s+DE\s+P[ÓO]LIZA', 5),
+                (r'ASEGURADO\s+TITULAR', 5),
+                (r'TABULADOR\s+M[ÉE]DICO', 5),
+                (r'GAMA\s+HOSPITALARIA', 5),
+                (r'RED\s+HOSPITALARIA', 4),
+                (r'TIPO\s+DE\s+PLAN', 4),
+                (r'COASEGURO', 3),
+                (r'DEDUCIBLE', 3),
+            ],
+            "body": [
+                (r'GASTOS\s*M[EÉ]DICOS\s+MAYORES', 4),
+                (r'ASEGURADO\s+TITULAR', 3),
+                (r'TABULADOR\s+M[ÉE]DICO', 3),
+                (r'GAMA\s+HOSPITALARIA', 3),
+                (r'RED\s+HOSPITALARIA', 2),
+                (r'TIPO\s+DE\s+PLAN', 2),
+                (r'COASEGURO', 1),
+                (r'DEDUCIBLE', 1),
+            ],
+        },
+    }
+
+    scores = {}
+    for ramo, pattern_groups in ramo_patterns.items():
+        score = 0
+        for pattern, weight in pattern_groups.get("header", []):
+            if re.search(pattern, header_text, re.I):
+                score += weight
+        for pattern, weight in pattern_groups.get("body", []):
+            if re.search(pattern, body_text, re.I):
+                score += weight
+        scores[ramo] = score
+
+    return scores
+
+
+def detect_policy_ramo(text: str) -> str:
+    explicit_ramo = extract_value_after_label(
+        text,
+        [r'\bRamo\b', r'Tipo de seguro', r'Producto'],
+        stop_tokens=[r'\bSubramo\b', r'\bPlan\b']
+    )
+    if explicit_ramo:
+        normalized_explicit = normalize_ascii_upper(explicit_ramo)
+        if "AUTOMOVIL" in normalized_explicit or normalized_explicit == "AUTO":
+            return "Automóvil"
+        if "GASTOSMEDICOS" in normalized_explicit:
+            return "Gastos Médicos"
+
+    scores = score_policy_ramo_candidates(text)
+    best_ramo = max(scores, key=scores.get)
+    best_score = scores.get(best_ramo, 0)
+    second_score = max([score for ramo, score in scores.items() if ramo != best_ramo] or [0])
+
+    if best_score >= 6 and best_score >= (second_score + 3):
+        return best_ramo
+    return None
+
+
 def build_field_snippets(text: str) -> dict:
     field_patterns = {
         "numero_de_poliza": [r'P[oó]liza', r'Solicitud'],
         "nombre_cliente": [r'Datos del contratante', r'Asegurado Titular', r'Nombre'],
         "rfc": [r'R\.?F\.?C\.?'],
-        "agente": [r'^\s*Agente\s*[:|]', r'^\s*Agente\s*\|'],
+        "agente": [r'^\s*Agente\s*[:|]', r'^\s*AGENTE\s*[:|]', r'^\s*Agente\s*\|'],
         "desde": [r'Fecha de inicio de vigencia'],
         "hasta": [r'Fecha de fin de vigencia'],
-        "forma_de_pago": [r'Frecuencia de pago', r'Tipo de pago'],
+        "forma_de_pago": [
+            r'Frecuencia\s*de\s*pago',
+            r'Forma\s*de\s*pago',
+            r'Periodicidad',
+            r'Conducto\s*de\s*cobro',
+            r'Tipo\s*de\s*pago',
+            r'Mensual\s*-\s*(?:MasterCard|Visa)',
+            r'Pago\s+(?:anual|mensual|trimestral|semestral)'
+        ],
         "subramo": [r'Tipo de plan', r'Gastos M[ée]dicos Mayores'],
-        "prima_neta": [r'Prima Neta'],
-        "prima_total": [r'Prima anual total', r'Prima Total'],
+        "marca": [r'\bMarca\b'],
+        "modelo": [r'\bModelo\b'],
+        "motor": [r'\bMotor\b', r'No\.?\s*de\s*motor'],
+        "placas": [r'\bPlacas\b'],
+        "numero_serie": [r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'\bSerie\b'],
+        "prima_neta": [r'Prima Neta', r'Prima anual', r'Prima del movimiento'],
+        "prima_total": [r'Prima anual total', r'Prima Total', r'Prima del movimiento', r'Total del movimiento', r'Importe a pagar'],
         "derecho_poliza": [r'Derecho de p[oó]liza', r'Gastos de expedici[oó]n'],
     }
     snippets = {}
@@ -1958,21 +2639,23 @@ def build_rule_based_hints(text: str) -> dict:
             break
 
     hints["numero_de_poliza"] = extract_policy_number_value(text)
-    hints["forma_de_pago"] = extract_value_after_label(
-        text, [r'Frecuencia de pago', r'Forma de pago', r'Plan de pago']
-    )
+    hints["forma_de_pago"] = extract_forma_pago_value(text)
     hints["descripcion"] = extract_value_after_label(
         text, [r'Tipo de plan'], stop_tokens=[r'\bSolicitud\b']
     )
     hints["subramo"] = hints["descripcion"]
+    hints["ramo"] = detect_policy_ramo(text)
 
     ramo_match = re.search(
         r'(Gastos M[ée]dicos(?: Mayores)?(?: Individual / Familiar)?)', text, re.I)
-    if ramo_match:
+    if ramo_match and not hints["ramo"]:
         ramo = sanitize_text_value(ramo_match.group(1))
         hints["ramo"] = "Gastos Médicos"
         if not hints["subramo"]:
             hints["subramo"] = ramo
+
+    if hints["ramo"] == "Automóvil" and not hints["subramo"]:
+        hints["subramo"] = "Automóvil"
 
     inicio_match = re.search(
         r'Fecha de inicio de vigencia\s*[:|]?\s*(\d{2}/\d{2}/\d{4})', text, re.I)
@@ -2020,27 +2703,45 @@ def build_rule_based_hints(text: str) -> dict:
 
     hints["agente"] = extract_agent_name_value(text)
 
+    if hints.get("ramo") == "Automóvil":
+        hints["marca"] = extract_vehicle_value(text, [r'\bMarca\b'])
+        hints["modelo"] = extract_vehicle_value(text, [r'\bModelo\b'])
+        hints["motor"] = extract_vehicle_value(
+            text, [r'\bMotor\b', r'No\.?\s*de\s*motor', r'N[uú]mero\s*de\s*motor']
+        )
+        hints["placas"] = extract_vehicle_value(text, [r'\bPlacas\b', r'No\.?\s*de\s*placas'])
+        hints["numero_serie"] = extract_vehicle_value(
+            text, [r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'\bSerie\b']
+        )
+
     if ' M.N.' in text or ' PESOS ' in f' {upper_text} ':
         hints["moneda"] = "MXN"
 
-    hints["prima_neta"] = extract_amount_near_label(text, [r'Prima Neta'])
-    hints["prima_total"] = extract_amount_near_label(
-        text, [r'Prima anual total', r'Prima Total', r'Total a pagar']
-    )
-    hints["derecho_poliza"] = extract_amount_near_label(
+    hints["derecho_poliza"] = extract_money_amount_near_label(
         text, [r'Derecho de p[oó]liza', r'Gastos de expedici[oó]n']
     )
+    hints["prima_neta"] = extract_prima_neta_value(
+        text,
+        prima_total=hints.get("prima_total"),
+        derecho_poliza=hints["derecho_poliza"]
+    )
+    hints["prima_total"] = extract_prima_total_value(
+        text,
+        prima_neta=hints["prima_neta"],
+        derecho_poliza=hints["derecho_poliza"]
+    )
     hints["gastos_expedicion"] = hints["derecho_poliza"]
+    hints = sanitize_premium_fields(text, hints)
 
     normalized_hints = {key: sanitize_text_value(
         value) for key, value in hints.items()}
     log_policy_event(
         "rule_hints",
-        "pistas determinísticas generadas",
-        found_fields=sorted(
-            [key for key, value in normalized_hints.items() if value]),
-        critical_found=count_populated_fields(
-            normalized_hints, CRITICAL_POLICY_FIELDS)
+        "resultado de reglas para campos objetivo",
+        agente=normalized_hints.get("agente"),
+        forma_de_pago=normalized_hints.get("forma_de_pago"),
+        prima_neta=normalized_hints.get("prima_neta"),
+        prima_total=normalized_hints.get("prima_total")
     )
     return normalized_hints
 
@@ -2091,10 +2792,11 @@ def build_policy_extraction_prompt(text_content: str, hints: dict, snippets: dic
     hints_json = json.dumps(
         {k: v for k, v in hints.items() if v}, ensure_ascii=False, indent=2)
     snippets_json = json.dumps(snippets, ensure_ascii=False, indent=2)
+    prompt_text = text_content[:18000]
     return f"""Analiza el siguiente texto de una póliza de seguro mexicana y extrae los datos.
 
 TEXTO NORMALIZADO DEL PDF:
-{text_content[:10000]}
+{prompt_text}
 
 PISTAS DETERMINÍSTICAS EXTRAÍDAS POR REGLAS:
 {hints_json}
@@ -2110,6 +2812,7 @@ Prioridades:
 - Si aparece "Tipo de plan", normalmente corresponde a la descripción comercial o subramo.
 - Para "nombre_cliente", prioriza "Datos del contratante"; si no existe, usa el "Asegurado Titular".
 - Para "forma_de_pago", prioriza "Frecuencia de pago" o "Forma de pago".
+- Para "ramo", usa el tipo principal de póliza, no una cobertura aislada. Si aparece "Gastos Médicos Ocupantes" junto con "Daños Materiales", "Robo Total" o "Responsabilidad Civil", el ramo es "Automóvil".
 
 Devuelve este JSON:
 {{
@@ -2129,6 +2832,8 @@ Devuelve este JSON:
   "endoso": null,
   "marca": null,
   "modelo": null,
+  "motor": null,
+  "placas": null,
   "numero_serie": null,
   "derecho_poliza": null,
   "gastos_expedicion": null,
@@ -2137,10 +2842,11 @@ Devuelve este JSON:
 
 
 def build_policy_reconciliation_prompt(text_content: str, hints: dict, model_output: dict) -> str:
+    prompt_text = text_content[:10000]
     return f"""Corrige y valida la extracción de una póliza mexicana. Responde SOLO con JSON válido.
 
 TEXTO NORMALIZADO:
-{text_content[:6000]}
+{prompt_text}
 
 PISTAS DE ALTA CONFIANZA:
 {json.dumps({k: v for k, v in hints.items() if v}, ensure_ascii=False, indent=2)}
@@ -2155,6 +2861,7 @@ Reglas:
 - Todos los valores deben ser strings o null.
 - "prima_total" debe corresponder al total anual o total a pagar, no a deducible, suma asegurada, IVA ni recargo.
 - "derecho_poliza" debe ser el cargo de derecho o expedición, no otro importe.
+- "ramo" debe corresponder al producto principal de la póliza, no a una cobertura secundaria.
 """
 
 
@@ -2185,12 +2892,13 @@ def query_ollama_json(model: str, prompt: str) -> dict:
     parsed = flatten_ollama_response(parsed)
     log_policy_event(
         "ollama_response",
-        "respuesta parseada del modelo",
+        "respuesta del modelo para campos objetivo",
         model=model,
         response_chars=len(data.get("response", "")),
-        found_fields=sorted(
-            [key for key, value in parsed.items() if sanitize_text_value(value)]),
-        critical_found=count_populated_fields(parsed, CRITICAL_POLICY_FIELDS)
+        agente=parsed.get("agente"),
+        forma_de_pago=parsed.get("forma_de_pago"),
+        prima_neta=parsed.get("prima_neta"),
+        prima_total=parsed.get("prima_total")
     )
     return parsed
 
@@ -2202,6 +2910,7 @@ def count_populated_fields(data: dict, fields) -> int:
 def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
     merged = {}
     model_result = model_result or {}
+    rule_hints = rule_hints or {}
 
     trusted_rule_fields = {
         "numero_de_poliza",
@@ -2209,6 +2918,7 @@ def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
         "rfc",
         "aseguradora",
         "agente",
+        "ramo",
         "desde",
         "hasta",
         "forma_de_pago",
@@ -2223,6 +2933,11 @@ def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
     for key in JSON_SCHEMA.keys():
         model_value = sanitize_text_value(model_result.get(key))
         rule_value = sanitize_text_value(rule_hints.get(key))
+
+        if key == "forma_de_pago":
+            model_value = normalize_forma_pago_value(model_value)
+            rule_value = normalize_forma_pago_value(rule_value)
+
         merged[key] = model_value
 
         if key in ("prima_neta", "prima_total", "derecho_poliza", "gastos_expedicion"):
@@ -2313,6 +3028,8 @@ def find_existing_agente(nombre: str):
 
     agentes = Agente.query.all()
     agente_id = find_best_match(nombre, agentes)
+    if not agente_id:
+        agente_id = find_agent_match_by_tokens(nombre, agentes)
     log_policy_event(
         "entity_lookup",
         "resultado búsqueda agente",
@@ -2368,6 +3085,30 @@ def find_existing_subramo(nombre: str):
         subramo_id=subramo_id
     )
     return subramo_id
+
+
+def find_existing_tipo_pago(nombre: str):
+    """Busca una forma de pago existente. Retorna el ID o None."""
+    normalized_name = normalize_forma_pago_value(nombre)
+    if not normalized_name:
+        return None
+
+    tipo_pagos = TipoPago.query.all()
+    tipo_pago_id = find_best_match(
+        normalized_name, tipo_pagos, attr_name='tipo_pago')
+
+    if tipo_pago_id is None and normalized_name == "Anual":
+        tipo_pago_id = find_best_match(
+            "Multianual", tipo_pagos, attr_name='tipo_pago')
+
+    log_policy_event(
+        "forma_pago_resolution",
+        "resultado búsqueda tipo de pago",
+        forma_pago_extraida=nombre,
+        forma_pago_normalizada=normalized_name,
+        tipo_pago_id=tipo_pago_id
+    )
+    return tipo_pago_id
 
 
 def find_best_match(extracted_name: str, db_records, threshold=85, attr_name=None):
@@ -2478,6 +3219,10 @@ def flatten_ollama_response(raw: dict) -> dict:
         "num_serie": "numero_serie",
         "vin": "numero_serie",
         "no_serie": "numero_serie",
+        "serie": "numero_serie",
+        "placa": "placas",
+        "placas": "placas",
+        "motor": "motor",
         "prima": "prima_neta",
         "neta": "prima_neta",
         "prima_anual": "prima_neta",
@@ -2538,11 +3283,22 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
 
     log_policy_event(
         "pipeline_context",
-        "contexto preparado para la extracción",
+        "fragmentos extraídos por Python para campos objetivo",
         extraction_id=extraction_id,
-        snippet_fields=sorted(field_snippets.keys()),
         candidate_models=model_candidates,
-        preview=cleaned_text[:500]
+        agente_snippet=field_snippets.get("agente"),
+        forma_de_pago_snippet=field_snippets.get("forma_de_pago") or extract_diagnostic_snippet(
+            cleaned_text,
+            [r'Forma\s*de\s*pago', r'Formadepago', r'Frecuencia\s*de\s*pago', r'Periodicidad', r'Mensual', r'Trimestral', r'Semestral', r'Contado', r'MasterCard', r'Visa']
+        ),
+        prima_neta_snippet=field_snippets.get("prima_neta") or extract_diagnostic_snippet(
+            cleaned_text,
+            [r'Prima Neta', r'PRIMANETA', r'Prima anual', r'Prima del movimiento', r'Prima', r'Importe']
+        ),
+        prima_total_snippet=field_snippets.get("prima_total") or extract_diagnostic_snippet(
+            cleaned_text,
+            [r'Prima total', r'PRIMATOTAL', r'Prima anual total', r'Total del movimiento', r'Importe a pagar', r'Prima', r'Importe']
+        )
     )
 
     last_error = None
@@ -2604,6 +3360,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             raise last_error
 
         merged_json = merge_extraction_results(rule_hints, extracted_json)
+        merged_json = sanitize_premium_fields(cleaned_text, merged_json)
 
         if count_populated_fields(merged_json, CRITICAL_POLICY_FIELDS) < 4:
             reconciliation_model = model_candidates[-1]
@@ -2622,6 +3379,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
                     reconciliation_model, reconciliation_prompt)
                 merged_json = merge_extraction_results(
                     rule_hints, reconciled_json)
+                merged_json = sanitize_premium_fields(cleaned_text, merged_json)
             except Exception as exc:
                 log_policy_event(
                     "reconciliation_error",
@@ -2631,14 +3389,32 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
                     error=str(exc)
                 )
 
+        if not sanitize_text_value(merged_json.get("prima_total")):
+            merged_json["prima_total"] = extract_prima_total_value(
+                cleaned_text,
+                prima_neta=merged_json.get("prima_neta"),
+                derecho_poliza=merged_json.get("derecho_poliza") or merged_json.get("gastos_expedicion")
+            )
+            if merged_json.get("prima_total"):
+                log_policy_event(
+                    "pipeline_recovery",
+                    "prima total recuperada después del merge",
+                    extraction_id=extraction_id,
+                    prima_total=merged_json.get("prima_total")
+                )
+
         log_policy_event(
             "pipeline_result",
-            "json final fusionado",
+            "resultado final para campos objetivo",
             extraction_id=extraction_id,
-            critical_found=count_populated_fields(
-                merged_json, CRITICAL_POLICY_FIELDS),
-            missing_critical=[field for field in CRITICAL_POLICY_FIELDS if not sanitize_text_value(
-                merged_json.get(field))]
+            agente=merged_json.get("agente"),
+            forma_de_pago=merged_json.get("forma_de_pago"),
+            prima_neta=merged_json.get("prima_neta"),
+            prima_total=merged_json.get("prima_total"),
+            missing_target_fields=[
+                field for field in ("agente", "forma_de_pago", "prima_neta", "prima_total")
+                if not sanitize_text_value(merged_json.get(field))
+            ]
         )
 
         # Buscar catálogos existentes sin crear registros nuevos
@@ -2646,10 +3422,41 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             merged_json.get("aseguradora"))
         agente_extraido = merged_json.get("agente")
         agente_id = find_existing_agente(agente_extraido)
+        forma_pago_normalizada = normalize_forma_pago_value(
+            merged_json.get("forma_de_pago"))
+        tipo_pago_id = find_existing_tipo_pago(forma_pago_normalizada)
         vendedor_id = find_existing_vendedor(DEFAULT_POLICY_VENDEDOR)
         ramo_id = find_existing_ramo(merged_json.get("ramo"))
-        subramo_id = find_existing_subramo(
-            merged_json.get("subramo"))
+        ramo_normalized = sanitize_text_value(merged_json.get("ramo"))
+        subramo_nombre = sanitize_text_value(merged_json.get("subramo"))
+        subramo_id = find_existing_subramo(subramo_nombre)
+        ramo_compact = normalize_ascii_upper(ramo_normalized)
+        subramo_compact = normalize_ascii_upper(subramo_nombre)
+
+        generic_subramo = (
+            not subramo_nombre or
+            subramo_compact in {"GASTOSMEDICOS", "GASTOSMEDICOSMAYORES", "GASTOSMEDICOSINDIVIDUALFAMILIAR"} or
+            (ramo_compact and subramo_compact == ramo_compact) or
+            subramo_id is None
+        )
+
+        if generic_subramo and ramo_compact == "GASTOSMEDICOS":
+            subramo_nombre = "IND/FAM"
+            subramo_id = find_existing_subramo(subramo_nombre)
+        elif generic_subramo and ramo_compact in {"AUTOMOVIL", "AUTO"}:
+            subramo_nombre = "FAMILIAR"
+            subramo_id = find_existing_subramo(subramo_nombre)
+
+        log_policy_event(
+            "subramo_resolution",
+            "resolución de subramo para formulario",
+            extraction_id=extraction_id,
+            ramo=ramo_normalized,
+            subramo_original=merged_json.get("subramo"),
+            subramo_final=subramo_nombre,
+            subramo_id=subramo_id,
+            generic_subramo=generic_subramo
+        )
 
         # Reaplicar heurística por si el modelo devolvió la póliza pegada al cliente
         nombre_cliente_extraido = merged_json.get(
@@ -2683,6 +3490,22 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             agente_id=agente_id
         )
 
+        vehicle_notes = []
+        marca_value = clean_vehicle_attribute_value(merged_json.get("marca"), "marca")
+        modelo_value = clean_vehicle_attribute_value(merged_json.get("modelo"), "modelo")
+        motor_value = clean_vehicle_attribute_value(merged_json.get("motor"), "motor")
+        placas_value = clean_vehicle_attribute_value(merged_json.get("placas"), "placas")
+
+        if ramo_normalized == "Automóvil":
+            if marca_value:
+                vehicle_notes.append(marca_value)
+            if modelo_value:
+                vehicle_notes.append(modelo_value)
+            if motor_value:
+                vehicle_notes.append(f"Motor: {motor_value}")
+            if placas_value:
+                vehicle_notes.append(f"Placas: {placas_value}")
+
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
             "nombre_cliente": nombre_cliente,
@@ -2693,21 +3516,22 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             "agente_id": agente_id,
             "vendedor": DEFAULT_POLICY_VENDEDOR,
             "vendedor_id": vendedor_id,
-            "ramo": merged_json.get("ramo"),
+            "ramo": ramo_normalized,
             "ramo_id": ramo_id,
-            "subramo": merged_json.get("subramo"),
+            "subramo": subramo_nombre,
             "subramo_id": subramo_id,
             "prima_neta": normalize_amount_value(merged_json.get("prima_neta")),
             "prima_total": normalize_amount_value(merged_json.get("prima_total")),
             "moneda": merged_json.get("moneda"),
             "desde": merged_json.get("desde") or merged_json.get("fecha_inicio"),
             "hasta": merged_json.get("hasta") or merged_json.get("fecha_fin"),
-            "forma_de_pago": merged_json.get("forma_de_pago"),
+            "forma_de_pago": forma_pago_normalizada,
+            "tipo_pago_id": tipo_pago_id,
             "descripcion": merged_json.get("descripcion"),
             "endoso": merged_json.get("endoso"),
             "rfc": rfc_cliente,
             "serie": merged_json.get("numero_serie") or merged_json.get("num_serie") or merged_json.get("vin"),
-            "observaciones": f"{sanitize_text_value(merged_json.get('marca')) or ''} {sanitize_text_value(merged_json.get('modelo')) or ''}".strip(),
+            "observaciones": " | ".join(vehicle_notes).strip(),
             "derecho_poliza": normalize_amount_value(
                 merged_json.get("derecho_poliza") or merged_json.get(
                     "gastos_expedicion")

@@ -205,6 +205,141 @@ $(function () {
   });
 
   function fillFormWithPdfData(data) {
+    function normalizeFormaPagoToken(value) {
+      if (!value) return '';
+      return String(value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .trim();
+    }
+
+    function resolveFormaPagoSelect(data, source = 'unknown') {
+      if (!data || (!data.forma_de_pago && !data.tipo_pago_id)) {
+        console.log('[FORMA_PAGO] Sin datos para resolver', { source, data });
+        return false;
+      }
+
+      const pagoSelect = $('#Pago');
+      const optionTexts = pagoSelect
+        .find('option')
+        .map(function () {
+          return {
+            value: $(this).val(),
+            text: $(this).text().trim(),
+          };
+        })
+        .get();
+
+      console.log('[FORMA_PAGO] Intentando resolver', {
+        source,
+        forma_de_pago: data.forma_de_pago,
+        tipo_pago_id: data.tipo_pago_id,
+        optionCount: optionTexts.length,
+        options: optionTexts,
+      });
+
+      if (data.tipo_pago_id) {
+        const tipoPagoId = String(data.tipo_pago_id);
+        const optionExists =
+          pagoSelect.find(`option[value="${tipoPagoId}"]`).length > 0;
+        if (optionExists) {
+          pagoSelect.val(tipoPagoId).trigger('change');
+          console.log('[FORMA_PAGO] Match por tipo_pago_id', {
+            source,
+            tipo_pago_id: tipoPagoId,
+          });
+          return true;
+        }
+
+        console.warn('[FORMA_PAGO] tipo_pago_id no existe en el select', {
+          source,
+          tipo_pago_id: tipoPagoId,
+        });
+      }
+
+      if (!data.forma_de_pago) {
+        console.warn('[FORMA_PAGO] No hay texto de forma_de_pago para buscar', {
+          source,
+          tipo_pago_id: data.tipo_pago_id,
+        });
+        return false;
+      }
+
+      const formaPagoNorm = normalizeFormaPagoToken(data.forma_de_pago);
+      let matched = false;
+
+      pagoSelect.find('option').each(function () {
+        const optionText = normalizeFormaPagoToken($(this).text());
+        if (
+          optionText.includes(formaPagoNorm) ||
+          formaPagoNorm.includes(optionText.replace(/[^A-Z]/g, ''))
+        ) {
+          pagoSelect.val($(this).val()).trigger('change');
+          matched = true;
+          console.log('[FORMA_PAGO] Match directo por texto', {
+            source,
+            formaPagoNorm,
+            matchedOption: {
+              value: $(this).val(),
+              text: $(this).text().trim(),
+            },
+          });
+          return false;
+        }
+      });
+
+      if (!matched) {
+        const pagoMap = {
+          MENSUAL: 'MENSUAL',
+          TRIMESTRAL: 'TRIMESTRAL',
+          SEMESTRAL: 'SEMESTRAL',
+          ANUAL: 'ANUAL',
+          MULTIANUAL: 'MULTIANUAL',
+          CONTADO: 'CONTADO',
+          UNICO: 'CONTADO',
+          UNICOANUAL: 'ANUAL',
+          FRACCIONADO: 'MENSUAL',
+        };
+
+        for (const [key, val] of Object.entries(pagoMap)) {
+          if (formaPagoNorm.includes(key)) {
+            pagoSelect.find('option').each(function () {
+              const optionText = normalizeFormaPagoToken($(this).text());
+              if (optionText.includes(val)) {
+                pagoSelect.val($(this).val()).trigger('change');
+                matched = true;
+                console.log('[FORMA_PAGO] Match por mapa de equivalencias', {
+                  source,
+                  formaPagoNorm,
+                  mapKey: key,
+                  mapValue: val,
+                  matchedOption: {
+                    value: $(this).val(),
+                    text: $(this).text().trim(),
+                  },
+                });
+                return false;
+              }
+            });
+            if (matched) break;
+          }
+        }
+      }
+
+      if (!matched) {
+        console.warn('[FORMA_PAGO] No se encontró coincidencia en el select', {
+          source,
+          forma_de_pago: data.forma_de_pago,
+          tipo_pago_id: data.tipo_pago_id,
+          optionCount: optionTexts.length,
+          options: optionTexts,
+        });
+      }
+
+      return matched;
+    }
+
     if (!data) {
       console.error('No se recibieron datos para llenar el formulario');
       return;
@@ -307,48 +442,7 @@ $(function () {
       );
     }
 
-    // Forma de pago - buscar en el select
-    if (data.forma_de_pago) {
-      console.log('Forma de pago:', data.forma_de_pago);
-      const formaPagoNorm = data.forma_de_pago.toUpperCase().trim();
-
-      let matched = false;
-      $('#Pago option').each(function () {
-        const optionText = $(this).text().toUpperCase();
-        if (
-          optionText.includes(formaPagoNorm) ||
-          formaPagoNorm.includes(optionText.replace(/[^A-ZÁÉÍÓÚÑ]/gi, ''))
-        ) {
-          $('#Pago').val($(this).val());
-          matched = true;
-          return false;
-        }
-      });
-
-      // Fallback: mapeo de palabras clave comunes
-      if (!matched) {
-        const pagoMap = {
-          MENSUAL: 'MENSUAL',
-          TRIMESTRAL: 'TRIMESTRAL',
-          SEMESTRAL: 'SEMESTRAL',
-          ANUAL: 'ANUAL',
-          CONTADO: 'CONTADO',
-          ÚNICO: 'CONTADO',
-          UNICO: 'CONTADO',
-        };
-        for (const [key, val] of Object.entries(pagoMap)) {
-          if (formaPagoNorm.includes(key)) {
-            $('#Pago option').each(function () {
-              if ($(this).text().toUpperCase().includes(val)) {
-                $('#Pago').val($(this).val());
-                return false;
-              }
-            });
-            break;
-          }
-        }
-      }
-    }
+    resolveFormaPagoSelect(data, 'fillFormWithPdfData_initial');
 
     // Derecho de póliza (también puede ser "gastos de expedición")
     if (data.derecho_poliza) {
@@ -553,6 +647,8 @@ $(function () {
           $('#nuevo_agente_div').show();
         }
       }
+
+      resolveFormaPagoSelect(data, 'setValuesInSelects');
 
       console.log('Formulario llenado completamente');
 
@@ -763,16 +859,37 @@ $(function () {
 
   async function resetForm() {
     try {
+      pdfMode = null;
+      pdfUploaded = false;
+
       $('#form-polizas')[0].reset();
       $('#btnGuardar').show();
       $('#reset-btn').show();
       $('#form-polizas').removeClass('was-validated');
       $('#form-polizas select').prop('disabled', false);
+      $('#form-polizas input').prop('disabled', false);
+      $('#form-polizas textarea').prop('disabled', false);
       $('#poliza_id').val('New');
       $('#tipo').val('');
+      $('#pdf_path').val('');
+      $('#recibos').val('Por generar');
+      $('#selected-client-id').val('None');
+      $('#recibo_id').val('');
+      $('#id_poliza').val('');
+      $('#polizaAnterior').val('');
+      $('#poliza-anterior').val('').prop('disabled', false);
+      $('#old_prima_neta').val('');
+      $('#old_prima_total').val('');
+      $('#old_tipo_pago').val('');
+      $('#buscar-cliente').val('');
+      $('#client-options').hide().empty();
+      $('#pdf_file').val('');
+      $('#upload_loading, .upload-loading').hide();
+      $('#upload_content, .upload-content').show();
       $('#div_poliza_id').hide();
       $('#div_search_client').show();
       $('#title_poliza').text('Póliza');
+      $('#title_poliza_anterior').text('Póliza anterior');
       $('#prima_neta').prop('disabled', false);
       $('#prima_total').prop('disabled', false);
       $('#ramo').html('');
@@ -788,7 +905,14 @@ $(function () {
       $('#nuevo_vendedor_div').hide();
       $('#nuevo_agente_div').hide();
       $('#only_show_poliza').hide();
+      $('#nuevo_ramo_div').hide();
+      $('#nuevo_subramo_div').hide();
+      $('#create-recib').modal('hide');
+      $('#endoso-type').modal('hide');
+      $('#alert_Modal').hide();
       const data = await getFormData();
+
+      $('#ramo').append(`<option value=''>Selecciona...</option>`);
       for (const ramo of data.Ramo) {
         $('#ramo').append(`<option value='${ramo.id}'>
         ${ramo.ramo}
@@ -796,6 +920,8 @@ $(function () {
         `);
       }
       $('#ramo').append(`<option value="New">Nuevo Ramo</option>`);
+
+      $('#subramo').append(`<option value=''>Selecciona...</option>`);
       for (const subramo of data.Subramo) {
         $('#subramo').append(`<option value='${subramo.id}'>
           ${subramo.subramo}
@@ -803,6 +929,8 @@ $(function () {
           `);
       }
       $('#subramo').append(`<option value="New">Nuevo Subramo</option>`);
+
+      $('#aseguradora').append(`<option value=''>Selecciona...</option>`);
       for (const aseguradora of data.Aseguradora) {
         $('#aseguradora').append(`<option value='${aseguradora.id}'>
         ${aseguradora.aseguradora}
@@ -812,12 +940,16 @@ $(function () {
       $('#aseguradora').append(
         `<option value="New">Nueva Aseguradora</option>`,
       );
+
+      $('#Pago').append(`<option value=''>Selecciona...</option>`);
       for (const pago of data.TipoPago) {
         $('#Pago').append(`<option value='${pago.id}'>
         ${pago.tipo_pago}
         </option>
         `);
       }
+
+      $('#vendedor').append(`<option value=''>Selecciona...</option>`);
       for (const vendedor of data.Vendedor) {
         $('#vendedor').append(`<option value='${vendedor.id}'>
         ${vendedor.nombre}
@@ -825,6 +957,8 @@ $(function () {
         `);
       }
       $('#vendedor').append(`<option value="New">Nuevo Vendedor</option>`);
+
+      $('#agente').append(`<option value=''>Selecciona...</option>`);
       for (const agente of data.Agente) {
         $('#agente').append(`<option value='${agente.id}'>
         ${agente.nombre}
@@ -832,6 +966,15 @@ $(function () {
         `);
       }
       $('#agente').append(`<option value="New">Nuevo Agente</option>`);
+
+      $('#ramo').val('');
+      $('#subramo').val('');
+      $('#aseguradora').val('');
+      $('#Pago').val('');
+      $('#vendedor').val('');
+      $('#agente').val('');
+      $('#Moneda').val('');
+
       return data;
     } catch (error) {
       console.log(error);
@@ -2024,9 +2167,9 @@ $(function () {
     }
   });
 
-  $('#reset-btn').click((e) => {
+  $('#reset-btn').click(async (e) => {
     e.preventDefault();
-    resetForm();
+    await resetForm();
   });
 
   $('#closeModalCreateRecibos').click(async (e) => {
