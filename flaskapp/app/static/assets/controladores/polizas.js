@@ -368,12 +368,12 @@ $(function () {
     if (data.prima_neta) {
       const primaNeta = parseFloat(String(data.prima_neta).replace(/[^0-9.-]/g, ''));
       console.log('Prima Neta:', primaNeta);
-      if (!isNaN(primaNeta)) $('#prima_neta').val(primaNeta.toFixed(2));
+      if (!isNaN(primaNeta)) setCurrencyFieldValue('#prima_neta', primaNeta);
     }
     if (data.prima_total) {
       const primaTotal = parseFloat(String(data.prima_total).replace(/[^0-9.-]/g, ''));
       console.log('Prima Total:', primaTotal);
-      if (!isNaN(primaTotal)) $('#prima_total').val(primaTotal.toFixed(2));
+      if (!isNaN(primaTotal)) setCurrencyFieldValue('#prima_total', primaTotal);
     }
 
     // Moneda
@@ -415,7 +415,9 @@ $(function () {
     }
 
     // Descripción/Notas
-    if (data.descripcion) {
+    const shouldAppendDescripcionSeparately =
+      data.descripcion && !(data.ramo === 'Automóvil' && data.observaciones);
+    if (shouldAppendDescripcionSeparately) {
       console.log('Descripción:', data.descripcion);
       const notasActuales = $('#notas').val();
       $('#notas').val(
@@ -431,9 +433,9 @@ $(function () {
       $('#serie').val(data.serie);
     }
 
-    // Observaciones (marca y modelo del vehículo)
+    // Observaciones del vehículo, priorizando la descripción para autos
     if (data.observaciones) {
-      console.log('Observaciones (marca/modelo):', data.observaciones);
+      console.log('Observaciones del vehículo:', data.observaciones);
       const notasActuales = $('#notas').val();
       $('#notas').val(
         notasActuales
@@ -654,8 +656,8 @@ $(function () {
 
       // Calcular recibos automáticamente con 10% de comisión
       setTimeout(() => {
-        const primaNeta = parseFloat($('#prima_neta').val()) || 0;
-        const primaTotal = parseFloat($('#prima_total').val()) || 0;
+        const primaNeta = parseFloat(getCurrencyFieldValue('#prima_neta')) || 0;
+        const primaTotal = parseFloat(getCurrencyFieldValue('#prima_total')) || 0;
         const derechoPoliza = parseFloat($('#derecho_poliza').val()) || 0;
 
         if (primaNeta > 0 && primaTotal > 0) {
@@ -815,6 +817,55 @@ $(function () {
       result += decimalPoint + decimalPart;
     }
     return result;
+  }
+
+  function parseCurrencyInputValue(value) {
+    if (value === null || value === undefined) return '';
+    const cleaned = String(value).replace(/[^0-9.-]/g, '');
+    if (!cleaned) return '';
+    const parsed = parseFloat(cleaned);
+    return Number.isNaN(parsed) ? '' : parsed.toFixed(2);
+  }
+
+  function formatCurrencyDisplay(value) {
+    const normalized = parseCurrencyInputValue(value);
+    if (!normalized) return '';
+    return `$${formatNumber(normalized)}`;
+  }
+
+  function setCurrencyFieldValue(selector, value) {
+    $(selector).val(formatCurrencyDisplay(value));
+  }
+
+  function getCurrencyFieldValue(selector) {
+    return parseCurrencyInputValue($(selector).val());
+  }
+
+  function bindCurrencyFormatting(selector) {
+    const input = $(selector);
+    input.on('focus', function () {
+      $(this).val(parseCurrencyInputValue($(this).val()));
+    });
+    input.on('blur', function () {
+      $(this).val(formatCurrencyDisplay($(this).val()));
+    });
+  }
+
+  function serializePolizaFormWithRawCurrencyValues() {
+    const primaNetaField = $('#prima_neta');
+    const primaTotalField = $('#prima_total');
+    const originalPrimaNeta = primaNetaField.val();
+    const originalPrimaTotal = primaTotalField.val();
+
+    primaNetaField.val(getCurrencyFieldValue('#prima_neta'));
+    primaTotalField.val(getCurrencyFieldValue('#prima_total'));
+
+    const serialized = $('#form-polizas').serialize();
+
+    primaNetaField.val(originalPrimaNeta);
+    primaTotalField.val(originalPrimaTotal);
+
+    return serialized;
   }
 
   function alertConfirm(text = '') {
@@ -1007,10 +1058,12 @@ $(function () {
         $('#serie').val(resp.data[0].serie);
         $('#notas').val(resp.data[0].notas);
         $('#Moneda').val(resp.data[0].moneda);
-        $('#prima_neta').val(
+        setCurrencyFieldValue(
+          '#prima_neta',
           parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', '')),
         );
-        $('#prima_total').val(
+        setCurrencyFieldValue(
+          '#prima_total',
           parseFloat(
             resp.data[0].prima_total.replace('$', '').replace(',', ''),
           ),
@@ -1113,10 +1166,12 @@ $(function () {
         $('#serie').val(resp.data[0].serie);
         $('#notas').val(resp.data[0].notas);
         $('#Moneda').val(resp.data[0].moneda);
-        $('#prima_neta').val(
+        setCurrencyFieldValue(
+          '#prima_neta',
           parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', '')),
         );
-        $('#prima_total').val(
+        setCurrencyFieldValue(
+          '#prima_total',
           parseFloat(
             resp.data[0].prima_total.replace('$', '').replace(',', ''),
           ),
@@ -1216,10 +1271,12 @@ $(function () {
         $('#serie').val(resp.data[0].serie);
         $('#notas').val(resp.data[0].notas);
         $('#Moneda').val(resp.data[0].moneda);
-        $('#prima_neta').val(
+        setCurrencyFieldValue(
+          '#prima_neta',
           parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', '')),
         );
-        $('#prima_total').val(
+        setCurrencyFieldValue(
+          '#prima_total',
           parseFloat(
             resp.data[0].prima_total.replace('$', '').replace(',', ''),
           ),
@@ -1925,9 +1982,9 @@ $(function () {
       $(this).addClass('was-validated');
       return;
     }
-    const prima_neta = $('#prima_neta').val();
+    const prima_neta = getCurrencyFieldValue('#prima_neta');
     const old_prima_neta = $('#old_prima_neta').val();
-    const prima_total = $('#prima_total').val();
+    const prima_total = getCurrencyFieldValue('#prima_total');
     const old_prima_total = $('#old_prima_total').val();
     const fecha_inicio = $('#VigenciaI').val();
     const fecha_termino = $('#VigenciaF').val();
@@ -1999,7 +2056,7 @@ $(function () {
           },
         });
       } else {
-        let newParams = $('#form-polizas').serialize();
+        let newParams = serializePolizaFormWithRawCurrencyValues();
         newParams = `${newParams}&poliza_id=${poliza_id}`;
         $.ajax({
           url: 'polizas/edit',
@@ -2091,7 +2148,7 @@ $(function () {
       $(this).addClass('was-validated');
       return;
     }
-    const formDataPoliza = $('#form-polizas').serialize();
+      const formDataPoliza = serializePolizaFormWithRawCurrencyValues();
     if ($('#tipo').val()) {
       $.ajax({
         type: 'POST',
@@ -2114,7 +2171,7 @@ $(function () {
         },
       });
     } else if ($('#title_poliza')?.text()?.includes('Editar')) {
-      let newParams = $('#form-polizas').serialize();
+      let newParams = serializePolizaFormWithRawCurrencyValues();
       newParams = `${newParams}&poliza_id=${poliza_id}`;
       $.ajax({
         url: 'polizas/edit',
@@ -2139,7 +2196,7 @@ $(function () {
       });
     } else {
       $('#poliza_id').val('New');
-      const newParams = $('#form-polizas').serialize();
+      const newParams = serializePolizaFormWithRawCurrencyValues();
       $.ajax({
         type: 'POST',
         url: '/polizas/create',
@@ -2348,6 +2405,8 @@ $(function () {
   $('#nuevo_aseguradora_div').hide();
   $('#nuevo_vendedor_div').hide();
   $('#nuevo_agente_div').hide();
+  bindCurrencyFormatting('#prima_neta');
+  bindCurrencyFormatting('#prima_total');
 
   getPolizas();
 });

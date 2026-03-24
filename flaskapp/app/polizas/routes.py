@@ -1853,7 +1853,7 @@ def sanitize_name_candidate(value: str) -> str:
     ):
         value = re.split(token, value, maxsplit=1, flags=re.I)[0].strip(" :|-")
 
-    suffix_match = re.search(r'\s+([A-Z0-9-]{5,})$', value)
+    suffix_match = re.search(r'\s+([A-Z0-9/-]{5,})$', value)
     if suffix_match:
         suffix = suffix_match.group(1)
         if re.search(r'[A-Z]', suffix) and re.search(r'\d', suffix):
@@ -1920,7 +1920,7 @@ def split_name_and_policy_suffix(value: str):
     if not value:
         return None, None
 
-    match = re.match(r'^(.*?)(?:\s+([A-Z0-9-]{5,}))$', value)
+    match = re.match(r'^(.*?)(?:\s+([A-Z0-9/-]{5,}))$', value)
     if not match:
         return value, None
 
@@ -2174,15 +2174,15 @@ def extract_prima_total_value(text: str, prima_neta: str = None, derecho_poliza:
 
 def extract_policy_number_value(text: str) -> str:
     patterns = [
-        r'(?im)^\s*P[oó]liza\s*[:|]\s*([A-Z0-9-]{5,})\b',
-        r'(?is)(?:^|\n)\s*P[oó]liza\s*\n+\s*([A-Z0-9-]{5,})\b',
-        r'(?im)^\s*P[oó]liza\s*\|\s*([A-Z0-9-]{5,})\b',
+        r'(?im)^\s*P[oó]liza(?:\s*/\s*Endoso)?\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        r'(?is)(?:^|\n)\s*P[oó]liza(?:\s*/\s*Endoso)?\s*\n+\s*([A-Z0-9/-]{5,})\b',
+        r'(?im)^\s*P[oó]liza(?:\s*/\s*Endoso)?\s*\|\s*([A-Z0-9/-]{5,})\b',
     ]
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
             candidate = sanitize_text_value(match.group(1))
-            if candidate and re.fullmatch(r'[A-Z0-9-]{5,}', candidate):
+            if candidate and re.fullmatch(r'[A-Z0-9/-]{5,}', candidate):
                 return candidate
     return None
 
@@ -3491,20 +3491,33 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         )
 
         vehicle_notes = []
+        descripcion_value = sanitize_text_value(merged_json.get("descripcion"))
         marca_value = clean_vehicle_attribute_value(merged_json.get("marca"), "marca")
         modelo_value = clean_vehicle_attribute_value(merged_json.get("modelo"), "modelo")
         motor_value = clean_vehicle_attribute_value(merged_json.get("motor"), "motor")
         placas_value = clean_vehicle_attribute_value(merged_json.get("placas"), "placas")
+        serie_value = clean_vehicle_attribute_value(
+            merged_json.get("numero_serie") or merged_json.get("num_serie") or merged_json.get("vin"),
+            "numero_serie"
+        )
 
         if ramo_normalized == "Automóvil":
-            if marca_value:
-                vehicle_notes.append(marca_value)
-            if modelo_value:
-                vehicle_notes.append(modelo_value)
-            if motor_value:
-                vehicle_notes.append(f"Motor: {motor_value}")
-            if placas_value:
-                vehicle_notes.append(f"Placas: {placas_value}")
+            def append_vehicle_note(note_value: str):
+                note_value = sanitize_text_value(note_value)
+                if not note_value:
+                    return
+                note_compact = normalize_ascii_upper(note_value)
+                existing_notes = " ".join(vehicle_notes)
+                existing_compact = normalize_ascii_upper(existing_notes)
+                if note_compact and note_compact not in existing_compact:
+                    vehicle_notes.append(note_value)
+
+            append_vehicle_note(descripcion_value)
+            append_vehicle_note(marca_value)
+            append_vehicle_note(modelo_value)
+            append_vehicle_note(f"Motor: {motor_value}" if motor_value else None)
+            append_vehicle_note(f"Placas: {placas_value}" if placas_value else None)
+            append_vehicle_note(f"Serie: {serie_value}" if serie_value else None)
 
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
@@ -3527,7 +3540,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             "hasta": merged_json.get("hasta") or merged_json.get("fecha_fin"),
             "forma_de_pago": forma_pago_normalizada,
             "tipo_pago_id": tipo_pago_id,
-            "descripcion": merged_json.get("descripcion"),
+            "descripcion": descripcion_value,
             "endoso": merged_json.get("endoso"),
             "rfc": rfc_cliente,
             "serie": merged_json.get("numero_serie") or merged_json.get("num_serie") or merged_json.get("vin"),
