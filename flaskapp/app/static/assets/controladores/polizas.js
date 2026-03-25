@@ -659,6 +659,9 @@ $(function () {
         const primaNeta = parseFloat(getCurrencyFieldValue('#prima_neta')) || 0;
         const primaTotal = parseFloat(getCurrencyFieldValue('#prima_total')) || 0;
         const derechoPoliza = parseFloat($('#derecho_poliza').val()) || 0;
+        const fechaInicio = $('#VigenciaI').val();
+        const fechaTermino = $('#VigenciaF').val();
+        const tipoPagoId = $('#Pago').val();
 
         if (primaNeta > 0 && primaTotal > 0) {
           // Establecer 10% de comisión por defecto
@@ -675,45 +678,88 @@ $(function () {
           const iva = parseFloat($('#iva').val()) || 16;
           const insurance = derechoPoliza;
           const commission = 10;
-          const receipts = $('#nopagos').val() || 1;
           const rec_pago = $('#rec_pago').val() || 'primer_recibo';
 
-          $.ajax({
-            ...ajaxConfig,
-            url: '/polizas/calculate_receipts',
-            data: $.param({
-              netPremium,
-              totalPremium,
-              iva,
-              insurance,
-              commission,
-              receipts,
-              rec_pago,
-            }),
-            success: function (resp) {
-              $('#prima_neta_1er').val(resp.firstpay.netPremium);
-              $('#prima_neta_subs').val(resp.subspay.netPremium);
-              $('#prima_total_1er').val(resp.firstpay.totalPremium);
-              $('#prima_total_subs').val(resp.subspay.totalPremium);
-              $('#comision_1er').val(resp.firstpay.comision);
-              $('#comision_subs').val(resp.subspay.comision);
-              $('#recibos').val('Por generar');
-              console.log('Recibos calculados automáticamente');
+          const runReceiptCalculation = (
+            receipts = $('#nopagos').val() || 1,
+            calculatedNetPremium = netPremium,
+            calculatedTotalPremium = totalPremium,
+          ) => {
+            $.ajax({
+              ...ajaxConfig,
+              url: '/polizas/calculate_receipts',
+              data: $.param({
+                netPremium: calculatedNetPremium,
+                totalPremium: calculatedTotalPremium,
+                iva,
+                insurance,
+                commission,
+                receipts,
+                rec_pago,
+              }),
+              success: function (resp) {
+                $('#prima-neta').val(calculatedNetPremium);
+                $('#prima-total').val(calculatedTotalPremium);
+                $('#nopagos').val(receipts);
+                $('#prima_neta_1er').val(resp.firstpay.netPremium);
+                $('#prima_neta_subs').val(resp.subspay.netPremium);
+                $('#prima_total_1er').val(resp.firstpay.totalPremium);
+                $('#prima_total_subs').val(resp.subspay.totalPremium);
+                $('#comision_1er').val(resp.firstpay.comision);
+                $('#comision_subs').val(resp.subspay.comision);
+                $('#recibos').val('Por generar');
+                console.log('Recibos calculados automáticamente', {
+                  receipts,
+                  insurance,
+                });
 
-              // Abrir modal de recibos si se subió PDF
-              if (pdfUploaded) {
-                setTimeout(() => {
-                  $('#create-recib').modal({
-                    backdrop: 'static',
-                    keyboard: false,
-                  });
-                }, 500);
-                pdfUploaded = false;
-              }
-            },
-            error: (xhr, status, error) =>
-              console.error('Error al calcular recibos:', error),
-          });
+                if (pdfUploaded) {
+                  setTimeout(() => {
+                    $('#create-recib').modal({
+                      backdrop: 'static',
+                      keyboard: false,
+                    });
+                  }, 500);
+                  pdfUploaded = false;
+                }
+              },
+              error: (xhr, status, error) =>
+                console.error('Error al calcular recibos:', error),
+            });
+          };
+
+          if (fechaInicio && fechaTermino && tipoPagoId) {
+            $.ajax({
+              url: 'polizas/get_policy_values',
+              method: 'POST',
+              dataType: 'json',
+              data: $.param({
+                prima_neta: netPremium,
+                prima_total: totalPremium,
+                fecha_inicio: fechaInicio,
+                fecha_termino: fechaTermino,
+                tipo_pago_id: tipoPagoId,
+              }),
+              success: function (resp) {
+                if (resp && !resp.error) {
+                  $('#nopagos').val(resp.numReceipts || 1);
+                  $('#iva').val(16);
+                  runReceiptCalculation(
+                    resp.numReceipts || 1,
+                    resp.netPremium || netPremium,
+                    resp.totalPremium || totalPremium,
+                  );
+                } else {
+                  runReceiptCalculation();
+                }
+              },
+              error: function () {
+                runReceiptCalculation();
+              },
+            });
+          } else {
+            runReceiptCalculation();
+          }
         }
       }, 1000);
     }
