@@ -415,8 +415,11 @@ $(function () {
     }
 
     // Descripción/Notas
+    const shouldPopulateVehicleFields = data.ramo === 'Automóvil';
     const shouldAppendDescripcionSeparately =
-      data.descripcion && !(data.ramo === 'Automóvil' && data.observaciones);
+      shouldPopulateVehicleFields &&
+      data.descripcion &&
+      !data.observaciones;
     if (shouldAppendDescripcionSeparately) {
       console.log('Descripción:', data.descripcion);
       const notasActuales = $('#notas').val();
@@ -428,13 +431,15 @@ $(function () {
     }
 
     // Serie del vehículo (número de serie/VIN)
-    if (data.serie) {
+    if (shouldPopulateVehicleFields && data.serie) {
       console.log('Serie del vehículo:', data.serie);
       $('#serie').val(data.serie);
+    } else if (!shouldPopulateVehicleFields) {
+      $('#serie').val('');
     }
 
     // Observaciones del vehículo, priorizando la descripción para autos
-    if (data.observaciones) {
+    if (shouldPopulateVehicleFields && data.observaciones) {
       console.log('Observaciones del vehículo:', data.observaciones);
       const notasActuales = $('#notas').val();
       $('#notas').val(
@@ -578,7 +583,7 @@ $(function () {
         const optionExists =
           ramoSelect.find(`option[value="${ramoId}"]`).length > 0;
         if (optionExists) {
-          ramoSelect.val(ramoId);
+          ramoSelect.val(ramoId).trigger('change');
         } else {
           console.log(
             'Ramo no encontrado en select, creando nuevo:',
@@ -2275,14 +2280,14 @@ $(function () {
     await resetForm();
   });
 
-  $('#closeModalCreateRecibos').click(async (e) => {
+  $('#closeModalCreateRecibos, #reset-btn-recibos').click(async (e) => {
     e.preventDefault();
     try {
       const resp = await alertConfirm(
         '¿Esta seguro de que desea salir?, no se crearan la poliza y/o recibos',
       );
       if (!resp.isConfirmed) return;
-      $('#create-recib').modal('toggle');
+      $('#create-recib').modal('hide');
     } catch (error) {
       console.log(error);
     }
@@ -2350,10 +2355,24 @@ $(function () {
     }
   });
 
+  function updateSerieRequired() {
+    const ramoText = $('#ramo option:selected').text().trim().toUpperCase();
+    const isAuto = ramoText.includes('AUTO');
+    const isCasa = ramoText.includes('CASA') || ramoText.includes('HOGAR');
+    $('#serie').prop('required', isAuto);
+    $('#div_serie').toggle(!isCasa);
+    $('#div_notas').toggle(!isCasa);
+    if (isCasa) {
+      $('#serie').val('');
+      $('#notas').val('');
+    }
+  }
+
   $('#ramo').on('change', function (e) {
     if (this.value === 'New') {
       $('#nuevo_ramo_subramo_div').show();
     }
+    updateSerieRequired();
   });
 
   $('#subramo').on('change', function (e) {

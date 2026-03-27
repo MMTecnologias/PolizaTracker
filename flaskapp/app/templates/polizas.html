@@ -164,10 +164,10 @@
                            <p class="invalid-feedback">Ingresa un dato valido</p>
                         </div>
                      </div>
-                     <div class="form__input-data input-sibling-child">
+                     <div class="form__input-data input-sibling-child" id="div_serie">
                         <label class="label-input-data">No. Serie</label>
                         <div class="input-group">
-                           <input type="text" class="form-control" id="serie" name="serie" required />
+                           <input type="text" class="form-control" id="serie" name="serie" />
                            <p class="invalid-feedback">Ingresa un dato valido</p>
                         </div>
                      </div>
@@ -335,7 +335,7 @@
                         </div>
                      </div>
                   </div>
-                  <div class="form__input-data">
+                  <div class="form__input-data" id="div_notas">
                      <label class="label-input-data" for="notas">Notas</label>
                      <div class="">
                         <textarea class="form-control" id="notas" name="notas" placeholder="Insertar notas"
@@ -629,7 +629,7 @@
                            <button class="btn" type="submit" id="btnGuardar-recibos" name="btnGuardar-recibos">
                               Guardar
                            </button>
-                           <button class="btn" type="reset" value="Cancelar" id="reset-btn-recibos">
+                           <button class="btn" type="button" value="Cancelar" id="reset-btn-recibos">
                               Cancelar
                            </button>
                         </div>

@@ -1649,11 +1649,8 @@ ALLOWED_POLICY_LOG_STAGES = {
     "pdf_extract",
     "pdf_extract_error",
     "pipeline_start",
-    "pipeline_context",
-    "rule_hints",
-    "ollama_response",
-    "merge",
-    "model_attempt_result",
+    "pdf_text_summary",
+    "ai_output_summary",
     "model_attempt_error",
     "reconciliation_error",
     "prima_total",
@@ -1661,10 +1658,6 @@ ALLOWED_POLICY_LOG_STAGES = {
     "pipeline_recovery",
     "pipeline_result",
     "pipeline_normalized",
-    "subramo_resolution",
-    "forma_pago_resolution",
-    "field_snapshot",
-    "merge_decisions",
 }
 
 LOCAL_POLICY_MODEL_CANDIDATES = [
@@ -1706,6 +1699,18 @@ POLICY_DEBUG_FIELDS = (
     "descripcion",
     "numero_serie",
     "placas",
+)
+
+POLICY_LOG_SUMMARY_FIELDS = (
+    "numero_de_poliza",
+    "nombre_cliente",
+    "aseguradora",
+    "agente",
+    "desde",
+    "hasta",
+    "forma_de_pago",
+    "prima_neta",
+    "prima_total",
 )
 
 
@@ -1947,6 +1952,35 @@ def normalize_ascii_upper(value: str) -> str:
     return re.sub(r'[^A-Z]', '', normalized)
 
 
+SPANISH_MONTH_ALIASES = {
+    "ENE": "01",
+    "ENERO": "01",
+    "FEB": "02",
+    "FEBRERO": "02",
+    "MAR": "03",
+    "MARZO": "03",
+    "ABR": "04",
+    "ABRIL": "04",
+    "MAY": "05",
+    "MAYO": "05",
+    "JUN": "06",
+    "JUNIO": "06",
+    "JUL": "07",
+    "JULIO": "07",
+    "AGO": "08",
+    "AGOSTO": "08",
+    "SEP": "09",
+    "SEPT": "09",
+    "SEPTIEMBRE": "09",
+    "OCT": "10",
+    "OCTUBRE": "10",
+    "NOV": "11",
+    "NOVIEMBRE": "11",
+    "DIC": "12",
+    "DICIEMBRE": "12",
+}
+
+
 def find_agent_match_by_tokens(nombre: str, agentes) -> int:
     query_tokens = normalize_person_name_tokens(nombre)
     if not query_tokens:
@@ -2029,6 +2063,100 @@ def build_flexible_label_pattern(label: str) -> str:
     return label
 
 
+def normalize_extracted_date(value: str) -> str:
+    value = sanitize_text_value(value)
+    if not value:
+        return None
+
+    value = value.upper()
+    value = value.replace(".", "/").replace("-", "/")
+    value = re.sub(r'\bA\s+LAS\s+\d{1,2}(?::\d{2})?\s*HRS?\.?\b', ' ', value)
+    value = re.sub(r'\s+', ' ', value).strip()
+
+    numeric_match = re.search(r'(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{4})', value)
+    if numeric_match:
+        day, month, year = numeric_match.groups()
+        return f"{int(day):02d}/{int(month):02d}/{year}"
+
+    spaced_match = re.search(r'\b(\d{1,2})\s+(\d{1,2})\s+(\d{4})\b', value)
+    if spaced_match:
+        day, month, year = spaced_match.groups()
+        return f"{int(day):02d}/{int(month):02d}/{year}"
+
+    month_keys = sorted(SPANISH_MONTH_ALIASES.keys(), key=len, reverse=True)
+    month_pattern = "|".join(month_keys)
+    month_match = re.search(
+        rf'(\d{{1,2}})\s*/?\s*({month_pattern})\s*/?\s*(\d{{4}})',
+        value,
+        re.I
+    )
+    if month_match:
+        day, month_token, year = month_match.groups()
+        month = SPANISH_MONTH_ALIASES.get(month_token.upper())
+        if month:
+            return f"{int(day):02d}/{month}/{year}"
+
+    return None
+
+
+def extract_vigencia_values(text: str):
+    month_keys = sorted(SPANISH_MONTH_ALIASES.keys(), key=len, reverse=True)
+    month_pattern = "|".join(month_keys)
+    date_pattern = rf'(?:\d{{1,2}}\s*[/-]\s*\d{{1,2}}\s*[/-]\s*\d{{4}}|\d{{1,2}}\s*[/-]?\s*(?:{month_pattern})\s*[/-]?\s*\d{{4}})'
+
+    range_patterns = [
+        rf'Vigencia\s*a\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})\s*(?:al|a)\s*[:|]?\s*({date_pattern})',
+        rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern}).{{0,80}}?Vigencia\s*hasta\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
+        rf'Vigencia\s*del\s*[:|]?\s*({date_pattern})\s*(?:al|a)\s*[:|]?\s*({date_pattern})',
+        rf'Desde\s*[:|]?\s*({date_pattern}).{{0,80}}?Hasta\s*[:|]?\s*({date_pattern})',
+    ]
+    for pattern in range_patterns:
+        match = re.search(pattern, text, re.I | re.S)
+        if not match:
+            continue
+        desde = normalize_extracted_date(match.group(1))
+        hasta = normalize_extracted_date(match.group(2))
+        if desde or hasta:
+            return desde, hasta
+
+    table_match = re.search(
+        r'Vigencia\s+de\s+la\s+P[oó]liza.{0,180}?Desde\s+Hasta.{0,120}?D[ií]a\s+Mes\s+A[nñ]o\s+D[ií]a\s+Mes\s+A[nñ]o\s+(\d{1,2})\s+(\d{1,2})\s+(\d{4})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{4})',
+        text,
+        re.I | re.S
+    )
+    if table_match:
+        desde = f"{int(table_match.group(1)):02d}/{int(table_match.group(2)):02d}/{table_match.group(3)}"
+        hasta = f"{int(table_match.group(4)):02d}/{int(table_match.group(5)):02d}/{table_match.group(6)}"
+        return desde, hasta
+
+    single_patterns = {
+        "desde": [
+            rf'Fecha\s*de\s*inicio\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
+            rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
+            rf'Inicio\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
+            rf'Vigencia\s*inicia\s*[:|]?\s*({date_pattern})',
+        ],
+        "hasta": [
+            rf'Fecha\s*de\s*fin\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
+            rf'Vigencia\s*hasta\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
+            rf'Fin\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
+            rf'Vigencia\s*termina\s*[:|]?\s*({date_pattern})',
+        ],
+    }
+
+    values = {"desde": None, "hasta": None}
+    for field, patterns in single_patterns.items():
+        for pattern in patterns:
+            match = re.search(pattern, text, re.I | re.S)
+            if not match:
+                continue
+            values[field] = normalize_extracted_date(match.group(1))
+            if values[field]:
+                break
+
+    return values["desde"], values["hasta"]
+
+
 def extract_amount_near_label(text: str, labels) -> str:
     for label in labels:
         flexible_label = build_flexible_label_pattern(label)
@@ -2048,6 +2176,47 @@ def extract_money_amount_near_label(text: str, labels) -> str:
         if match:
             return normalize_amount_value(match.group(1))
     return None
+
+
+def extract_structured_premium_values(text: str) -> dict:
+    patterns = [
+        r'Prima\s*neta\s*:?.{0,180}?Gastos\s*de\s*expedici[oó]n\s*:?.{0,120}?I\.?V\.?A\.?.{0,80}?Prima\s*total\s*:?\s*\n([^\n]+)',
+        r'Prima\s*neta\s*:?.{0,180}?Prima\s*total\s*:?\s*\n([^\n]+)',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.I | re.S)
+        if not match:
+            continue
+
+        row = sanitize_text_value(match.group(1))
+        if not row:
+            continue
+
+        amounts = [
+            normalize_amount_value(value)
+            for value in re.findall(r'(?:\$\s*)?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)', row)
+        ]
+        amounts = [value for value in amounts if value is not None]
+
+        if len(amounts) >= 6:
+            return {
+                "prima_neta": amounts[0],
+                "recargo": amounts[1],
+                "descuento": amounts[2],
+                "derecho_poliza": amounts[3],
+                "iva": amounts[4],
+                "prima_total": amounts[5],
+            }
+
+        if len(amounts) >= 4:
+            return {
+                "prima_neta": amounts[0],
+                "derecho_poliza": amounts[-3] if len(amounts) >= 5 else None,
+                "iva": amounts[-2],
+                "prima_total": amounts[-1],
+            }
+
+    return {}
 
 
 def is_suspicious_premium_amount(amount_value: str, text: str) -> bool:
@@ -2083,6 +2252,16 @@ def sanitize_premium_fields(text: str, data: dict) -> dict:
 
 
 def extract_prima_neta_value(text: str, prima_total: str = None, derecho_poliza: str = None) -> str:
+    structured_values = extract_structured_premium_values(text)
+    structured_prima_neta = structured_values.get("prima_neta")
+    if structured_prima_neta and not is_suspicious_premium_amount(structured_prima_neta, text):
+        log_policy_event(
+            "prima_total",
+            "prima neta encontrada en fila estructurada de primas",
+            prima_neta=structured_prima_neta
+        )
+        return structured_prima_neta
+
     direct_labels = [
         r'Prima neta',
         r'Prima del movimiento',
@@ -2146,6 +2325,36 @@ def extract_prima_neta_value(text: str, prima_total: str = None, derecho_poliza:
 
 
 def extract_prima_total_value(text: str, prima_neta: str = None, derecho_poliza: str = None) -> str:
+    structured_values = extract_structured_premium_values(text)
+    structured_prima_total = structured_values.get("prima_total")
+    if structured_prima_total:
+        log_policy_event(
+            "prima_total",
+            "prima total encontrada en fila estructurada de primas",
+            prima_total=structured_prima_total
+        )
+        return structured_prima_total
+
+    # Formato tabular Mapfre: encabezados en una línea, valores en la siguiente.
+    # "Prima neta: ... Prima total:\n11,228.38 ... $ 13,430.93"
+    # El valor de prima total es el ÚLTIMO número monetario de la fila de datos.
+    tabular_match = re.search(
+        r'Prima\s*neta\s*:.{0,200}?Prima\s*total\s*:\s*\n([^\n]+)',
+        text, re.I
+    )
+    if tabular_match:
+        row = tabular_match.group(1)
+        money_pattern = r'(?:\$\s*)?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)'
+        amounts = re.findall(money_pattern, row)
+        if amounts:
+            candidate = normalize_amount_value(amounts[-1])
+            log_policy_event(
+                "prima_total",
+                "prima total encontrada en formato tabular (última columna)",
+                prima_total=candidate
+            )
+            return candidate
+
     direct_labels = [
         r'Prima anual total',
         r'Prima total anual',
@@ -2237,22 +2446,133 @@ def extract_prima_total_value(text: str, prima_neta: str = None, derecho_poliza:
 
 
 def extract_policy_number_value(text: str) -> str:
+    def normalize_policy_candidate(candidate: str) -> str:
+        candidate = sanitize_text_value(candidate)
+        if not candidate:
+            return None
+        candidate = re.sub(r'\s+', ' ', candidate).strip(" :|-")
+        compact_policy_match = re.fullmatch(r'([A-Z]\d)\s*(\d{6,10})', candidate or '')
+        if compact_policy_match:
+            return f"{compact_policy_match.group(1)} {compact_policy_match.group(2)}"
+        spaced_alnum_match = re.fullmatch(r'([A-Z]{1,5})\s*(\d{5,}[A-Z0-9/-]*)', candidate or '')
+        if spaced_alnum_match:
+            return f"{spaced_alnum_match.group(1)}{spaced_alnum_match.group(2)}"
+        return candidate
+
+    def is_valid_policy_candidate(candidate: str) -> bool:
+        candidate = normalize_policy_candidate(candidate)
+        if not candidate:
+            return False
+
+        compact = re.sub(r'[^A-Z0-9]', '', candidate.upper())
+        if len(compact) < 6:
+            return False
+        if not re.search(r'\d', compact):
+            return False
+        if compact in {"MNACIONAL", "NACIONAL"}:
+            return False
+        if re.fullmatch(r'[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}', compact):
+            return False
+        if re.fullmatch(r'\d{8}', compact) or re.fullmatch(r'\d{10}', compact):
+            return False
+        return True
+
+    candidate_pattern = r'([A-Z]{1,5}\s*\d{4,}[A-Z0-9/-]*|[A-Z0-9/-]{6,})'
+
     patterns = [
-        r'(?im)^\s*P[oó]liza(?:\s*/\s*Endoso)?\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        r'(?is)P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza\s*\n\s*[^\n]*?\b(\d{8,12})\b',
+        r'(?is)P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza.{0,120}?\n\s*[^\n]*?\b(\d{8,12})\b',
+        r'(?is)P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        r'(?is)P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza\s*\n+\s*([A-Z0-9/-]{5,})\b',
+        # Número de póliza explícito (excluye "Ant." para no capturar la póliza anterior)
+        r'(?im)^\s*P[oó]liza(?!\s*Ant)(?:\s*/\s*Endoso)?\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
         r'(?is)(?:^|\n)\s*P[oó]liza(?:\s*/\s*Endoso)?\s*\n+\s*([A-Z0-9/-]{5,})\b',
         r'(?im)^\s*P[oó]liza(?:\s*/\s*Endoso)?\s*\|\s*([A-Z0-9/-]{5,})\b',
+        r'(?im)\bNo\.?\s*de\s*P[oó]liza\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        r'(?im)\bP[oó]liza\s+No\.?\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        r'(?im)\bN[uú]mero\s+de\s+P[oó]liza\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        r'(?im)\bNo\.?\s+P[oó]liza\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        r'(?im)\bP[oó]liza\s+y/o\s+Certificado\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
+        # Formato AXA: "Póliza:" pegado o con espacio, alfanumérico con letras (ej: YBJ000840000)
+        r'(?im)\bP[oó]liza\s*:\s*([A-Z]{2,5}\d{6,}[A-Z0-9/-]*)\b',
         r'(?im)\bliza\s*:\s*([A-Z]\d\s*\d{6,10})\b',
         r'(?im)\bP[oó]liza\s*:\s*([A-Z]\d\s*\d{6,10})\b',
+        r'(?im)\bP[oó]liza\s*:\s*([A-Z]{1,5}\d{5,}[A-Z0-9/-]*)\b',
     ]
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
-            candidate = sanitize_text_value(match.group(1))
-            compact_policy_match = re.fullmatch(r'([A-Z]\d)\s*(\d{6,10})', candidate or '')
-            if compact_policy_match:
-                return f"{compact_policy_match.group(1)} {compact_policy_match.group(2)}"
-            if candidate and re.fullmatch(r'[A-Z0-9/-]{5,}', candidate):
+            candidate = normalize_policy_candidate(match.group(1))
+            if candidate and (
+                is_valid_policy_candidate(candidate) or
+                re.fullmatch(r'\d{8,12}', candidate or '')
+            ):
                 return candidate
+
+    label_windows = re.finditer(
+        r'(?is)(?:P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza|P[oó]liza(?:\s*/\s*Endoso)?|No\.?\s*de\s*P[oó]liza|N[uú]mero\s+de\s+P[oó]liza|P[oó]liza\s+y/o\s+Certificado).{0,140}',
+        text
+    )
+    for match in label_windows:
+        window = sanitize_text_value(match.group(0))
+        if not window or re.search(r'\bAnt\.?\b', window, re.I):
+            continue
+        candidates = re.findall(candidate_pattern, window, re.I)
+        for candidate in candidates:
+            normalized_candidate = normalize_policy_candidate(candidate)
+            # Evitar capturar números de agente/moneda dentro del mismo bloque.
+            if re.search(r'\bAgente\b', window, re.I) and re.fullmatch(r'\d{5,7}', normalized_candidate or ''):
+                continue
+            if is_valid_policy_candidate(normalized_candidate):
+                return normalized_candidate
+
+    generic_policy_lines = re.finditer(
+        r'(?im)^.*(?:P[oó]liza|Poliza|Datos de la P[oó]liza).*$',
+        text
+    )
+    for match in generic_policy_lines:
+        line = sanitize_text_value(match.group(0))
+        if not line:
+            continue
+        # Ignorar líneas que hacen referencia a la póliza anterior
+        if re.search(r'\bAnt\.?\b', line, re.I):
+            continue
+        alnum_match = re.search(candidate_pattern, line, re.I)
+        if alnum_match:
+            candidate = normalize_policy_candidate(alnum_match.group(1))
+            if re.search(r'\bAgente\b', line, re.I) and re.fullmatch(r'\d{5,7}', candidate or ''):
+                continue
+            if is_valid_policy_candidate(candidate):
+                return candidate
+
+    structured_blocks = re.finditer(
+        r'(?is)(P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza|No\.?\s*de\s*P[oó]liza|N[uú]mero\s+de\s+P[oó]liza|P[oó]liza\s+y/o\s+Certificado)(.{0,220})',
+        text
+    )
+    for match in structured_blocks:
+        window = sanitize_text_value(match.group(2))
+        if not window:
+            continue
+        candidates = re.findall(candidate_pattern, window, re.I)
+        for candidate in candidates:
+            normalized_candidate = normalize_policy_candidate(candidate)
+            if re.fullmatch(r'\d{4,7}', normalized_candidate or ''):
+                continue
+            if is_valid_policy_candidate(normalized_candidate) or re.fullmatch(r'\d{8,12}', normalized_candidate or ''):
+                return normalized_candidate
+
+    policy_table_match = re.search(
+        r'P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza\s*\n([^\n]+)',
+        text,
+        re.I
+    )
+    if policy_table_match:
+        row = sanitize_text_value(policy_table_match.group(1))
+        if row:
+            numeric_candidates = re.findall(r'\b(\d{8,12})\b', row)
+            if numeric_candidates:
+                return numeric_candidates[-1]
+
     return None
 
 
@@ -2297,27 +2617,56 @@ def extract_policy_number_from_filename(filename: str) -> str:
         return None
 
     filename = re.sub(r'\.pdf$', '', filename, flags=re.I)
-    match = re.search(r'\b([A-Z]\d)\s*[-_ ]?\s*(\d{6,10})\b', filename, re.I)
+    match = re.search(r'\b([A-Z]{1,5}\d?)\s*[-_ ]?\s*(\d{5,10}[A-Z0-9/-]*)\b', filename, re.I)
     if match:
-        return f"{match.group(1).upper()} {match.group(2)}"
+        prefix = match.group(1).upper()
+        suffix = match.group(2).upper()
+        if prefix[-1].isdigit():
+            return f"{prefix} {suffix}"
+        return f"{prefix}{suffix}"
     return None
 
 
 def extract_agent_name_value(text: str) -> str:
+    table_agent_match = re.search(
+        r'Forma\s+de\s+Pago\s+Agente\s+Moneda\s*\n\s*[A-ZÁÉÍÓÚÑ/.-]+\s+(\d{4,8})\s+M\.?N',
+        text,
+        re.I
+    )
+    if table_agent_match:
+        return sanitize_text_value(table_agent_match.group(1))
+
     patterns = [
         r'(?im)^\s*Agente\s*[:|]\s*(?:\d{4,}\s+)?([^\n]+)$',
         r'(?im)^\s*AGENTE\s*[:|]\s*(?:\d{4,}\s+)?([^\n]+)$',
         r'(?is)(?:^|\n)\s*Agente\s*[:|]\s*\n+\s*(?:\d{4,}\s+)?([^\n]+?)(?:\n|$)',
         r'(?im)^\s*Agente\s*\|\s*(?:\d{4,}\s*\|\s*)?([^\n]+)$',
+        r'(?is)\bAgente\s*[:|]?\s*(?:\d{4,}\s+)?([A-ZÁÉÍÓÚÑ][^\n]{3,120})',
     ]
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
             value = match.group(1)
             value = re.split(r'CLAVE\s+DE\s+AGENTE', value, maxsplit=1, flags=re.I)[0]
+            value = re.split(
+                r'\b(?:Prima\s*Neta|PrimaNeta|Prima\s*Total|PrimaTotal|Tasa\s*de\s*Financiamiento|Financiamiento|Contrato|Orden\s*de\s*Trabajo|Gastos?\s*(?:por|de)\s*Expedici[oó]n|I\.?V\.?A\.?)\b',
+                value,
+                maxsplit=1,
+                flags=re.I
+            )[0]
+            value = re.split(
+                r'\b(?:No\.?\s*de\s*cliente|Datos\s*adicionales|Moneda|Forma\s*de\s*pago|Vigencia|P[oó]liza|Endoso)\b',
+                value,
+                maxsplit=1,
+                flags=re.I
+            )[0]
             value = re.split(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', value, maxsplit=1, flags=re.I)[0]
             value = re.split(r'\b(?:CEL|TEL[EÉ]FONO|TEL)\b', value, maxsplit=1, flags=re.I)[0]
             value = re.split(r'\b\d{7,}\b', value, maxsplit=1, flags=re.I)[0]
+            value = re.sub(r'^\d{4,}\s+', '', value).strip()
+            value = re.sub(r'\bOT\s*[:|-]?\s*\d+\b.*$', '', value, flags=re.I).strip()
+            if re.search(r'\b(?:AVENIDA|COLONIA|ALCALD[IÍ]A|INSURGENTES|CIUDAD DE M[EÉ]XICO|C\.?P\.?)\b', value, re.I):
+                continue
             cleaned = sanitize_name_candidate(value)
             if cleaned:
                 return cleaned
@@ -2679,6 +3028,27 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'MANIOBRAS\s+DE\s+CARGA\s+Y\s+DESCARGA', 2),
             ],
         },
+        "Casa Habitación": {
+            "header": [
+                (r'CASA\s*HABITACI[ÓO]N', 8),
+                (r'SEGURO\s+DE\s+HOGAR', 8),
+                (r'P[ÓO]LIZA\s+DE\s+HOGAR', 7),
+                (r'\bHOGAR\b', 6),
+                (r'CONTENIDOS\s+DEL\s+HOGAR', 6),
+                (r'INMUEBLE', 5),
+                (r'INCENDIO\s+Y\s+RAYO', 5),
+                (r'ROBO\s+CON\s+VIOLENCIA', 4),
+                (r'RESPONSABILIDAD\s+CIVIL\s+FAMILIAR', 4),
+            ],
+            "body": [
+                (r'CASA\s*HABITACI[ÓO]N', 4),
+                (r'\bHOGAR\b', 3),
+                (r'CONTENIDOS\s+DEL\s+HOGAR', 3),
+                (r'INMUEBLE', 2),
+                (r'INCENDIO\s+Y\s+RAYO', 2),
+                (r'ROBO\s+CON\s+VIOLENCIA', 2),
+            ],
+        },
     }
 
     scores = {}
@@ -2709,6 +3079,8 @@ def detect_policy_ramo(text: str) -> str:
             return "Gastos Médicos"
         if "TRANSPORTE" in normalized_explicit and "CARGA" in normalized_explicit:
             return "Transporte de carga"
+        if "CASAHABITACION" in normalized_explicit or "HOGAR" in normalized_explicit:
+            return "Casa Habitación"
 
     scores = score_policy_ramo_candidates(text)
     best_ramo = max(scores, key=scores.get)
@@ -2722,12 +3094,12 @@ def detect_policy_ramo(text: str) -> str:
 
 def build_field_snippets(text: str) -> dict:
     field_patterns = {
-        "numero_de_poliza": [r'P[oó]liza', r'Solicitud'],
+        "numero_de_poliza": [r'P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza', r'No\.?\s*de\s*P[oó]liza', r'N[uú]mero\s+de\s+P[oó]liza', r'P[oó]liza\s+y/o\s+Certificado', r'P[oó]liza', r'Solicitud'],
         "nombre_cliente": [r'Datos del contratante', r'Asegurado Titular', r'Nombre'],
         "rfc": [r'R\.?F\.?C\.?'],
         "agente": [r'^\s*Agente\s*[:|]', r'^\s*AGENTE\s*[:|]', r'^\s*Agente\s*\|'],
-        "desde": [r'Fecha de inicio de vigencia'],
-        "hasta": [r'Fecha de fin de vigencia'],
+        "desde": [r'Fecha de inicio de vigencia', r'Vigencia\s*a\s*las\s*12', r'Vigencia\s*desde', r'Vigencia\s*del'],
+        "hasta": [r'Fecha de fin de vigencia', r'Vigencia\s*hasta', r'\bal:\s*\d{1,2}[/-]'],
         "forma_de_pago": [
             r'Frecuencia\s*de\s*pago',
             r'Forma\s*de\s*pago',
@@ -2769,7 +3141,9 @@ def build_rule_based_hints(text: str) -> dict:
         "QUALITAS": "Quálitas",
         "QUÁLITAS": "Quálitas",
         "MAPFRE": "Mapfre",
-        "HDI": "HDI"
+        "HDI": "HDI",
+        "METLIFE": "MetLife",
+        "CHUBB": "Chubb"
     }
     upper_text = text.upper()
     for token, insurer in insurer_map.items():
@@ -2794,17 +3168,13 @@ def build_rule_based_hints(text: str) -> dict:
             hints["subramo"] = ramo
 
     if hints["ramo"] == "Automóvil" and not hints["subramo"]:
-        hints["subramo"] = "Automóvil"
+        header = text[:3000].upper()
+        if re.search(r'\bFLOT(?:ILLA|A)\b', header):
+            hints["subramo"] = "FLOTILLA"
+        else:
+            hints["subramo"] = "AUTO/IND"
 
-    inicio_match = re.search(
-        r'Fecha de inicio de vigencia\s*[:|]?\s*(\d{2}/\d{2}/\d{4})', text, re.I)
-    if inicio_match:
-        hints["desde"] = inicio_match.group(1)
-
-    fin_match = re.search(
-        r'Fecha de fin de vigencia\s*[:|]?\s*(\d{2}/\d{2}/\d{4})', text, re.I)
-    if fin_match:
-        hints["hasta"] = fin_match.group(1)
+    hints["desde"], hints["hasta"] = extract_vigencia_values(text)
 
     hints["rfc"] = extract_value_after_label(
         text, [r'R\.?F\.?C\.?'], stop_tokens=[r'Tel[eé]fono']
@@ -2857,7 +3227,8 @@ def build_rule_based_hints(text: str) -> dict:
     if ' M.N.' in text or ' PESOS ' in f' {upper_text} ':
         hints["moneda"] = "MXN"
 
-    hints["derecho_poliza"] = extract_money_amount_near_label(
+    structured_premium_values = extract_structured_premium_values(text)
+    hints["derecho_poliza"] = structured_premium_values.get("derecho_poliza") or extract_money_amount_near_label(
         text, POLICY_FEE_LABELS
     )
     hints["prima_neta"] = extract_prima_neta_value(
@@ -2875,20 +3246,6 @@ def build_rule_based_hints(text: str) -> dict:
 
     normalized_hints = {key: sanitize_text_value(
         value) for key, value in hints.items()}
-    log_policy_event(
-        "rule_hints",
-        "resultado de reglas para campos objetivo",
-        agente=normalized_hints.get("agente"),
-        forma_de_pago=normalized_hints.get("forma_de_pago"),
-        prima_neta=normalized_hints.get("prima_neta"),
-        prima_total=normalized_hints.get("prima_total")
-    )
-    log_policy_event(
-        "field_snapshot",
-        "snapshot de campos por reglas",
-        source="rules",
-        fields=build_policy_debug_snapshot(normalized_hints)
-    )
     return normalized_hints
 
 
@@ -3036,23 +3393,6 @@ def query_ollama_json(model: str, prompt: str) -> dict:
         raise ValueError("Respuesta inesperada de Ollama")
     parsed = extract_json_object(data["response"])
     parsed = flatten_ollama_response(parsed)
-    log_policy_event(
-        "ollama_response",
-        "respuesta del modelo para campos objetivo",
-        model=model,
-        response_chars=len(data.get("response", "")),
-        agente=parsed.get("agente"),
-        forma_de_pago=parsed.get("forma_de_pago"),
-        prima_neta=parsed.get("prima_neta"),
-        prima_total=parsed.get("prima_total")
-    )
-    log_policy_event(
-        "field_snapshot",
-        "snapshot de campos por modelo",
-        source="model",
-        model=model,
-        fields=build_policy_debug_snapshot(parsed)
-    )
     return parsed
 
 
@@ -3111,22 +3451,6 @@ def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
             else:
                 merge_sources[key] = "derived"
 
-    log_policy_event(
-        "merge",
-        "fusión de reglas y modelo completada",
-        rule_fields=sorted(
-            [key for key, value in rule_hints.items() if sanitize_text_value(value)]),
-        model_fields=sorted(
-            [key for key, value in model_result.items() if sanitize_text_value(value)]),
-        merged_fields=sorted(
-            [key for key, value in merged.items() if sanitize_text_value(value)]),
-        critical_found=count_populated_fields(merged, CRITICAL_POLICY_FIELDS)
-    )
-    log_policy_event(
-        "merge_decisions",
-        "origen de los campos finales tras el merge",
-        decisions={field: merge_sources.get(field) for field in POLICY_DEBUG_FIELDS if merge_sources.get(field)}
-    )
     return merged
 
 
@@ -3414,10 +3738,16 @@ def flatten_ollama_response(raw: dict) -> dict:
         val = flat.get(field)
         if not val:
             continue
+        val = sanitize_text_value(val)
         # ISO format: 2026-03-24 o 2026-03-24T00:00:00Z
         iso_match = re.match(r'(\d{4})-(\d{2})-(\d{2})', str(val))
         if iso_match:
             flat[field] = f"{iso_match.group(3)}/{iso_match.group(2)}/{iso_match.group(1)}"
+            continue
+
+        normalized_date = normalize_extracted_date(val)
+        if normalized_date:
+            flat[field] = normalized_date
 
     # 5. Limpiar montos: quitar símbolos de moneda y comas
     AMOUNT_FIELDS = ("prima_neta", "prima_total",
@@ -3448,24 +3778,44 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
     model_candidates = choose_local_policy_models(
         get_available_ollama_models(ollama_url))
 
-    log_policy_event(
-        "pipeline_context",
-        "fragmentos extraídos por Python para campos objetivo",
-        extraction_id=extraction_id,
-        candidate_models=model_candidates,
-        agente_snippet=field_snippets.get("agente"),
-        forma_de_pago_snippet=field_snippets.get("forma_de_pago") or extract_diagnostic_snippet(
+    pdf_text_snippets = {
+        "numero_de_poliza": field_snippets.get("numero_de_poliza") or extract_diagnostic_snippet(
+            cleaned_text,
+            [r'P[oó]liza', r'No\.?\s*de\s*P[oó]liza', r'N[uú]mero\s+de\s+P[oó]liza', r'P[oó]liza\s+y/o\s+Certificado']
+        ),
+        "nombre_cliente": field_snippets.get("nombre_cliente") or extract_diagnostic_snippet(
+            cleaned_text,
+            [r'Datos\s+del\s+contratante', r'Asegurado\s+Titular', r'Contratante', r'Nombre']
+        ),
+        "agente": field_snippets.get("agente"),
+        "desde": field_snippets.get("desde") or extract_diagnostic_snippet(
+            cleaned_text,
+            [r'Fecha\s*de\s*inicio\s*de\s*vigencia', r'Vigencia\s*a\s*las\s*12', r'Vigencia\s*desde', r'Vigencia\s*del']
+        ),
+        "hasta": field_snippets.get("hasta") or extract_diagnostic_snippet(
+            cleaned_text,
+            [r'Fecha\s*de\s*fin\s*de\s*vigencia', r'Vigencia\s*hasta', r'\bal:\s*\d{1,2}[/-]']
+        ),
+        "forma_de_pago": field_snippets.get("forma_de_pago") or extract_diagnostic_snippet(
             cleaned_text,
             [r'Forma\s*de\s*pago', r'Formadepago', r'Frecuencia\s*de\s*pago', r'Periodicidad', r'Mensual', r'Trimestral', r'Semestral', r'Contado', r'MasterCard', r'Visa']
         ),
-        prima_neta_snippet=field_snippets.get("prima_neta") or extract_diagnostic_snippet(
+        "prima_neta": field_snippets.get("prima_neta") or extract_diagnostic_snippet(
             cleaned_text,
             [r'Prima Neta', r'PRIMANETA', r'Prima anual', r'Prima del movimiento', r'Prima', r'Importe']
         ),
-        prima_total_snippet=field_snippets.get("prima_total") or extract_diagnostic_snippet(
+        "prima_total": field_snippets.get("prima_total") or extract_diagnostic_snippet(
             cleaned_text,
             [r'Prima total', r'PRIMATOTAL', r'Prima anual total', r'Total del movimiento', r'Importe a pagar', r'Prima', r'Importe']
-        )
+        ),
+    }
+    log_policy_event(
+        "pdf_text_summary",
+        "resumen del texto extraído por Python",
+        extraction_id=extraction_id,
+        candidate_models=model_candidates,
+        extracted_fields=build_policy_debug_snapshot(rule_hints, fields=POLICY_LOG_SUMMARY_FIELDS),
+        extracted_snippets={key: value for key, value in pdf_text_snippets.items() if value}
     )
 
     last_error = None
@@ -3481,17 +3831,16 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
                 )
                 extracted_json = query_ollama_json(
                     model, extraction_prompt)
-                critical_found = count_populated_fields(
-                    extracted_json, CRITICAL_POLICY_FIELDS)
                 log_policy_event(
-                    "model_attempt_result",
-                    "modelo respondió",
+                    "ai_output_summary",
+                    "resumen de lo que devolvió la IA local",
                     extraction_id=extraction_id,
                     model=model,
-                    critical_found=critical_found,
-                    found_fields=sorted(
-                        [key for key, value in extracted_json.items() if sanitize_text_value(value)])
+                    response_fields=build_policy_debug_snapshot(extracted_json, fields=POLICY_LOG_SUMMARY_FIELDS),
+                    response_chars=len(json.dumps(extracted_json, ensure_ascii=False))
                 )
+                critical_found = count_populated_fields(
+                    extracted_json, CRITICAL_POLICY_FIELDS)
                 if critical_found >= 4:
                     break
             except json.JSONDecodeError as exc:
@@ -3574,12 +3923,15 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             "pipeline_result",
             "resultado final para campos objetivo",
             extraction_id=extraction_id,
+            numero_de_poliza=merged_json.get("numero_de_poliza"),
             agente=merged_json.get("agente"),
+            desde=merged_json.get("desde"),
+            hasta=merged_json.get("hasta"),
             forma_de_pago=merged_json.get("forma_de_pago"),
             prima_neta=merged_json.get("prima_neta"),
             prima_total=merged_json.get("prima_total"),
             missing_target_fields=[
-                field for field in ("agente", "forma_de_pago", "prima_neta", "prima_total")
+                field for field in ("numero_de_poliza", "agente", "desde", "hasta", "forma_de_pago", "prima_neta", "prima_total")
                 if not sanitize_text_value(merged_json.get(field))
             ]
         )
@@ -3589,6 +3941,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             merged_json.get("aseguradora"))
         agente_extraido = merged_json.get("agente")
         agente_id = find_existing_agente(agente_extraido)
+        agente_record = Agente.query.get(agente_id) if agente_id else None
         forma_pago_normalizada = normalize_forma_pago_value(
             merged_json.get("forma_de_pago"))
         tipo_pago_id = find_existing_tipo_pago(forma_pago_normalizada)
@@ -3602,7 +3955,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
 
         generic_subramo = (
             not subramo_nombre or
-            subramo_compact in {"GASTOSMEDICOS", "GASTOSMEDICOSMAYORES", "GASTOSMEDICOSINDIVIDUALFAMILIAR"} or
+            subramo_compact in {"GASTOSMEDICOS", "GASTOSMEDICOSMAYORES", "GASTOSMEDICOSINDIVIDUALFAMILIAR", "AUTOMOVIL", "AUTO"} or
             (ramo_compact and subramo_compact == ramo_compact) or
             subramo_id is None
         )
@@ -3611,7 +3964,10 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             subramo_nombre = "IND/FAM"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact in {"AUTOMOVIL", "AUTO"}:
-            subramo_nombre = "FAMILIAR"
+            subramo_nombre = "AUTO/IND"
+            subramo_id = find_existing_subramo(subramo_nombre)
+        elif generic_subramo and ramo_compact in {"CASAHABITACION", "HOGAR"}:
+            subramo_nombre = "PARTICULAR"
             subramo_id = find_existing_subramo(subramo_nombre)
 
         log_policy_event(
@@ -3647,7 +4003,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         cliente_id = find_existing_cliente(
             nombre_cliente_extraido, rfc_cliente)
         nombre_cliente = nombre_cliente_extraido if cliente_id else ""
-        agente_nombre = agente_extraido if agente_id else ""
+        agente_nombre = agente_record.nombre if agente_record else ""
 
         log_policy_event(
             "entity_resolution",
@@ -3688,6 +4044,8 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             append_vehicle_note(f"Placas: {placas_value}" if placas_value else None)
             append_vehicle_note(f"Serie: {serie_value}" if serie_value else None)
 
+        normalized_serie = serie_value if ramo_normalized == "Automóvil" else ""
+
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
             "nombre_cliente": nombre_cliente,
@@ -3712,7 +4070,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             "descripcion": descripcion_value,
             "endoso": merged_json.get("endoso"),
             "rfc": rfc_cliente,
-            "serie": merged_json.get("numero_serie") or merged_json.get("num_serie") or merged_json.get("vin"),
+            "serie": normalized_serie,
             "observaciones": " | ".join(vehicle_notes).strip(),
             "derecho_poliza": normalize_amount_value(
                 merged_json.get("derecho_poliza") or merged_json.get(
