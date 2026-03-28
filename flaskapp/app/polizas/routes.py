@@ -1645,6 +1645,7 @@ JSON_SCHEMA = {
 }
 
 DEFAULT_POLICY_VENDEDOR = "GUILLERMO GARDUÑO"
+DEFAULT_POLICY_AGENT = "GUILLERMO GARDUÑO GALI"
 ALLOWED_POLICY_LOG_STAGES = {
     "pdf_extract",
     "pdf_extract_error",
@@ -1911,6 +1912,7 @@ def sanitize_name_candidate(value: str) -> str:
         r'\bDatos del asegurado y/o propietario\b',
         r'\bContratante\b',
         r'\bAsegurado\b',
+        r'\bPropietario\b',
         r'\bDomicilio\b',
         r'\bCiudad\b',
         r'\bR\.?F\.?C\.?\b',
@@ -1927,7 +1929,18 @@ def sanitize_name_candidate(value: str) -> str:
         suffix = suffix_match.group(1)
         if re.search(r'[A-Z]', suffix) and re.search(r'\d', suffix):
             value = value[:suffix_match.start()].strip(" :|-")
-    return sanitize_text_value(value)
+    value = sanitize_text_value(value)
+    if value and not re.search(r'[A-ZÁÉÍÓÚÑ]', value, re.I):
+        return None
+    return value
+
+
+def normalize_rfc_value(value: str) -> str:
+    value = sanitize_text_value(value)
+    if not value:
+        return None
+    value = re.sub(r'[^A-Z0-9]', '', value.upper())
+    return value or None
 
 
 def normalize_person_name_tokens(value: str) -> list:
@@ -2096,6 +2109,17 @@ def normalize_extracted_date(value: str) -> str:
         if month:
             return f"{int(day):02d}/{month}/{year}"
 
+    month_de_match = re.search(
+        rf'(\d{{1,2}})\s+DE\s+({month_pattern})\s+DE\s+(\d{{4}})',
+        value,
+        re.I
+    )
+    if month_de_match:
+        day, month_token, year = month_de_match.groups()
+        month = SPANISH_MONTH_ALIASES.get(month_token.upper())
+        if month:
+            return f"{int(day):02d}/{month}/{year}"
+
     return None
 
 
@@ -2103,15 +2127,19 @@ def extract_vigencia_values(text: str):
     month_keys = sorted(SPANISH_MONTH_ALIASES.keys(), key=len, reverse=True)
     month_pattern = "|".join(month_keys)
     date_pattern = rf'(?:\d{{1,2}}\s*[/-]\s*\d{{1,2}}\s*[/-]\s*\d{{4}}|\d{{1,2}}\s*[/-]?\s*(?:{month_pattern})\s*[/-]?\s*\d{{4}})'
+    text_window = text[:6000]
 
     range_patterns = [
         rf'Vigencia\s*a\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})\s*(?:al|a)\s*[:|]?\s*({date_pattern})',
         rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern}).{{0,80}}?Vigencia\s*hasta\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
+        rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern}).{{0,120}}?hasta\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern})',
         rf'Vigencia\s*del\s*[:|]?\s*({date_pattern})\s*(?:al|a)\s*[:|]?\s*({date_pattern})',
+        rf'vigencia\s*de\s*({date_pattern})\s*a\s*({date_pattern})',
         rf'Desde\s*[:|]?\s*({date_pattern}).{{0,80}}?Hasta\s*[:|]?\s*({date_pattern})',
+        rf'mismo\s+que\s+tendr[áa]\s+vigencia\s+de\s*({date_pattern})\s*a\s*({date_pattern})',
     ]
     for pattern in range_patterns:
-        match = re.search(pattern, text, re.I | re.S)
+        match = re.search(pattern, text_window, re.I | re.S)
         if not match:
             continue
         desde = normalize_extracted_date(match.group(1))
@@ -2121,7 +2149,7 @@ def extract_vigencia_values(text: str):
 
     table_match = re.search(
         r'Vigencia\s+de\s+la\s+P[oó]liza.{0,180}?Desde\s+Hasta.{0,120}?D[ií]a\s+Mes\s+A[nñ]o\s+D[ií]a\s+Mes\s+A[nñ]o\s+(\d{1,2})\s+(\d{1,2})\s+(\d{4})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{4})',
-        text,
+        text_window,
         re.I | re.S
     )
     if table_match:
@@ -2129,16 +2157,47 @@ def extract_vigencia_values(text: str):
         hasta = f"{int(table_match.group(4)):02d}/{int(table_match.group(5)):02d}/{table_match.group(6)}"
         return desde, hasta
 
+    compact_table_match = re.search(
+        rf'Vigencia\s+de\s+la\s+P[oó]liza.{{0,220}}?Desde\s+Hasta.{{0,140}}?(\d{{1,2}}\s*[/-]?\s*(?:\d{{1,2}}|{month_pattern})\s*[/-]?\s*\d{{4}})\s+(\d{{1,2}}\s*[/-]?\s*(?:\d{{1,2}}|{month_pattern})\s*[/-]?\s*\d{{4}})',
+        text_window,
+        re.I | re.S
+    )
+    if compact_table_match:
+        desde = normalize_extracted_date(compact_table_match.group(1))
+        hasta = normalize_extracted_date(compact_table_match.group(2))
+        if desde or hasta:
+            return desde, hasta
+
+    vigencia_windows = re.finditer(
+        r'(?is)(Vigencia.{0,260}|vigencia.{0,260}|Desde.{0,180}Hasta.{0,180})',
+        text_window
+    )
+    raw_date_pattern = rf'(\d{{1,2}}\s*[/-]?\s*(?:\d{{1,2}}|{month_pattern})\s*[/-]?\s*\d{{4}})'
+    for match in vigencia_windows:
+        window = match.group(0)
+        dates = []
+        for raw_value in re.findall(raw_date_pattern, window, re.I):
+            normalized = normalize_extracted_date(raw_value)
+            if normalized and normalized not in dates:
+                dates.append(normalized)
+        if len(dates) >= 2:
+            return dates[0], dates[1]
+
     single_patterns = {
         "desde": [
             rf'Fecha\s*de\s*inicio\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
+            rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern})',
+            rf'Desde\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
             rf'Inicio\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*inicia\s*[:|]?\s*({date_pattern})',
         ],
         "hasta": [
             rf'Fecha\s*de\s*fin\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*hasta\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
+            rf'Vencimiento\s*[:|]?\s*({date_pattern})',
+            rf'Hasta\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
+            rf'hasta\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
             rf'Fin\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*termina\s*[:|]?\s*({date_pattern})',
         ],
@@ -2578,14 +2637,18 @@ def extract_policy_number_value(text: str) -> str:
 
 def extract_customer_name_value(text: str) -> str:
     multiline_patterns = [
+        r'(?is)Datos del contratante\s*:\s*(?:[A-Z0-9]{10,13}\s*[-:]\s*)?([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)Datos del contratante.*?Contratante\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)Datos del contratante.*?Nombre\s*[:|]?\s*([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)Datos del asegurado y/o propietario.*?Asegurado\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
+        r'(?is)\bAsegurado\s*:\s*(?:\d{6,}\s+)?([^\n]+(?:\n[^\n]+){0,1})',
+        r'(?is)\bPropietario/?\s*:\s*([^\n]+(?:\n[^\n]+){0,1})',
+        r'(?is)Raz[oó]n social\s*[:|]?\s*([^\n]+(?:\n[^\n]+){0,1})',
         r'(?is)\bContratante\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)\bAsegurado\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
     ]
     stop_pattern = re.compile(
-        r'\b(?:R\.?F\.?C\.?|C\.?P\.?|Domicilio|Ciudad|Fecha|Moneda|Forma de pago|Paquete|Clave interna del agente|Inciso|Endoso|Tipo de endoso|Vigencia)\b',
+        r'\b(?:R\.?F\.?C\.?|C\.?P\.?|Domicilio|Ciudad|Fecha|Moneda|Forma de pago|Paquete|Clave interna del agente|Inciso|Endoso|Tipo de endoso|Vigencia|Sucursal|Tel[eé]fono|No\.?\s*de\s*cliente|Propietario)\b',
         re.I
     )
 
@@ -2628,6 +2691,14 @@ def extract_policy_number_from_filename(filename: str) -> str:
 
 
 def extract_agent_name_value(text: str) -> str:
+    clave_interna_match = re.search(
+        r'Clave\s+interna\s+del\s+agente\s*[:|]?\s*([A-Z0-9-]{4,20})',
+        text,
+        re.I
+    )
+    if clave_interna_match:
+        return sanitize_text_value(clave_interna_match.group(1))
+
     table_agent_match = re.search(
         r'Forma\s+de\s+Pago\s+Agente\s+Moneda\s*\n\s*[A-ZÁÉÍÓÚÑ/.-]+\s+(\d{4,8})\s+M\.?N',
         text,
@@ -2637,11 +2708,11 @@ def extract_agent_name_value(text: str) -> str:
         return sanitize_text_value(table_agent_match.group(1))
 
     patterns = [
+        r'(?im)^\s*Nombre\s+del\s+agente\s*[:|]\s*([^\n]+)$',
         r'(?im)^\s*Agente\s*[:|]\s*(?:\d{4,}\s+)?([^\n]+)$',
         r'(?im)^\s*AGENTE\s*[:|]\s*(?:\d{4,}\s+)?([^\n]+)$',
         r'(?is)(?:^|\n)\s*Agente\s*[:|]\s*\n+\s*(?:\d{4,}\s+)?([^\n]+?)(?:\n|$)',
         r'(?im)^\s*Agente\s*\|\s*(?:\d{4,}\s*\|\s*)?([^\n]+)$',
-        r'(?is)\bAgente\s*[:|]?\s*(?:\d{4,}\s+)?([A-ZÁÉÍÓÚÑ][^\n]{3,120})',
     ]
     for pattern in patterns:
         match = re.search(pattern, text)
@@ -2665,7 +2736,7 @@ def extract_agent_name_value(text: str) -> str:
             value = re.split(r'\b\d{7,}\b', value, maxsplit=1, flags=re.I)[0]
             value = re.sub(r'^\d{4,}\s+', '', value).strip()
             value = re.sub(r'\bOT\s*[:|-]?\s*\d+\b.*$', '', value, flags=re.I).strip()
-            if re.search(r'\b(?:AVENIDA|COLONIA|ALCALD[IÍ]A|INSURGENTES|CIUDAD DE M[EÉ]XICO|C\.?P\.?)\b', value, re.I):
+            if re.search(r'\b(?:AVENIDA|COLONIA|ALCALD[IÍ]A|INSURGENTES|CIUDAD DE M[EÉ]XICO|C\.?P\.?|CARACTER[ÍI]STICAS\s+DEL\s+RIESGO)\b', value, re.I):
                 continue
             cleaned = sanitize_name_candidate(value)
             if cleaned:
@@ -3173,12 +3244,20 @@ def build_rule_based_hints(text: str) -> dict:
             hints["subramo"] = "FLOTILLA"
         else:
             hints["subramo"] = "AUTO/IND"
+    elif hints["ramo"] == "Transporte de carga" and not hints["subramo"]:
+        transport_header = text[:4000].upper()
+        if re.search(r'INTEGRAL\s+TERRESTRE|MEDIO\s+DE\s+TRANSPORTE\s*:\s*TERRESTRE', transport_header):
+            hints["subramo"] = "Transporte terrestre de carga"
+        elif re.search(r'MAR[IÍ]TIMO', transport_header):
+            hints["subramo"] = "Transporte marítimo de carga"
+        elif re.search(r'A[ÉE]REO', transport_header):
+            hints["subramo"] = "Transporte aéreo de carga"
 
     hints["desde"], hints["hasta"] = extract_vigencia_values(text)
 
-    hints["rfc"] = extract_value_after_label(
+    hints["rfc"] = normalize_rfc_value(extract_value_after_label(
         text, [r'R\.?F\.?C\.?'], stop_tokens=[r'Tel[eé]fono']
-    )
+    ))
     hints["nombre_cliente"] = extract_customer_name_value(text)
 
     contratante_match = re.search(
@@ -3459,8 +3538,9 @@ def find_existing_cliente(nombre_completo: str, rfc: str = None):
     if not nombre_completo or not nombre_completo.strip():
         return None
 
-    if rfc and rfc.strip():
-        cliente = Cliente.query.filter_by(rfc=rfc.strip().upper()).first()
+    normalized_rfc = normalize_rfc_value(rfc)
+    if normalized_rfc:
+        cliente = Cliente.query.filter_by(rfc=normalized_rfc).first()
         if cliente:
             log_policy_event(
                 "entity_lookup",
@@ -3478,6 +3558,8 @@ def find_existing_cliente(nombre_completo: str, rfc: str = None):
             self.nombre = f"{c.nombre} {c.apellido}".strip()
     proxies = [_ClienteProxy(c) for c in clientes]
     cliente_id = find_best_match(nombre_completo, proxies)
+    if not cliente_id:
+        cliente_id = find_agent_match_by_tokens(nombre_completo, proxies)
     if cliente_id:
         log_policy_event(
             "entity_lookup",
@@ -3569,6 +3651,20 @@ def find_existing_subramo(nombre: str):
 
     subramos = Subramo.query.all()
     subramo_id = find_best_match(nombre, subramos, attr_name='subramo')
+
+    normalized_name = normalize_ascii_upper(nombre)
+    fallback_aliases = []
+    if normalized_name in {"AUTOIND", "AUTOINDIVIDUAL", "AUTOFAMILIAR"}:
+        fallback_aliases = ["AUTO IND", "AUTO/IND", "FAMILIAR"]
+    elif normalized_name == "TRANSPORTEDECARGA":
+        fallback_aliases = ["Transporte terrestre de carga"]
+
+    if subramo_id is None:
+        for alias in fallback_aliases:
+            subramo_id = find_best_match(alias, subramos, attr_name='subramo')
+            if subramo_id is not None:
+                break
+
     log_policy_event(
         "entity_lookup",
         "resultado búsqueda subramo",
@@ -3731,6 +3827,9 @@ def flatten_ollama_response(raw: dict) -> dict:
             flat[target] = flat.pop(alias)
         elif alias in flat:
             flat.pop(alias)
+
+    if flat.get("rfc"):
+        flat["rfc"] = normalize_rfc_value(flat.get("rfc"))
 
     # 4. Normalizar fechas a DD/MM/YYYY
     DATE_FIELDS = ("desde", "hasta")
@@ -3941,6 +4040,9 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             merged_json.get("aseguradora"))
         agente_extraido = merged_json.get("agente")
         agente_id = find_existing_agente(agente_extraido)
+        if agente_id is None:
+            agente_extraido = DEFAULT_POLICY_AGENT
+            agente_id = find_existing_agente(agente_extraido)
         agente_record = Agente.query.get(agente_id) if agente_id else None
         forma_pago_normalizada = normalize_forma_pago_value(
             merged_json.get("forma_de_pago"))
@@ -3965,6 +4067,9 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact in {"AUTOMOVIL", "AUTO"}:
             subramo_nombre = "AUTO/IND"
+            subramo_id = find_existing_subramo(subramo_nombre)
+        elif generic_subramo and ramo_compact == "TRANSPORTEDECARGA":
+            subramo_nombre = "Transporte terrestre de carga"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact in {"CASAHABITACION", "HOGAR"}:
             subramo_nombre = "PARTICULAR"
@@ -4002,7 +4107,11 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         rfc_cliente = merged_json.get("rfc")
         cliente_id = find_existing_cliente(
             nombre_cliente_extraido, rfc_cliente)
-        nombre_cliente = nombre_cliente_extraido if cliente_id else ""
+        cliente_record = Cliente.query.get(cliente_id) if cliente_id else None
+        nombre_cliente = (
+            f"{cliente_record.nombre} {cliente_record.apellido}".strip()
+            if cliente_record else ""
+        )
         agente_nombre = agente_record.nombre if agente_record else ""
 
         log_policy_event(
