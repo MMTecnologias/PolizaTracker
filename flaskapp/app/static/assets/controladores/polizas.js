@@ -362,6 +362,8 @@ $(function () {
     if (data.cliente_id) {
       console.log('Cliente ID:', data.cliente_id);
       $('#selected-client-id').val(data.cliente_id);
+    } else {
+      $('#selected-client-id').val('None');
     }
 
     // Primas
@@ -876,6 +878,15 @@ $(function () {
     if (!cleaned) return '';
     const parsed = parseFloat(cleaned);
     return Number.isNaN(parsed) ? '' : parsed.toFixed(2);
+  }
+
+  function displayCellValue(value) {
+    if (value === null || value === undefined) return '';
+    const stringValue = String(value).trim();
+    if (!stringValue || stringValue.toLowerCase() === 'null' || stringValue.toLowerCase() === 'undefined') {
+      return '';
+    }
+    return stringValue;
   }
 
   function formatCurrencyDisplay(value) {
@@ -1741,25 +1752,26 @@ $(function () {
     const table = $('#receiptsTable');
     table.html('');
     $.each(data, function (idx, recibo) {
+      const fechaPago = displayCellValue(recibo.fecha_pago);
       table.append(
         `<tr class="tableOption-recibos">
-            <td>${recibo.numero}</td>
-            <td>${recibo.fecha_recibo}</td>
-            <td>${recibo.vencimiento}</td>
+            <td>${displayCellValue(recibo.numero)}</td>
+            <td>${displayCellValue(recibo.fecha_recibo)}</td>
+            <td>${displayCellValue(recibo.vencimiento)}</td>
             <td>$${formatNumber(Number(recibo.prima_neta || 0))}</td>
             <td>$${formatNumber(Number(recibo.prima_total || 0))}</td>
-            <td>${recibo.moneda}</td>
+            <td>${displayCellValue(recibo.moneda)}</td>
             <td>
                 <input type="checkbox" id="check_pagado${
                   recibo.id
                 }" name="check_pagado${recibo.id}" />
             </td>
-            <td>${recibo.fecha_pago} ${
-              recibo.fecha_pago
+            <td>${fechaPago} ${
+              fechaPago
                 ? `<a class="btn__icon_edit pointer" id="btnEdit_${recibo.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21"><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
                 </a>`
-                : null
+                : ''
             } </td>
             <td>${recibo.cancelado ? 'Cancelado' : ''}</td>
          </tr>`,
@@ -1859,18 +1871,18 @@ $(function () {
     $.each(data, function (idx, recibo) {
       table.append(
         `<tr class="tableOption-recibos-endosos">
-            <td>${recibo.numero}</td>
-            <td>${recibo.fecha_recibo}</td>
-            <td>${recibo.vencimiento}</td>
-            <td>${recibo.prima_neta}</td>
-            <td>${recibo.prima_total}</td>
-            <td>${recibo.moneda}</td>
+            <td>${displayCellValue(recibo.numero)}</td>
+            <td>${displayCellValue(recibo.fecha_recibo)}</td>
+            <td>${displayCellValue(recibo.vencimiento)}</td>
+            <td>${displayCellValue(recibo.prima_neta)}</td>
+            <td>${displayCellValue(recibo.prima_total)}</td>
+            <td>${displayCellValue(recibo.moneda)}</td>
             <td>
                 <input type="checkbox" id="check_pagado${
                   recibo.id
                 }" name="check_pagado${recibo.id}" />
             </td>
-            <td>${recibo.fecha_pago}</td>
+            <td>${displayCellValue(recibo.fecha_pago)}</td>
             <td>${recibo.cancelado ? 'Cancelado' : ''}</td>
          </tr>`,
       );

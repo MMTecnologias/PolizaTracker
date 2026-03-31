@@ -2059,6 +2059,41 @@ def normalize_amount_value(value):
     return amount or None
 
 
+def normalize_currency_value(value: str) -> str:
+    value = sanitize_text_value(value)
+    if not value:
+        return None
+
+    compact = normalize_ascii_upper(value)
+    if compact in {"MN", "MNACIONAL", "NACIONAL", "PESO", "PESOS", "MXN"}:
+        return "MXN"
+    if compact in {"USD", "DOLAR", "DOLARES"}:
+        return "USD"
+    if compact in {"UDI", "UDIS"}:
+        return "Udis"
+    return None
+
+
+def extract_currency_value(text: str) -> str:
+    explicit_value = extract_value_after_label(
+        text,
+        [r'Moneda'],
+        stop_tokens=[r'P[oó]liza', r'Forma de pago', r'Conducto', r'Agente', r'Cobro', r'Prima']
+    )
+    normalized_explicit = normalize_currency_value(explicit_value)
+    if normalized_explicit:
+        return normalized_explicit
+
+    compact_text = normalize_ascii_upper(text[:5000])
+    if "MONEDANACIONAL" in compact_text or "MONEDAMNACIONAL" in compact_text or "MONEDAPESOS" in compact_text:
+        return "MXN"
+    if "MONEDAUSD" in compact_text or "MONEDADOLARES" in compact_text:
+        return "USD"
+    if "MONEDAUDI" in compact_text or "MONEDAUDIS" in compact_text:
+        return "Udis"
+    return None
+
+
 def to_float_amount(value):
     normalized = normalize_amount_value(value)
     if not normalized:
@@ -2261,8 +2296,8 @@ def extract_structured_premium_values(text: str) -> dict:
             return {
                 "prima_neta": amounts[0],
                 "recargo": amounts[1],
-                "descuento": amounts[2],
-                "derecho_poliza": amounts[3],
+                "derecho_poliza": amounts[2],
+                "iva_percent": amounts[3],
                 "iva": amounts[4],
                 "prima_total": amounts[5],
             }
@@ -2510,7 +2545,24 @@ def extract_policy_number_value(text: str) -> str:
         if not candidate:
             return None
         candidate = re.sub(r'\s+', ' ', candidate).strip(" :|-")
-        compact_policy_match = re.fullmatch(r'([A-Z]\d)\s*(\d{6,10})', candidate or '')
+        split_alpha_numeric_match = re.fullmatch(
+            r'([A-Z]{2,5}\d{4,8})\s+(\d{2,6}(?:[A-Z0-9/-]*)?)',
+            candidate or ''
+        )
+        if split_alpha_numeric_match:
+            return f"{split_alpha_numeric_match.group(1)}{split_alpha_numeric_match.group(2)}"
+        split_suffix_match = re.fullmatch(
+            r'([A-Z]{1,5}\d?)\s+(\d{3,10})\s+(\d{2,6}(?:[A-Z0-9/-]*)?)',
+            candidate or ''
+        )
+        if split_suffix_match:
+            prefix = split_suffix_match.group(1)
+            suffix = f"{split_suffix_match.group(2)}{split_suffix_match.group(3)}"
+            if prefix[-1].isdigit():
+                return f"{prefix} {suffix}"
+            return f"{prefix}{suffix}"
+
+        compact_policy_match = re.fullmatch(r'([A-Z]\d)\s*(\d{6,12})', candidate or '')
         if compact_policy_match:
             return f"{compact_policy_match.group(1)} {compact_policy_match.group(2)}"
         spaced_alnum_match = re.fullmatch(r'([A-Z]{1,5})\s*(\d{5,}[A-Z0-9/-]*)', candidate or '')
@@ -2519,8 +2571,12 @@ def extract_policy_number_value(text: str) -> str:
         return candidate
 
     def is_valid_policy_candidate(candidate: str) -> bool:
+        raw_candidate = sanitize_text_value(candidate)
         candidate = normalize_policy_candidate(candidate)
         if not candidate:
+            return False
+
+        if raw_candidate and re.search(r'[a-záéíóúñ]', raw_candidate):
             return False
 
         compact = re.sub(r'[^A-Z0-9]', '', candidate.upper())
@@ -2528,17 +2584,57 @@ def extract_policy_number_value(text: str) -> str:
             return False
         if not re.search(r'\d', compact):
             return False
+        if compact.startswith("DE") or compact.startswith("DEL") or compact.startswith("AL"):
+            return False
+        if compact.startswith("CP") and re.fullmatch(r'CP\d{4,6}', compact):
+            return False
         if compact in {"MNACIONAL", "NACIONAL"}:
             return False
         if re.fullmatch(r'[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}', compact):
             return False
         if re.fullmatch(r'\d{8}', compact) or re.fullmatch(r'\d{10}', compact):
             return False
+        if re.fullmatch(r'DE\d{4}', compact) or re.fullmatch(r'AL\d{4}', compact):
+            return False
         return True
 
-    candidate_pattern = r'([A-Z]{1,5}\s*\d{4,}[A-Z0-9/-]*|[A-Z0-9/-]{6,})'
+    def choose_longest_valid_candidate(candidates) -> str:
+        normalized_candidates = []
+        for candidate in candidates or []:
+            normalized = normalize_policy_candidate(candidate)
+            if normalized and is_valid_policy_candidate(normalized):
+                normalized_candidates.append(normalized)
+        if not normalized_candidates:
+            return None
+        return max(normalized_candidates, key=lambda value: len(re.sub(r'[^A-Z0-9]', '', value.upper())))
+
+    direct_line_candidates = re.findall(
+        r'(?im)\bP[oó]liza\s*:\s*([A-Z]{2,5}\d{6,12}(?:\s+\d{2,6})?[A-Z0-9/-]*)\b',
+        text
+    )
+    direct_line_candidate = choose_longest_valid_candidate(direct_line_candidates)
+    if direct_line_candidate:
+        return direct_line_candidate
+
+    explicit_value = extract_value_after_label(
+        text,
+        [r'P[oó]liza\s*:', r'No\.?\s*de\s*P[oó]liza', r'N[uú]mero\s+de\s+P[oó]liza'],
+        stop_tokens=[r'\bMoneda\b', r'\bDatos\b', r'\bAsegurado\b', r'\bContratante\b', r'\bEndoso\b']
+    )
+    explicit_compact_matches = re.findall(
+        r'\b([A-Z]{2,5}\d{6,12}(?:\s+\d{2,6})?[A-Z0-9/-]*)\b',
+        explicit_value or '',
+        re.I
+    )
+    explicit_candidate = choose_longest_valid_candidate(explicit_compact_matches)
+    if explicit_candidate:
+        return explicit_candidate
+
+    candidate_pattern = r'([A-Z]{1,5}\d?(?:\s+\d{2,10}){1,2}[A-Z0-9/-]*|[A-Z]{1,5}\s*\d{4,}[A-Z0-9/-]*|[A-Z0-9/-]{6,})'
 
     patterns = [
+        r'(?im)\bP[oó]liza\s*:\s*([A-Z]{2,5}\d{4,8}\s+\d{2,6}[A-Z0-9/-]*)\b',
+        r'(?im)\bP[oó]liza\s*:\s*([A-Z]{2,5}\d{6,12}[A-Z0-9/-]*)\b',
         r'(?is)P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza\s*\n\s*[^\n]*?\b(\d{8,12})\b',
         r'(?is)P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza.{0,120}?\n\s*[^\n]*?\b(\d{8,12})\b',
         r'(?is)P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza\s*[:|]?\s*([A-Z0-9/-]{5,})\b',
@@ -2576,14 +2672,17 @@ def extract_policy_number_value(text: str) -> str:
         window = sanitize_text_value(match.group(0))
         if not window or re.search(r'\bAnt\.?\b', window, re.I):
             continue
+        window = re.split(r'\bEndoso\b', window, maxsplit=1, flags=re.I)[0].strip()
         candidates = re.findall(candidate_pattern, window, re.I)
+        valid_candidates = []
         for candidate in candidates:
             normalized_candidate = normalize_policy_candidate(candidate)
-            # Evitar capturar números de agente/moneda dentro del mismo bloque.
             if re.search(r'\bAgente\b', window, re.I) and re.fullmatch(r'\d{5,7}', normalized_candidate or ''):
                 continue
-            if is_valid_policy_candidate(normalized_candidate):
-                return normalized_candidate
+            valid_candidates.append(normalized_candidate)
+        best_candidate = choose_longest_valid_candidate(valid_candidates)
+        if best_candidate:
+            return best_candidate
 
     generic_policy_lines = re.finditer(
         r'(?im)^.*(?:P[oó]liza|Poliza|Datos de la P[oó]liza).*$',
@@ -2596,13 +2695,17 @@ def extract_policy_number_value(text: str) -> str:
         # Ignorar líneas que hacen referencia a la póliza anterior
         if re.search(r'\bAnt\.?\b', line, re.I):
             continue
-        alnum_match = re.search(candidate_pattern, line, re.I)
-        if alnum_match:
-            candidate = normalize_policy_candidate(alnum_match.group(1))
-            if re.search(r'\bAgente\b', line, re.I) and re.fullmatch(r'\d{5,7}', candidate or ''):
+        line = re.split(r'\bEndoso\b', line, maxsplit=1, flags=re.I)[0].strip()
+        line_candidates = re.findall(candidate_pattern, line, re.I)
+        valid_line_candidates = []
+        for candidate in line_candidates:
+            normalized_candidate = normalize_policy_candidate(candidate)
+            if re.search(r'\bAgente\b', line, re.I) and re.fullmatch(r'\d{5,7}', normalized_candidate or ''):
                 continue
-            if is_valid_policy_candidate(candidate):
-                return candidate
+            valid_line_candidates.append(normalized_candidate)
+        best_candidate = choose_longest_valid_candidate(valid_line_candidates)
+        if best_candidate:
+            return best_candidate
 
     structured_blocks = re.finditer(
         r'(?is)(P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza|No\.?\s*de\s*P[oó]liza|N[uú]mero\s+de\s+P[oó]liza|P[oó]liza\s+y/o\s+Certificado)(.{0,220})',
@@ -2612,13 +2715,17 @@ def extract_policy_number_value(text: str) -> str:
         window = sanitize_text_value(match.group(2))
         if not window:
             continue
+        window = re.split(r'\bEndoso\b', window, maxsplit=1, flags=re.I)[0].strip()
         candidates = re.findall(candidate_pattern, window, re.I)
+        valid_candidates = []
         for candidate in candidates:
             normalized_candidate = normalize_policy_candidate(candidate)
             if re.fullmatch(r'\d{4,7}', normalized_candidate or ''):
                 continue
-            if is_valid_policy_candidate(normalized_candidate) or re.fullmatch(r'\d{8,12}', normalized_candidate or ''):
-                return normalized_candidate
+            valid_candidates.append(normalized_candidate)
+        best_candidate = choose_longest_valid_candidate(valid_candidates)
+        if best_candidate:
+            return best_candidate
 
     policy_table_match = re.search(
         r'P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza\s*\n([^\n]+)',
@@ -2974,6 +3081,15 @@ def clean_vehicle_attribute_value(value: str, field: str = None) -> str:
     if any(token in compact_value for token in suspicious_tokens):
         return None
 
+    if field == "numero_serie":
+        spaced_serial_match = re.match(r'^([A-Z0-9-]{8,25})\s+[A-Z]{2,5}$', value, re.I)
+        if spaced_serial_match:
+            value = spaced_serial_match.group(1)
+        else:
+            first_token = value.split()[0] if value.split() else value
+            if re.fullmatch(r'[A-Z0-9-]{8,25}', first_token or '', re.I):
+                value = first_token
+
     token_count = len(value.split())
     if field in {"marca", "modelo"} and (len(value) > 40 or token_count > 5):
         return None
@@ -3214,7 +3330,8 @@ def build_rule_based_hints(text: str) -> dict:
         "MAPFRE": "Mapfre",
         "HDI": "HDI",
         "METLIFE": "MetLife",
-        "CHUBB": "Chubb"
+        "CHUBB": "Chubb",
+        "PREVEM": "PREVEN SEGUROS",
     }
     upper_text = text.upper()
     for token, insurer in insurer_map.items():
@@ -3303,8 +3420,9 @@ def build_rule_based_hints(text: str) -> dict:
             text, [r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'\bSerie\b']
         )
 
-    if ' M.N.' in text or ' PESOS ' in f' {upper_text} ':
-        hints["moneda"] = "MXN"
+    hints["moneda"] = extract_currency_value(text) or (
+        "MXN" if ' M.N.' in text or ' PESOS ' in f' {upper_text} ' or ' NACIONAL ' in f' {upper_text} ' else None
+    )
 
     structured_premium_values = extract_structured_premium_values(text)
     hints["derecho_poliza"] = structured_premium_values.get("derecho_poliza") or extract_money_amount_near_label(
@@ -3541,6 +3659,8 @@ def find_existing_cliente(nombre_completo: str, rfc: str = None):
     normalized_rfc = normalize_rfc_value(rfc)
     if normalized_rfc:
         cliente = Cliente.query.filter_by(rfc=normalized_rfc).first()
+        if not cliente and len(normalized_rfc) in {9, 10, 11, 12}:
+            cliente = Cliente.query.filter(Cliente.rfc.like(f"{normalized_rfc}%")).first()
         if cliente:
             log_policy_event(
                 "entity_lookup",
@@ -3560,6 +3680,15 @@ def find_existing_cliente(nombre_completo: str, rfc: str = None):
     cliente_id = find_best_match(nombre_completo, proxies)
     if not cliente_id:
         cliente_id = find_agent_match_by_tokens(nombre_completo, proxies)
+    if not cliente_id:
+        normalized_query = normalize_ascii_upper(nombre_completo)
+        for proxy in proxies:
+            normalized_record = normalize_ascii_upper(proxy.nombre)
+            if normalized_query and normalized_record and (
+                normalized_query in normalized_record or normalized_record in normalized_query
+            ):
+                cliente_id = proxy.id
+                break
     if cliente_id:
         log_policy_event(
             "entity_lookup",
@@ -4110,7 +4239,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         cliente_record = Cliente.query.get(cliente_id) if cliente_id else None
         nombre_cliente = (
             f"{cliente_record.nombre} {cliente_record.apellido}".strip()
-            if cliente_record else ""
+            if cliente_record else (nombre_cliente_extraido or "")
         )
         agente_nombre = agente_record.nombre if agente_record else ""
 
