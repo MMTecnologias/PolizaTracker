@@ -2025,6 +2025,72 @@ def find_agent_match_by_tokens(nombre: str, agentes) -> int:
     return None
 
 
+def find_special_agent_match(nombre: str, agentes) -> int:
+    query_tokens = set(normalize_person_name_tokens(nombre))
+    if not query_tokens:
+        return None
+
+    normalized_lookup = {
+        normalize_ascii_upper(agente.nombre): agente
+        for agente in agentes if getattr(agente, "nombre", None)
+    }
+
+    # Reglas explícitas para los tres agentes que realmente existen.
+    if "santiago" in query_tokens:
+        agent = normalized_lookup.get(normalize_ascii_upper("Roberto Guillermo Garduño Santiago"))
+        if agent:
+            return agent.id
+
+    if "gali" in query_tokens:
+        agent = normalized_lookup.get(normalize_ascii_upper("Guillermo Garduño Gali"))
+        if agent:
+            return agent.id
+
+    if "roberto" in query_tokens and "guillermo" not in query_tokens and "santiago" not in query_tokens:
+        agent = normalized_lookup.get(normalize_ascii_upper("Roberto Garduño"))
+        if agent:
+            return agent.id
+
+    # Desempate adicional por cobertura de tokens entre esos tres nombres.
+    preferred_names = [
+        "Guillermo Garduño Gali",
+        "Roberto Garduño",
+        "Roberto Guillermo Garduño Santiago",
+    ]
+    best_agent_id = None
+    best_score = 0.0
+    for preferred_name in preferred_names:
+        agent = normalized_lookup.get(normalize_ascii_upper(preferred_name))
+        if not agent:
+            continue
+        record_tokens = set(normalize_person_name_tokens(agent.nombre))
+        if not record_tokens:
+            continue
+
+        common_count = len(query_tokens & record_tokens)
+        if common_count == 0:
+            continue
+
+        precision = common_count / max(1, len(record_tokens))
+        recall = common_count / max(1, len(query_tokens))
+        score = (precision * 0.6) + (recall * 0.4)
+
+        if preferred_name == "Roberto Garduño" and "roberto" in query_tokens and "santiago" not in query_tokens and "gali" not in query_tokens:
+            score += 0.2
+        if preferred_name == "Guillermo Garduño Gali" and "gali" in query_tokens:
+            score += 0.3
+        if preferred_name == "Roberto Guillermo Garduño Santiago" and "santiago" in query_tokens:
+            score += 0.3
+
+        if score > best_score:
+            best_score = score
+            best_agent_id = agent.id
+
+    if best_score >= 0.6:
+        return best_agent_id
+    return None
+
+
 def split_name_and_policy_suffix(value: str):
     """Separa un posible número de póliza pegado al final del nombre."""
     value = sanitize_text_value(value)
@@ -3215,6 +3281,22 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'MANIOBRAS\s+DE\s+CARGA\s+Y\s+DESCARGA', 2),
             ],
         },
+        "Vida": {
+            "header": [
+                (r'\bVIDA\b', 7),
+                (r'SEGURO\s+DE\s+VIDA', 8),
+                (r'VIDA\s+INDIVIDUAL', 8),
+                (r'ASEGURADO\s+TITULAR', 4),
+                (r'BENEFICIARIOS', 5),
+                (r'SUMA\s+ASEGURADA', 3),
+            ],
+            "body": [
+                (r'\bVIDA\b', 4),
+                (r'SEGURO\s+DE\s+VIDA', 4),
+                (r'VIDA\s+INDIVIDUAL', 5),
+                (r'BENEFICIARIOS', 2),
+            ],
+        },
         "Casa Habitación": {
             "header": [
                 (r'CASA\s*HABITACI[ÓO]N', 8),
@@ -3266,6 +3348,8 @@ def detect_policy_ramo(text: str) -> str:
             return "Gastos Médicos"
         if "TRANSPORTE" in normalized_explicit and "CARGA" in normalized_explicit:
             return "Transporte de carga"
+        if "VIDA" in normalized_explicit:
+            return "Vida"
         if "CASAHABITACION" in normalized_explicit or "HOGAR" in normalized_explicit:
             return "Casa Habitación"
 
@@ -3360,7 +3444,7 @@ def build_rule_based_hints(text: str) -> dict:
         if re.search(r'\bFLOT(?:ILLA|A)\b', header):
             hints["subramo"] = "FLOTILLA"
         else:
-            hints["subramo"] = "AUTO/IND"
+            hints["subramo"] = "PARTICULAR"
     elif hints["ramo"] == "Transporte de carga" and not hints["subramo"]:
         transport_header = text[:4000].upper()
         if re.search(r'INTEGRAL\s+TERRESTRE|MEDIO\s+DE\s+TRANSPORTE\s*:\s*TERRESTRE', transport_header):
@@ -3369,6 +3453,14 @@ def build_rule_based_hints(text: str) -> dict:
             hints["subramo"] = "Transporte marítimo de carga"
         elif re.search(r'A[ÉE]REO', transport_header):
             hints["subramo"] = "Transporte aéreo de carga"
+    elif hints["ramo"] == "Gastos Médicos" and not hints["subramo"]:
+        medical_header = text[:4000].upper()
+        if re.search(r'\bINDIVIDUAL\b', medical_header) and not re.search(r'FAMILIAR', medical_header):
+            hints["subramo"] = "INDIVIDUAL"
+        else:
+            hints["subramo"] = "IND/FAMILIAR"
+    elif hints["ramo"] == "Vida" and not hints["subramo"]:
+        hints["subramo"] = "INDIVIDUAL"
 
     hints["desde"], hints["hasta"] = extract_vigencia_values(text)
 
@@ -3729,7 +3821,9 @@ def find_existing_agente(nombre: str):
         return None
 
     agentes = Agente.query.all()
-    agente_id = find_best_match(nombre, agentes)
+    agente_id = find_special_agent_match(nombre, agentes)
+    if not agente_id:
+        agente_id = find_best_match(nombre, agentes)
     if not agente_id:
         agente_id = find_agent_match_by_tokens(nombre, agentes)
     log_policy_event(
@@ -3783,8 +3877,14 @@ def find_existing_subramo(nombre: str):
 
     normalized_name = normalize_ascii_upper(nombre)
     fallback_aliases = []
-    if normalized_name in {"AUTOIND", "AUTOINDIVIDUAL", "AUTOFAMILIAR"}:
-        fallback_aliases = ["AUTO IND", "AUTO/IND", "FAMILIAR"]
+    if normalized_name in {"PARTICULAR", "AUTOIND", "AUTOINDIVIDUAL", "AUTOFAMILIAR"}:
+        fallback_aliases = ["PARTICULAR", "AUTO IND", "AUTO/IND", "FAMILIAR"]
+    elif normalized_name in {"FLOTILLA"}:
+        fallback_aliases = ["FLOTILLA"]
+    elif normalized_name in {"INDFAMILIAR", "INDFAM", "GASTOSMEDICOSINDIVIDUALFAMILIAR"}:
+        fallback_aliases = ["IND/FAMILIAR", "IND/FAM", "INDIVIDUAL"]
+    elif normalized_name in {"INDIVIDUAL"}:
+        fallback_aliases = ["INDIVIDUAL", "IND/FAMILIAR", "IND/FAM"]
     elif normalized_name == "TRANSPORTEDECARGA":
         fallback_aliases = ["Transporte terrestre de carga"]
 
@@ -4192,10 +4292,19 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         )
 
         if generic_subramo and ramo_compact == "GASTOSMEDICOS":
-            subramo_nombre = "IND/FAM"
+            if "INDIVIDUAL" in normalize_ascii_upper(subramo_nombre):
+                subramo_nombre = "INDIVIDUAL"
+            else:
+                subramo_nombre = "IND/FAMILIAR"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact in {"AUTOMOVIL", "AUTO"}:
-            subramo_nombre = "AUTO/IND"
+            if "FLOTILLA" in normalize_ascii_upper(subramo_nombre or ""):
+                subramo_nombre = "FLOTILLA"
+            else:
+                subramo_nombre = "PARTICULAR"
+            subramo_id = find_existing_subramo(subramo_nombre)
+        elif generic_subramo and ramo_compact == "VIDA":
+            subramo_nombre = "INDIVIDUAL"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact == "TRANSPORTEDECARGA":
             subramo_nombre = "Transporte terrestre de carga"
