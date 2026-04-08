@@ -400,6 +400,15 @@ $(function () {
     tags: true,
   });
 
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+  if ($(`#year1 option[value="${previousYear}"]`).length) {
+    $('#year1').val(String(previousYear)).trigger('change');
+  }
+  if ($(`#year2 option[value="${currentYear}"]`).length) {
+    $('#year2').val(String(currentYear)).trigger('change');
+  }
+
   getMultipleIds();
   getPrimaNeta();
 });

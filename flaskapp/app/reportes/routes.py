@@ -156,27 +156,30 @@ def prima_neta_compare():
     # Consultar la base de datos para los dos conjuntos de años y meses
     def query_prima_neta(year, months):
         query = db.session.query(
-            func.year(Recibo.fecha_pago).label('year'),
-            func.month(Recibo.fecha_pago).label('month'),
+            func.year(Recibo.fecha_inicio).label('year'),
+            func.month(Recibo.fecha_inicio).label('month'),
             func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
         ).join(Poliza, Recibo.poliza_id == Poliza.id) \
-            .filter(func.year(Recibo.fecha_pago) == year) \
-            .filter(func.month(Recibo.fecha_pago).in_(months))
+            .filter(func.year(Recibo.fecha_inicio) == year) \
+            .filter(func.month(Recibo.fecha_inicio).in_(months))
 
         if polizas:
             query = query.filter(Recibo.poliza_id.in_(polizas))
 
         return query.group_by(
-            func.year(Recibo.fecha_pago),
-            func.month(Recibo.fecha_pago)
+            func.year(Recibo.fecha_inicio),
+            func.month(Recibo.fecha_inicio)
         ).order_by(
-            func.year(Recibo.fecha_pago),
-            func.month(Recibo.fecha_pago)
+            func.year(Recibo.fecha_inicio),
+            func.month(Recibo.fecha_inicio)
         ).all()
 
     # Ejecutar consultas para ambos conjuntos
     records1 = query_prima_neta(year1, months1)
     records2 = query_prima_neta(year2, months2)
+    import logging
+    logging.warning(f"[prima_neta] year1={year1} months1={months1} -> {len(records1)} registros: {[(r.year, r.month, r.total_prima_neta_pagada) for r in records1]}")
+    logging.warning(f"[prima_neta] year2={year2} months2={months2} -> {len(records2)} registros: {[(r.year, r.month, r.total_prima_neta_pagada) for r in records2]}")
     if year3 and months3:
         records3 = query_prima_neta(year3, months3)
 
