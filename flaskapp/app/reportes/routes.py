@@ -26,6 +26,42 @@ from app.models import export_to_csv, export_to_pdf
 # Polizas renovadas vs emitidas el periodo anterior
 # Polizas canceladas
 
+
+def _parse_optional_int_param(param_name):
+    value = request.values.get(param_name)
+    if value in (None, ''):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_months_param(param_name):
+    raw_values = request.values.getlist(param_name)
+    months = []
+
+    for raw_value in raw_values:
+        if raw_value in (None, ''):
+            continue
+
+        for month in str(raw_value).split(','):
+            month = month.strip()
+            if not month:
+                continue
+
+            try:
+                month_number = int(month)
+            except (TypeError, ValueError):
+                return []
+
+            if month_number < 1 or month_number > 12:
+                return []
+
+            months.append(month_number)
+
+    return months
+
 # get_multiple_ids
 @reportes_route.route('/get_multiple_ids', methods=['GET'])
 @login_required
@@ -90,31 +126,29 @@ def prima_neta_compare():
     - data: Lista de diccionarios con los resultados comparativos
     """
     # Obtener parámetros de la solicitud
-    year1 = int(request.form.get('year1'))
-    months1 = list(map(int, request.form.get('months1').split(',')))
-    year2 = int(request.form.get('year2'))
-    months2 = list(map(int, request.form.get('months2').split(',')))
+    year1 = _parse_optional_int_param('year1')
+    months1 = _parse_months_param('months1')
+    year2 = _parse_optional_int_param('year2')
+    months2 = _parse_months_param('months2')
 
-    year3 = request.form.get('year3')
-    months3 = request.form.get('months3')
-    if year3 and months3:
-        year3 = int(year3)
-        months3 = list(map(int, months3.split(',')))
-        if not months3:
-            return jsonify({'error': True, 'msg': 'Debe proporcionar meses para el tercer conjunto'})
+    year3 = _parse_optional_int_param('year3')
+    months3 = _parse_months_param('months3')
+    if year3 is not None or months3:
+        if year3 is None or not months3:
+            return jsonify({'error': True, 'msg': 'Debe proporcionar año y meses para el tercer conjunto'})
     else:
         year3 = None
         months3 = None
 
-    aseguradora_id = request.form.get('aseguradora_id')
-    grupo_id = request.form.get('grupo_id')
-    ramo_id = request.form.get('ramo_id')
-    agente_id = request.form.get('agente_id')
-    vendedor_id = request.form.get('vendedor_id')
+    aseguradora_id = request.values.get('aseguradora_id')
+    grupo_id = request.values.get('grupo_id')
+    ramo_id = request.values.get('ramo_id')
+    agente_id = request.values.get('agente_id')
+    vendedor_id = request.values.get('vendedor_id')
 
 
     # Validar parámetros
-    if not year1 or not months1 or not year2 or not months2:
+    if year1 is None or not months1 or year2 is None or not months2:
         return jsonify({'error': True, 'msg': 'Debe proporcionar ambos años y listas de meses'})
 
     # Construir conjuntos de filtros para pólizas
@@ -216,11 +250,11 @@ def prima_neta_compare():
     real_headers = ['Año', 'Mes', 'Prima Neta Pagada', 'Grupo de Comparación']
 
     # Exportar a CSV
-    if request.form.get('export_csv'):
+    if request.values.get('export_csv'):
         return export_to_csv(headers, data, 'prima_neta_compare.csv', real_headers)
 
     # Exportar a PDF
-    if request.form.get('export_pdf'):
+    if request.values.get('export_pdf'):
         to_multiline = []
         title_str = "Comparación de Prima Neta Pagada"
         return export_to_pdf(headers, data, 'prima_neta_compare.pdf', real_headers, to_multiline, title_str)
@@ -1009,13 +1043,13 @@ def polizas_preprocessed_compare():
     - data: Lista de diccionarios con los resultados comparativos
     """
     # Obtener parámetros de la solicitud
-    year1 = int(request.form.get('year1'))
-    months1 = list(map(int, request.form.get('months1').split(',')))
-    year2 = int(request.form.get('year2'))
-    months2 = list(map(int, request.form.get('months2').split(',')))
+    year1 = _parse_optional_int_param('year1')
+    months1 = _parse_months_param('months1')
+    year2 = _parse_optional_int_param('year2')
+    months2 = _parse_months_param('months2')
 
     # Validar parámetros
-    if not year1 or not months1 or not year2 or not months2:
+    if year1 is None or not months1 or year2 is None or not months2:
         return jsonify({'error': True, 'msg': 'Debe proporcionar ambos años y listas de meses'})
 
     # Consultar la base de datos para los dos conjuntos de años y meses
@@ -1089,11 +1123,11 @@ def polizas_preprocessed_compare():
                     'Aseguradora', 'Grupo', 'Ramo', 'Agente', 'Vendedor', 'Cliente', 'Poliza', 'Inicio', 'Fin', 'Prima Neta', 'Prima Total', 'Moneda', 'Grupo de Comparación']
 
     # Exportar a CSV
-    if request.form.get('export_csv'):
+    if request.values.get('export_csv'):
         return export_to_csv(headers, response, 'polizas_preprocessed_compare.csv', real_headers)
 
     # Exportar a PDF
-    if request.form.get('export_pdf'):
+    if request.values.get('export_pdf'):
         to_multiline = ['cliente']
         title_str = "Comparación de Pólizas Preprocesadas"
         return export_to_pdf(headers, response, 'polizas_preprocessed_compare.pdf', real_headers, to_multiline, title_str)

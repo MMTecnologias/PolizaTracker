@@ -34,6 +34,7 @@ $(function () {
     'Noviembre',
     'Diciembre',
   ];
+  const allMonths = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
   let years = [];
 
@@ -131,44 +132,30 @@ $(function () {
     });
   }
 
+  function buildMonthsParam(selector, paramName) {
+    const selectedMonths = $(selector).val();
+    const months = selectedMonths && selectedMonths.length ? selectedMonths : allMonths;
+    return `${paramName}=${months.join(',')}`;
+  }
+
+  function buildCompareFormData() {
+    let multiple = $($('#form-multiple')[0].elements)
+      .not('#months1')
+      .not('#months2')
+      .serialize();
+    const months1 = buildMonthsParam('#months1', 'months1');
+    const months2 = buildMonthsParam('#months2', 'months2');
+
+    if (months1) multiple = multiple ? `${multiple}&${months1}` : months1;
+    if (months2) multiple = multiple ? `${multiple}&${months2}` : months2;
+
+    return multiple;
+  }
+
   function getPrimaNeta(pageNumber = 1, start = 0, formMultiple = null) {
     const length = 12;
     if (!formMultiple) {
-      let months1 = '';
-      if ($('#months1').val()) {
-        months1 = $('#months1')
-          .val()
-          .reduce((acc, cur, i, arr) => {
-            let months1Str = (acc += cur);
-            if (i !== arr.length - 1) {
-              months1Str += ',';
-            }
-            return months1Str;
-          }, 'months1=');
-      } else {
-        months1 = 'months1=1,2,3,4,5,6,7,8,9,10,11,12';
-      }
-      let months2 = '';
-      if ($('#months2').val()) {
-        months2 = $('#months2')
-          .val()
-          .reduce((acc, cur, i, arr) => {
-            let months2Str = (acc += cur);
-            if (i !== arr.length - 1) {
-              months2Str += ',';
-            }
-            return months2Str;
-          }, 'months2=');
-      } else {
-        months2 = 'months2=1,2,3,4,5,6,7,8,9,10,11,12';
-      }
-      let multiple = $($('#form-multiple')[0].elements)
-        .not('#months1')
-        .not('#months2')
-        .serialize();
-      if (months1) multiple = `${multiple}&${months1}`;
-      if (months2) multiple = `${multiple}&${months2}`;
-      formMultiple = multiple;
+      formMultiple = buildCompareFormData();
     }
     let params = $.param({ start, length });
     if (formMultiple) {
@@ -234,76 +221,14 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    let months1 = '';
-    if ($('#months1').val()) {
-      months1 = $('#months1')
-        .val()
-        .reduce((acc, cur, i, arr) => {
-          let months1Str = (acc += cur);
-          if (i !== arr.length - 1) {
-            months1Str += ',';
-          }
-          return months1Str;
-        }, 'months1=');
-    } else {
-      months1 = 'months1=1,2,3,4,5,6,7,8,9,10,11,12';
-    }
-    let months2 = '';
-    if ($('#months2').val()) {
-      months2 = $('#months2')
-        .val()
-        .reduce((acc, cur, i, arr) => {
-          let months2Str = (acc += cur);
-          if (i !== arr.length - 1) {
-            months2Str += ',';
-          }
-          return months2Str;
-        }, 'months2=');
-    } else {
-      months2 = 'months2=1,2,3,4,5,6,7,8,9,10,11,12';
-    }
-    let multiple = $($('#form-multiple')[0].elements)
-      .not('#months1')
-      .not('#months2')
-      .serialize();
-    if (months1) multiple = `${multiple}&${months1}`;
-    if (months2) multiple = `${multiple}&${months2}`;
+    const multiple = buildCompareFormData();
     getPrimaNeta(1, 0, multiple);
   });
 
   $('#btnExportar').click((e) => {
     e.preventDefault();
     let params = $.param({ export_csv: true });
-    let months1 = '';
-    if ($('#months1').val()) {
-      months1 = $('#months1')
-        .val()
-        .reduce((acc, cur, i, arr) => {
-          let months1Str = (acc += cur);
-          if (i !== arr.length - 1) {
-            months1Str += ',';
-          }
-          return months1Str;
-        }, 'months1=');
-    }
-    let months2 = '';
-    if ($('#months2').val()) {
-      months2 = $('#months2')
-        .val()
-        .reduce((acc, cur, i, arr) => {
-          let months2Str = (acc += cur);
-          if (i !== arr.length - 1) {
-            months2Str += ',';
-          }
-          return months2Str;
-        }, 'months2=');
-    }
-    let multiple = $($('#form-multiple')[0].elements)
-      .not('#months1')
-      .not('#months2')
-      .serialize();
-    if (months1) multiple = `${multiple}&${months1}`;
-    if (months2) multiple = `${multiple}&${months2}`;
+    const multiple = buildCompareFormData();
     if (multiple) params = `${params}&${multiple}`;
     console.log(params);
     $.ajax({
@@ -330,36 +255,7 @@ $(function () {
   $('#btnPdf').click((e) => {
     e.preventDefault();
     let params = $.param({ export_pdf: true });
-    let months1 = '';
-    if ($('#months1').val()) {
-      months1 = $('#months1')
-        .val()
-        .reduce((acc, cur, i, arr) => {
-          let months1Str = (acc += cur);
-          if (i !== arr.length - 1) {
-            months1Str += ',';
-          }
-          return months1Str;
-        }, 'months1=');
-    }
-    let months2 = '';
-    if ($('#months2').val()) {
-      months2 = $('#months2')
-        .val()
-        .reduce((acc, cur, i, arr) => {
-          let months2Str = (acc += cur);
-          if (i !== arr.length - 1) {
-            months2Str += ',';
-          }
-          return months2Str;
-        }, 'months2=');
-    }
-    let multiple = $($('#form-multiple')[0].elements)
-      .not('#months1')
-      .not('#months2')
-      .serialize();
-    if (months1) multiple = `${multiple}&${months1}`;
-    if (months2) multiple = `${multiple}&${months2}`;
+    const multiple = buildCompareFormData();
     if (multiple) params = `${params}&${multiple}`;
     console.log(params);
     $.ajax({
