@@ -62,6 +62,51 @@ def _parse_months_param(param_name):
 
     return months
 
+
+def _resolve_filtered_polizas(aseguradora_id=None, grupo_id=None, ramo_id=None,
+                              agente_id=None, vendedor_id=None):
+    """
+    Construye la intersección de pólizas según los filtros seleccionados.
+
+    Regresa:
+    - polizas: lista de ids resultante
+    - has_filters: indica si al menos un filtro de pólizas fue aplicado
+    """
+    polizas_sets = []
+
+    if aseguradora_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.aseguradora_id == int(aseguradora_id)).all()
+        polizas_sets.append({poliza.id for poliza in polizas_query})
+
+    if grupo_id:
+        clients_query = db.session.query(Cliente.id).filter(
+            Cliente.grupo_id == int(grupo_id)).all()
+        clients = [client.id for client in clients_query]
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.cliente_id.in_(clients)).all()
+        polizas_sets.append({poliza.id for poliza in polizas_query})
+
+    if ramo_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.ramo_id == int(ramo_id)).all()
+        polizas_sets.append({poliza.id for poliza in polizas_query})
+
+    if agente_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.agente_id == int(agente_id)).all()
+        polizas_sets.append({poliza.id for poliza in polizas_query})
+
+    if vendedor_id:
+        polizas_query = db.session.query(Poliza.id).filter(
+            Poliza.vendedor_id == int(vendedor_id)).all()
+        polizas_sets.append({poliza.id for poliza in polizas_query})
+
+    if polizas_sets:
+        return list(set.intersection(*polizas_sets)), True
+
+    return [], False
+
 # get_multiple_ids
 @reportes_route.route('/get_multiple_ids', methods=['GET'])
 @login_required
@@ -151,41 +196,13 @@ def prima_neta_compare():
     if year1 is None or not months1 or year2 is None or not months2:
         return jsonify({'error': True, 'msg': 'Debe proporcionar ambos años y listas de meses'})
 
-    # Construir conjuntos de filtros para pólizas
-    polizas_sets = []
-
-    if aseguradora_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.aseguradora_id == int(aseguradora_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if grupo_id:
-        clients_query = db.session.query(Cliente.id).filter(
-            Cliente.grupo_id == int(grupo_id)).all()
-        clients = [client.id for client in clients_query]
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.cliente_id.in_(clients)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if ramo_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.ramo_id == int(ramo_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if agente_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.agente_id == int(agente_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if vendedor_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.vendedor_id == int(vendedor_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if polizas_sets:
-        polizas = list(set.intersection(*polizas_sets))
-    else:
-        polizas = []
+    polizas, has_poliza_filters = _resolve_filtered_polizas(
+        aseguradora_id=aseguradora_id,
+        grupo_id=grupo_id,
+        ramo_id=ramo_id,
+        agente_id=agente_id,
+        vendedor_id=vendedor_id,
+    )
 
     # Consultar la base de datos para los dos conjuntos de años y meses
     def query_prima_neta(year, months):
@@ -194,11 +211,12 @@ def prima_neta_compare():
             func.month(Recibo.fecha_pago).label('month'),
             func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
         ).join(Poliza, Recibo.poliza_id == Poliza.id) \
+            .filter(Recibo.status == 'Liquidado') \
             .filter(Recibo.fecha_pago.isnot(None)) \
             .filter(func.year(Recibo.fecha_pago) == year) \
             .filter(func.month(Recibo.fecha_pago).in_(months))
 
-        if polizas:
+        if has_poliza_filters:
             query = query.filter(Recibo.poliza_id.in_(polizas))
 
         return query.group_by(
@@ -313,40 +331,13 @@ def prima_neta():
     vendedor_id = request.form.get('vendedor_id')
     by = request.form.get('by') if request.form.get('by') else None
 
-    polizas_sets = []
-
-    if aseguradora_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.aseguradora_id == int(aseguradora_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if grupo_id:
-        clients_query = db.session.query(Cliente.id).filter(
-            Cliente.grupo_id == int(grupo_id)).all()
-        clients = [client.id for client in clients_query]
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.cliente_id.in_(clients)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if ramo_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.ramo_id == int(ramo_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if agente_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.agente_id == int(agente_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if vendedor_id:
-        polizas_query = db.session.query(Poliza.id).filter(
-            Poliza.vendedor_id == int(vendedor_id)).all()
-        polizas_sets.append(set([poliza.id for poliza in polizas_query]))
-
-    if polizas_sets:
-        polizas = list(set.intersection(*polizas_sets))
-    else:
-        polizas = []
+    polizas, has_poliza_filters = _resolve_filtered_polizas(
+        aseguradora_id=aseguradora_id,
+        grupo_id=grupo_id,
+        ramo_id=ramo_id,
+        agente_id=agente_id,
+        vendedor_id=vendedor_id,
+    )
 
     # Now `polizas` contains the set of valid poliza ids based on the selected filters
 
@@ -362,12 +353,14 @@ def prima_neta():
             func.year(Recibo.fecha_pago).label('year'),
             func.sum(Recibo.prima_neta).label('total_prima_neta_pagada')
         )
-    if polizas:
+    if has_poliza_filters:
         total_records_query = total_records_query.filter(
             Recibo.poliza_id.in_(polizas))
     total_records_query = total_records_query.join(
         Poliza, Recibo.poliza_id == Poliza.id
     ).filter(
+        Recibo.status == 'Liquidado',
+        Recibo.fecha_pago.isnot(None),
         func.year(Recibo.fecha_pago).in_(years)
     )
 

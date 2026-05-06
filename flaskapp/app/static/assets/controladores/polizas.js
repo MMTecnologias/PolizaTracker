@@ -2,7 +2,7 @@ $(function () {
   let razonInput = '';
   let totalPolizas = 0;
   let pdfMode = null; // 'renew', 'endoso', or null
-  let pdfUploaded = false; // Track if PDF was uploaded
+  let receiptSaveRequested = false;
 
   const ajaxConfig = {
     url: '',
@@ -90,6 +90,9 @@ $(function () {
 
     const formData = new FormData();
     formData.append('pdf_file', file);
+    if (pdfMode) {
+      formData.append('pdf_mode', pdfMode);
+    }
 
     const polizaIdInput = document.getElementById('poliza_id');
     if (polizaIdInput) {
@@ -152,6 +155,9 @@ $(function () {
 
     const formData = new FormData();
     formData.append('pdf_file', fileInput.files[0]);
+    if (pdfMode) {
+      formData.append('pdf_mode', pdfMode);
+    }
 
     const polizaIdInput = document.getElementById('poliza_id');
     if (polizaIdInput) {
@@ -181,8 +187,6 @@ $(function () {
           pdfMode = null;
         } else {
           console.log(response);
-          pdfUploaded = true;
-
           // Guardar pdf_path en campo oculto
           if (response.pdf_path) {
             $('#pdf_path').val(response.pdf_path);
@@ -205,6 +209,11 @@ $(function () {
   });
 
   function fillFormWithPdfData(data) {
+    const isRenewMode = pdfMode === 'renew';
+    const isEndosoMode = pdfMode === 'endoso' || String($('#title_poliza').text() || '').includes('Endoso');
+    const previousPolicyValue = $('#polizaAnterior').val();
+    const previousPolicyDisplayValue = $('#poliza-anterior').val();
+
     function normalizeFormaPagoToken(value) {
       if (!value) return '';
       return String(value)
@@ -340,6 +349,22 @@ $(function () {
       return matched;
     }
 
+    function mergeVehicleObservations(currentNotes, vehicleObservations) {
+      const current = String(currentNotes || '').trim();
+      const vehicleBlock = String(vehicleObservations || '').trim();
+      if (!vehicleBlock) return current;
+
+      const vehicleBlockPattern =
+        /(?:^|\n)Datos del veh[ií]culo[\s\S]*?(?=\n\n(?!Datos del veh[ií]culo)|$)/gi;
+      const withoutPreviousVehicleBlock = current
+        .replace(vehicleBlockPattern, '')
+        .trim();
+
+      return withoutPreviousVehicleBlock
+        ? `${withoutPreviousVehicleBlock}\n${vehicleBlock}`
+        : vehicleBlock;
+    }
+
     if (!data) {
       console.error('No se recibieron datos para llenar el formulario');
       return;
@@ -352,6 +377,12 @@ $(function () {
     if (data.numero_de_poliza) {
       console.log('Poliza:', data.numero_de_poliza);
       $('#Poliza').val(data.numero_de_poliza);
+    }
+    if (isRenewMode) {
+      $('#polizaAnterior').val(previousPolicyValue);
+      $('#poliza-anterior')
+        .val(previousPolicyDisplayValue || previousPolicyValue)
+        .prop('disabled', true);
     }
 
     // Cliente
@@ -413,11 +444,23 @@ $(function () {
     // Endoso
     if (data.endoso) {
       console.log('Endoso:', data.endoso);
-      $('#renovacion').val(data.endoso);
+      if (isEndosoMode) {
+        $('#Poliza').val(data.endoso);
+      } else {
+        $('#renovacion').val(data.endoso);
+      }
     }
 
     // Descripción/Notas
-    const shouldPopulateVehicleFields = data.ramo === 'Automóvil';
+    const normalizePdfToken = (value) =>
+      String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+    const shouldPopulateVehicleFields = ['AUTOMOVIL', 'AUTO', 'AUTOS'].includes(
+      normalizePdfToken(data.ramo),
+    );
     const shouldAppendDescripcionSeparately =
       shouldPopulateVehicleFields &&
       data.descripcion &&
@@ -440,15 +483,11 @@ $(function () {
       $('#serie').val('');
     }
 
-    // Observaciones del vehículo, priorizando la descripción para autos
+    // Observaciones del vehículo, priorizando el bloque completo generado para autos
     if (shouldPopulateVehicleFields && data.observaciones) {
       console.log('Observaciones del vehículo:', data.observaciones);
       const notasActuales = $('#notas').val();
-      $('#notas').val(
-        notasActuales
-          ? notasActuales + '\n' + data.observaciones
-          : data.observaciones,
-      );
+      $('#notas').val(mergeVehicleObservations(notasActuales, data.observaciones));
     }
 
     resolveFormaPagoSelect(data, 'fillFormWithPdfData_initial');
@@ -720,15 +759,6 @@ $(function () {
                   insurance,
                 });
 
-                if (pdfUploaded) {
-                  setTimeout(() => {
-                    $('#create-recib').modal({
-                      backdrop: 'static',
-                      keyboard: false,
-                    });
-                  }, 500);
-                  pdfUploaded = false;
-                }
               },
               error: (xhr, status, error) =>
                 console.error('Error al calcular recibos:', error),
@@ -895,6 +925,12 @@ $(function () {
     return `$${formatNumber(normalized)}`;
   }
 
+  function formatReceiptAmount(value) {
+    const normalized = parseCurrencyInputValue(value);
+    if (!normalized) return '0.00';
+    return formatNumber(normalized);
+  }
+
   function setCurrencyFieldValue(selector, value) {
     $(selector).val(formatCurrencyDisplay(value));
   }
@@ -922,7 +958,10 @@ $(function () {
     primaNetaField.val(getCurrencyFieldValue('#prima_neta'));
     primaTotalField.val(getCurrencyFieldValue('#prima_total'));
 
-    const serialized = $('#form-polizas').serialize();
+    let serialized = $('#form-polizas').serialize();
+    if (String($('#title_poliza').text() || '').includes('Endoso')) {
+      serialized = `${serialized}&endoso=${encodeURIComponent($('#Poliza').val() || '')}`;
+    }
 
     primaNetaField.val(originalPrimaNeta);
     primaTotalField.val(originalPrimaTotal);
@@ -973,7 +1012,6 @@ $(function () {
   async function resetForm() {
     try {
       pdfMode = null;
-      pdfUploaded = false;
 
       $('#form-polizas')[0].reset();
       $('#btnGuardar').show();
@@ -1664,6 +1702,11 @@ $(function () {
                   : ''
               }
               <li>
+                <a title="Cargar PDF de póliza" class="btn__icon_show pointer" id="btnUploadPolicyPdf_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                </a>
+              </li>
+              <li>
                 <a title="Crear endoso" class="btn__icon_delete pointer" id="btnAddEndoso_${
                   poliza.id
                 }">
@@ -1731,6 +1774,10 @@ $(function () {
           window.open(`/static/${poliza.pdf_path}`, '_blank');
         }
       });
+      $(`#btnUploadPolicyPdf_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadExistingPolicyPdf(poliza.id);
+      });
     });
     if (!data.length) return;
     $('#pagination').pagination({
@@ -1758,8 +1805,8 @@ $(function () {
             <td>${displayCellValue(recibo.numero)}</td>
             <td>${displayCellValue(recibo.fecha_recibo)}</td>
             <td>${displayCellValue(recibo.vencimiento)}</td>
-            <td>$${formatNumber(Number(recibo.prima_neta || 0))}</td>
-            <td>$${formatNumber(Number(recibo.prima_total || 0))}</td>
+            <td>${formatReceiptAmount(recibo.prima_neta)}</td>
+            <td>${formatReceiptAmount(recibo.prima_total)}</td>
             <td>${displayCellValue(recibo.moneda)}</td>
             <td>
                 <input type="checkbox" id="check_pagado${
@@ -1774,6 +1821,14 @@ $(function () {
                 : ''
             } </td>
             <td>${recibo.cancelado ? 'Cancelado' : ''}</td>
+            <td>
+              <button type="button" class="btn px-2 py-1" id="btnUploadComprobante_${recibo.id}">
+                Cargar
+              </button>
+              <button type="button" class="btn px-2 py-1" id="btnViewComprobante_${recibo.id}">
+                Ver/Descargar
+              </button>
+            </td>
          </tr>`,
       );
       if (recibo.pagado) $(`#check_pagado${recibo.id}`).prop('checked', true);
@@ -1788,6 +1843,14 @@ $(function () {
         $('#recibo_id').val(recibo.id);
         $('#poliza_id').val(poliza_id);
         $('#edit_recib_date').modal();
+      });
+      $(`#btnUploadComprobante_${recibo.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadReceiptComprobante(recibo.id, () => getRecibos(poliza_id));
+      });
+      $(`#btnViewComprobante_${recibo.id}`).on('click', (e) => {
+        e.preventDefault();
+        viewReceiptComprobante(recibo);
       });
     });
     if (!data.length) return $('#pagination-recibos').html('');
@@ -1874,8 +1937,8 @@ $(function () {
             <td>${displayCellValue(recibo.numero)}</td>
             <td>${displayCellValue(recibo.fecha_recibo)}</td>
             <td>${displayCellValue(recibo.vencimiento)}</td>
-            <td>${displayCellValue(recibo.prima_neta)}</td>
-            <td>${displayCellValue(recibo.prima_total)}</td>
+            <td>${formatReceiptAmount(recibo.prima_neta)}</td>
+            <td>${formatReceiptAmount(recibo.prima_total)}</td>
             <td>${displayCellValue(recibo.moneda)}</td>
             <td>
                 <input type="checkbox" id="check_pagado${
@@ -1884,6 +1947,14 @@ $(function () {
             </td>
             <td>${displayCellValue(recibo.fecha_pago)}</td>
             <td>${recibo.cancelado ? 'Cancelado' : ''}</td>
+            <td>
+              <button type="button" class="btn px-2 py-1" id="btnUploadComprobanteEndoso_${recibo.id}">
+                Cargar
+              </button>
+              <button type="button" class="btn px-2 py-1" id="btnViewComprobanteEndoso_${recibo.id}">
+                Ver/Descargar
+              </button>
+            </td>
          </tr>`,
       );
       if (recibo.pagado) $(`#check_pagado${recibo.id}`).prop('checked', true);
@@ -1893,6 +1964,14 @@ $(function () {
         } else {
           changeReciboPagado(recibo.id, 'Cancelar Pago', endoso_id);
         }
+      });
+      $(`#btnUploadComprobanteEndoso_${recibo.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadReceiptComprobante(recibo.id, () => getRecibos(null, endoso_id));
+      });
+      $(`#btnViewComprobanteEndoso_${recibo.id}`).on('click', (e) => {
+        e.preventDefault();
+        viewReceiptComprobante(recibo);
       });
     });
     if (!data.length) return $('#pagination-recibos-endosos').html('');
@@ -1932,6 +2011,114 @@ $(function () {
       success: (resp) => fillTableEndosos(resp, pageNumber, length, poliza_id),
       error: (xhr, status, error) => console.error(error),
     });
+  }
+
+  function uploadReceiptComprobante(reciboId, onSuccess) {
+    const fileInput = $('<input type="file" accept=".pdf" style="display:none;" />');
+    $('body').append(fileInput);
+
+    fileInput.on('change', function () {
+      const file = this.files[0];
+      fileInput.remove();
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        alert('El comprobante debe ser un archivo PDF', 'warning', 'Archivo inválido');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('recibo_id', reciboId);
+      formData.append('comprobante_pdf', file);
+
+      Swal.fire({
+        title: 'Cargando comprobante...',
+        text: 'Guardando documento PDF',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      $.ajax({
+        type: 'POST',
+        url: '/polizas/upload_receipt_comprobante',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (resp) {
+          Swal.close();
+          if (resp.error) {
+            alert(resp.msg, 'error', 'Error');
+          } else {
+            alert(resp.msg, 'success', 'Comprobante cargado');
+            if (onSuccess) onSuccess();
+          }
+        },
+        error: function () {
+          Swal.close();
+          alert('Error al cargar el comprobante', 'error', 'Error');
+        },
+      });
+    });
+
+    fileInput.trigger('click');
+  }
+
+  function uploadExistingPolicyPdf(polizaId) {
+    const fileInput = $('<input type="file" accept=".pdf" style="display:none;" />');
+    $('body').append(fileInput);
+
+    fileInput.on('change', function () {
+      const file = this.files[0];
+      fileInput.remove();
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        alert('El archivo debe ser PDF', 'warning', 'Archivo inválido');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('poliza_id', polizaId);
+      formData.append('pdf_file', file);
+
+      Swal.fire({
+        title: 'Cargando PDF...',
+        text: 'Asociando documento a la póliza',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      $.ajax({
+        type: 'POST',
+        url: '/polizas/upload_existing_policy_pdf',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (resp) {
+          Swal.close();
+          if (resp.error) {
+            alert(resp.msg, 'error', 'Error');
+          } else {
+            alert(resp.msg, 'success', 'PDF cargado');
+            getPolizas();
+          }
+        },
+        error: function () {
+          Swal.close();
+          alert('Error al cargar el PDF de la póliza', 'error', 'Error');
+        },
+      });
+    });
+
+    fileInput.trigger('click');
+  }
+
+  function viewReceiptComprobante(recibo) {
+    if (!recibo.comprobante) {
+      alert('No se ha cargado el documento aun', 'warning', 'Sin comprobante');
+      return;
+    }
+    window.open(`/polizas/download_receipt_comprobante/${recibo.id}`, '_blank');
   }
 
   function getRecibos(poliza_id, endoso_id, pageNumber = 1, start = 0) {
@@ -2207,6 +2394,12 @@ $(function () {
 
   $('#form-recibo').submit(function (e) {
     e.preventDefault();
+    if (!receiptSaveRequested) {
+      console.warn('Submit de recibos cancelado: falta clic explícito en Guardar');
+      return;
+    }
+    receiptSaveRequested = false;
+
     if (!this.checkValidity()) {
       $(this).addClass('was-validated');
       return;
@@ -2290,6 +2483,10 @@ $(function () {
   $('#reset-btn').click(async (e) => {
     e.preventDefault();
     await resetForm();
+  });
+
+  $('#btnGuardar-recibos').click(() => {
+    receiptSaveRequested = true;
   });
 
   $('#closeModalCreateRecibos, #reset-btn-recibos').click(async (e) => {
@@ -2471,9 +2668,18 @@ $(function () {
     });
   });
 
-  $('#endoso_tipo_a').click((e) => createEndozo($('#poliza_id').val(), 'B'));
-  $('#endoso_tipo_b').click((e) => createEndozo($('#poliza_id').val(), 'A'));
-  $('#endoso_tipo_d').click((e) => createEndozo($('#poliza_id').val(), 'D'));
+  $('#endoso_tipo_a').click((e) => {
+    e.preventDefault();
+    createEndozo($('#poliza_id').val(), 'B');
+  });
+  $('#endoso_tipo_b').click((e) => {
+    e.preventDefault();
+    createEndozo($('#poliza_id').val(), 'A');
+  });
+  $('#endoso_tipo_d').click((e) => {
+    e.preventDefault();
+    createEndozo($('#poliza_id').val(), 'D');
+  });
 
   $('#div_poliza_id').hide();
   $('#only_show_poliza').hide();

@@ -56,15 +56,39 @@ $(function () {
     return result;
   }
 
-  function createSeriesForCategory(data, categoryName, type, baseArray) {
-    const series = years.map((year) => ({
+  function shouldDifferentiateComparisonGroups(data) {
+    const yearGroups = {};
+    for (const item of data) {
+      if (!yearGroups[item.year]) {
+        yearGroups[item.year] = new Set();
+      }
+      yearGroups[item.year].add(item.comparison_group || '');
+    }
+    return Object.values(yearGroups).some((groups) => groups.size > 1);
+  }
+
+  function getSeriesLabel(item, differentiateGroups) {
+    if (!differentiateGroups) return String(item.year);
+    const groupLabel = item.comparison_group || 'Grupo';
+    return `${item.year} (${groupLabel})`;
+  }
+
+  function createSeriesForCategory(data) {
+    const differentiateGroups = shouldDifferentiateComparisonGroups(data);
+    const labels = [
+      ...new Set(data.map((item) => getSeriesLabel(item, differentiateGroups))),
+    ];
+
+    const series = labels.map((label) => ({
       type: 'bar',
-      name: year,
+      name: label,
       data: Array.from(meses, () => 0),
     }));
+
     for (const dat of data) {
       const i = dat.month - 1;
-      const serieIndex = series.findIndex((c) => c.name === dat['year']);
+      const label = getSeriesLabel(dat, differentiateGroups);
+      const serieIndex = series.findIndex((c) => c.name === label);
       if (i !== -1) {
         series[serieIndex]['data'][i] += Number(dat.total_prima_neta_pagada);
       }
@@ -79,7 +103,6 @@ $(function () {
     );
     const dom = document.getElementById('bar_chart');
     const myChart = echarts.init(dom);
-    years = [...new Set(data.map((item) => item.year))];
     chartConfig.yAxis.data = meses;
     const series = createSeriesForCategory(data);
     console.log(series);

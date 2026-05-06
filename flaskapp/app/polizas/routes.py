@@ -1039,7 +1039,7 @@ def create_endoso():
         'renovacion': flask_request.form.get('renovacion'),
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
-        'Poliza': flask_request.form.get('Poliza')
+        'Poliza': flask_request.form.get('Poliza') or flask_request.form.get('endoso')
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
@@ -1405,6 +1405,85 @@ def process_receipt():
             })
 
 
+def get_receipt_comprobante_folder():
+    folder = os.path.join(
+        current_app.root_path, 'static', 'recibos_comprobantes')
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+@polizas_route.route('/upload_receipt_comprobante', methods=['POST'])
+@login_required
+def upload_receipt_comprobante():
+    recibo_id = flask_request.form.get('recibo_id')
+    file = flask_request.files.get('comprobante_pdf')
+
+    if not recibo_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó el recibo'})
+    if not file or not file.filename:
+        return jsonify({'error': True, 'msg': 'Selecciona un comprobante en PDF'})
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': True, 'msg': 'El comprobante debe ser un archivo PDF'})
+
+    recibo = Recibo.query.get(recibo_id)
+    if not recibo:
+        return jsonify({'error': True, 'msg': 'Recibo no encontrado'})
+
+    file_content = file.read()
+    if not file_content.startswith(b'%PDF'):
+        return jsonify({'error': True, 'msg': 'El archivo no es un PDF válido'})
+    if len(file_content) > 10 * 1024 * 1024:
+        return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
+
+    folder = get_receipt_comprobante_folder()
+    old_filename = recibo.comprobante
+    if old_filename:
+        old_path = os.path.join(folder, secure_filename(old_filename))
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception:
+                pass
+
+    filename = f"r{recibo.id}_{uuid.uuid4().hex[:8]}.pdf"
+    file_path = os.path.join(folder, filename)
+    with open(file_path, 'wb') as pdf_file:
+        pdf_file.write(file_content)
+
+    recibo.comprobante = filename
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Cargar comprobante de pago del recibo {recibo.no_de_recibo}",
+                            status="Aceptada",
+                            table_name='Recibo',
+                            row_id=recibo.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({
+        'error': False,
+        'msg': 'Comprobante cargado exitosamente',
+        'comprobante': filename
+    })
+
+
+@polizas_route.route('/download_receipt_comprobante/<int:recibo_id>', methods=['GET'])
+@login_required
+def download_receipt_comprobante(recibo_id):
+    recibo = Recibo.query.get(recibo_id)
+    if not recibo:
+        return jsonify({'error': True, 'msg': 'Recibo no encontrado'}), 404
+    if not recibo.comprobante:
+        return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
+
+    filename = secure_filename(recibo.comprobante)
+    folder = get_receipt_comprobante_folder()
+    file_path = os.path.join(folder, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
+
+    return send_from_directory(folder, filename, as_attachment=False)
+
+
 # @main.route('/get_data_multiple', methods=['GET'])
 @polizas_route.route('/get_form_data', methods=['GET'])
 @login_required
@@ -1640,6 +1719,12 @@ JSON_SCHEMA = {
     "motor": "string",
     "placas": "string",
     "numero_serie": "string",
+    "vehiculo": "string",
+    "no_ocupantes": "string",
+    "carga": "string",
+    "uso": "string",
+    "servicio": "string",
+    "vehiculos": "array",
     "derecho_poliza": "string",
     "gastos_expedicion": "string"
 }
@@ -1678,9 +1763,21 @@ CRITICAL_POLICY_FIELDS = (
 
 POLICY_FEE_LABELS = [
     r'Derecho de p[oó]liza',
+    r'Derechos? de p[oó]liza',
     r'Gastos de expedici[oó]n',
     r'Gastos por expedici[oó]n',
     r'Gasto de expedici[oó]n',
+    r'Gastos? de exp\.?',
+    r'Gastos? expedici[oó]n',
+    r'Gtos?\.?\s*Exp(?:edici[oó]n)?\.?',
+    r'Gto\.?\s*de\s*Exp(?:edici[oó]n)?\.?',
+    r'Derechos? de expedici[oó]n',
+    r'Derechos? por expedici[oó]n',
+    r'Expedici[oó]n de p[oó]liza',
+    r'Derechos? de emisi[oó]n',
+    r'Gastos? de emisi[oó]n',
+    r'Gastos? por emisi[oó]n',
+    r'Cargo por expedici[oó]n',
     r'Policy Fee',
 ]
 
@@ -1767,7 +1864,7 @@ def build_policy_debug_snapshot(data: dict, fields=POLICY_DEBUG_FIELDS) -> dict:
 #         raise
 
 
-def extract_text_from_pdf_content(file_content: bytes) -> str:
+def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = False) -> str:
     try:
         # Validar que el archivo comience con el header de PDF
         if not file_content.startswith(b'%PDF'):
@@ -1817,11 +1914,15 @@ def extract_text_from_pdf_content(file_content: bytes) -> str:
             contains_agent=("AGENTE" in text.upper()),
             contains_forma_pago=("FORMADE PAGO" in text.upper() or "FORMA DE PAGO" in text.upper() or "FORMADEPAGO" in text.upper() or "FRECUENCIA DE PAGO" in text.upper()),
             contains_vigencia=("VIGENCIA" in text.upper() or "FECHA DE INICIO DE VIGENCIA" in text.upper()),
-            contains_prima=("PRIMA" in text.upper() or "IMPORTE A PAGAR" in text.upper() or "TOTAL DEL MOVIMIENTO" in text.upper())
+            contains_prima=("PRIMA" in text.upper() or "IMPORTE A PAGAR" in text.upper() or "TOTAL DEL MOVIMIENTO" in text.upper()),
+            prefer_endoso=prefer_endoso
         )
 
         if not text.strip():
             raise ValueError("No se pudo extraer texto del PDF")
+
+        if prefer_endoso:
+            text = trim_billing_notice_from_endorsement_text(text)
 
         max_chars = 30000
         if len(text) > max_chars:
@@ -1856,6 +1957,40 @@ def clean_extracted_text(text: str) -> str:
     text = re.sub(r' *\| *', ' | ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
+
+
+def trim_billing_notice_from_endorsement_text(text: str) -> str:
+    """Evita que el aviso de cobro final contamine la extracción de datos del endoso."""
+    if not text:
+        return text
+
+    notice_patterns = [
+        r'\bAVISO\s+DE\s+COBRO\b',
+        r'\bRECIBO\s+(?:DE\s+)?COBRO\b',
+        r'\bFICHA\s+DE\s+PAGO\b',
+        r'\bTAL[OÓ]N\s+DE\s+PAGO\b',
+        r'\bREFERENCIA\s+DE\s+PAGO\b',
+    ]
+    earliest_notice = None
+    for pattern in notice_patterns:
+        match = re.search(pattern, text, re.I)
+        if match and (earliest_notice is None or match.start() < earliest_notice):
+            earliest_notice = match.start()
+
+    if earliest_notice is None:
+        return text
+
+    trimmed = text[:earliest_notice].strip()
+    if len(trimmed) < 500:
+        return text
+
+    log_policy_event(
+        "pdf_extract",
+        "aviso de cobro omitido para extraer datos del endoso",
+        original_chars=len(text),
+        kept_chars=len(trimmed)
+    )
+    return trimmed
 
 
 def extract_json_object(text: str) -> dict:
@@ -2808,6 +2943,79 @@ def extract_policy_number_value(text: str) -> str:
     return None
 
 
+def extract_endoso_value(text: str) -> str:
+    def normalize_endoso_candidate(candidate: str) -> str:
+        candidate = sanitize_text_value(candidate)
+        if not candidate:
+            return None
+        candidate = re.sub(r'(?i)\b(?:No\.?|N[uú]mero|Endoso|Folio|Movimiento)\b', ' ', candidate)
+        candidate = re.sub(r'\s+', ' ', candidate).strip(" :|-#")
+        candidate = re.split(
+            r'\b(?:Tipo|P[oó]liza|Vigencia|Fecha|Prima|Aviso|Recibo|Forma|Moneda|Agente|Contratante|Asegurado)\b',
+            candidate,
+            maxsplit=1,
+            flags=re.I
+        )[0].strip(" :|-#")
+        if not candidate:
+            return None
+        split_alpha_number = re.search(r'\b([A-Z])\s+(\d{1,10}[A-Z0-9/-]*)\b', candidate, re.I)
+        if split_alpha_number:
+            return f"{split_alpha_number.group(1)}{split_alpha_number.group(2)}".upper()
+        tokens = re.findall(r'\b[A-Z0-9][A-Z0-9/-]{0,17}\b', candidate, re.I)
+        for token in tokens:
+            if re.search(r'\d', token):
+                return token.upper()
+        return tokens[0].upper() if tokens else None
+
+    def is_valid_endoso_candidate(candidate: str) -> bool:
+        candidate = normalize_endoso_candidate(candidate)
+        if not candidate:
+            return False
+        compact = re.sub(r'[^A-Z0-9]', '', candidate.upper())
+        if not compact or len(compact) > 18:
+            return False
+        if len(compact) == 1 and compact.isalpha():
+            return False
+        if compact in {"ALTA", "BAJA", "TIPO", "COBRO", "PAGO", "POLIZA", "ENDOSO"}:
+            return False
+        if not re.search(r'\d', compact):
+            return False
+        return True
+
+    patterns = [
+        r'(?im)^\s*(?:No\.?\s*(?:de)?\s*)?Endoso\s*[:#|.-]?\s*([^\n]{1,80})',
+        r'(?im)^\s*Endoso\s+No\.?\s*[:#|.-]?\s*([^\n]{1,80})',
+        r'(?im)\bN[uú]mero\s+(?:de\s+)?Endoso\s*[:#|.-]?\s*([^\n]{1,80})',
+        r'(?im)\bFolio\s+(?:de\s+)?Endoso\s*[:#|.-]?\s*([^\n]{1,80})',
+        r'(?im)\bNo\.?\s+(?:de\s+)?Movimiento\s*[:#|.-]?\s*([^\n]{1,80})',
+        r'(?im)\bN[uú]mero\s+(?:de\s+)?Movimiento\s*[:#|.-]?\s*([^\n]{1,80})',
+        r'(?im)^\s*Movimiento\s*[:#|.-]?\s*([^\n]{1,80})',
+        r'(?im)^\s*(?:P[oó]liza|Certificado)\s*/\s*Endoso\s*[:|]?\s*[A-Z0-9/-]{5,}\s+([^\n]{1,80})',
+        r'(?is)\b(?:P[oó]liza|Certificado)\s*/\s*Endoso\b[^\n]*\n\s*[A-Z0-9/-]{5,}\s+([A-Z]?\s*\d{1,10}[A-Z0-9/-]*)\b',
+        r'(?is)\bEndoso\b[^\n]{0,60}\n\s*([A-Z]?\s*\d{1,10}[A-Z0-9/-]*)\b',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            candidate = normalize_endoso_candidate(match.group(1))
+            if is_valid_endoso_candidate(candidate):
+                return candidate
+
+    windows = re.finditer(r'(?im)^.*\b(?:Endoso|Movimiento)\b.*$', text)
+    for match in windows:
+        line = sanitize_text_value(match.group(0))
+        if not line or re.search(r'\bTipo\s+de\s+Endoso\b', line, re.I):
+            continue
+        line = re.split(r'\b(?:Aviso|Recibo)\s+de\s+cobro\b', line, maxsplit=1, flags=re.I)[0]
+        candidates = re.findall(r'\b[A-Z0-9][A-Z0-9/-]{0,17}\b', line, re.I)
+        for candidate in reversed(candidates):
+            normalized = normalize_endoso_candidate(candidate)
+            if is_valid_endoso_candidate(normalized):
+                return normalized
+
+    return None
+
+
 def extract_customer_name_value(text: str) -> str:
     multiline_patterns = [
         r'(?is)Datos del contratante\s*:\s*(?:[A-Z0-9]{10,13}\s*[-:]\s*)?([^\n]+(?:\n[^\n]+){0,2})',
@@ -3203,6 +3411,170 @@ def extract_vehicle_value(text: str, labels) -> str:
     return clean_vehicle_attribute_value(value, field_map.get(primary_label))
 
 
+def extract_vehicle_records_from_text(text: str) -> list:
+    """Extrae bloques de datos de vehículos cuando el PDF trae una o varias unidades."""
+    if not text:
+        return []
+
+    block_patterns = [
+        r'Datos\s+del\s+veh[ií]culo(?P<block>.*?)(?:\n\s*(?:Coberturas|Prima|Resumen|Datos\s+del\s+contratante|Beneficiario|Forma\s+de\s+pago)\b|$)',
+        r'Datos\s+de\s+la\s+unidad(?P<block>.*?)(?:\n\s*(?:Coberturas|Prima|Resumen|Datos\s+del\s+contratante|Beneficiario|Forma\s+de\s+pago)\b|$)',
+    ]
+    blocks = []
+    for pattern in block_patterns:
+        for match in re.finditer(pattern, text, re.I | re.S):
+            block = sanitize_text_value(match.group("block"))
+            if block:
+                blocks.append(block)
+
+    if not blocks:
+        return []
+
+    label_map = {
+        "vehiculo": [r'Veh[ií]culo', r'Descripci[oó]n', r'Unidad'],
+        "marca": [r'Marca'],
+        "modelo": [r'Modelo', r'A[nñ]o'],
+        "motor": [r'Motor', r'No\.?\s*de\s*motor', r'N[uú]mero\s*de\s*motor'],
+        "numero_serie": [r'Serie', r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie'],
+        "placas": [r'Placas', r'No\.?\s*de\s*placas'],
+        "uso": [r'Uso'],
+        "servicio": [r'Servicio'],
+        "no_ocupantes": [r'No\.?\s*ocupantes', r'Ocupantes'],
+        "carga": [r'Carga'],
+    }
+    stop_tokens = [
+        r'Veh[ií]culo', r'Descripci[oó]n', r'Unidad', r'Marca', r'Modelo', r'A[nñ]o',
+        r'Motor', r'No\.?\s*de\s*motor', r'N[uú]mero\s*de\s*motor',
+        r'Serie', r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie',
+        r'Placas', r'No\.?\s*de\s*placas', r'Uso', r'Servicio',
+        r'No\.?\s*ocupantes', r'Ocupantes', r'Carga'
+    ]
+
+    records = []
+    for block in blocks:
+        unit_parts = re.split(r'(?=\bVeh[ií]culo\s*[:|])', block, flags=re.I)
+        for unit_text in unit_parts:
+            unit_text = unit_text.strip(" :|-")
+            if not unit_text:
+                continue
+            record = {}
+            for field, labels in label_map.items():
+                value = extract_value_after_label(unit_text, labels, stop_tokens=stop_tokens)
+                if field in {"vehiculo", "uso", "servicio", "no_ocupantes", "carga"}:
+                    value = sanitize_text_value(value)
+                else:
+                    value = clean_vehicle_attribute_value(value, field)
+                if value:
+                    record[field] = value
+            if any(record.get(key) for key in ("vehiculo", "marca", "modelo", "motor", "numero_serie", "placas")):
+                records.append(record)
+
+    unique_records = []
+    seen = set()
+    for record in records:
+        fingerprint = normalize_ascii_upper(" ".join(str(v) for v in record.values() if v))
+        if fingerprint and fingerprint not in seen:
+            unique_records.append(record)
+            seen.add(fingerprint)
+    return unique_records
+
+
+def normalize_vehicle_records(value) -> list:
+    if not value:
+        return []
+    if isinstance(value, dict):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+
+    records = []
+    aliases = {
+        "descripcion": "vehiculo",
+        "description": "vehiculo",
+        "unidad": "vehiculo",
+        "serie": "numero_serie",
+        "vin": "numero_serie",
+        "num_serie": "numero_serie",
+        "no_serie": "numero_serie",
+        "ocupantes": "no_ocupantes",
+        "no_ocupantes": "no_ocupantes",
+        "numero_ocupantes": "no_ocupantes",
+    }
+    allowed_fields = {
+        "vehiculo", "marca", "modelo", "motor", "numero_serie", "placas",
+        "uso", "servicio", "no_ocupantes", "carga"
+    }
+
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        record = {}
+        for raw_key, raw_value in item.items():
+            key = unicodedata.normalize('NFKD', str(raw_key))
+            key = ''.join(ch for ch in key if not unicodedata.combining(ch))
+            key = re.sub(r'[^a-zA-Z0-9]+', '_', key).strip('_').lower()
+            field = aliases.get(key, key)
+            if field not in allowed_fields:
+                continue
+            if field in {"vehiculo", "uso", "servicio", "no_ocupantes", "carga"}:
+                cleaned = sanitize_text_value(raw_value)
+            else:
+                cleaned = clean_vehicle_attribute_value(raw_value, field)
+            if cleaned:
+                record[field] = cleaned
+        if record:
+            records.append(record)
+    return records
+
+
+def merge_vehicle_records(*record_groups) -> list:
+    merged = []
+    seen = set()
+    for records in record_groups:
+        for record in records or []:
+            fingerprint_source = (
+                record.get("numero_serie") or
+                record.get("motor") or
+                record.get("placas") or
+                " ".join(str(v) for v in record.values() if v)
+            )
+            fingerprint = normalize_ascii_upper(fingerprint_source)
+            if not fingerprint or fingerprint in seen:
+                continue
+            merged.append(record)
+            seen.add(fingerprint)
+    return merged
+
+
+def format_vehicle_observations(vehicle_records: list) -> str:
+    if not vehicle_records:
+        return ""
+
+    label_order = [
+        ("vehiculo", "Vehículo"),
+        ("marca", "Marca"),
+        ("modelo", "Modelo"),
+        ("motor", "Motor"),
+        ("numero_serie", "Serie"),
+        ("placas", "Placas"),
+        ("uso", "Uso"),
+        ("servicio", "Servicio"),
+        ("no_ocupantes", "No. ocupantes"),
+        ("carga", "Carga"),
+    ]
+    sections = []
+    multiple = len(vehicle_records) > 1
+    for index, record in enumerate(vehicle_records, start=1):
+        lines = [f"Datos del vehículo{f' {index}' if multiple else ''}"]
+        for field, label in label_order:
+            value = sanitize_text_value(record.get(field))
+            if value:
+                lines.append(f"{label}: {value}")
+        if len(lines) > 1:
+            sections.append("\n".join(lines))
+    return "\n\n".join(sections)
+
+
 def score_policy_ramo_candidates(text: str) -> dict:
     header_text = text[:8000]
     body_text = text
@@ -3366,6 +3738,7 @@ def detect_policy_ramo(text: str) -> str:
 def build_field_snippets(text: str) -> dict:
     field_patterns = {
         "numero_de_poliza": [r'P[oó]liza\s*No\.?\s*/\s*A[nñ]o\s*P[oó]liza', r'No\.?\s*de\s*P[oó]liza', r'N[uú]mero\s+de\s+P[oó]liza', r'P[oó]liza\s+y/o\s+Certificado', r'P[oó]liza', r'Solicitud'],
+        "endoso": [r'No\.?\s*de\s*Endoso', r'N[uú]mero\s+de\s+Endoso', r'Endoso\s+No\.?', r'\bEndoso\b', r'No\.?\s*de\s*Movimiento', r'\bMovimiento\b'],
         "nombre_cliente": [r'Datos del contratante', r'Asegurado Titular', r'Nombre'],
         "rfc": [r'R\.?F\.?C\.?'],
         "agente": [r'^\s*Agente\s*[:|]', r'^\s*AGENTE\s*[:|]', r'^\s*Agente\s*\|'],
@@ -3407,6 +3780,8 @@ def build_rule_based_hints(text: str) -> dict:
     hints = {key: None for key in JSON_SCHEMA.keys()}
 
     insurer_map = {
+        "ZURICH": "Zurich",
+        "ZURICH SANTANDER": "Zurich",
         "AXA": "AXA",
         "GNP": "GNP",
         "QUALITAS": "Quálitas",
@@ -3418,12 +3793,14 @@ def build_rule_based_hints(text: str) -> dict:
         "PREVEM": "PREVEN SEGUROS",
     }
     upper_text = text.upper()
+    compact_text = normalize_ascii_upper(text)
     for token, insurer in insurer_map.items():
-        if token in upper_text:
+        if token in upper_text or normalize_ascii_upper(token) in compact_text:
             hints["aseguradora"] = insurer
             break
 
     hints["numero_de_poliza"] = extract_policy_number_value(text)
+    hints["endoso"] = extract_endoso_value(text)
     hints["forma_de_pago"] = extract_forma_pago_value(text)
     hints["descripcion"] = extract_value_after_label(
         text, [r'Tipo de plan'], stop_tokens=[r'\bSolicitud\b']
@@ -3502,6 +3879,7 @@ def build_rule_based_hints(text: str) -> dict:
     hints["agente"] = extract_agent_name_value(text)
 
     if hints.get("ramo") == "Automóvil":
+        hints["vehiculos"] = extract_vehicle_records_from_text(text)
         hints["marca"] = extract_vehicle_value(text, [r'\bMarca\b'])
         hints["modelo"] = extract_vehicle_value(text, [r'\bModelo\b'])
         hints["motor"] = extract_vehicle_value(
@@ -3511,6 +3889,22 @@ def build_rule_based_hints(text: str) -> dict:
         hints["numero_serie"] = extract_vehicle_value(
             text, [r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'\bSerie\b']
         )
+        hints["vehiculo"] = sanitize_text_value(extract_value_after_label(
+            text, [r'Veh[ií]culo', r'Descripci[oó]n'],
+            stop_tokens=[r'\bMotor\b', r'\bModelo\b', r'\bSerie\b', r'\bPlacas\b']
+        ))
+        hints["uso"] = sanitize_text_value(extract_value_after_label(
+            text, [r'\bUso\b'], stop_tokens=[r'\bServicio\b', r'\bCarga\b']
+        ))
+        hints["servicio"] = sanitize_text_value(extract_value_after_label(
+            text, [r'\bServicio\b'], stop_tokens=[r'\bUso\b', r'\bCarga\b']
+        ))
+        hints["no_ocupantes"] = sanitize_text_value(extract_value_after_label(
+            text, [r'No\.?\s*ocupantes', r'\bOcupantes\b'], stop_tokens=[r'\bCarga\b', r'\bUso\b']
+        ))
+        hints["carga"] = sanitize_text_value(extract_value_after_label(
+            text, [r'\bCarga\b'], stop_tokens=[r'\bUso\b', r'\bServicio\b']
+        ))
 
     hints["moneda"] = extract_currency_value(text) or (
         "MXN" if ' M.N.' in text or ' PESOS ' in f' {upper_text} ' or ' NACIONAL ' in f' {upper_text} ' else None
@@ -3601,10 +3995,13 @@ Usa SOLO la información del texto anterior. Las pistas sirven para resolver tab
 Prioridades:
 - Cuando haya una tabla de primas, usa la etiqueta exacta de cada importe. No confundas "Prima Neta" con "Prima anual total".
 - Si aparece "Solicitud", no la uses como número de póliza.
+- Si el documento es un endoso, usa los datos del endoso o movimiento principal. No uses datos de "Aviso de cobro", "Recibo de cobro", talón o ficha de pago.
+- Si el documento es un endoso, extrae el número de endoso en "endoso"; no lo pongas como "numero_de_poliza" y no confundas "Tipo de endoso" con el número.
 - Si aparece "Tipo de plan", normalmente corresponde a la descripción comercial o subramo.
 - Para "nombre_cliente", prioriza "Datos del contratante"; si no existe, usa el "Asegurado Titular".
 - Para "forma_de_pago", prioriza "Frecuencia de pago" o "Forma de pago".
 - Para "ramo", usa el tipo principal de póliza, no una cobertura aislada. Si aparece "Gastos Médicos Ocupantes" junto con "Daños Materiales", "Robo Total" o "Responsabilidad Civil", el ramo es "Automóvil".
+- Para pólizas de autos, flotillas o camiones, extrae todos los datos disponibles de cada unidad asegurada en "vehiculos": vehículo/descripción, marca, modelo/año, motor, placas, serie/VIN, uso, servicio, número de ocupantes y carga.
 
 Devuelve este JSON:
 {{
@@ -3627,6 +4024,12 @@ Devuelve este JSON:
   "motor": null,
   "placas": null,
   "numero_serie": null,
+  "vehiculo": null,
+  "no_ocupantes": null,
+  "carga": null,
+  "uso": null,
+  "servicio": null,
+  "vehiculos": [],
   "derecho_poliza": null,
   "gastos_expedicion": null,
   "descripcion": null
@@ -3652,6 +4055,8 @@ Reglas:
 - No inventes valores.
 - Todos los valores deben ser strings o null.
 - "prima_total" debe corresponder al total anual o total a pagar, no a deducible, suma asegurada, IVA ni recargo.
+- Si el documento es un endoso, "prima_total", fechas y "endoso" deben salir de la sección del endoso, no del aviso/recibo de cobro.
+- "endoso" debe ser el número/folio de endoso o movimiento, no el tipo de endoso.
 - "derecho_poliza" debe ser el cargo de derecho o expedición, no otro importe.
 - "ramo" debe corresponder al producto principal de la póliza, no a una cobertura secundaria.
 """
@@ -3708,12 +4113,22 @@ def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
         "prima_neta",
         "prima_total",
         "moneda",
+        "endoso",
         "derecho_poliza",
         "gastos_expedicion",
         "descripcion"
     }
 
     for key in JSON_SCHEMA.keys():
+        if key == "vehiculos":
+            merged[key] = merge_vehicle_records(
+                normalize_vehicle_records(model_result.get(key)),
+                normalize_vehicle_records(rule_hints.get(key))
+            )
+            if merged[key]:
+                merge_sources[key] = "model" if model_result.get(key) else "rules"
+            continue
+
         model_value = sanitize_text_value(model_result.get(key))
         rule_value = sanitize_text_value(rule_hints.get(key))
 
@@ -3997,7 +4412,7 @@ def flatten_ollama_response(raw: dict) -> dict:
             for subkey, subval in val.items():
                 flat.setdefault(subkey, subval)
             flat.pop(key)
-        elif isinstance(val, list) and val and isinstance(val[0], dict):
+        elif key != "vehiculos" and isinstance(val, list) and val and isinstance(val[0], dict):
             # Tomar el primer elemento de listas de objetos
             for subkey, subval in val[0].items():
                 flat.setdefault(subkey, subval)
@@ -4362,8 +4777,10 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             agente_id=agente_id
         )
 
-        vehicle_notes = []
         descripcion_value = sanitize_text_value(merged_json.get("descripcion"))
+        vehiculo_value = sanitize_text_value(
+            merged_json.get("vehiculo") or descripcion_value
+        )
         marca_value = clean_vehicle_attribute_value(merged_json.get("marca"), "marca")
         modelo_value = clean_vehicle_attribute_value(merged_json.get("modelo"), "modelo")
         motor_value = clean_vehicle_attribute_value(merged_json.get("motor"), "motor")
@@ -4373,23 +4790,31 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             "numero_serie"
         )
 
+        vehicle_records = []
         if ramo_normalized == "Automóvil":
-            def append_vehicle_note(note_value: str):
-                note_value = sanitize_text_value(note_value)
-                if not note_value:
-                    return
-                note_compact = normalize_ascii_upper(note_value)
-                existing_notes = " ".join(vehicle_notes)
-                existing_compact = normalize_ascii_upper(existing_notes)
-                if note_compact and note_compact not in existing_compact:
-                    vehicle_notes.append(note_value)
-
-            append_vehicle_note(descripcion_value)
-            append_vehicle_note(marca_value)
-            append_vehicle_note(modelo_value)
-            append_vehicle_note(f"Motor: {motor_value}" if motor_value else None)
-            append_vehicle_note(f"Placas: {placas_value}" if placas_value else None)
-            append_vehicle_note(f"Serie: {serie_value}" if serie_value else None)
+            model_vehicle_records = normalize_vehicle_records(merged_json.get("vehiculos"))
+            fallback_vehicle_record = {
+                "vehiculo": vehiculo_value,
+                "marca": marca_value,
+                "modelo": modelo_value,
+                "motor": motor_value,
+                "placas": placas_value,
+                "numero_serie": serie_value,
+                "uso": sanitize_text_value(merged_json.get("uso")),
+                "servicio": sanitize_text_value(merged_json.get("servicio")),
+                "no_ocupantes": sanitize_text_value(merged_json.get("no_ocupantes")),
+                "carga": sanitize_text_value(merged_json.get("carga")),
+            }
+            fallback_vehicle_record = {
+                key: value for key, value in fallback_vehicle_record.items() if value
+            }
+            if len(model_vehicle_records) == 1 and fallback_vehicle_record:
+                vehicle_records = [{**fallback_vehicle_record, **model_vehicle_records[0]}]
+            else:
+                vehicle_records = merge_vehicle_records(
+                    model_vehicle_records,
+                    [fallback_vehicle_record] if fallback_vehicle_record else []
+                )
 
         normalized_serie = serie_value if ramo_normalized == "Automóvil" else ""
 
@@ -4418,7 +4843,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             "endoso": merged_json.get("endoso"),
             "rfc": rfc_cliente,
             "serie": normalized_serie,
-            "observaciones": " | ".join(vehicle_notes).strip(),
+            "observaciones": format_vehicle_observations(vehicle_records),
             "derecho_poliza": normalize_amount_value(
                 merged_json.get("derecho_poliza") or merged_json.get(
                     "gastos_expedicion")
@@ -4568,6 +4993,8 @@ def upload_pdf():
         return jsonify({'error': True, 'msg': 'El archivo está vacío.'})
 
     poliza_id = flask_request.form.get('poliza_id')
+    pdf_mode = sanitize_text_value(flask_request.form.get('pdf_mode'))
+    prefer_endoso_text = pdf_mode == "endoso"
     poliza_num = None
 
     if poliza_id and poliza_id != "New":
@@ -4581,11 +5008,13 @@ def upload_pdf():
 
     try:
         # Extraer texto primero (valida el PDF)
-        text = extract_text_from_pdf_content(file_content)
+        text = extract_text_from_pdf_content(
+            file_content, prefer_endoso=prefer_endoso_text)
         log_policy_event(
             "upload_pdf",
             "texto extraído del PDF",
             trace_id=upload_trace_id,
+            pdf_mode=pdf_mode,
             extracted_chars=len(text),
             preview=text[:300]
         )
@@ -4632,45 +5061,14 @@ def upload_pdf():
             prima_total=extracted_data.get("prima_total")
         )
 
-        if poliza_id and poliza_id != "New":
-            poliza = Poliza.query.get(poliza_id)
-            if poliza:
-                old_pdf_path = poliza.pdf_path
-                if old_pdf_path:
-                    old_full_path = os.path.join(
-                        current_app.root_path, 'static', old_pdf_path
-                    )
-                    if os.path.exists(old_full_path):
-                        try:
-                            os.remove(old_full_path)
-                        except Exception as e:
-                            print(f"Error al eliminar PDF anterior: {e}")
-
-                poliza.pdf_path = pdf_path
-                db.session.commit()
-                log_policy_event(
-                    "upload_pdf",
-                    "pdf asociado a póliza existente",
-                    trace_id=upload_trace_id,
-                    poliza_id=poliza_id,
-                    pdf_path=pdf_path
-                )
-            else:
-                log_policy_event(
-                    "upload_pdf_warning",
-                    "poliza_id no encontrada al intentar asociar PDF",
-                    trace_id=upload_trace_id,
-                    poliza_id=poliza_id,
-                    pdf_path=pdf_path
-                )
-        else:
-            log_policy_event(
-                "upload_pdf",
-                "pdf temporal listo para enviarse a create",
-                trace_id=upload_trace_id,
-                poliza_id=poliza_id,
-                pdf_path=pdf_path
-            )
+        log_policy_event(
+            "upload_pdf",
+            "pdf temporal listo para enviarse al guardado del formulario",
+            trace_id=upload_trace_id,
+            pdf_mode=pdf_mode,
+            poliza_id=poliza_id,
+            pdf_path=pdf_path
+        )
 
         return jsonify({'error': False, 'data': extracted_data, 'pdf_path': pdf_path})
     except Exception as e:
@@ -4714,6 +5112,59 @@ def upload_pdf():
             return jsonify({'error': True, 'msg': error_msg})
         else:
             return jsonify({'error': True, 'msg': f'Error al procesar PDF: {error_msg}'})
+
+
+@polizas_route.route('/upload_existing_policy_pdf', methods=['POST'])
+@login_required
+def upload_existing_policy_pdf():
+    poliza_id = flask_request.form.get('poliza_id')
+    file = flask_request.files.get('pdf_file')
+
+    if not poliza_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó la póliza'})
+    if not file or not file.filename:
+        return jsonify({'error': True, 'msg': 'Selecciona un archivo PDF'})
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': True, 'msg': 'El archivo debe ser PDF'})
+
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+
+    file_content = file.read()
+    if not file_content.startswith(b'%PDF'):
+        return jsonify({'error': True, 'msg': 'El archivo no es un PDF válido'})
+    if len(file_content) > 10 * 1024 * 1024:
+        return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
+
+    old_pdf_path = poliza.pdf_path
+    pdf_path = save_pdf_content(file_content, file.filename, poliza.poliza)
+
+    if old_pdf_path:
+        old_full_path = (
+            old_pdf_path if os.path.isabs(old_pdf_path)
+            else os.path.join(current_app.root_path, 'static', old_pdf_path)
+        )
+        if os.path.exists(old_full_path):
+            try:
+                os.remove(old_full_path)
+            except Exception:
+                pass
+
+    poliza.pdf_path = pdf_path
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Cargar PDF de la póliza {poliza.poliza}",
+                            status="Aceptada",
+                            table_name='Poliza',
+                            row_id=poliza.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({
+        'error': False,
+        'msg': 'PDF de póliza cargado exitosamente',
+        'pdf_path': pdf_path
+    })
 
 
 @polizas_route.route('/delete_temp_pdf', methods=['POST'])
