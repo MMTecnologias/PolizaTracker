@@ -1872,29 +1872,40 @@ def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = Fal
 
         text = ""
         page_summaries = []
-        with pdfplumber.open(io.BytesIO(file_content)) as pdf:
-            if not pdf.pages:
-                raise ValueError("El PDF no contiene páginas")
+        pdfplumber_error = None
+        try:
+            with pdfplumber.open(io.BytesIO(file_content)) as pdf:
+                pages = pdf.pages
+                if not pages:
+                    raise ValueError("El PDF no contiene páginas")
 
-            # Primeras 8 páginas
-            for page_index, page in enumerate(pdf.pages[:8], start=1):
-                page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
-                page_text_len = len(page_text.strip()) if page_text else 0
-                table_count = 0
-                if page_text:
-                    text += page_text + "\n"
-                for table in page.extract_tables():
-                    table_count += 1
-                    for row in table:
-                        row_text = " | ".join(
-                            cell.strip() if cell else "" for cell in row)
-                        if row_text.strip(" |"):
-                            text += row_text + "\n"
-                page_summaries.append({
-                    "page": page_index,
-                    "text_chars": page_text_len,
-                    "tables": table_count
-                })
+                # Primeras 8 páginas
+                for page_index, page in enumerate(pages[:8], start=1):
+                    page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
+                    page_text_len = len(page_text.strip()) if page_text else 0
+                    table_count = 0
+                    if page_text:
+                        text += page_text + "\n"
+
+                    for table in (page.extract_tables() or []):
+                        table_count += 1
+                        for row in (table or []):
+                            row_text = " | ".join(
+                                cell.strip() if cell else "" for cell in (row or []))
+                            if row_text.strip(" |"):
+                                text += row_text + "\n"
+                    page_summaries.append({
+                        "page": page_index,
+                        "text_chars": page_text_len,
+                        "tables": table_count
+                    })
+        except Exception as e:
+            pdfplumber_error = str(e)
+            log_policy_event(
+                "pdf_extract",
+                "pdfplumber no pudo leer el PDF, usando fallback pdfminer",
+                error=pdfplumber_error
+            )
 
         # Fallback con pdfminer para PDFs de texto plano (ej. AXXA)
         if not text.strip():
@@ -1909,6 +1920,7 @@ def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = Fal
             bytes=len(file_content),
             chars=len(text),
             pages=page_summaries,
+            pdfplumber_error=pdfplumber_error,
             contains_policy=("PÓLIZA" in text.upper() or "POLIZA" in text.upper()),
             contains_cliente=("CONTRATANTE" in text.upper() or "CLIENTE" in text.upper()),
             contains_agent=("AGENTE" in text.upper()),
