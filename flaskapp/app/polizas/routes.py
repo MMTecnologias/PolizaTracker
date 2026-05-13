@@ -4,6 +4,7 @@ from pdfminer.high_level import extract_text as pdfminer_extract_text
 import json
 import re
 import os
+import shutil
 import uuid
 import unicodedata
 import requests
@@ -1734,10 +1735,29 @@ DEFAULT_POLICY_AGENT = "GUILLERMO GARDUÑO GALI"
 ALLOWED_POLICY_LOG_STAGES = {
     "pdf_extract",
     "pdf_extract_error",
+    "pdf_ocr",
+    "pdf_ocr_page",
+    "pdf_save",
+    "pdfminer",
+    "pdfplumber",
+    "pdfplumber_page",
+    "upload_pdf",
+    "upload_pdf_cleanup",
+    "upload_pdf_cleanup_error",
+    "upload_pdf_error",
     "pipeline_start",
+    "pipeline_error",
+    "pipeline_normalization",
     "pdf_text_summary",
     "ai_output_summary",
+    "entity_lookup",
+    "field_snapshot",
+    "forma_pago_resolution",
+    "model_attempt",
     "model_attempt_error",
+    "ollama_models",
+    "ollama_request",
+    "reconciliation",
     "reconciliation_error",
     "prima_total",
     "premium_validation",
@@ -1827,8 +1847,7 @@ def log_policy_event(stage: str, message: str, **kwargs):
 
     if has_app_context():
         current_app.logger.info(log_message)
-    else:
-        print(log_message)
+    print(log_message)
 
 
 def build_policy_debug_snapshot(data: dict, fields=POLICY_DEBUG_FIELDS) -> dict:
@@ -1839,6 +1858,110 @@ def build_policy_debug_snapshot(data: dict, fields=POLICY_DEBUG_FIELDS) -> dict:
         if value:
             snapshot[field] = value
     return snapshot
+
+
+def pdf_log_preview(text: str, max_chars: int = 250) -> str:
+    if not text:
+        return ""
+    return re.sub(r'\s+', ' ', text).strip()[:max_chars]
+
+
+def extract_text_with_ocr(file_content: bytes, maxpages: int = 8, trace_id: str = None) -> str:
+    """Extrae texto de PDFs escaneados si Tesseract OCR está disponible."""
+    log_policy_event(
+        "pdf_ocr",
+        "inicio de fallback OCR",
+        trace_id=trace_id,
+        bytes=len(file_content),
+        maxpages=maxpages
+    )
+    try:
+        import pypdfium2 as pdfium
+        import pytesseract
+    except ImportError as exc:
+        log_policy_event(
+            "pdf_ocr",
+            "dependencias Python de OCR no disponibles",
+            trace_id=trace_id,
+            error=str(exc)
+        )
+        raise RuntimeError(
+            "El PDF parece estar escaneado y requiere OCR, pero faltan dependencias "
+            "Python. Instala pypdfium2 y pytesseract."
+        ) from exc
+
+    tesseract_cmd = (
+        current_app.config.get("TESSERACT_CMD")
+        if has_app_context() else None
+    ) or os.environ.get("TESSERACT_CMD")
+    if tesseract_cmd:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+    elif not shutil.which("tesseract"):
+        log_policy_event("pdf_ocr", "binario tesseract no disponible", trace_id=trace_id)
+        raise RuntimeError(
+            "El PDF parece estar escaneado y requiere OCR. Instala Tesseract OCR "
+            "(macOS: brew install tesseract tesseract-lang) o configura TESSERACT_CMD."
+        )
+
+    text_parts = []
+    pdf = None
+    try:
+        pdf = pdfium.PdfDocument(file_content)
+        page_count = min(len(pdf), maxpages)
+        log_policy_event(
+            "pdf_ocr",
+            "PDF renderizado para OCR",
+            trace_id=trace_id,
+            total_pages=len(pdf),
+            pages_to_process=page_count
+        )
+        for page_index in range(page_count):
+            page = pdf[page_index]
+            try:
+                image = page.render(scale=2.5).to_pil()
+                page_text = ""
+                selected_lang = None
+                last_ocr_error = None
+                for lang in ("spa+eng", "spa", "eng"):
+                    try:
+                        page_text = pytesseract.image_to_string(
+                            image, lang=lang, config="--psm 6"
+                        )
+                        selected_lang = lang
+                        break
+                    except pytesseract.TesseractError as exc:
+                        last_ocr_error = str(exc)
+                        continue
+
+                page_chars = len(page_text.strip()) if page_text else 0
+                log_policy_event(
+                    "pdf_ocr_page",
+                    "resultado OCR por página",
+                    trace_id=trace_id,
+                    page=page_index + 1,
+                    image_size=f"{image.width}x{image.height}",
+                    lang=selected_lang,
+                    chars=page_chars,
+                    preview=pdf_log_preview(page_text),
+                    error=last_ocr_error if not selected_lang else None
+                )
+                if page_text and page_text.strip():
+                    text_parts.append(page_text.strip())
+            finally:
+                page.close()
+    finally:
+        if pdf is not None:
+            pdf.close()
+
+    ocr_text = "\n".join(text_parts)
+    log_policy_event(
+        "pdf_ocr",
+        "fallback OCR completado",
+        trace_id=trace_id,
+        chars=len(ocr_text),
+        preview=pdf_log_preview(ocr_text)
+    )
+    return ocr_text
 
 
 # def extract_text_from_pdf(pdf_path: str) -> str:
@@ -1864,7 +1987,7 @@ def build_policy_debug_snapshot(data: dict, fields=POLICY_DEBUG_FIELDS) -> dict:
 #         raise
 
 
-def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = False) -> str:
+def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = False, trace_id: str = None) -> str:
     try:
         # Validar que el archivo comience con el header de PDF
         if not file_content.startswith(b'%PDF'):
@@ -1873,54 +1996,137 @@ def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = Fal
         text = ""
         page_summaries = []
         pdfplumber_error = None
+        extraction_method = None
+        log_policy_event(
+            "pdf_extract",
+            "inicio de extracción de texto",
+            trace_id=trace_id,
+            bytes=len(file_content),
+            header=file_content[:8].decode("latin-1", errors="replace"),
+            prefer_endoso=prefer_endoso
+        )
         try:
             with pdfplumber.open(io.BytesIO(file_content)) as pdf:
                 pages = pdf.pages
                 if not pages:
                     raise ValueError("El PDF no contiene páginas")
 
+                log_policy_event(
+                    "pdfplumber",
+                    "PDF abierto",
+                    trace_id=trace_id,
+                    total_pages=len(pages),
+                    pages_to_process=min(len(pages), 8),
+                    metadata_keys=sorted((pdf.metadata or {}).keys())
+                )
+
                 # Primeras 8 páginas
                 for page_index, page in enumerate(pages[:8], start=1):
                     page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
                     page_text_len = len(page_text.strip()) if page_text else 0
                     table_count = 0
+                    table_rows = 0
+                    image_count = len(getattr(page, "images", []) or [])
+                    char_count = len(getattr(page, "chars", []) or [])
+                    word_count = 0
+                    word_error = None
+                    try:
+                        word_count = len(page.extract_words() or [])
+                    except Exception as exc:
+                        word_error = str(exc)
                     if page_text:
                         text += page_text + "\n"
 
                     for table in (page.extract_tables() or []):
                         table_count += 1
                         for row in (table or []):
+                            table_rows += 1
                             row_text = " | ".join(
                                 cell.strip() if cell else "" for cell in (row or []))
                             if row_text.strip(" |"):
                                 text += row_text + "\n"
-                    page_summaries.append({
+                    page_summary = {
                         "page": page_index,
+                        "width": round(page.width, 2),
+                        "height": round(page.height, 2),
                         "text_chars": page_text_len,
-                        "tables": table_count
-                    })
+                        "pdf_chars": char_count,
+                        "words": word_count,
+                        "images": image_count,
+                        "tables": table_count,
+                        "table_rows": table_rows
+                    }
+                    page_summaries.append(page_summary)
+                    log_policy_event(
+                        "pdfplumber_page",
+                        "resultado de extracción por página",
+                        trace_id=trace_id,
+                        **page_summary,
+                        preview=pdf_log_preview(page_text),
+                        word_error=word_error
+                    )
+                if text.strip():
+                    extraction_method = "pdfplumber"
+                log_policy_event(
+                    "pdfplumber",
+                    "extracción pdfplumber completada",
+                    trace_id=trace_id,
+                    chars=len(text),
+                    stripped_chars=len(text.strip()),
+                    method_selected=extraction_method,
+                    preview=pdf_log_preview(text)
+                )
         except Exception as e:
             pdfplumber_error = str(e)
             log_policy_event(
                 "pdf_extract",
                 "pdfplumber no pudo leer el PDF, usando fallback pdfminer",
+                trace_id=trace_id,
                 error=pdfplumber_error
             )
 
         # Fallback con pdfminer para PDFs de texto plano (ej. AXXA)
         if not text.strip():
             log_policy_event(
-                "pdf_extract", "pdfplumber no extrajo texto, usando fallback pdfminer")
+                "pdf_extract",
+                "pdfplumber no extrajo texto, usando fallback pdfminer",
+                trace_id=trace_id
+            )
             text = pdfminer_extract_text(
                 io.BytesIO(file_content), maxpages=8) or ""
+            if text.strip():
+                extraction_method = "pdfminer"
+            log_policy_event(
+                "pdfminer",
+                "extracción pdfminer completada",
+                trace_id=trace_id,
+                chars=len(text),
+                stripped_chars=len(text.strip()),
+                method_selected=extraction_method,
+                preview=pdf_log_preview(text)
+            )
+
+        if not text.strip():
+            log_policy_event(
+                "pdf_extract",
+                "pdfminer no extrajo texto, usando fallback OCR",
+                trace_id=trace_id
+            )
+            text = extract_text_with_ocr(file_content, maxpages=8, trace_id=trace_id) or ""
+            if text.strip():
+                extraction_method = "ocr"
 
         log_policy_event(
             "pdf_extract",
             "extracción de texto completada",
+            trace_id=trace_id,
             bytes=len(file_content),
             chars=len(text),
+            stripped_chars=len(text.strip()),
+            method=extraction_method,
             pages=page_summaries,
             pdfplumber_error=pdfplumber_error,
+            preview=pdf_log_preview(text),
             contains_policy=("PÓLIZA" in text.upper() or "POLIZA" in text.upper()),
             contains_cliente=("CONTRATANTE" in text.upper() or "CLIENTE" in text.upper()),
             contains_agent=("AGENTE" in text.upper()),
@@ -1948,7 +2154,7 @@ def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = Fal
     except Exception as e:
         error_msg = str(e)
         log_policy_event("pdf_extract_error",
-                         "error al leer el PDF", error=error_msg)
+                         "error al leer el PDF", trace_id=trace_id, error=error_msg)
 
         if 'No /Root object' in error_msg or 'PdfReadError' in error_msg:
             raise Exception("El archivo PDF está corrupto o no es válido")
@@ -4093,12 +4299,26 @@ def query_ollama_json(model: str, prompt: str) -> dict:
         prompt_chars=len(prompt)
     )
     response = requests.post(ollama_url, headers=headers, json=payload)
+    log_policy_event(
+        "ollama_request",
+        "respuesta recibida de Ollama",
+        model=model,
+        status_code=response.status_code,
+        response_chars=len(response.text or "")
+    )
     response.raise_for_status()
     data = response.json()
     if "response" not in data:
         raise ValueError("Respuesta inesperada de Ollama")
     parsed = extract_json_object(data["response"])
     parsed = flatten_ollama_response(parsed)
+    log_policy_event(
+        "ollama_request",
+        "respuesta JSON parseada",
+        model=model,
+        fields=list(parsed.keys()),
+        populated_fields=[key for key, value in parsed.items() if sanitize_text_value(value)]
+    )
     return parsed
 
 
@@ -4941,7 +5161,7 @@ def normalize_filename(filename: str, poliza_num: str = None) -> str:
     return f"{name_without_ext}_{unique_id}.{ext}"
 
 
-def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None) -> str:
+def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None, trace_id: str = None) -> str:
     """
     Guarda el contenido del PDF.
     Si PDF_UPLOAD_FOLDER está definido en config, usa esa ruta absoluta.
@@ -4958,17 +5178,46 @@ def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None)
 
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
+        log_policy_event(
+            "pdf_save",
+            "carpeta de PDFs creada",
+            trace_id=trace_id,
+            upload_folder=upload_folder
+        )
 
     normalized_filename = normalize_filename(filename, poliza_num)
     file_path = os.path.join(upload_folder, normalized_filename)
+    log_policy_event(
+        "pdf_save",
+        "guardando PDF",
+        trace_id=trace_id,
+        original_filename=filename,
+        normalized_filename=normalized_filename,
+        bytes=len(file_content),
+        custom_folder=bool(custom_folder),
+        upload_folder=upload_folder
+    )
 
     with open(file_path, 'wb') as f:
         f.write(file_content)
 
     # Si es ruta personalizada, guardar la ruta absoluta completa en BD
     if custom_folder:
+        log_policy_event(
+            "pdf_save",
+            "PDF guardado",
+            trace_id=trace_id,
+            pdf_path=file_path
+        )
         return file_path
-    return f"polizas_pdf/{normalized_filename}"
+    saved_path = f"polizas_pdf/{normalized_filename}"
+    log_policy_event(
+        "pdf_save",
+        "PDF guardado",
+        trace_id=trace_id,
+        pdf_path=saved_path
+    )
+    return saved_path
 
 
 @polizas_route.route('/upload_pdf', methods=['POST'])
@@ -4995,13 +5244,21 @@ def upload_pdf():
         "inicio de procesamiento de PDF",
         trace_id=upload_trace_id,
         filename=file.filename,
-        size_bytes=file_size
+        size_bytes=file_size,
+        form_keys=sorted(flask_request.form.keys())
     )
 
     if file_size > 10 * 1024 * 1024:  # 10MB
+        log_policy_event(
+            "upload_pdf",
+            "PDF rechazado por tamaño",
+            trace_id=upload_trace_id,
+            size_bytes=file_size
+        )
         return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
 
     if file_size == 0:
+        log_policy_event("upload_pdf", "PDF rechazado porque está vacío", trace_id=upload_trace_id)
         return jsonify({'error': True, 'msg': 'El archivo está vacío.'})
 
     poliza_id = flask_request.form.get('poliza_id')
@@ -5015,13 +5272,25 @@ def upload_pdf():
             poliza = Poliza.query.get(poliza_id)
             if poliza:
                 poliza_num = poliza.poliza
+                log_policy_event(
+                    "upload_pdf",
+                    "póliza existente encontrada para asociar PDF",
+                    trace_id=upload_trace_id,
+                    poliza_id=poliza_id,
+                    poliza_num=poliza_num
+                )
         except (ValueError, TypeError):
-            pass
+            log_policy_event(
+                "upload_pdf",
+                "poliza_id inválido en formulario",
+                trace_id=upload_trace_id,
+                poliza_id=flask_request.form.get('poliza_id')
+            )
 
     try:
         # Extraer texto primero (valida el PDF)
         text = extract_text_from_pdf_content(
-            file_content, prefer_endoso=prefer_endoso_text)
+            file_content, prefer_endoso=prefer_endoso_text, trace_id=upload_trace_id)
         log_policy_event(
             "upload_pdf",
             "texto extraído del PDF",
@@ -5032,7 +5301,7 @@ def upload_pdf():
         )
 
         # Si la extracción fue exitosa, guardar el archivo
-        pdf_path = save_pdf_content(file_content, file.filename, poliza_num)
+        pdf_path = save_pdf_content(file_content, file.filename, poliza_num, trace_id=upload_trace_id)
         log_policy_event(
             "upload_pdf",
             "pdf guardado temporalmente",
@@ -5041,6 +5310,12 @@ def upload_pdf():
         )
 
         # Procesar con Ollama
+        log_policy_event(
+            "upload_pdf",
+            "iniciando extracción con modelo local",
+            trace_id=upload_trace_id,
+            extracted_chars=len(text)
+        )
         extracted_data = call_ollama_model(text, JSON_SCHEMA)
 
         filename_policy = extract_policy_number_from_filename(file.filename)
