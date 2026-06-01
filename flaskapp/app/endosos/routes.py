@@ -1,5 +1,5 @@
 # app/main/routes.py
-from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response
+from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory
 from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -13,6 +13,8 @@ from datetime import datetime, date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+import os
+import uuid
 
 
 @endosos_route.route('/get_receipts', methods=['POST'])
@@ -329,3 +331,94 @@ def process_receipt():
                 'error': False,
                 'msg': 'Fecha de pago modificada exitosamente, esta accion esta sujeta a revision debido a registro tardio'
             })
+
+
+@endosos_route.route('/upload_pdf', methods=['POST'])
+@login_required
+def upload_pdf():
+    from app.polizas.routes import save_pdf_content
+
+    if 'pdf_file' not in flask_request.files:
+        return jsonify({'error': True, 'msg': 'No se proporcionó archivo PDF'})
+
+    file = flask_request.files['pdf_file']
+    if not file.filename or file.filename == '':
+        return jsonify({'error': True, 'msg': 'No se seleccionó archivo'})
+
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': True, 'msg': 'El archivo debe ser PDF'})
+
+    file_content = file.read()
+    if len(file_content) > 10 * 1024 * 1024:
+        return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
+    if len(file_content) == 0:
+        return jsonify({'error': True, 'msg': 'El archivo está vacío.'})
+
+    endoso_id = flask_request.form.get('endoso_id')
+    if not endoso_id or endoso_id == 'New':
+        pdf_path = save_pdf_content(file_content, file.filename)
+        return jsonify({'error': False, 'pdf_path': pdf_path, 'msg': 'PDF procesado temporalmente'})
+
+    endoso = Endoso.query.get(int(endoso_id))
+    if not endoso:
+        return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+
+    old_pdf_path = endoso.pdf_path
+    pdf_path = save_pdf_content(file_content, file.filename, endoso.poliza)
+
+    if old_pdf_path:
+        old_full_path = (
+            old_pdf_path if os.path.isabs(old_pdf_path)
+            else os.path.join(current_app.root_path, 'static', old_pdf_path)
+        )
+        if os.path.exists(old_full_path):
+            try:
+                os.remove(old_full_path)
+            except Exception:
+                pass
+
+    endoso.pdf_path = pdf_path
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Cargar PDF del endoso {endoso.endoso} de la póliza {endoso.poliza}",
+                            status="Aceptada",
+                            table_name='Endoso',
+                            row_id=endoso.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({
+        'error': False,
+        'msg': 'PDF de endoso cargado exitosamente',
+        'pdf_path': pdf_path
+    })
+
+
+@endosos_route.route('/download_pdf/<int:endoso_id>', methods=['GET'])
+@login_required
+def download_pdf(endoso_id):
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+
+    if not endoso.pdf_path:
+        return jsonify({'error': True, 'msg': 'No hay PDF asociado a este endoso'})
+
+    if os.path.isabs(endoso.pdf_path):
+        pdf_full_path = endoso.pdf_path
+        directory = os.path.dirname(pdf_full_path)
+        filename = os.path.basename(pdf_full_path)
+    else:
+        pdf_full_path = os.path.join(
+            current_app.root_path, 'static', endoso.pdf_path)
+        directory = os.path.join(current_app.root_path, 'static')
+        filename = endoso.pdf_path
+
+    if not os.path.exists(pdf_full_path):
+        return jsonify({'error': True, 'msg': 'El archivo PDF no existe'})
+
+    return send_from_directory(
+        directory,
+        filename,
+        as_attachment=True,
+        download_name=f"endoso_{endoso.poliza}.pdf"
+    )

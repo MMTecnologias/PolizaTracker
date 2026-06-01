@@ -10,6 +10,157 @@ $(function () {
     dataType: 'json',
   };
 
+  // Drag & Drop y auto-upload para PDF
+  const dropZone = $('#pdf_drop_zone');
+  const fileInput = $('#pdf_file');
+  const uploadContent = dropZone.find('.upload-content');
+  const uploadLoading = dropZone.find('.upload-loading');
+
+  dropZone.on('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInput.trigger('click');
+  });
+
+  fileInput.on('click', function (e) {
+    e.stopPropagation();
+  });
+
+  dropZone.on('dragover dragenter', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.addClass('drag-over');
+  });
+
+  dropZone.on('dragleave dragend', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.removeClass('drag-over');
+  });
+
+  dropZone.on('drop', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.removeClass('drag-over');
+    const files = e.originalEvent.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput[0].files = files;
+      uploadEndosoPdf();
+    }
+  });
+
+  fileInput.on('change', function (e) {
+    e.stopPropagation();
+    if (this.files.length > 0) {
+      uploadEndosoPdf();
+    }
+  });
+
+  function uploadEndosoPdf(endoso_id) {
+    if (endoso_id) {
+      const tempInput = $(`<input type="file" accept=".pdf" style="display:none;" />`);
+      tempInput.on('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+          alert('Solo se permiten archivos PDF', 'warning', 'Archivo inválido');
+          return;
+        }
+        const formData = new FormData();
+        formData.append('pdf_file', file);
+        formData.append('endoso_id', endoso_id);
+
+        Swal.fire({
+          title: 'Procesando PDF...',
+          text: 'Guardando archivo PDF',
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        $.ajax({
+          type: 'POST',
+          url: '/endosos/upload_pdf',
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function (response) {
+            Swal.close();
+            if (response.error) {
+              alert(response.msg, 'error', 'Error');
+            } else {
+              alert('PDF cargado exitosamente', 'success', 'Éxito');
+              getEndosos();
+            }
+          },
+          error: function () {
+            Swal.close();
+            alert('Error al procesar el PDF', 'error', 'Error');
+          },
+        });
+      });
+      tempInput.trigger('click');
+      return;
+    }
+
+    const file = fileInput[0].files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Solo se permiten archivos PDF', 'warning', 'Archivo inválido');
+      fileInput.val('');
+      return;
+    }
+
+    uploadContent.hide();
+    uploadLoading.show();
+
+    const formData = new FormData();
+    formData.append('pdf_file', file);
+
+    const endosoIdInput = document.getElementById('endoso_id');
+    const actualEndosoId = endosoIdInput ? endosoIdInput.value : null;
+    if (actualEndosoId && actualEndosoId !== 'New') {
+      formData.append('endoso_id', actualEndosoId);
+    }
+
+    Swal.fire({
+      title: 'Procesando PDF...',
+      text: 'Guardando archivo PDF',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    $.ajax({
+      type: 'POST',
+      url: '/endosos/upload_pdf',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (response) {
+        Swal.close();
+        uploadLoading.hide();
+        uploadContent.show();
+        fileInput.val('');
+        if (response.error) {
+          alert(response.msg, 'error', 'Error');
+        } else {
+          if (response.pdf_path) {
+            $('#pdf_path').val(response.pdf_path);
+          }
+          alert('PDF cargado exitosamente', 'success', 'Éxito');
+          getEndosos();
+        }
+      },
+      error: function () {
+        Swal.close();
+        uploadLoading.hide();
+        uploadContent.show();
+        fileInput.val('');
+        alert('Error al procesar el PDF', 'error', 'Error');
+      },
+    });
+  }
+
   function getBackColor(status) {
     if (!status) return '';
     switch (status) {
@@ -86,6 +237,10 @@ $(function () {
       $('#form-polizas').removeClass('was-validated');
       $('#form-polizas select').prop('disabled', false);
       $('#poliza_id').val('New');
+      $('#pdf_path').val('');
+      $('#pdf_file').val('');
+      $('.upload-loading').hide();
+      $('.upload-content').show();
       $('#tipo').val('');
       $('#div_poliza_id').hide();
       $('#div_search_client').show();
@@ -282,6 +437,9 @@ $(function () {
             </p>
           </td>
           <td style="color: ${getTextColor(endoso.status)}">${
+          endoso.poliza
+        }</td>
+          <td style="color: ${getTextColor(endoso.status)}">${
           endoso.tipo_endoso
         }</td>
           <td style="color: ${getTextColor(endoso.status)}">${
@@ -312,6 +470,22 @@ $(function () {
                   )}><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
                 </a>
               </li>
+              ${
+                endoso.pdf_path
+                  ? `
+              <li>
+                <a title="Ver pdf" class="btn__icon_show pointer" id="btnViewPdf_${endoso.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(endoso.status)}><path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/></svg>
+                </a>
+              </li>
+              `
+                  : ''
+              }
+              <li>
+                <a title="Cargar PDF" class="btn__icon_show pointer" id="btnUploadPdf_${endoso.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(endoso.status)}><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                </a>
+              </li>
               <li>
                 <a class="btn__icon_edit pointer" id="btnEdit_${endoso.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
@@ -332,6 +506,15 @@ $(function () {
       );
       $(`#btnShow_${endoso.id}`).on('click', (e) => showEndoso(endoso.id));
       $(`#btnDelete_${endoso.id}`).on('click', (e) => cancelEndoso(endoso.id));
+      $(`#btnViewPdf_${endoso.id}`).on('click', (e) => {
+        if (endoso.pdf_path) {
+          window.open(`/static/${endoso.pdf_path}`, '_blank');
+        }
+      });
+      $(`#btnUploadPdf_${endoso.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadEndosoPdf(endoso.id);
+      });
     });
     if (!data.length) return;
     $('#pagination').pagination({

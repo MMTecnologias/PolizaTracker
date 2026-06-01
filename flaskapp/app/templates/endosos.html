@@ -44,9 +44,29 @@
           <form id="form-polizas" class="needs-validation form-data" novalidate>
             <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
             <input type="hidden" id="endoso_id" name="endoso_id" value="New" />
+            <input type="hidden" id="pdf_path" name="pdf_path" value="" />
             <input type="text" id="tipo" name="tipo" hidden />
             <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" hidden />
             <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
+            <div class="form__input-data">
+              <label class="label-input-data">Cargar PDF de Endoso</label>
+              <div class="pdf-upload-area" id="pdf_drop_zone">
+                <input type="file" id="pdf_file" accept=".pdf" style="display: none;" />
+                <div class="upload-content">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <p class="upload-text">Arrastra tu PDF aquí o <span class="upload-link">haz clic para seleccionar</span></p>
+                  <p class="upload-hint">Solo archivos PDF</p>
+                </div>
+                <div class="upload-loading" style="display: none;">
+                  <div class="spinner-border text-primary" role="status"></div>
+                  <p class="mt-2">Procesando PDF...</p>
+                </div>
+              </div>
+            </div>
             <div class="form__input-data" id="div_search_client">
               <div class="input-group" style="background-color: aliceblue;">
                 <label class="label-input-data">Cliente</label>
@@ -241,6 +261,7 @@
                   <th class="table-name siblingContainerRow" scope="col">
                     Endoso
                   </th>
+                  <th scope="col">Póliza</th>
                   <th scope="col">Tipo Endoso</th>
                   <th scope="col">Cliente</th>
                   <th scope="col">Sub Ramo</th>

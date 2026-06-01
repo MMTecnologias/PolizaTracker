@@ -154,6 +154,7 @@ class Endoso(db.Model):
     recibos = Column(Enum('Generados', 'Por generar'), default='Por generar')
     vendedor_id = Column(Integer, ForeignKey('vendedores.id'), nullable=False)
     poliza = Column(String(30), nullable=False)
+    pdf_path = Column(String(255), nullable=True)
 
 
 class Recibo(db.Model):

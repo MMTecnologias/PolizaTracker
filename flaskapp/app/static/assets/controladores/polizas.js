@@ -1160,12 +1160,12 @@ $(function () {
         $('#Moneda').val(resp.data[0].moneda);
         setCurrencyFieldValue(
           '#prima_neta',
-          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', '')),
+          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(/,/g, '')),
         );
         setCurrencyFieldValue(
           '#prima_total',
           parseFloat(
-            resp.data[0].prima_total.replace('$', '').replace(',', ''),
+            resp.data[0].prima_total.replace('$', '').replace(/,/g, ''),
           ),
         );
         $('#prima_neta').prop('disabled', true);
@@ -1268,12 +1268,12 @@ $(function () {
         $('#Moneda').val(resp.data[0].moneda);
         setCurrencyFieldValue(
           '#prima_neta',
-          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', '')),
+          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(/,/g, '')),
         );
         setCurrencyFieldValue(
           '#prima_total',
           parseFloat(
-            resp.data[0].prima_total.replace('$', '').replace(',', ''),
+            resp.data[0].prima_total.replace('$', '').replace(/,/g, ''),
           ),
         );
         $('#prima_neta').prop('disabled', true);
@@ -1373,20 +1373,20 @@ $(function () {
         $('#Moneda').val(resp.data[0].moneda);
         setCurrencyFieldValue(
           '#prima_neta',
-          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', '')),
+          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(/,/g, '')),
         );
         setCurrencyFieldValue(
           '#prima_total',
           parseFloat(
-            resp.data[0].prima_total.replace('$', '').replace(',', ''),
+            resp.data[0].prima_total.replace('$', '').replace(/,/g, ''),
           ),
         );
         $('#old_prima_neta').val(
-          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(',', '')),
+          parseFloat(resp.data[0].prima_neta.replace('$', '').replace(/,/g, '')),
         );
         $('#old_prima_total').val(
           parseFloat(
-            resp.data[0].prima_total.replace('$', '').replace(',', ''),
+            resp.data[0].prima_total.replace('$', '').replace(/,/g, ''),
           ),
         );
         $('#old_tipo_pago').val(resp.data[0].tipo_pago_id);
