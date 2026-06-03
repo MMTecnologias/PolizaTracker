@@ -5161,20 +5161,26 @@ def normalize_filename(filename: str, poliza_num: str = None) -> str:
     return f"{name_without_ext}_{unique_id}.{ext}"
 
 
-def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None, trace_id: str = None) -> str:
+def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None, trace_id: str = None,
+                     folder_config_key: str = 'PDF_UPLOAD_FOLDER') -> str:
     """
     Guarda el contenido del PDF.
-    Si PDF_UPLOAD_FOLDER está definido en config, usa esa ruta absoluta.
-    De lo contrario usa static/polizas_pdf dentro de la app.
+    Si el config key indicado (por defecto PDF_UPLOAD_FOLDER) está definido,
+    usa esa ruta absoluta. De lo contrario usa la carpeta por defecto
+    (static/polizas_pdf o static/endosos_pdf según folder_config_key).
     Retorna la ruta que se guardará en BD.
     """
-    custom_folder = current_app.config.get('PDF_UPLOAD_FOLDER')
+    custom_folder = current_app.config.get(folder_config_key)
 
     if custom_folder:
         upload_folder = custom_folder
     else:
+        default_subfolder = (
+            'endosos_pdf' if folder_config_key == 'ENDOSO_PDF_UPLOAD_FOLDER'
+            else 'polizas_pdf'
+        )
         upload_folder = os.path.join(
-            current_app.root_path, 'static', 'polizas_pdf')
+            current_app.root_path, 'static', default_subfolder)
 
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
@@ -5210,7 +5216,7 @@ def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None,
             pdf_path=file_path
         )
         return file_path
-    saved_path = f"polizas_pdf/{normalized_filename}"
+    saved_path = f"{default_subfolder}/{normalized_filename}"
     log_policy_event(
         "pdf_save",
         "PDF guardado",

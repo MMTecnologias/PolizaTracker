@@ -282,6 +282,57 @@
     </div>
   </div>
 
+  <!-- Modal info póliza -->
+  <div class="modal fade bd-example-modal-lg" id="poliza-info-modal" tabindex="-1" role="dialog" aria-labelledby="polizaInfoTitle">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="polizaInfoTitle">Información de la Póliza</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body pt-1">
+          <div id="poliza-info-loading" class="text-center py-4" style="display: none;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Cargando información...</p>
+          </div>
+          <div id="poliza-info-content" style="display: none;">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Póliza:</strong> <span id="pi-poliza"></span></p>
+                <p><strong>Cliente:</strong> <span id="pi-cliente"></span></p>
+                <p><strong>Aseguradora:</strong> <span id="pi-aseguradora"></span></p>
+                <p><strong>Ramo:</strong> <span id="pi-ramo"></span></p>
+                <p><strong>Subramo:</strong> <span id="pi-subramo"></span></p>
+                <p><strong>Moneda:</strong> <span id="pi-moneda"></span></p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Vigencia:</strong> <span id="pi-vigencia"></span></p>
+                <p><strong>Forma de Pago:</strong> <span id="pi-tipoPago"></span></p>
+                <p><strong>Vendedor:</strong> <span id="pi-vendedor"></span></p>
+                <p><strong>Agente:</strong> <span id="pi-agente"></span></p>
+                <p><strong>Prima Neta:</strong> <span id="pi-prima_neta"></span></p>
+                <p><strong>Prima Total:</strong> <span id="pi-prima_total"></span></p>
+                <p><strong>Estado:</strong> <span id="pi-status"></span></p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12">
+                <p><strong>Notas:</strong></p>
+                <pre id="pi-notas" style="white-space: pre-wrap; background: #f5f5f5; padding: 8px; border-radius: 4px;"></pre>
+              </div>
+            </div>
+          </div>
+          <div id="poliza-info-error" class="alert alert-danger" style="display: none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal listado recibos -->
   <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">

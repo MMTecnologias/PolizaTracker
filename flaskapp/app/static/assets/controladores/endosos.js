@@ -436,9 +436,15 @@ $(function () {
                 ${endoso.endoso}
             </p>
           </td>
-          <td style="color: ${getTextColor(endoso.status)}">${
-          endoso.poliza
-        }</td>
+          <td style="color: ${getTextColor(endoso.status)}">
+            <a href="javascript:void(0)" class="poliza-link" id="btnPolizaInfo_${
+          endoso.poliza_id
+        }" data-poliza-id="${endoso.poliza_id}" style="color: ${
+          getTextColor(endoso.status)
+        }; text-decoration: underline;">
+              ${endoso.poliza}
+            </a>
+          </td>
           <td style="color: ${getTextColor(endoso.status)}">${
           endoso.tipo_endoso
         }</td>
@@ -514,6 +520,10 @@ $(function () {
       $(`#btnUploadPdf_${endoso.id}`).on('click', (e) => {
         e.preventDefault();
         uploadEndosoPdf(endoso.id);
+      });
+      $(`#btnPolizaInfo_${endoso.poliza_id}`).on('click', (e) => {
+        e.preventDefault();
+        showPolizaInfo(endoso.poliza_id);
       });
     });
     if (!data.length) return;
@@ -698,6 +708,59 @@ $(function () {
           'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
           'error'
         );
+      },
+    });
+  }
+
+  function showPolizaInfo(poliza_id) {
+    if (!poliza_id) {
+      alert('No se encontró el ID de la póliza', 'error', 'Error');
+      return;
+    }
+    $('#poliza-info-loading').show();
+    $('#poliza-info-content').hide();
+    $('#poliza-info-error').hide();
+    $('#poliza-info-modal').modal('show');
+
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/get',
+      data: $.param({ start: 0, length: 0, poliza_id }),
+      success: function (resp) {
+        $('#poliza-info-loading').hide();
+        if (resp.error || !resp.data || !resp.data.length) {
+          $('#poliza-info-error')
+            .text(resp.msg || 'No se encontró información de la póliza')
+            .show();
+          return;
+        }
+        const p = resp.data[0];
+        $('#pi-poliza').text(p.poliza || '-');
+        $('#pi-cliente').text(p.cliente || '-');
+        $('#pi-aseguradora').text(p.aseguradora || '-');
+        $('#pi-ramo').text(p.ramo || '-');
+        $('#pi-subramo').text(p.subramo || '-');
+        $('#pi-moneda').text(p.moneda || '-');
+        $('#pi-vigencia').text(
+          p.fecha_inicio && p.fecha_termino
+            ? `${p.fecha_inicio} a ${p.fecha_termino}`
+            : '-'
+        );
+        $('#pi-tipoPago').text(p.tipoPago || '-');
+        $('#pi-vendedor').text(p.vendedor || '-');
+        $('#pi-agente').text(p.agente || '-');
+        $('#pi-prima_neta').text(p.prima_neta || '-');
+        $('#pi-prima_total').text(p.prima_total || '-');
+        $('#pi-status').text(p.status || '-');
+        $('#pi-notas').text(p.Notas && p.Notas.trim() ? p.Notas : 'Sin notas');
+        $('#poliza-info-content').show();
+      },
+      error: function (xhr, status, error) {
+        $('#poliza-info-loading').hide();
+        $('#poliza-info-error')
+          .text('Error al obtener la información de la póliza')
+          .show();
+        console.error(error);
       },
     });
   }

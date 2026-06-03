@@ -356,7 +356,10 @@ def upload_pdf():
 
     endoso_id = flask_request.form.get('endoso_id')
     if not endoso_id or endoso_id == 'New':
-        pdf_path = save_pdf_content(file_content, file.filename)
+        pdf_path = save_pdf_content(
+            file_content, file.filename,
+            folder_config_key='ENDOSO_PDF_UPLOAD_FOLDER'
+        )
         return jsonify({'error': False, 'pdf_path': pdf_path, 'msg': 'PDF procesado temporalmente'})
 
     endoso = Endoso.query.get(int(endoso_id))
@@ -364,7 +367,10 @@ def upload_pdf():
         return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
 
     old_pdf_path = endoso.pdf_path
-    pdf_path = save_pdf_content(file_content, file.filename, endoso.poliza)
+    pdf_path = save_pdf_content(
+        file_content, file.filename, endoso.poliza,
+        folder_config_key='ENDOSO_PDF_UPLOAD_FOLDER'
+    )
 
     if old_pdf_path:
         old_full_path = (
