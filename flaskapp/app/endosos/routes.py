@@ -336,7 +336,12 @@ def process_receipt():
 @endosos_route.route('/upload_pdf', methods=['POST'])
 @login_required
 def upload_pdf():
-    from app.polizas.routes import save_pdf_content
+    from app.polizas.routes import (
+        JSON_SCHEMA,
+        call_ollama_model,
+        extract_text_from_pdf_content,
+        save_pdf_content,
+    )
 
     if 'pdf_file' not in flask_request.files:
         return jsonify({'error': True, 'msg': 'No se proporcionó archivo PDF'})
@@ -355,12 +360,26 @@ def upload_pdf():
         return jsonify({'error': True, 'msg': 'El archivo está vacío.'})
 
     endoso_id = flask_request.form.get('endoso_id')
+    upload_trace_id = uuid.uuid4().hex[:8]
+
     if not endoso_id or endoso_id == 'New':
-        pdf_path = save_pdf_content(
-            file_content, file.filename,
-            folder_config_key='ENDOSO_PDF_UPLOAD_FOLDER'
-        )
-        return jsonify({'error': False, 'pdf_path': pdf_path, 'msg': 'PDF procesado temporalmente'})
+        try:
+            text = extract_text_from_pdf_content(
+                file_content, prefer_endoso=True, trace_id=upload_trace_id)
+            extracted_data = call_ollama_model(text, JSON_SCHEMA)
+            pdf_path = save_pdf_content(
+                file_content, file.filename,
+                trace_id=upload_trace_id,
+                folder_config_key='ENDOSO_PDF_UPLOAD_FOLDER'
+            )
+            return jsonify({
+                'error': False,
+                'data': extracted_data,
+                'pdf_path': pdf_path,
+                'msg': 'PDF procesado temporalmente'
+            })
+        except Exception as e:
+            return jsonify({'error': True, 'msg': f'Error al procesar PDF: {str(e)}'})
 
     endoso = Endoso.query.get(int(endoso_id))
     if not endoso:
@@ -369,6 +388,7 @@ def upload_pdf():
     old_pdf_path = endoso.pdf_path
     pdf_path = save_pdf_content(
         file_content, file.filename, endoso.poliza,
+        trace_id=upload_trace_id,
         folder_config_key='ENDOSO_PDF_UPLOAD_FOLDER'
     )
 

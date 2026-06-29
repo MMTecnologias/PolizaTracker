@@ -147,6 +147,9 @@ $(function () {
           if (response.pdf_path) {
             $('#pdf_path').val(response.pdf_path);
           }
+          if (response.data) {
+            fillFormWithEndosoPdfData(response.data);
+          }
           alert('PDF cargado exitosamente', 'success', 'Éxito');
           getEndosos();
         }
@@ -229,6 +232,204 @@ $(function () {
     });
   }
 
+  function formatDateFromPdf(dateStr) {
+    if (!dateStr) return '';
+    const raw = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+    const numeric = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (numeric) {
+      const [, day, month, year] = numeric;
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
+    const months = {
+      ENE: '01',
+      ENERO: '01',
+      FEB: '02',
+      FEBRERO: '02',
+      MAR: '03',
+      MARZO: '03',
+      ABR: '04',
+      ABRIL: '04',
+      MAY: '05',
+      MAYO: '05',
+      JUN: '06',
+      JUNIO: '06',
+      JUL: '07',
+      JULIO: '07',
+      AGO: '08',
+      AGOSTO: '08',
+      SEP: '09',
+      SEPT: '09',
+      SEPTIEMBRE: '09',
+      OCT: '10',
+      OCTUBRE: '10',
+      NOV: '11',
+      NOVIEMBRE: '11',
+      DIC: '12',
+      DICIEMBRE: '12',
+    };
+    const monthMatch = raw
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .match(/(\d{1,2})\s*[\/\-\s]?\s*([A-Z]+)\s*[\/\-\s]?\s*(\d{4})/);
+    if (monthMatch && months[monthMatch[2]]) {
+      return `${monthMatch[3]}-${months[monthMatch[2]]}-${String(monthMatch[1]).padStart(2, '0')}`;
+    }
+    return '';
+  }
+
+  function normalizeToken(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+  }
+
+  function setSelectValueByIdOrText(selector, idValue, textValue) {
+    const select = $(selector);
+    if (!select.length) return;
+
+    if (idValue && select.find(`option[value="${idValue}"]`).length) {
+      select.val(String(idValue)).trigger('change');
+      return;
+    }
+
+    const normalizedText = normalizeToken(textValue);
+    if (!normalizedText) return;
+
+    let matchedValue = null;
+    select.find('option').each(function () {
+      const optionText = normalizeToken($(this).text());
+      if (optionText && (optionText.includes(normalizedText) || normalizedText.includes(optionText))) {
+        matchedValue = $(this).val();
+        return false;
+      }
+    });
+    if (matchedValue) select.val(matchedValue).trigger('change');
+  }
+
+  function fillFormWithEndosoPdfData(data) {
+    if (!data) return;
+    console.log('Datos extraídos del PDF de endoso:', data);
+
+    if (data.numero_de_poliza) {
+      $('#div_poliza_id').show();
+      $('#id_poliza').val(data.numero_de_poliza);
+    }
+    if (data.endoso) {
+      $('#Poliza').val(data.endoso);
+    }
+
+    if (data.nombre_cliente) $('#buscar-cliente').val(data.nombre_cliente);
+    if (data.cliente_id) $('#selected-client-id').val(data.cliente_id);
+    if (data.desde) $('#VigenciaI').val(formatDateFromPdf(data.desde));
+    if (data.hasta) $('#VigenciaF').val(formatDateFromPdf(data.hasta));
+    if (data.moneda) {
+      const moneda = normalizeToken(data.moneda);
+      $('#Moneda').val(moneda.includes('USD') || moneda.includes('DOLAR') ? 'USD' : moneda.includes('UDI') ? 'Udis' : 'MXN');
+    }
+    if (data.prima_neta) $('#prima_neta').val(String(data.prima_neta).replace(/[^0-9.-]/g, ''));
+    if (data.prima_total) $('#prima_total').val(String(data.prima_total).replace(/[^0-9.-]/g, ''));
+    if (data.serie) $('#serie').val(data.serie);
+
+    const notas = [data.descripcion, data.observaciones].filter(Boolean).join('\n');
+    if (notas) $('#notas').val(notas);
+
+    setSelectValueByIdOrText('#ramo', data.ramo_id, data.ramo);
+    setSelectValueByIdOrText('#subramo', data.subramo_id, data.subramo);
+    setSelectValueByIdOrText('#aseguradora', data.aseguradora_id, data.aseguradora);
+    setSelectValueByIdOrText('#Pago', data.tipo_pago_id, data.forma_de_pago);
+    setSelectValueByIdOrText('#vendedor', data.vendedor_id, data.vendedor);
+    setSelectValueByIdOrText('#agente', data.agente_id, data.agente);
+  }
+
+  function chooseEndosoType() {
+    return Swal.fire({
+      title: 'Tipo de endoso',
+      input: 'radio',
+      inputOptions: {
+        A: 'A - Con cambios de prima y recibos',
+        B: 'B - Cambio administrativo',
+        D: 'D - Cancelación o disminución',
+      },
+      inputValidator: (value) => (!value ? 'Selecciona el tipo de endoso' : undefined),
+      showCancelButton: true,
+      confirmButtonText: 'Continuar',
+      cancelButtonText: 'Cancelar',
+      allowOutsideClick: false,
+    });
+  }
+
+  function resolveParentPolicyId() {
+    const currentPolizaId = $('#poliza_id').val();
+    if (currentPolizaId && currentPolizaId !== 'New') {
+      return Promise.resolve(currentPolizaId);
+    }
+
+    const policyNumber = $('#id_poliza').val().trim();
+    if (!policyNumber) {
+      return Promise.reject(new Error('Captura la póliza a la que pertenece el endoso'));
+    }
+
+    return new Promise((resolve, reject) => {
+      $.ajax({
+        ...ajaxConfig,
+        url: '/polizas/get',
+        data: $.param({ start: 0, length: 10, searchValue: policyNumber }),
+        success: function (resp) {
+          const policies = resp.data || [];
+          const compactNeedle = policyNumber.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+          const exact = policies.find((p) => String(p.poliza || '').replace(/[^A-Z0-9]/gi, '').toUpperCase() === compactNeedle);
+          const selected = exact || (policies.length === 1 ? policies[0] : null);
+          if (!selected) {
+            reject(new Error('No se encontró una póliza única para asociar el endoso'));
+            return;
+          }
+          $('#poliza_id').val(selected.id);
+          $('#id_poliza').val(selected.poliza);
+          resolve(selected.id);
+        },
+        error: function () {
+          reject(new Error('No se pudo buscar la póliza del endoso'));
+        },
+      });
+    });
+  }
+
+  function openReceiptsModalForEndoso(params, polizaId) {
+    const newParams = `${params}&poliza_id=${polizaId}&is_endoso=true`;
+    $.ajax({
+      url: '/polizas/get_policy_values',
+      method: 'POST',
+      dataType: 'json',
+      data: newParams,
+      success: function (resp) {
+        if (resp.error) {
+          alert(resp.msg, 'error', resp.title);
+          $('#create-recib').modal('hide');
+          return;
+        }
+        if (resp.msg && resp.msg.includes('no coincidiran')) {
+          $('#alert_Modal').show().text(resp.msg);
+        }
+        $('#prima-neta').val(resp.netPremium);
+        $('#prima-total').val(resp.totalPremium);
+        $('#nopagos').val(resp.numReceipts);
+        $('#iva').val(16);
+        $('#create-recib').modal({ backdrop: 'static', keyboard: false });
+        $('#receipts_created').val('no');
+      },
+      error: function (xhr, textStatus, error) {
+        console.error(error);
+        alert('Lamentamos el inconveniente, por favor vuelve a intentarlo', 'error');
+      },
+    });
+  }
+
   async function resetForm() {
     try {
       $('#form-polizas')[0].reset();
@@ -237,12 +438,16 @@ $(function () {
       $('#form-polizas').removeClass('was-validated');
       $('#form-polizas select').prop('disabled', false);
       $('#poliza_id').val('New');
+      $('#endoso_id').val('New');
       $('#pdf_path').val('');
       $('#pdf_file').val('');
+      $('#id_poliza').val('');
+      $('#old_prima_neta').val('');
+      $('#old_prima_total').val('');
       $('.upload-loading').hide();
       $('.upload-content').show();
       $('#tipo').val('');
-      $('#div_poliza_id').hide();
+      $('#div_poliza_id').show();
       $('#div_search_client').show();
       $('#title_poliza').text('Endoso');
       $('#prima_neta').prop('disabled', false);
@@ -335,14 +540,17 @@ $(function () {
   async function showEndoso(endoso_id) {
     const data = await resetForm();
     $('#btnGuardar').hide();
-    $('#poliza_id').val(endoso_id);
+    $('#endoso_id').val(endoso_id);
     $.ajax({
       ...ajaxConfig,
       url: '/endosos/get',
       data: $.param({ start: 0, length: 0, endoso_id }),
       success: function (resp) {
         $('#buscar-cliente').val(resp.data[0].cliente);
+        $('#div_poliza_id').show();
+        $('#id_poliza').val(resp.data[0].poliza);
         $('#Poliza').val(resp.data[0].endoso);
+        $('#poliza_id').val(resp.data[0].poliza_id);
         $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#VigenciaI').val(resp.data[0].fecha_inicio);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
@@ -550,7 +758,9 @@ $(function () {
       data: $.param({ start: 0, length: 0, endoso_id }),
       success: function (resp) {
         $('#buscar-cliente').val(resp.data[0].cliente);
-        $('#Poliza').val(resp.data[0].poliza);
+        $('#div_poliza_id').show();
+        $('#id_poliza').val(resp.data[0].poliza);
+        $('#Poliza').val(resp.data[0].endoso);
         $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#VigenciaI').val(resp.data[0].fecha_inicio);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
@@ -895,7 +1105,48 @@ $(function () {
       tipo_pago_id,
     });
     const endoso_id = $('#endoso_id').val();
-    const poliza_id = $('#poliza_id').val();
+    let poliza_id;
+    try {
+      poliza_id = await resolveParentPolicyId();
+    } catch (error) {
+      alert(error.message, 'error', 'Póliza requerida');
+      return;
+    }
+
+    if (!endoso_id || endoso_id === 'New') {
+      const tipoResp = await chooseEndosoType();
+      if (!tipoResp.isConfirmed || !tipoResp.value) return;
+      $('#tipo').val(tipoResp.value);
+
+      if (tipoResp.value === 'A') {
+        openReceiptsModalForEndoso(params, poliza_id);
+        return;
+      }
+
+      let newParams = $('#form-polizas').serialize();
+      newParams = `${newParams}&poliza_id=${poliza_id}`;
+      $.ajax({
+        url: '/polizas/create_endoso',
+        method: 'POST',
+        dataType: 'json',
+        data: newParams,
+        success: function (resp) {
+          if (resp.error) {
+            alert(resp.msg, 'error', resp.title);
+            return;
+          }
+          alert(resp.msg, 'success');
+          getEndosos();
+          resetForm();
+        },
+        error: function (xhr, textStatus, error) {
+          console.error(error);
+          alert('Lamentamos el inconveniente, por favor vuelve a intentarlo', 'error');
+        },
+      });
+      return;
+    }
+
     if (prima_neta !== old_prima_neta || prima_total !== old_prima_total) {
       const resp = await alertConfirm(
         '¿vamos a eliminar los recibos para generarlos nuevamente, estás seguro de continuar?'
@@ -956,9 +1207,9 @@ $(function () {
       });
     } else {
       let newParams = $('#form-polizas').serialize();
-      newParams = `${newParams}&poliza_id=${poliza_id}`;
+      newParams = `${newParams}&endoso_id=${endoso_id}`;
       $.ajax({
-        url: 'polizas/edit',
+        url: '/polizas/edit_endoso',
         method: 'POST',
         dataType: 'json',
         data: newParams,
@@ -967,7 +1218,9 @@ $(function () {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
-            alert(resp.msg);
+            alert(resp.msg, 'success');
+            getEndosos();
+            resetForm();
           }
         },
         error: function (xhr, textStatus, error) {
@@ -989,9 +1242,36 @@ $(function () {
     }
     const endoso_id = $('#endoso_id').val();
     let newParams = $('#form-polizas').serialize();
+    if ($('#tipo').val() && (!endoso_id || endoso_id === 'New')) {
+      $.ajax({
+        url: '/polizas/create_endoso',
+        method: 'POST',
+        dataType: 'json',
+        data: newParams,
+        success: function (resp) {
+          console.log(resp);
+          if (resp.error) {
+            alert(resp.msg, 'error', resp.title);
+          } else {
+            $('#create-recib').modal('toggle');
+            $('#receipts_created').val('si');
+            createReceipts(null, resp.endoso_id);
+            alert(resp.msg, 'success');
+            getEndosos();
+            resetForm();
+          }
+        },
+        error: function (xhr, textStatus, error) {
+          console.error(error);
+          alert('Lamentamos el inconveniente, por favor vuelve a intentarlo', 'error');
+        },
+      });
+      return;
+    }
+
     newParams = `${newParams}&endoso_id=${endoso_id}`;
     $.ajax({
-      url: 'polizas/edit_endoso',
+      url: '/polizas/edit_endoso',
       method: 'POST',
       dataType: 'json',
       data: newParams,

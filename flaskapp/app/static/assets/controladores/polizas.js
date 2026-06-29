@@ -1136,7 +1136,7 @@ $(function () {
   async function createEndozo(poliza_id, tipo) {
     pdfMode = 'endoso';
     const data = await resetForm();
-    $('#endoso-type').modal('toggle');
+    $('#endoso-type').modal('hide');
     $('#tipo').val(tipo);
     $('#btnGuardar').html('Generar endoso');
     $('#poliza_id').val(poliza_id);
@@ -2670,11 +2670,11 @@ $(function () {
 
   $('#endoso_tipo_a').click((e) => {
     e.preventDefault();
-    createEndozo($('#poliza_id').val(), 'B');
+    createEndozo($('#poliza_id').val(), 'A');
   });
   $('#endoso_tipo_b').click((e) => {
     e.preventDefault();
-    createEndozo($('#poliza_id').val(), 'A');
+    createEndozo($('#poliza_id').val(), 'B');
   });
   $('#endoso_tipo_d').click((e) => {
     e.preventDefault();

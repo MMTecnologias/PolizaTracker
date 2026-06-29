@@ -1026,7 +1026,8 @@ def create_endoso():
         'renovacion': 'renovacion',
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
-        'endoso': 'Poliza'
+        'endoso': 'Poliza',
+        'pdf_path': 'pdf_path'
     }
     form_value_mapping = {
         'selected-client-id': flask_request.form.get('selected-client-id'),
@@ -1040,7 +1041,8 @@ def create_endoso():
         'renovacion': flask_request.form.get('renovacion'),
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
-        'Poliza': flask_request.form.get('Poliza') or flask_request.form.get('endoso')
+        'Poliza': flask_request.form.get('Poliza') or flask_request.form.get('endoso'),
+        'pdf_path': flask_request.form.get('pdf_path')
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
@@ -1196,7 +1198,8 @@ def edit_endoso():
         'renovacion': 'renovacion',
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
-        'endoso': 'Poliza'
+        'endoso': 'Poliza',
+        'pdf_path': 'pdf_path'
     }
 
     # Mapear valores del formulario a atributos del Endoso
@@ -1212,7 +1215,8 @@ def edit_endoso():
         'renovacion': flask_request.form.get('renovacion'),
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
-        'Poliza': flask_request.form.get('Poliza')
+        'Poliza': flask_request.form.get('Poliza'),
+        'pdf_path': flask_request.form.get('pdf_path')
     }
 
     # Actualizar atributos del Endoso
