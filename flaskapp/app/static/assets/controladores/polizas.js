@@ -1150,11 +1150,6 @@ $(function () {
       success: function (resp) {
         $('#id_poliza').val(resp.data[0].poliza);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
-        if (tipo === 'B' || tipo === 'D') {
-          $('#prima_neta').prop('disabled', false);
-          $('#prima_total').prop('disabled', false);
-          return;
-        }
         $('#serie').val(resp.data[0].serie);
         $('#notas').val(resp.data[0].notas);
         $('#Moneda').val(resp.data[0].moneda);
@@ -1168,8 +1163,9 @@ $(function () {
             resp.data[0].prima_total.replace('$', '').replace(/,/g, ''),
           ),
         );
-        $('#prima_neta').prop('disabled', true);
-        $('#prima_total').prop('disabled', true);
+        const modificaPrima = tipo === 'A' || tipo === 'D';
+        $('#prima_neta').prop('disabled', !modificaPrima);
+        $('#prima_total').prop('disabled', !modificaPrima);
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -1884,13 +1880,8 @@ $(function () {
             </p>
           </td>
           <td style="color: ${getTextColor(endoso.status)}">${
-            endoso.tipo_endoso === 'D'
-              ? endoso.tipo_endoso
-              : endoso.tipo_endoso === 'A'
-                ? 'B'
-                : 'A'
-          }
-        </td>
+            endoso.tipo_endoso
+          }</td>
           <td style="color: ${getTextColor(endoso.status)}">${
             endoso.cliente
           }</td>
@@ -2327,7 +2318,34 @@ $(function () {
         });
       }
     } else {
-      if ($('#title_poliza')?.text()?.includes('Endoso')) {
+      const isCreatingEndoso = $('#title_poliza')?.text()?.includes('Endoso');
+      if (isCreatingEndoso && $('#tipo').val() === 'B') {
+        $.ajax({
+          type: 'POST',
+          url: '/polizas/create_endoso',
+          dataType: 'json',
+          data: serializePolizaFormWithRawCurrencyValues(),
+          success: function (resp) {
+            if (resp.error) {
+              alert(resp.msg, 'error', resp.title);
+              return;
+            }
+            alert(resp.msg, 'success');
+            getPolizas();
+            resetForm();
+          },
+          error: function (xhr, status, error) {
+            console.error('Error al crear endoso tipo B', error);
+            alert(
+              xhr.responseJSON?.msg || 'No se pudo crear el endoso tipo B',
+              'error',
+            );
+          },
+        });
+        return;
+      }
+
+      if (isCreatingEndoso) {
         const poliza_id = $('#poliza_id').val();
         params = `${params}&poliza_id=${poliza_id}&is_endoso=true`;
       }

@@ -765,7 +765,15 @@ def calculate_receipts():
 @polizas_route.route('/save_receipts', methods=['POST'])
 @login_required
 def save_receipts():
-    response = calcular_recibos()
+    try:
+        response = calcular_recibos()
+    except (TypeError, ValueError, ZeroDivisionError) as error:
+        current_app.logger.exception(
+            "[SAVE_RECEIPTS] Datos inválidos para calcular recibos")
+        return jsonify({
+            'error': True,
+            'msg': f'No se pudieron calcular los recibos: {error}'
+        })
     poliza_id = response['poliza_id']
 
     poliza = Poliza.query.get(poliza_id)
@@ -788,8 +796,8 @@ def save_receipts():
         elif endoso.poliza_id != poliza.id:
             return jsonify({'error': True, 'msg': 'Endoso no pertenece a esta poliza'})
 
-        if endoso.tipo_endoso == "A":
-            return jsonify({'error': True, 'msg': 'Los Endosos tipo A no generan recibos'})
+        if endoso.tipo_endoso == "B":
+            return jsonify({'error': True, 'msg': 'Los Endosos tipo B no generan recibos'})
         elif endoso.tipo_endoso == "D":
             multiplier = -1
 
@@ -835,8 +843,14 @@ def save_receipts():
                 if TipoPago.query.get(poliza.tipo_pago_id).tipo_pago == tipo_pago.tipo_pago and poliza.fecha_termino == end_date:
                     recibo = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <=
                                                  end_date, Recibo.endoso_id == None).order_by(Recibo.id).first()
-                    fecha_vencimiento = recibo.fecha_vencimiento.strftime(
-                        '%Y-%m-%d')
+                    if recibo:
+                        fecha_vencimiento = recibo.fecha_vencimiento.strftime(
+                            '%Y-%m-%d')
+                    else:
+                        current_app.logger.warning(
+                            "[SAVE_RECEIPTS] La póliza %s no tiene recibos base; se usará la periodicidad calculada para el endoso %s",
+                            poliza_id,
+                            endoso_id)
             nopagos = response['nopagos']
             print(nopagos)
             nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
@@ -1064,8 +1078,8 @@ def create_endoso():
     arg_values['tipo_endoso'] = tipo
 
     dict_to_keep = {
-        "A": ['poliza', 'prima_neta', 'prima_total', 'derecho_poliza', 'iva', 'rec_pago', 'comision', 'recibos'],
-        "B": ['poliza'],
+        "A": ['poliza'],
+        "B": ['poliza', 'prima_neta', 'prima_total', 'derecho_poliza', 'iva', 'rec_pago', 'comision', 'recibos'],
         "D": ['poliza']
     }
     for key in dict_to_keep[tipo]:
@@ -1221,6 +1235,8 @@ def edit_endoso():
 
     # Actualizar atributos del Endoso
     for col, form_field in column_name_mapping.items():
+        if endoso.tipo_endoso == 'B' and col in ('prima_neta', 'prima_total'):
+            continue
         if form_value_mapping[form_field]:
             setattr(endoso, col, form_value_mapping[form_field])
 

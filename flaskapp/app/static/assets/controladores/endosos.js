@@ -1,5 +1,6 @@
 $(function () {
   let razonInput = '';
+  let receiptSaveInProgress = false;
 
   const ajaxConfig = {
     url: '',
@@ -352,9 +353,9 @@ $(function () {
       title: 'Tipo de endoso',
       input: 'radio',
       inputOptions: {
-        A: 'A - Con cambios de prima y recibos',
-        B: 'B - Cambio administrativo',
-        D: 'D - Cancelación o disminución',
+        A: 'A - Modificación de prima, con recibos',
+        B: 'B - Cambio de datos, sin modificar primas ni recibos',
+        D: 'D - Devolución, con recibos negativos',
       },
       inputValidator: (value) => (!value ? 'Selecciona el tipo de endoso' : undefined),
       showCancelButton: true,
@@ -459,12 +460,14 @@ $(function () {
       $('#vendedor').html('');
       $('#agente').html('');
       $('#btnGuardar').html('Guardar');
-      $('#div_poliza_anterior').hide();
       $('#nuevo_ramo_subramo_div').hide();
       $('#nuevo_aseguradora_div').hide();
       $('#nuevo_vendedor_div').hide();
       $('#nuevo_agente_div').hide();
       const data = await getFormData();
+      if (!data) throw new Error('No se recibieron los catálogos del formulario');
+
+      $('#ramo').append(`<option value="">Selecciona...</option>`);
       for (const ramo of data.Ramo) {
         $('#ramo').append(`<option value='${ramo.id}'>
         ${ramo.ramo}
@@ -472,6 +475,7 @@ $(function () {
         `);
       }
       $('#ramo').append(`<option value="New">Nuevo Ramo</option>`);
+      $('#subramo').append(`<option value="">Selecciona...</option>`);
       for (const subramo of data.Subramo) {
         $('#subramo').append(`<option value='${subramo.id}'>
           ${subramo.subramo}
@@ -479,6 +483,7 @@ $(function () {
           `);
       }
       $('#subramo').append(`<option value="New">Nuevo Subramo</option>`);
+      $('#aseguradora').append(`<option value="">Selecciona...</option>`);
       for (const aseguradora of data.Aseguradora) {
         $('#aseguradora').append(`<option value='${aseguradora.id}'>
         ${aseguradora.aseguradora}
@@ -488,6 +493,7 @@ $(function () {
       $('#aseguradora').append(
         `<option value="New">Nueva Aseguradora</option>`
       );
+      $('#Pago').append(`<option value="">Selecciona...</option>`);
       for (const pago of data.TipoPago) {
         $('#Pago').append(`<option value='${pago.id}'>
         ${pago.tipo_pago}
@@ -510,7 +516,12 @@ $(function () {
       $('#agente').append(`<option value="New">Nuevo Agente</option>`);
       return data;
     } catch (error) {
-      console.log(error);
+      console.error('Error al cargar catálogos de endosos', error);
+      alert(
+        'No se pudieron cargar los catálogos del formulario. Recarga la página para volver a intentarlo.',
+        'error',
+        'Error al cargar formulario'
+      );
       return null;
     }
   }
@@ -1020,26 +1031,29 @@ $(function () {
       rec_pago,
     };
     if (endoso_id) sendObj.endoso_id = endoso_id;
-    $.ajax({
-      ...ajaxConfig,
-      url: '/polizas/save_receipts',
-      data: $.param(sendObj),
-      success: function (resp) {
-        if (resp.error) {
-          // alert(resp.msg, "error", resp.title);
-          console.log('Error crear recibos', resp.error, resp.msg);
-        } else {
-          // alert(resp.msg, "success", resp.title);
-          console.log('Recibos creados exitosamente');
-        }
-      },
-      error: function (xhr, status, error) {
-        console.error(error);
-        alert(
-          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-          'error'
-        );
-      },
+    return new Promise((resolve, reject) => {
+      $.ajax({
+        ...ajaxConfig,
+        url: '/polizas/save_receipts',
+        data: $.param(sendObj),
+        success: function (resp) {
+          if (resp.error) {
+            console.error('Error crear recibos', resp.msg);
+            reject(new Error(resp.msg || 'No se pudieron crear los recibos'));
+            return;
+          }
+          console.log('Recibos creados exitosamente', { endoso_id });
+          resolve(resp);
+        },
+        error: function (xhr, status, error) {
+          const message =
+            xhr.responseJSON?.msg ||
+            error ||
+            'No se pudieron crear los recibos';
+          console.error('Error crear recibos', message);
+          reject(new Error(message));
+        },
+      });
     });
   }
 
@@ -1118,7 +1132,7 @@ $(function () {
       if (!tipoResp.isConfirmed || !tipoResp.value) return;
       $('#tipo').val(tipoResp.value);
 
-      if (tipoResp.value === 'A') {
+      if (tipoResp.value === 'A' || tipoResp.value === 'D') {
         openReceiptsModalForEndoso(params, poliza_id);
         return;
       }
@@ -1234,68 +1248,76 @@ $(function () {
     }
   });
 
-  $('#form-recibo').submit(function (e) {
+  $('#form-recibo').submit(async function (e) {
     e.preventDefault();
+    if (receiptSaveInProgress) return;
     if (!this.checkValidity()) {
       $(this).addClass('was-validated');
       return;
     }
+    receiptSaveInProgress = true;
+    $('#btnGuardar-recibos').prop('disabled', true);
     const endoso_id = $('#endoso_id').val();
+    const poliza_id = $('#poliza_id').val();
     let newParams = $('#form-polizas').serialize();
     if ($('#tipo').val() && (!endoso_id || endoso_id === 'New')) {
-      $.ajax({
-        url: '/polizas/create_endoso',
-        method: 'POST',
-        dataType: 'json',
-        data: newParams,
-        success: function (resp) {
-          console.log(resp);
-          if (resp.error) {
-            alert(resp.msg, 'error', resp.title);
-          } else {
-            $('#create-recib').modal('toggle');
-            $('#receipts_created').val('si');
-            createReceipts(null, resp.endoso_id);
-            alert(resp.msg, 'success');
-            getEndosos();
-            resetForm();
-          }
-        },
-        error: function (xhr, textStatus, error) {
-          console.error(error);
-          alert('Lamentamos el inconveniente, por favor vuelve a intentarlo', 'error');
-        },
-      });
+      try {
+        const resp = await $.ajax({
+          url: '/polizas/create_endoso',
+          method: 'POST',
+          dataType: 'json',
+          data: newParams,
+        });
+        if (resp.error) throw new Error(resp.msg);
+
+        $('#endoso_id').val(resp.endoso_id);
+        await createReceipts(poliza_id, resp.endoso_id);
+        $('#create-recib').modal('hide');
+        $('#receipts_created').val('si');
+        alert('Endoso y recibos creados exitosamente', 'success');
+        getEndosos();
+        await resetForm();
+      } catch (error) {
+        console.error('Error al guardar endoso y recibos', error);
+        alert(
+          error.message || 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+          'error',
+          'No se completó el guardado'
+        );
+      } finally {
+        receiptSaveInProgress = false;
+        $('#btnGuardar-recibos').prop('disabled', false);
+      }
       return;
     }
 
     newParams = `${newParams}&endoso_id=${endoso_id}`;
-    $.ajax({
-      url: '/polizas/edit_endoso',
-      method: 'POST',
-      dataType: 'json',
-      data: newParams,
-      success: function (resp) {
-        console.log(resp);
-        if (resp.error) {
-          alert(resp.msg, 'error', resp.title);
-        } else {
-          $('#create-recib').modal('toggle');
-          $('#receipts_created').val('si');
-          createReceipts(null, endoso_id);
-          alert(resp.msg, 'success');
-          getEndosos();
-          resetForm();
-        }
-      },
-      error: function (xhr, textStatus, error) {
-        console.error(error);
-        alert(
-          'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-          'error'
-        );
-      },
-    });
+    try {
+      const resp = await $.ajax({
+        url: '/polizas/edit_endoso',
+        method: 'POST',
+        dataType: 'json',
+        data: newParams,
+      });
+      if (resp.error) throw new Error(resp.msg);
+
+      await createReceipts(poliza_id, endoso_id);
+      $('#create-recib').modal('hide');
+      $('#receipts_created').val('si');
+      alert('Endoso y recibos actualizados exitosamente', 'success');
+      getEndosos();
+      await resetForm();
+    } catch (error) {
+      console.error('Error al actualizar endoso y recibos', error);
+      alert(
+        error.message || 'Lamentamos el inconveniente, por favor vuelve a intentarlo',
+        'error',
+        'No se completó el guardado'
+      );
+    } finally {
+      receiptSaveInProgress = false;
+      $('#btnGuardar-recibos').prop('disabled', false);
+    }
   });
 
   $('#closeModalCreateRecibos').click(async (e) => {
@@ -1374,4 +1396,5 @@ $(function () {
   });
 
   getEndosos();
+  resetForm();
 });
