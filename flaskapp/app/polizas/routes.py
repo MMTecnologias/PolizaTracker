@@ -1607,9 +1607,13 @@ def get_all_receipts():
         return jsonify({'error': True,
                         'msg': 'No se puede buscar por cliente y grupo al mismo tiempo'})
 
-    # Query the database for upcoming receipts
+    # Query the database for receipts
     upcoming_receipts_query = db.session.query(Recibo,
                                                Poliza,
+                                               Endoso.endoso.label(
+                                                   "endoso_numero"),
+                                               Endoso.tipo_endoso.label(
+                                                   "tipo_endoso"),
                                                Cliente.nombre.label(
                                                    "client_name"),
                                                Cliente.apellido.label(
@@ -1625,6 +1629,7 @@ def get_all_receipts():
                                                Vendedor.nombre.label("vendedor")) \
         .select_from(Recibo) \
         .join(Poliza, Recibo.poliza_id == Poliza.id) \
+        .outerjoin(Endoso, Recibo.endoso_id == Endoso.id) \
         .join(Cliente, Poliza.cliente_id == Cliente.id) \
         .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
         .join(Ramo, Poliza.ramo_id == Ramo.id) \
@@ -1677,7 +1682,9 @@ def get_all_receipts():
 
     total_records = upcoming_receipts_query.count()
 
-    if not length and not start:
+    if flask_request.form.get('export_csv') or flask_request.form.get('export_pdf'):
+        upcoming_receipts = upcoming_receipts_query.all()
+    elif not length and not start:
         upcoming_receipts = upcoming_receipts_query.all()
     else:
         upcoming_receipts = upcoming_receipts_query.offset(
@@ -1685,33 +1692,64 @@ def get_all_receipts():
 
     # Prepare the response data
     response = []
-    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_receipts:
+    for recibo, poliza, endoso_numero, tipo_endoso, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in upcoming_receipts:
+        is_endoso = bool(recibo.endoso_id)
+        tipo_documento = 'Endoso' if is_endoso else 'Poliza'
+        documento = endoso_numero if is_endoso and endoso_numero else poliza.poliza
 
         data = {
+            'id': recibo.id,
             'poliza_id': recibo.poliza_id,
+            'endoso_id': recibo.endoso_id,
             'poliza': poliza.poliza,
-            'no_de_recibo': f"'{recibo.no_de_recibo}",  # Convert to string
+            'tipo_documento': tipo_documento,
+            'documento': documento,
+            'tipo_endoso': tipo_endoso or '',
+            'no_de_recibo': recibo.no_de_recibo or '',
             'cliente': f'{nombre} {apellido}',
-            'notas': poliza.notas,
-            'serie': poliza.serie,
+            'notas': poliza.notas or '',
+            'serie': poliza.serie or '',
             'ramo': ramo,
             'subramo': subramo,
             'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
             'fecha_fin': recibo.fecha_vencimiento.strftime('%d/%m/%y'),
             'fecha_pago': recibo.fecha_pago.strftime('%d/%m/%y') if recibo.fecha_pago else '',
-            'prima_neta': recibo.prima_neta,
-            'prima_total': recibo.prima_total,
+            'prima_neta': str(recibo.prima_neta or ''),
+            'prima_total': str(recibo.prima_total or ''),
             'moneda': poliza.moneda,
             'forma_pago': tipo_pago,
             'agente': f'{agente}',
             'vendedor': f'{vendedor}',
-            'endoso': poliza.endoso,
+            'endoso': endoso_numero or '',
             'poliza_anterior': poliza.poliza_anterior,
             'aseguradora': aseguradora,
             'status': recibo.status
         }
 
         response.append(data)
+
+    headers = ['no_de_recibo', 'tipo_documento', 'documento', 'serie', 'notas',
+               'status', 'aseguradora', 'prima_neta', 'prima_total', 'fecha_pago',
+               'cliente', 'agente', 'ramo', 'forma_pago']
+    real_headers = ['Recibo', 'Tipo Doc.', 'Id Doc.', 'Serie', 'Notas',
+                    'Estatus', 'Aseguradora', 'Prima neta', 'Prima total',
+                    'Fecha pago', 'Cliente', 'Agente', 'Ramo', 'Forma Pago']
+
+    if flask_request.form.get('export_csv'):
+        return export_to_csv(headers, response, 'recibos.csv', real_headers)
+
+    if flask_request.form.get('export_pdf'):
+        to_multiline = ['documento', 'notas', 'cliente']
+        if valid_start_date and valid_end_date:
+            title_str = "Recibos en %s - %s" % (
+                valid_start_date.strftime('%d/%m/%y'), valid_end_date.strftime('%d/%m/%y'))
+        elif valid_start_date:
+            title_str = "Recibos desde %s" % valid_start_date.strftime('%d/%m/%y')
+        elif valid_end_date:
+            title_str = "Recibos hasta %s" % valid_end_date.strftime('%d/%m/%y')
+        else:
+            title_str = "Recibos"
+        return export_to_pdf(headers, response, 'recibos.pdf', real_headers, to_multiline, title_str)
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering

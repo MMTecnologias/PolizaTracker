@@ -12,6 +12,8 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
+  let exportInProgress = false;
+
   function formatNumber(num, options = {}) {
     const { separator = ',', decimalPoint = '.', groupSize = 3 } = options;
     const parts = num.toString().split('.');
@@ -37,10 +39,19 @@ $(function () {
     itemsOnPage,
     formMultiple
   ) {
+    if (resp.error) {
+      alert(resp.msg || 'No se pudieron cargar los recibos', 'warning');
+      return;
+    }
+
     const { data, recordsTotal } = resp;
     const table = $('#table-receipts');
     table.html('');
     $.each(data, function (idx, poliza) {
+      const tipoDocumento =
+        poliza.tipo_documento || (poliza.endoso ? 'Endoso' : 'Poliza');
+      const documento = poliza.documento || poliza.endoso || poliza.poliza;
+
       table.append(
         `<tr class="tableOption">
           <td>
@@ -48,8 +59,8 @@ $(function () {
                 ${poliza.no_de_recibo}
             </p>
           </td>
-          <td>${poliza.endoso !== '' ? 'Endoso' : 'Poliza'}</td>
-          <td>${poliza.endoso !== '' ? poliza.endoso : poliza.poliza}</td>
+          <td>${tipoDocumento}</td>
+          <td>${documento}</td>
           <td>${poliza.serie}</td>
           <td>${poliza.notas}</td>
           <td>${poliza.status}</td>
@@ -177,56 +188,70 @@ $(function () {
     getRecibos(null, 1, 0, multiple);
   });
 
-  $('#btnExportar').click((e) => {
-    e.preventDefault();
-    let params = $.param({ export_csv: true });
+  function exportRecibos(exportParam, extension) {
+    if (exportInProgress) return;
+
+    exportInProgress = true;
+    let params = $.param({ [exportParam]: true });
     const formMultiple = $('#form-multiple').serialize();
     params = `${params}&${formMultiple}`;
+    const exportText = extension === 'pdf' ? 'PDF' : 'CSV';
+    let exportError = null;
+
     $.ajax({
       type: 'POST',
-      url: '/reportes/recibos_pagados',
+      url: '/polizas/get_all_receipts',
       data: params,
       xhrFields: {
         responseType: 'blob',
       },
-      success: function (blob, status, xhr) {
-        let a = document.createElement('a');
-        let url = window.URL.createObjectURL(blob);
+      beforeSend: () => {
+        $('#btnExportar, #btnPdf').prop('disabled', true);
+        Swal.fire({
+          title: `Generando ${exportText}`,
+          text: 'Esto puede tardar unos minutos si hay muchos recibos.',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+      },
+      success: function (blob) {
+        const a = document.createElement('a');
+        const url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = `recibos_pagados_${new Date().toLocaleDateString()}.csv`;
+        a.download = `recibos_${new Date()
+          .toLocaleDateString()
+          .replace(/\//g, '-')}.${extension}`;
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
       },
-      error: (xhr, status, error) => console.error(error),
+      error: (xhr, status, error) => {
+        console.error(error);
+        exportError = 'No se pudo generar el archivo de recibos';
+      },
+      complete: () => {
+        exportInProgress = false;
+        $('#btnExportar, #btnPdf').prop('disabled', false);
+        Swal.close();
+        if (exportError) {
+          alert(exportError, 'error');
+        }
+      },
     });
+  }
+
+  $('#btnExportar').click((e) => {
+    e.preventDefault();
+    exportRecibos('export_csv', 'csv');
   });
 
   $('#btnPdf').click((e) => {
     e.preventDefault();
-    let params = $.param({ export_pdf: true });
-    const formMultiple = $('#form-multiple').serialize();
-    params = `${params}&${formMultiple}`;
-    $.ajax({
-      type: 'POST',
-      url: '/reportes/recibos_pagados',
-      data: params,
-      xhrFields: {
-        responseType: 'blob',
-      },
-      success: function (blob, status, xhr) {
-        let a = document.createElement('a');
-        let url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `recibos_pagados_${new Date().toLocaleDateString()}.pdf`;
-        document.body.append(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-      },
-      error: (xhr, status, error) => console.error(error),
-    });
+    exportRecibos('export_pdf', 'pdf');
   });
 
   getMultipleIds();

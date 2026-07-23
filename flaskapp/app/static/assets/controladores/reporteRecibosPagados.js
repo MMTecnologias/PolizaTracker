@@ -12,6 +12,8 @@ $(function () {
     Swal.fire({ title, text, icon });
   }
 
+  let exportInProgress = false;
+
   function formatNumber(num, options = {}) {
     const { separator = ',', decimalPoint = '.', groupSize = 3 } = options;
     const parts = num.toString().split('.');
@@ -37,10 +39,19 @@ $(function () {
     itemsOnPage,
     formMultiple
   ) {
+    if (resp.error) {
+      alert(resp.msg || 'No se pudieron cargar los recibos pagados', 'warning');
+      return;
+    }
+
     const { data, recordsTotal } = resp;
     const table = $('#table-recibos');
     table.html('');
     $.each(data, function (idx, recibo) {
+      const tipoDocumento =
+        recibo.tipo_documento || (recibo.endoso ? 'Endoso' : 'Poliza');
+      const documento = recibo.documento || recibo.endoso || recibo.poliza;
+
       table.append(
         `<tr class="tableOption">
           <td>
@@ -48,8 +59,8 @@ $(function () {
                 ${recibo.no_de_recibo}
             </p>
           </td>
-          <td>${recibo.endoso !== '' ? 'Endoso' : 'Poliza'}</td>
-          <td>${recibo.endoso !== '' ? recibo.endoso : recibo.poliza}</td>
+          <td>${tipoDocumento}</td>
+          <td>${documento}</td>
           <td>${recibo.serie}</td>
           <td>${recibo.notas}</td>
           <td>${recibo.aseguradora}</td>
@@ -93,7 +104,6 @@ $(function () {
       url: '/reportes/recibos_pagados',
       data: formDataFechas ? formDataFechas + '&' + params : params,
       success: (resp) => {
-        console.log(resp);
         fillTableRecibosPagados(
           resp,
           formDataFechas,
@@ -104,6 +114,16 @@ $(function () {
       },
       error: (xhr, status, error) => console.error(error),
     });
+  }
+
+  function validateFilters() {
+    const clienteId = $('#cliente_id').val();
+    const grupoId = $('#grupo_id').val();
+    if (clienteId && grupoId) {
+      alert('No puedes filtrar combinando cliente y grupo', 'warning');
+      return false;
+    }
+    return true;
   }
 
   function getMultipleIds() {
@@ -161,19 +181,21 @@ $(function () {
 
   $('#form-multiple').submit(function (e) {
     e.preventDefault();
-    const cliente_id = $('#cliente_id').val();
-    const grupo_id = $('#grupo_id').val();
-    if (cliente_id && grupo_id)
-      return alert('No puedes filtrar combinando cliente y grupo', 'warning');
+    if (!validateFilters()) return;
     const formMultiple = $('#form-multiple').serialize();
     getRecibosPagados(null, 1, 0, formMultiple);
   });
 
-  $('#btnExportar').click((e) => {
-    e.preventDefault();
-    let params = $.param({ export_csv: true });
+  function exportRecibosPagados(exportParam, extension) {
+    if (exportInProgress || !validateFilters()) return;
+
+    exportInProgress = true;
+    let params = $.param({ [exportParam]: true });
     const formMultiple = $('#form-multiple').serialize();
     params = `${params}&${formMultiple}`;
+    const exportText = extension === 'pdf' ? 'PDF' : 'CSV';
+    let exportError = null;
+
     $.ajax({
       type: 'POST',
       url: '/reportes/recibos_pagados',
@@ -181,44 +203,53 @@ $(function () {
       xhrFields: {
         responseType: 'blob',
       },
-      success: function (blob, status, xhr) {
-        let a = document.createElement('a');
-        let url = window.URL.createObjectURL(blob);
+      beforeSend: () => {
+        $('#btnExportar, #btnPdf').prop('disabled', true);
+        Swal.fire({
+          title: `Generando ${exportText}`,
+          text: 'Esto puede tardar unos minutos si hay muchos recibos.',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+      },
+      success: function (blob) {
+        const a = document.createElement('a');
+        const url = window.URL.createObjectURL(blob);
         a.href = url;
-        a.download = `reporte_cobranza_${new Date().toLocaleDateString()}.csv`;
+        a.download = `recibos_pagados_${new Date()
+          .toLocaleDateString()
+          .replace(/\//g, '-')}.${extension}`;
         document.body.append(a);
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
       },
-      error: (xhr, status, error) => console.error(error),
+      error: (xhr, status, error) => {
+        console.error(error);
+        exportError = 'No se pudo generar el reporte de recibos pagados';
+      },
+      complete: () => {
+        exportInProgress = false;
+        $('#btnExportar, #btnPdf').prop('disabled', false);
+        Swal.close();
+        if (exportError) {
+          alert(exportError, 'error');
+        }
+      },
     });
+  }
+
+  $('#btnExportar').click((e) => {
+    e.preventDefault();
+    exportRecibosPagados('export_csv', 'csv');
   });
 
   $('#btnPdf').click((e) => {
     e.preventDefault();
-    let params = $.param({ export_pdf: true });
-    const formMultiple = $('#form-multiple').serialize();
-    params = `${params}&${formMultiple}`;
-    $.ajax({
-      type: 'POST',
-      url: '/reportes/recibos_pagados',
-      data: params,
-      xhrFields: {
-        responseType: 'blob',
-      },
-      success: function (blob, status, xhr) {
-        let a = document.createElement('a');
-        let url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `reporte_cobranza_${new Date().toLocaleDateString()}.pdf`;
-        document.body.append(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-      },
-      error: (xhr, status, error) => console.error(error),
-    });
+    exportRecibosPagados('export_pdf', 'pdf');
   });
 
   getMultipleIds();

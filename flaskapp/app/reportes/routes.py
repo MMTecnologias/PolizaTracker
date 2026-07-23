@@ -1240,6 +1240,10 @@ def recibos_pagados():
     # Query the database
     paid_recipts_query = db.session.query(Recibo,
                                           Poliza,
+                                          Endoso.endoso.label(
+                                              "endoso_numero"),
+                                          Endoso.tipo_endoso.label(
+                                              "tipo_endoso"),
                                           Cliente.nombre.label(
                                               "client_name"),
                                           Cliente.apellido.label(
@@ -1255,6 +1259,7 @@ def recibos_pagados():
                                           Vendedor.nombre.label("vendedor")) \
         .select_from(Recibo) \
         .join(Poliza, Recibo.poliza_id == Poliza.id) \
+        .outerjoin(Endoso, Recibo.endoso_id == Endoso.id) \
         .join(Cliente, Poliza.cliente_id == Cliente.id) \
         .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id) \
         .join(Ramo, Poliza.ramo_id == Ramo.id) \
@@ -1262,22 +1267,26 @@ def recibos_pagados():
         .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id) \
         .join(Agente, Poliza.agente_id == Agente.id) \
         .join(Vendedor, Poliza.vendedor_id == Vendedor.id) \
-        .order_by(Recibo.fecha_inicio)
+        .filter(Recibo.fecha_pago.isnot(None)) \
+        .order_by(Recibo.fecha_pago)
 
-    # Apply date filters only if valid dates are provided
+    # Apply date filters by payment date only if valid dates are provided.
     if valid_start_date and valid_end_date:
         paid_recipts_query = paid_recipts_query.filter(
-            Recibo.fecha_inicio >= valid_start_date,
-            Recibo.fecha_inicio <= valid_end_date
+            Recibo.fecha_pago >= valid_start_date,
+            Recibo.fecha_pago <= valid_end_date
         )
     elif valid_start_date:
-        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_inicio >= valid_start_date)
+        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_pago >= valid_start_date)
     elif valid_end_date:
-        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_inicio <= valid_end_date)
+        paid_recipts_query = paid_recipts_query.filter(Recibo.fecha_pago <= valid_end_date)
 
-    # Apply status filter only if status_recibo is provided and not empty
+    # This report is for paid receipts; allow an explicit status only for
+    # backwards compatibility with older callers.
     if status_recibo and status_recibo.strip():
         paid_recipts_query = paid_recipts_query.filter(Recibo.status == status_recibo)
+    else:
+        paid_recipts_query = paid_recipts_query.filter(Recibo.status == 'Liquidado')
 
     if polizas is not None:
         paid_recipts_query = paid_recipts_query.filter(
@@ -1296,27 +1305,35 @@ def recibos_pagados():
 
     # Prepare the response data
     response = []
-    for recibo, poliza, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in records:
+    for recibo, poliza, endoso_numero, tipo_endoso, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in records:
+        is_endoso = bool(recibo.endoso_id)
+        tipo_documento = 'Endoso' if is_endoso else 'Poliza'
+        documento = endoso_numero if is_endoso and endoso_numero else poliza.poliza
 
         data = {
+            'id': recibo.id,
             'poliza_id': recibo.poliza_id,
+            'endoso_id': recibo.endoso_id,
             'poliza': poliza.poliza,
-            'no_de_recibo': f"'{recibo.no_de_recibo}",  # Convert to string
+            'tipo_documento': tipo_documento,
+            'documento': documento,
+            'tipo_endoso': tipo_endoso or '',
+            'no_de_recibo': recibo.no_de_recibo or '',
             'cliente': f'{nombre} {apellido}',
-            'notas': poliza.notas,
-            'serie': poliza.serie,
+            'notas': poliza.notas or '',
+            'serie': poliza.serie or '',
             'ramo': ramo,
             'subramo': subramo,
             'fecha_inicio': recibo.fecha_inicio.strftime('%d/%m/%y'),
             'fecha_fin': recibo.fecha_vencimiento.strftime('%d/%m/%y'),
             'fecha_pago': recibo.fecha_pago.strftime('%d/%m/%y') if recibo.fecha_pago else '',
-            'prima_neta': recibo.prima_neta,
-            'prima_total': recibo.prima_total,
+            'prima_neta': str(recibo.prima_neta or ''),
+            'prima_total': str(recibo.prima_total or ''),
             'moneda': poliza.moneda,
             'forma_pago': tipo_pago,
             'agente': f'{agente}',
             'vendedor': f'{vendedor}',
-            'endoso': poliza.endoso,
+            'endoso': endoso_numero or '',
             'poliza_anterior': poliza.poliza_anterior,
             'aseguradora': aseguradora,
             'status': recibo.status
@@ -1324,10 +1341,12 @@ def recibos_pagados():
 
         response.append(data)
 
-    headers = ['poliza', 'no_de_recibo', 'status', 'cliente', 'notas', 'ramo', 'subramo', 'aseguradora', 'fecha_inicio',
-               'fecha_fin', 'prima_neta', 'prima_total', 'moneda', 'forma_pago', 'agente', 'vendedor', 'endoso', 'poliza_anterior']
-    real_headers = ['poliza', 'Recibo', 'estatus', 'Nombre del cliente  ', 'Notas            ', 'Ramo', 'Subramo', 'Aseguradora',
-                    'Inicio', 'Final', 'Prima Neta', 'Prima Total', 'Moneda', 'Forma de pago', 'Agente', 'Vendedor', 'Endoso', 'Anterior']
+    headers = ['no_de_recibo', 'tipo_documento', 'documento', 'serie', 'notas',
+               'aseguradora', 'prima_neta', 'prima_total', 'moneda',
+               'fecha_pago', 'cliente', 'agente', 'ramo', 'forma_pago']
+    real_headers = ['Recibo', 'Tipo doc.', 'Id doc.', 'Serie', 'Notas',
+                    'Aseguradora', 'Prima neta', 'Prima total', 'Moneda',
+                    'Fecha pago', 'Cliente', 'Agente', 'Ramo', 'Forma de Pago']
     if request.form.get('export_csv'):
         return export_to_csv(headers, response, 'recibos_pagados.csv', real_headers)
     if request.form.get('export_pdf'):
