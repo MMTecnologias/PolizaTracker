@@ -3632,13 +3632,20 @@ def clean_vehicle_attribute_value(value: str, field: str = None) -> str:
         return None
 
     if field == "numero_serie":
-        spaced_serial_match = re.match(r'^([A-Z0-9-]{8,25})\s+[A-Z]{2,5}$', value, re.I)
-        if spaced_serial_match:
-            value = spaced_serial_match.group(1)
-        else:
-            first_token = value.split()[0] if value.split() else value
-            if re.fullmatch(r'[A-Z0-9-]{8,25}', first_token or '', re.I):
-                value = first_token
+        # Una etiqueta como "VIN #: License plate and state" no es una serie,
+        # aunque aparezca en anexos de póliza en inglés. Conservamos solamente
+        # identificadores alfanuméricos/chasis con una longitud razonable.
+        serial_candidates = re.findall(
+            r'(?<![A-Z0-9-])([A-Z0-9-]{8,25})(?![A-Z0-9-])',
+            value.upper()
+        )
+        serial_candidates = [
+            candidate for candidate in serial_candidates
+            if any(character.isdigit() for character in candidate)
+        ]
+        if not serial_candidates:
+            return None
+        value = serial_candidates[0]
 
     token_count = len(value.split())
     if field in {"marca", "modelo"} and (len(value) > 40 or token_count > 5):
@@ -3687,6 +3694,16 @@ def extract_vehicle_value(text: str, labels) -> str:
     return clean_vehicle_attribute_value(value, field_map.get(primary_label))
 
 
+def extract_vehicle_serial_value(text: str) -> str:
+    """Obtiene una serie válida, priorizando la carátula en español."""
+    return extract_vehicle_value(text, [
+        r'No\.?\s*de\s*serie',
+        r'N[uú]mero\s*de\s*serie',
+        r'\bSerie\b',
+        r'\bVIN\b',
+    ])
+
+
 def extract_vehicle_records_from_text(text: str) -> list:
     """Extrae bloques de datos de vehículos cuando el PDF trae una o varias unidades."""
     if not text:
@@ -3711,7 +3728,7 @@ def extract_vehicle_records_from_text(text: str) -> list:
         "marca": [r'Marca'],
         "modelo": [r'Modelo', r'A[nñ]o'],
         "motor": [r'Motor', r'No\.?\s*de\s*motor', r'N[uú]mero\s*de\s*motor'],
-        "numero_serie": [r'Serie', r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie'],
+        "numero_serie": [r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'Serie', r'VIN'],
         "placas": [r'Placas', r'No\.?\s*de\s*placas'],
         "uso": [r'Uso'],
         "servicio": [r'Servicio'],
@@ -4034,7 +4051,7 @@ def build_field_snippets(text: str) -> dict:
         "modelo": [r'\bModelo\b'],
         "motor": [r'\bMotor\b', r'No\.?\s*de\s*motor'],
         "placas": [r'\bPlacas\b'],
-        "numero_serie": [r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'\bSerie\b'],
+        "numero_serie": [r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'\bSerie\b', r'VIN'],
         "prima_neta": [r'Prima Neta', r'Prima anual', r'Prima del movimiento'],
         "prima_total": [r'Prima anual total', r'Prima Total', r'Prima del movimiento', r'Total del movimiento', r'Importe a pagar'],
         "derecho_poliza": POLICY_FEE_LABELS,
@@ -4162,9 +4179,7 @@ def build_rule_based_hints(text: str) -> dict:
             text, [r'\bMotor\b', r'No\.?\s*de\s*motor', r'N[uú]mero\s*de\s*motor']
         )
         hints["placas"] = extract_vehicle_value(text, [r'\bPlacas\b', r'No\.?\s*de\s*placas'])
-        hints["numero_serie"] = extract_vehicle_value(
-            text, [r'VIN', r'No\.?\s*de\s*serie', r'N[uú]mero\s*de\s*serie', r'\bSerie\b']
-        )
+        hints["numero_serie"] = extract_vehicle_serial_value(text)
         hints["vehiculo"] = sanitize_text_value(extract_value_after_label(
             text, [r'Veh[ií]culo', r'Descripci[oó]n'],
             stop_tokens=[r'\bMotor\b', r'\bModelo\b', r'\bSerie\b', r'\bPlacas\b']
@@ -4406,7 +4421,8 @@ def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
         "endoso",
         "derecho_poliza",
         "gastos_expedicion",
-        "descripcion"
+        "descripcion",
+        "numero_serie"
     }
 
     for key in JSON_SCHEMA.keys():
