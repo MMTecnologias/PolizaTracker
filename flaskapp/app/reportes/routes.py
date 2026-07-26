@@ -1347,8 +1347,36 @@ def recibos_pagados():
     real_headers = ['Recibo', 'Tipo doc.', 'Id doc.', 'Serie', 'Notas',
                     'Aseguradora', 'Prima neta', 'Prima total', 'Moneda',
                     'Fecha pago', 'Cliente', 'Agente', 'Ramo', 'Forma de Pago']
+
+    export_rows = response
+    if request.form.get('export_csv') or request.form.get('export_pdf'):
+        total_prima_neta = sum(
+            (recibo.prima_neta or Decimal('0') for recibo, *_ in records),
+            Decimal('0')
+        )
+        total_prima_total = sum(
+            (recibo.prima_total or Decimal('0') for recibo, *_ in records),
+            Decimal('0')
+        )
+        export_rows = response + [{
+            'no_de_recibo': 'TOTAL GENERAL',
+            'tipo_documento': '',
+            'documento': '',
+            'serie': '',
+            'notas': '',
+            'aseguradora': '',
+            'prima_neta': f'{total_prima_neta:.2f}',
+            'prima_total': f'{total_prima_total:.2f}',
+            'moneda': '',
+            'fecha_pago': '',
+            'cliente': '',
+            'agente': '',
+            'ramo': '',
+            'forma_pago': ''
+        }]
+
     if request.form.get('export_csv'):
-        return export_to_csv(headers, response, 'recibos_pagados.csv', real_headers)
+        return export_to_csv(headers, export_rows, 'recibos_pagados.csv', real_headers)
     if request.form.get('export_pdf'):
         to_multiline = ['cliente', 'notas']
         if valid_start_date and valid_end_date:
@@ -1356,7 +1384,7 @@ def recibos_pagados():
                 valid_start_date.strftime('%d/%m/%y'), valid_end_date.strftime('%d/%m/%y'))
         else:
             title_str = "Recibos pagados"
-        return export_to_pdf(headers, response, 'recibos_pagados.pdf', real_headers, to_multiline, title_str)
+        return export_to_pdf(headers, export_rows, 'recibos_pagados.pdf', real_headers, to_multiline, title_str)
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
