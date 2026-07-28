@@ -329,7 +329,8 @@ def export_to_csv(headers, jsondic, filename, real_headers=None):
     return response
 
 
-def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None, title_str="Title"):
+def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=None,
+                  title_str="Title", highlight_last_row=False):
     title_str = str(title_str)
     if real_headers is None:
         real_headers = headers
@@ -360,7 +361,7 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
     # print(data)
     # Create the table and set its style
     table = Table(data)
-    table.setStyle(TableStyle([
+    table_style = [
         ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -374,7 +375,17 @@ def export_to_pdf(headers, jsondic, filename, real_headers=None, to_multiline=No
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
+    ]
+    if highlight_last_row and jsondic:
+        table_style.extend([
+            ('BOX', (0, -1), (-1, -1), 1.25, colors.black),
+            ('INNERGRID', (0, -1), (-1, -1), 1, colors.black),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, -1), (-1, -1), 10),
+            ('TOPPADDING', (0, -1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, -1), (-1, -1), 8),
+        ])
+    table.setStyle(TableStyle(table_style))
     # Build the PDF document
     elements = []
     # Load the logo image

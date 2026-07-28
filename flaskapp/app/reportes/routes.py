@@ -1378,13 +1378,25 @@ def recibos_pagados():
     if request.form.get('export_csv'):
         return export_to_csv(headers, export_rows, 'recibos_pagados.csv', real_headers)
     if request.form.get('export_pdf'):
+        pdf_rows = []
+        for export_row in export_rows:
+            pdf_row = dict(export_row)
+            for premium_field in ('prima_neta', 'prima_total'):
+                premium_value = pdf_row.get(premium_field)
+                if premium_value not in (None, ''):
+                    pdf_row[premium_field] = f'{Decimal(str(premium_value)):,.2f}'
+            pdf_rows.append(pdf_row)
+
         to_multiline = ['cliente', 'notas']
         if valid_start_date and valid_end_date:
             title_str = "Recibos pagados en %s - %s" % (
                 valid_start_date.strftime('%d/%m/%y'), valid_end_date.strftime('%d/%m/%y'))
         else:
             title_str = "Recibos pagados"
-        return export_to_pdf(headers, export_rows, 'recibos_pagados.pdf', real_headers, to_multiline, title_str)
+        return export_to_pdf(
+            headers, pdf_rows, 'recibos_pagados.pdf', real_headers,
+            to_multiline, title_str, highlight_last_row=True
+        )
 
     return jsonify({
         'recordsTotal': total_records,  # Total records without filtering
