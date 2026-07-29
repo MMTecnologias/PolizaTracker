@@ -1387,6 +1387,12 @@ def recibos_pagados():
                     pdf_row[premium_field] = f'{Decimal(str(premium_value)):,.2f}'
             pdf_rows.append(pdf_row)
 
+        total_row = pdf_rows[-1]
+        total_row['aseguradora'] = f"Prima neta: {total_row['prima_neta']}"
+        total_row['fecha_pago'] = f"Prima total: {total_row['prima_total']}"
+        total_row['prima_neta'] = ''
+        total_row['prima_total'] = ''
+
         to_multiline = ['cliente', 'notas']
         if valid_start_date and valid_end_date:
             title_str = "Recibos pagados en %s - %s" % (
@@ -1395,7 +1401,8 @@ def recibos_pagados():
             title_str = "Recibos pagados"
         return export_to_pdf(
             headers, pdf_rows, 'recibos_pagados.pdf', real_headers,
-            to_multiline, title_str, highlight_last_row=True
+            to_multiline, title_str, highlight_last_row=True,
+            last_row_spans=[(0, 4), (5, 8), (9, 13)]
         )
 
     return jsonify({
