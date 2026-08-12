@@ -4075,6 +4075,7 @@ def build_rule_based_hints(text: str) -> dict:
     insurer_map = {
         "ZURICH": "Zurich",
         "ZURICH SANTANDER": "Zurich",
+        "CHUBB": "Chubb",
         "AXA": "AXA",
         "GNP": "GNP",
         "QUALITAS": "Quálitas",
@@ -4082,7 +4083,6 @@ def build_rule_based_hints(text: str) -> dict:
         "MAPFRE": "Mapfre",
         "HDI": "HDI",
         "METLIFE": "MetLife",
-        "CHUBB": "Chubb",
         "PREVEM": "PREVEN SEGUROS",
     }
     upper_text = text.upper()

@@ -596,16 +596,40 @@ $(function () {
 
     // Función para establecer valores en los selects
     function setValuesInSelects(data) {
-      // Aseguradora - usar ID si está disponible
-      if (data.aseguradora_id) {
-        console.log('Aseguradora ID:', data.aseguradora_id);
-        const aseguradoraId = String(data.aseguradora_id);
+      // Aseguradora: el nombre detectado en el PDF tiene prioridad sobre un ID
+      // inconsistente. Esto evita que una póliza Chubb termine seleccionando AXA.
+      if (data.aseguradora || data.aseguradora_id) {
         const aseguradoraSelect = $('#aseguradora');
-        const optionExists =
-          aseguradoraSelect.find(`option[value="${aseguradoraId}"]`).length > 0;
-        if (optionExists) {
-          aseguradoraSelect.val(aseguradoraId);
-        } else {
+        aseguradoraSelect.val('');
+        const normalizeCatalogName = (value) =>
+          String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '');
+        const aseguradoraNombre = normalizeCatalogName(data.aseguradora);
+        const optionByName = aseguradoraSelect
+          .find('option')
+          .filter(function () {
+            return normalizeCatalogName($(this).text()) === aseguradoraNombre;
+          })
+          .first();
+
+        if (aseguradoraNombre && optionByName.length) {
+          console.log('Aseguradora por nombre:', data.aseguradora);
+          aseguradoraSelect.val(optionByName.val());
+        } else if (!aseguradoraNombre && data.aseguradora_id) {
+          const aseguradoraId = String(data.aseguradora_id);
+          const optionById = aseguradoraSelect.find(
+            `option[value="${aseguradoraId}"]`,
+          );
+          if (optionById.length) {
+            console.log('Aseguradora por ID:', data.aseguradora_id);
+            aseguradoraSelect.val(aseguradoraId);
+          }
+        }
+
+        if (!aseguradoraSelect.val() && data.aseguradora) {
           console.log(
             'Aseguradora no encontrada en select, creando nueva:',
             data.aseguradora,
