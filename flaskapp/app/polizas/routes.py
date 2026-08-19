@@ -1822,6 +1822,7 @@ ALLOWED_POLICY_LOG_STAGES = {
     "pipeline_recovery",
     "pipeline_result",
     "pipeline_normalized",
+    "pdf_access",
 }
 
 LOCAL_POLICY_MODEL_CANDIDATES = [
@@ -5561,9 +5562,12 @@ def delete_temp_pdf():
 def download_pdf(poliza_id):
     poliza = Poliza.query.get(poliza_id)
     if not poliza:
+        log_policy_event("pdf_access", "póliza no encontrada", poliza_id=poliza_id)
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
 
     if not poliza.pdf_path:
+        log_policy_event(
+            "pdf_access", "póliza sin PDF asociado", poliza_id=poliza_id)
         return jsonify({'error': True, 'msg': 'No hay PDF asociado a esta póliza'})
 
     # Soporta tanto ruta absoluta (PDF_UPLOAD_FOLDER) como relativa (static/polizas_pdf)
@@ -5578,11 +5582,25 @@ def download_pdf(poliza_id):
         filename = poliza.pdf_path
 
     if not os.path.exists(pdf_full_path):
+        log_policy_event(
+            "pdf_access",
+            "archivo PDF no encontrado",
+            poliza_id=poliza_id,
+            pdf_path=poliza.pdf_path,
+            storage_type="absolute" if os.path.isabs(poliza.pdf_path) else "static",
+        )
         return jsonify({'error': True, 'msg': 'El archivo PDF no existe'})
 
+    log_policy_event(
+        "pdf_access",
+        "mostrando PDF de póliza",
+        poliza_id=poliza_id,
+        pdf_path=poliza.pdf_path,
+        storage_type="absolute" if os.path.isabs(poliza.pdf_path) else "static",
+    )
     return send_from_directory(
         directory,
         filename,
-        as_attachment=True,
+        as_attachment=False,
         download_name=f"poliza_{poliza.poliza}.pdf"
     )

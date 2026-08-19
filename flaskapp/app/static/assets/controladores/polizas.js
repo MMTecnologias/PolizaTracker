@@ -1790,8 +1790,9 @@ $(function () {
       });
       $(`#btnShow_${poliza.id}`).on('click', (e) => showPoliza(poliza.id));
       $(`#btnViewPdf_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
         if (poliza.pdf_path) {
-          window.open(`/static/${poliza.pdf_path}`, '_blank');
+          window.open(`/polizas/download_pdf/${poliza.id}`, '_blank');
         }
       });
       $(`#btnUploadPolicyPdf_${poliza.id}`).on('click', (e) => {
