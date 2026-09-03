@@ -339,7 +339,7 @@
                      <label class="label-input-data" for="notas">Observaciones</label>
                      <div class="">
                         <textarea class="form-control" id="notas" name="notas" placeholder="Insertar observaciones"
-                           rows="3"></textarea>
+   rows="5" style="resize: none; overflow: hidden; min-height: 80px; max-height: 400px;"></textarea>
                         <p class="invalid-feedback">Ingresa un dato valido</p>
                      </div>
                   </div>
@@ -752,6 +752,30 @@
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
+
+<!-- Auto-expand textarea de observaciones -->
+<script>
+   // Auto-expandir textarea conforme se llena con contenido
+   const textarea = document.getElementById('notas');
+   
+   if (textarea) {
+      // Función para ajustar altura automáticamente
+      function adjustTextareaHeight() {
+         textarea.style.height = 'auto';
+         const newHeight = Math.min(textarea.scrollHeight, 400);
+         textarea.style.height = newHeight + 'px';
+      }
+      
+      // Escuchar cambios mientras el usuario escribe
+      textarea.addEventListener('input', adjustTextareaHeight);
+      
+      // Escuchar cambios cuando Ollama carga contenido
+      textarea.addEventListener('change', adjustTextareaHeight);
+      
+      // Ajustar al cargar la página (si ya hay contenido)
+      adjustTextareaHeight();
+   }
+</script>
 </body>
 
 </html>
