@@ -5,3 +5,13 @@
 5.- guardar los documentos en otro disco duro, no en C:
 
 Gastos de expedición/DErecho de poliza
+
+PENDIENTES - Portal del Asegurado (rama portal-asegurado):
+6.- SEGURIDAD: /portal/api/mis-datos, /portal/api/buscar-cliente y /portal/descargar_pdf
+    no tienen ningun control de acceso (cualquiera con el link puede ver/descargar
+    datos de cualquier cliente). Esto es TEMPORAL mientras no existe el login del
+    asegurado. En cuanto se defina el login (folio+apellido / correo / registro),
+    hay que:
+      - Quitar el buscador de cliente del dashboard.
+      - Que esas 3 rutas tomen el cliente desde la sesion, no desde parametros
+        de la URL (cliente_id / poliza_id abiertos).

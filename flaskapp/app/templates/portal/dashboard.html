@@ -1201,7 +1201,7 @@
                     <!-- SEARCH & FILTER BAR for POLIZAS -->
                     <div class="section-toolbar">
                         <div class="search-section">
-                            <input type="text" class="search-input" id="searchPolizas" placeholder="Buscar póliza por número, ramo...">
+                            <input type="text" class="search-input" id="searchPolizas" placeholder="Buscar póliza por número, tipo o aseguradora...">
                         </div>
                         <button class="filter-toggle" id="filterTogglePolizas">
                             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
@@ -1212,46 +1212,45 @@
                             Filtros
                         </button>
                     </div>
-                    
+
                     <!-- FILTER PANEL for POLIZAS -->
                     <div class="filter-panel-inline" id="filterPanelPolizas">
                         <div class="filter-panel-content">
                             <div class="filter-group">
-                                <label>Ramo</label>
-                                <select id="ramoFilter">
-                                    <option value="">Todos los ramos</option>
-                                    <option value="vida">VIDA</option>
-                                    <option value="gastos">Gastos Médicos</option>
-                                    <option value="empresarial">Empresarial</option>
-                                    <option value="autos">Autos</option>
-                                    <option value="hogar">Hogar</option>
+                                <label>Aseguradora</label>
+                                <select id="aseguradoraFilterPolizas">
+                                    <option value="">Todas las aseguradoras</option>
                                 </select>
                             </div>
                             <div class="filter-group">
                                 <label>Estado</label>
-                                <select id="estadoFilter">
+                                <select id="estadoFilterPolizas">
                                     <option value="">Todos los estados</option>
-                                    <option value="activa">Activa</option>
-                                    <option value="pendiente">Pendiente</option>
-                                    <option value="pagado">Pagado</option>
-                                    <option value="revisión">En revisión</option>
-                                    <option value="rechazado">Rechazado</option>
+                                    <option value="Vigente">Vigente</option>
+                                    <option value="Por Vencer">Por Vencer</option>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Cancelada">Cancelada</option>
+                                    <option value="Finalizada">Finalizada</option>
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label>Rango de fechas</label>
-                                <input type="date" id="dateFilter">
+                                <label>Vigencia desde</label>
+                                <input type="date" id="fechaDesdeFilterPolizas">
+                            </div>
+                            <div class="filter-group">
+                                <label>Vigencia hasta</label>
+                                <input type="date" id="fechaHastaFilterPolizas">
                             </div>
                         </div>
                     </div>
 
                     <div class="content-controls">
-                        <span class="content-info">Mostrando <strong>5 pólizas</strong> activas</span>
+                        <span class="content-info" id="infoPolizas">Mostrando 0 pólizas</span>
                         <div class="sort-control">
                             <label>Ordenar por:</label>
                             <select class="sort-select" id="sortPolizas">
-                                <option value="fecha-desc">Fecha (Reciente)</option>
-                                <option value="fecha-asc">Fecha (Antiguo)</option>
+                                <option value="fecha-desc">Vigencia (Reciente)</option>
+                                <option value="fecha-asc">Vigencia (Antiguo)</option>
                                 <option value="prima-desc">Prima (Mayor)</option>
                                 <option value="prima-asc">Prima (Menor)</option>
                                 <option value="estado">Estado</option>
@@ -1263,13 +1262,52 @@
 
                 <!-- TAB: SINIESTROS -->
                 <div class="content-section" id="siniestros">
+                    <!-- SEARCH & FILTER BAR for SINIESTROS -->
+                    <div class="section-toolbar">
+                        <div class="search-section">
+                            <input type="text" class="search-input" id="searchSiniestros" placeholder="Buscar siniestro por número, tipo o póliza...">
+                        </div>
+                        <button class="filter-toggle" id="filterToggleSiniestros">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                                <line x1="4" y1="6" x2="20" y2="6"></line>
+                                <line x1="4" y1="12" x2="20" y2="12"></line>
+                                <line x1="4" y1="18" x2="20" y2="18"></line>
+                            </svg>
+                            Filtros
+                        </button>
+                    </div>
+
+                    <!-- FILTER PANEL for SINIESTROS -->
+                    <div class="filter-panel-inline" id="filterPanelSiniestros">
+                        <div class="filter-panel-content">
+                            <div class="filter-group">
+                                <label>Póliza</label>
+                                <select id="polizaFilterSiniestros">
+                                    <option value="">Todas las pólizas</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Estado</label>
+                                <select id="estadoFilterSiniestros">
+                                    <option value="">Todos los estados</option>
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="revisión">En revisión</option>
+                                    <option value="documentación">Documentación</option>
+                                    <option value="aprobado">Aprobado</option>
+                                    <option value="pagado">Pagado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="content-controls">
-                        <span class="content-info">Mostrando <strong>2 siniestros</strong> activos</span>
+                        <span class="content-info" id="infoSiniestros">Mostrando 0 siniestros</span>
                         <div class="sort-control">
                             <label>Ordenar por:</label>
                             <select class="sort-select" id="sortSiniestros">
                                 <option value="fecha-desc">Fecha (Reciente)</option>
                                 <option value="fecha-asc">Fecha (Antiguo)</option>
+                                <option value="monto-desc">Monto (Mayor)</option>
                                 <option value="estado">Estado</option>
                             </select>
                         </div>
@@ -1279,8 +1317,56 @@
 
                 <!-- TAB: RECIBOS -->
                 <div class="content-section" id="recibos">
+                    <!-- SEARCH & FILTER BAR for RECIBOS -->
+                    <div class="section-toolbar">
+                        <div class="search-section">
+                            <input type="text" class="search-input" id="searchRecibos" placeholder="Buscar recibo por número, póliza o concepto...">
+                        </div>
+                        <button class="filter-toggle" id="filterToggleRecibos">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                                <line x1="4" y1="6" x2="20" y2="6"></line>
+                                <line x1="4" y1="12" x2="20" y2="12"></line>
+                                <line x1="4" y1="18" x2="20" y2="18"></line>
+                            </svg>
+                            Filtros
+                        </button>
+                    </div>
+
+                    <!-- FILTER PANEL for RECIBOS -->
+                    <div class="filter-panel-inline" id="filterPanelRecibos">
+                        <div class="filter-panel-content">
+                            <div class="filter-group">
+                                <label>Póliza</label>
+                                <select id="polizaFilterRecibos">
+                                    <option value="">Todas las pólizas</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Estado</label>
+                                <select id="estadoFilterRecibos">
+                                    <option value="pendientes" selected>Pendientes de pago</option>
+                                    <option value="">Todos los recibos</option>
+                                    <option value="Liquidado">Liquidados</option>
+                                    <option value="Pendiente">Pendientes</option>
+                                    <option value="Vencido">Vencidos</option>
+                                    <option value="Cancelado">Cancelados</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="content-controls">
-                        <span class="content-info">Últimos <strong>15 recibos</strong> registrados</span>
+                        <span class="content-info" id="infoRecibos">Mostrando 0 recibos</span>
+                        <div class="sort-control">
+                            <label>Ordenar por:</label>
+                            <select class="sort-select" id="sortRecibos">
+                                <option value="fecha-asc" selected>Vencimiento (Próximo primero)</option>
+                                <option value="fecha-desc">Vencimiento (Lejano primero)</option>
+                                <option value="monto-desc">Monto (Mayor)</option>
+                                <option value="monto-asc">Monto (Menor)</option>
+                                <option value="estado">Estado</option>
+                            </select>
+                        </div>
                     </div>
                     <div id="recibosContainer"></div>
                 </div>
@@ -1301,7 +1387,7 @@
             <div class="modal-body">
                 <div id="vencimientosContainer"></div>
                 <div class="modal-total">
-                    <div class="modal-total-label">Total a pagar en el mes</div>
+                    <div class="modal-total-label" id="modalTotalLabel">Total a pagar en el mes</div>
                     <div class="modal-total-value" id="modalTotalMonto">$0</div>
                 </div>
             </div>
@@ -1317,6 +1403,16 @@
             siniestros: [],
             recibos: []
         };
+
+        // Formatea montos con coma como separador de miles, punto para
+        // decimales, y la moneda (MXN por default, pólizas en pesos)
+        function formatMoneda(valor, moneda = 'MXN') {
+            const monto = (valor || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+            return `$${monto} ${moneda}`;
+        }
 
         // Traduce el status real de la BD a una clase CSS ya existente en el diseño
         function estadoClase(estado) {
@@ -1340,6 +1436,7 @@
             json.polizas.forEach(p => { polizasPorId[p.id] = p; });
 
             data.polizas = json.polizas.map(p => ({
+                id: p.id,
                 numero: p.numero,
                 tipo: p.tipo,
                 compania: p.compania,
@@ -1351,6 +1448,8 @@
                 finVigencia: p.finVigencia,
                 estado: p.status,
                 asegurado: json.cliente,
+                tienePdf: p.tienePdf,
+                moneda: p.moneda,
             }));
 
             data.recibos = json.recibos.map(r => {
@@ -1358,7 +1457,12 @@
                 return {
                     numero: r.numero,
                     poliza: poliza ? poliza.numero : '',
+                    aseguradora: poliza ? poliza.compania : '',
+                    moneda: poliza ? poliza.moneda : 'MXN',
                     monto: r.primaTotal,
+                    primaNeta: r.primaNeta,
+                    primaTotal: r.primaTotal,
+                    fechaInicio: r.fechaInicio,
                     fecha: r.fechaVencimiento,
                     concepto: poliza ? `Prima ${poliza.tipo}` : 'Prima de póliza',
                     estado: r.status,
@@ -1447,6 +1551,7 @@
             document.getElementById('userAvatar').textContent = iniciales;
 
             actualizarMetricas();
+            poblarFiltros();
             renderPolizas();
             renderSiniestros();
             renderRecibos();
@@ -1486,12 +1591,49 @@
                 : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg> Mostrar filtros';
         });
 
-        // Filter toggle for POLIZAS section
-        const filterTogglePolizas = document.getElementById('filterTogglePolizas');
-        const filterPanelPolizas = document.getElementById('filterPanelPolizas');
-        if (filterTogglePolizas && filterPanelPolizas) {
-            filterTogglePolizas.addEventListener('click', () => {
-                filterPanelPolizas.classList.toggle('active');
+        // Filter toggle para las 3 pestañas (Pólizas, Siniestros, Recibos)
+        function conectarFilterToggle(toggleId, panelId) {
+            const toggle = document.getElementById(toggleId);
+            const panel = document.getElementById(panelId);
+            if (toggle && panel) {
+                toggle.addEventListener('click', () => panel.classList.toggle('active'));
+            }
+        }
+        conectarFilterToggle('filterTogglePolizas', 'filterPanelPolizas');
+        conectarFilterToggle('filterToggleSiniestros', 'filterPanelSiniestros');
+        conectarFilterToggle('filterToggleRecibos', 'filterPanelRecibos');
+
+        // Convierte "DD/MM/YYYY" a Date de forma correcta (new Date() nativo
+        // interpreta mal ese formato en varios navegadores)
+        function parseFechaMX(fechaStr) {
+            if (!fechaStr) return new Date(0);
+            const [d, m, y] = fechaStr.split('/');
+            return new Date(`${y}-${m}-${d}`);
+        }
+
+        // Llena los <select> de filtros con los valores reales del cliente
+        // seleccionado (aseguradoras, tipos de cobertura, números de póliza)
+        function poblarFiltros() {
+            const aseguradoras = [...new Set(data.polizas.map(p => p.compania))].sort();
+            const numerosPoliza = [...new Set(data.polizas.map(p => p.numero))].sort();
+
+            const selAseguradora = document.getElementById('aseguradoraFilterPolizas');
+            selAseguradora.innerHTML = '<option value="">Todas las aseguradoras</option>' +
+                aseguradoras.map(a => `<option value="${a}">${a}</option>`).join('');
+
+            const opcionesPoliza = '<option value="">Todas las pólizas</option>' +
+                numerosPoliza.map(n => `<option value="${n}">${n}</option>`).join('');
+            document.getElementById('polizaFilterSiniestros').innerHTML = opcionesPoliza;
+            document.getElementById('polizaFilterRecibos').innerHTML = opcionesPoliza;
+        }
+
+        // Conecta búsqueda/filtros/orden de una pestaña a su función de render
+        function conectarControles(ids, renderFn) {
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const evento = el.tagName === 'SELECT' ? 'change' : 'input';
+                el.addEventListener(evento, renderFn);
             });
         }
 
@@ -1499,15 +1641,41 @@
         function renderPolizas() {
             const container = document.getElementById('polizasContainer');
             const sortVal = document.getElementById('sortPolizas').value;
-            
-            let sorted = [...data.polizas];
-            if (sortVal === 'fecha-desc') sorted.sort((a, b) => {
-                const dateA = new Date(a.inicioVigencia.split('/').reverse().join('-'));
-                const dateB = new Date(b.inicioVigencia.split('/').reverse().join('-'));
-                return dateB - dateA;
+            const searchVal = document.getElementById('searchPolizas').value.trim().toLowerCase();
+            const aseguradoraVal = document.getElementById('aseguradoraFilterPolizas').value;
+            const estadoVal = document.getElementById('estadoFilterPolizas').value;
+            const fechaDesdeVal = document.getElementById('fechaDesdeFilterPolizas').value;
+            const fechaHastaVal = document.getElementById('fechaHastaFilterPolizas').value;
+
+            let filtrado = data.polizas.filter(p => {
+                if (searchVal && !`${p.numero} ${p.tipo} ${p.compania}`.toLowerCase().includes(searchVal)) return false;
+                if (aseguradoraVal && p.compania !== aseguradoraVal) return false;
+                if (estadoVal && p.estado !== estadoVal) return false;
+
+                const inicio = parseFechaMX(p.inicioVigencia);
+                if (fechaDesdeVal && inicio < new Date(fechaDesdeVal)) return false;
+                if (fechaHastaVal && inicio > new Date(fechaHastaVal)) return false;
+
+                return true;
             });
+
+            let sorted = [...filtrado];
+            if (sortVal === 'fecha-desc') sorted.sort((a, b) => parseFechaMX(b.inicioVigencia) - parseFechaMX(a.inicioVigencia));
+            if (sortVal === 'fecha-asc') sorted.sort((a, b) => parseFechaMX(a.inicioVigencia) - parseFechaMX(b.inicioVigencia));
             if (sortVal === 'prima-desc') sorted.sort((a, b) => b.primaTotal - a.primaTotal);
             if (sortVal === 'prima-asc') sorted.sort((a, b) => a.primaTotal - b.primaTotal);
+            if (sortVal === 'estado') {
+                const prioridadEstado = { 'Vigente': 1, 'Por Vencer': 2, 'Pendiente': 3, 'Finalizada': 4, 'Cancelada': 5 };
+                sorted.sort((a, b) => (prioridadEstado[a.estado] || 99) - (prioridadEstado[b.estado] || 99));
+            }
+
+            document.getElementById('infoPolizas').textContent =
+                `Mostrando ${sorted.length} de ${data.polizas.length} pólizas`;
+
+            if (sorted.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No se encontraron pólizas con esos filtros</div></div>';
+                return;
+            }
 
             container.innerHTML = sorted.map(p => `
                 <div class="item-card" onclick="this.classList.toggle('expanded'); this.querySelector('.item-content').classList.toggle('active');">
@@ -1573,7 +1741,7 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            <button class="btn-action" onclick="event.stopPropagation()">
+                            <button class="btn-action" onclick="event.stopPropagation(); descargarPoliza(${p.id}, ${p.tienePdf})" ${p.tienePdf ? '' : 'disabled title="Esta póliza aún no tiene PDF cargado"'}>
                                 <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -1586,7 +1754,7 @@
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
-                                Ver anexos
+                                Ver documentos
                             </button>
                         </div>
                     </div>
@@ -1596,13 +1764,38 @@
 
         function renderSiniestros() {
             const container = document.getElementById('siniestrosContainer');
-            
+            const searchVal = document.getElementById('searchSiniestros').value.trim().toLowerCase();
+            const polizaVal = document.getElementById('polizaFilterSiniestros').value;
+            const estadoVal = document.getElementById('estadoFilterSiniestros').value;
+            const sortVal = document.getElementById('sortSiniestros').value;
+
+            let filtrado = data.siniestros.filter(s => {
+                if (searchVal && !`${s.numero} ${s.tipo} ${s.poliza}`.toLowerCase().includes(searchVal)) return false;
+                if (polizaVal && s.poliza !== polizaVal) return false;
+                if (estadoVal && s.estado !== estadoVal) return false;
+                return true;
+            });
+
+            let sorted = [...filtrado];
+            if (sortVal === 'fecha-desc') sorted.sort((a, b) => parseFechaMX(b.fecha) - parseFechaMX(a.fecha));
+            if (sortVal === 'fecha-asc') sorted.sort((a, b) => parseFechaMX(a.fecha) - parseFechaMX(b.fecha));
+            if (sortVal === 'monto-desc') sorted.sort((a, b) => b.monto - a.monto);
+            if (sortVal === 'estado') sorted.sort((a, b) => a.estado.localeCompare(b.estado));
+
+            document.getElementById('infoSiniestros').textContent =
+                `Mostrando ${sorted.length} de ${data.siniestros.length} siniestros`;
+
             if (data.siniestros.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No hay siniestros registrados</div></div>';
                 return;
             }
 
-            container.innerHTML = data.siniestros.map(s => `
+            if (sorted.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No se encontraron siniestros con esos filtros</div></div>';
+                return;
+            }
+
+            container.innerHTML = sorted.map(s => `
                 <div class="item-card" onclick="this.classList.toggle('expanded'); this.querySelector('.item-content').classList.toggle('active');">
                     <div class="item-header">
                         <div class="item-header-info">
@@ -1673,7 +1866,36 @@
 
         function renderRecibos() {
             const container = document.getElementById('recibosContainer');
-            const sorted = [...data.recibos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            const searchVal = document.getElementById('searchRecibos').value.trim().toLowerCase();
+            const polizaVal = document.getElementById('polizaFilterRecibos').value;
+            const estadoVal = document.getElementById('estadoFilterRecibos').value;
+            const sortVal = document.getElementById('sortRecibos').value;
+
+            let filtrado = data.recibos.filter(r => {
+                if (searchVal && !`${r.numero} ${r.poliza} ${r.concepto}`.toLowerCase().includes(searchVal)) return false;
+                if (polizaVal && r.poliza !== polizaVal) return false;
+                if (estadoVal === 'pendientes') {
+                    if (!['Pendiente', 'Vencido'].includes(r.estado)) return false;
+                } else if (estadoVal && r.estado !== estadoVal) {
+                    return false;
+                }
+                return true;
+            });
+
+            let sorted = [...filtrado];
+            if (sortVal === 'fecha-asc') sorted.sort((a, b) => parseFechaMX(a.fecha) - parseFechaMX(b.fecha));
+            if (sortVal === 'fecha-desc') sorted.sort((a, b) => parseFechaMX(b.fecha) - parseFechaMX(a.fecha));
+            if (sortVal === 'monto-desc') sorted.sort((a, b) => b.monto - a.monto);
+            if (sortVal === 'monto-asc') sorted.sort((a, b) => a.monto - b.monto);
+            if (sortVal === 'estado') sorted.sort((a, b) => a.estado.localeCompare(b.estado));
+
+            document.getElementById('infoRecibos').textContent =
+                `Mostrando ${sorted.length} de ${data.recibos.length} recibos`;
+
+            if (sorted.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💳</div><div class="empty-state-text">No se encontraron recibos con esos filtros</div></div>';
+                return;
+            }
 
             container.innerHTML = sorted.map(r => `
                 <div class="item-card" onclick="this.classList.toggle('expanded'); this.querySelector('.item-content').classList.toggle('active');">
@@ -1742,6 +1964,14 @@
         }
 
         // Download functions
+        function descargarPoliza(polizaId, tienePdf) {
+            if (!tienePdf) {
+                alert('Esta póliza aún no tiene un PDF cargado en el sistema.');
+                return;
+            }
+            window.location.href = `/portal/descargar_pdf/${polizaId}`;
+        }
+
         function descargarRecibo(numero, archivo) {
             const enlace = document.createElement('a');
             enlace.href = '#';
@@ -1771,118 +2001,61 @@
         }
 
         // Calculate vencimientos del mes
+        // Suma montos agrupados por moneda, para no mezclar MXN/USD/UDIS en un solo total
+        function sumarPorMoneda(items, campoMonto) {
+            const totales = {};
+            items.forEach(item => {
+                const m = item.moneda || 'MXN';
+                totales[m] = (totales[m] || 0) + (item[campoMonto] || 0);
+            });
+            return totales;
+        }
+
+        // Convierte {MXN: 1000, USD: 50} en "$1,000.00 MXN + $50.00 USD"
+        function formatTotalesPorMoneda(totales) {
+            const monedas = Object.keys(totales);
+            if (monedas.length === 0) return formatMoneda(0);
+            return monedas.map(m => formatMoneda(totales[m], m)).join(' + ');
+        }
+
         function calcularVencimientosDelMes() {
             const fechaActual = new Date();
             const mesActual = fechaActual.getMonth() + 1; // 1-12
-            const diaActual = fechaActual.getDate();
             const añoActual = fechaActual.getFullYear();
-            
+
             // Meses en español
-            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            
-            // Calcular qué pólizas vencen este mes
-            const vencimientos = [];
-            
-            data.polizas.forEach((poliza, index) => {
-                const [diaInicio, mesInicio, añoInicio] = poliza.inicioVigencia.split('/').map(Number);
-                
-                // Calcular próxima fecha de vencimiento según frecuencia
-                let diasVencimiento = [];
-                
-                if (poliza.frecuencia === 'mensual') {
-                    // Vence el día de inicio de cada mes
-                    diasVencimiento = [diaInicio];
-                } else if (poliza.frecuencia === 'semestral') {
-                    // Vence cada 6 meses
-                    const mesesVencimiento = [];
-                    for (let i = 0; i < poliza.cuotasAlAño; i++) {
-                        let mes = mesInicio + (i * 6);
-                        while (mes > 12) mes = mes - 12;
-                        mesesVencimiento.push(mes);
-                    }
-                    if (mesesVencimiento.includes(mesActual)) {
-                        diasVencimiento = [diaInicio];
-                    }
-                } else if (poliza.frecuencia === 'trimestral') {
-                    // Vence cada 3 meses
-                    const mesesVencimiento = [];
-                    for (let i = 0; i < poliza.cuotasAlAño; i++) {
-                        let mes = mesInicio + (i * 3);
-                        while (mes > 12) mes = mes - 12;
-                        mesesVencimiento.push(mes);
-                    }
-                    if (mesesVencimiento.includes(mesActual)) {
-                        diasVencimiento = [diaInicio];
-                    }
-                } else if (poliza.frecuencia === 'contado') {
-                    // Vence una sola vez en el mes de inicio
-                    if (mesInicio === mesActual) {
-                        diasVencimiento = [diaInicio];
-                    }
-                }
-                
-                // Si hay vencimiento este mes, agregar a lista
-                if (diasVencimiento.length > 0) {
-                    const cuotaActual = calcularCuotaActual(poliza, mesActual, diaInicio);
-                    const montoACobrar = poliza.primaTotal / poliza.cuotasAlAño;
-                    
-                    vencimientos.push({
-                        poliza: poliza,
-                        cuota: cuotaActual,
-                        monto: montoACobrar,
-                        diaVencimiento: diaInicio
-                    });
-                }
+
+            // Pólizas canceladas: sus recibos ya no se van a cobrar
+            const polizasCanceladas = new Set(
+                data.polizas.filter(p => p.estado === 'Cancelada').map(p => p.numero)
+            );
+
+            // Recibos reales sin pagar: los de este mes, más cualquier atrasado
+            // de meses anteriores (vencido y aún no liquidado), siempre que su
+            // póliza siga activa
+            const vencimientos = data.recibos.filter(r => {
+                if (polizasCanceladas.has(r.poliza)) return false;
+                if (r.estado === 'Liquidado' || r.estado === 'Cancelado') return false;
+
+                const fecha = parseFechaMX(r.fecha);
+                const esDeEsteMes = fecha.getMonth() + 1 === mesActual && fecha.getFullYear() === añoActual;
+                const yaVencioYSigueSinPagar = fecha < fechaActual;
+
+                return esDeEsteMes || yaVencioYSigueSinPagar;
             });
-            
-            // Actualizar card y guardar en sessionStorage
+
             sessionStorage.setItem('vencimientosDelMes', JSON.stringify(vencimientos));
-            
+
             const totalValue = document.getElementById('totalMesValue');
             const totalDetail = document.getElementById('totalMesDetail');
-            
+
             if (totalValue && totalDetail) {
-                const totalMonto = vencimientos.reduce((sum, v) => sum + (v.monto || 0), 0);
-                const totalRedondeado = Math.round(totalMonto);
-                totalValue.textContent = '$' + (totalRedondeado || 0).toLocaleString();
+                const totales = sumarPorMoneda(vencimientos, 'primaTotal');
+                totalValue.textContent = formatTotalesPorMoneda(totales);
                 totalDetail.textContent = meses[mesActual - 1] + ' ' + añoActual + ' • Haz clic para ver detalles';
             }
-        }
-
-        // Calcular qué cuota es del año
-        function calcularCuotaActual(poliza, mesActual, diaInicio) {
-            const [dia, mesInicio, año] = poliza.inicioVigencia.split('/').map(Number);
-            
-            if (poliza.frecuencia === 'mensual') {
-                // La cuota es el número de meses transcurridos + 1
-                let cuota = ((mesActual - mesInicio) % 12) + 1;
-                if (cuota <= 0) cuota += 12;
-                return cuota;
-            } else if (poliza.frecuencia === 'semestral') {
-                // Calcular en qué semestre cae
-                const mesesVencimiento = [];
-                for (let i = 0; i < poliza.cuotasAlAño; i++) {
-                    let mes = mesInicio + (i * 6);
-                    while (mes > 12) mes = mes - 12;
-                    mesesVencimiento.push(mes);
-                }
-                const indice = mesesVencimiento.indexOf(mesActual);
-                return indice >= 0 ? indice + 1 : 1;
-            } else if (poliza.frecuencia === 'trimestral') {
-                // Calcular en qué trimestre cae
-                const mesesVencimiento = [];
-                for (let i = 0; i < poliza.cuotasAlAño; i++) {
-                    let mes = mesInicio + (i * 3);
-                    while (mes > 12) mes = mes - 12;
-                    mesesVencimiento.push(mes);
-                }
-                const indice = mesesVencimiento.indexOf(mesActual);
-                return indice >= 0 ? indice + 1 : 1;
-            } else if (poliza.frecuencia === 'contado') {
-                return 1;
-            }
-            return 1;
         }
 
         // Abrir modal de vencimientos
@@ -1890,59 +2063,53 @@
             const vencimientos = JSON.parse(sessionStorage.getItem('vencimientosDelMes') || '[]');
             const modal = document.getElementById('modalVencimientos');
             const container = document.getElementById('vencimientosContainer');
-            
+
             container.innerHTML = '';
-            let totalMonto = 0;
-            
-            vencimientos.forEach((v, index) => {
-                totalMonto += v.monto;
-                const poliza = v.poliza;
-                const cuota = v.cuota + '/' + poliza.cuotasAlAño;
-                
+
+            if (vencimientos.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">No hay pagos pendientes este mes</div></div>';
+            }
+
+            vencimientos.forEach((r) => {
                 const item = document.createElement('div');
                 item.className = 'vencimiento-item';
                 item.innerHTML = `
                     <div class="vencimiento-header">
-                        <div class="vencimiento-poliza">${poliza.numero}</div>
-                        <div class="vencimiento-cuota">Cuota ${cuota}</div>
+                        <div class="vencimiento-poliza">Póliza: ${r.poliza} · ${r.aseguradora}</div>
+                        <div class="vencimiento-cuota">Recibo ${r.numero}</div>
                     </div>
                     <div class="vencimiento-grid">
                         <div class="vencimiento-field">
-                            <div class="vencimiento-label">Tipo de Póliza</div>
-                            <div class="vencimiento-value">${poliza.tipo}</div>
-                        </div>
-                        <div class="vencimiento-field">
-                            <div class="vencimiento-label">Aseguradora</div>
-                            <div class="vencimiento-value">${poliza.compania}</div>
-                        </div>
-                        <div class="vencimiento-field">
                             <div class="vencimiento-label">Vigencia Inicio</div>
-                            <div class="vencimiento-value">${poliza.inicioVigencia}</div>
+                            <div class="vencimiento-value">${r.fechaInicio}</div>
                         </div>
                         <div class="vencimiento-field">
                             <div class="vencimiento-label">Vigencia Fin</div>
-                            <div class="vencimiento-value">${poliza.finVigencia}</div>
+                            <div class="vencimiento-value">${r.fecha}</div>
                         </div>
                         <div class="vencimiento-field">
                             <div class="vencimiento-label">Prima Neta</div>
-                            <div class="vencimiento-value">$${(poliza.primaNeta || 0).toLocaleString()}</div>
+                            <div class="vencimiento-value">${formatMoneda(r.primaNeta, r.moneda)}</div>
                         </div>
                         <div class="vencimiento-field">
                             <div class="vencimiento-label">Prima Total</div>
-                            <div class="vencimiento-value">$${(poliza.primaTotal || 0).toLocaleString()}</div>
+                            <div class="vencimiento-value">${formatMoneda(r.primaTotal, r.moneda)}</div>
                         </div>
                     </div>
                     <div class="vencimiento-footer">
                         <span>Monto a Pagar:</span>
-                        <div class="vencimiento-monto">$${Math.round(v.monto || 0).toLocaleString()}</div>
+                        <div class="vencimiento-monto">${formatMoneda(r.primaTotal, r.moneda)}</div>
                     </div>
                 `;
                 container.appendChild(item);
             });
-            
-            // Actualizar total
-            document.getElementById('modalTotalMonto').textContent = '$' + Math.round(totalMonto || 0).toLocaleString();
-            
+
+            // Actualizar total (agrupado por moneda) y la etiqueta con el número de recibos
+            const totales = sumarPorMoneda(vencimientos, 'primaTotal');
+            document.getElementById('modalTotalMonto').textContent = formatTotalesPorMoneda(totales);
+            document.getElementById('modalTotalLabel').textContent =
+                `Total a pagar en el mes (${vencimientos.length} recibo${vencimientos.length === 1 ? '' : 's'})`;
+
             // Mostrar modal
             modal.classList.add('active');
         }
@@ -1961,9 +2128,20 @@
             }
         });
 
-        // Event listeners for sorting
-        document.getElementById('sortPolizas').addEventListener('change', renderPolizas);
-        document.getElementById('sortSiniestros').addEventListener('change', renderSiniestros);
+        // Conectar búsqueda + filtros + orden de las 3 pestañas
+        conectarControles(
+            ['searchPolizas', 'aseguradoraFilterPolizas', 'estadoFilterPolizas',
+             'fechaDesdeFilterPolizas', 'fechaHastaFilterPolizas', 'sortPolizas'],
+            renderPolizas
+        );
+        conectarControles(
+            ['searchSiniestros', 'polizaFilterSiniestros', 'estadoFilterSiniestros', 'sortSiniestros'],
+            renderSiniestros
+        );
+        conectarControles(
+            ['searchRecibos', 'polizaFilterRecibos', 'estadoFilterRecibos', 'sortRecibos'],
+            renderRecibos
+        );
 
         // El render inicial ya no ocurre aquí: se dispara desde mostrarPanel()
         // cuando se selecciona un cliente en el buscador.
