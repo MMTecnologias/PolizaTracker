@@ -1365,10 +1365,9 @@
                             <div class="filter-group">
                                 <label>Estado</label>
                                 <select id="estadoFilterRecibos">
-                                    <option value="pendientes" selected>Pendientes de pago</option>
                                     <option value="">Todos los recibos</option>
+                                    <option value="Pendiente" selected>Pendientes</option>
                                     <option value="Liquidado">Liquidados</option>
-                                    <option value="Pendiente">Pendientes</option>
                                     <option value="Vencido">Vencidos</option>
                                     <option value="Cancelado">Cancelados</option>
                                 </select>
@@ -1607,7 +1606,7 @@
 
             // Forzar el filtro de Recibos a "Pendientes de pago" por default
             // cada vez que se carga un cliente
-            document.getElementById('estadoFilterRecibos').value = 'pendientes';
+            document.getElementById('estadoFilterRecibos').value = 'Pendiente';
             document.getElementById('sortRecibos').value = 'fecha-asc';
 
             renderPolizas();
@@ -1943,11 +1942,8 @@
                 if (fechaHastaVal && fechaRecibo > new Date(fechaHastaVal)) return false;
 
                 const real = estadoRealRecibo(r);
-                if (estadoVal === 'pendientes') {
-                    if (!['Pendiente', 'Vencido'].includes(real)) return false;
-                } else if (estadoVal && real !== estadoVal) {
-                    return false;
-                }
+                if (estadoVal && real !== estadoVal) return false;
+
                 return true;
             });
 
@@ -2107,17 +2103,18 @@
             );
 
             // Recibos reales sin pagar: los de este mes, más cualquier atrasado
-            // de meses anteriores (vencido y aún no liquidado), siempre que su
-            // póliza siga activa
+            // que siga dentro del periodo de gracia (estadoRealRecibo == 'Pendiente'),
+            // siempre que su póliza siga activa. Los que ya pasaron a 'Vencido'
+            // (más de 30 días de atraso) NO se cuentan aquí.
             const vencimientos = data.recibos.filter(r => {
                 if (polizasCanceladas.has(r.poliza)) return false;
-                if (r.estado === 'Liquidado' || r.estado === 'Cancelado') return false;
+                if (estadoRealRecibo(r) !== 'Pendiente') return false;
 
                 const fecha = parseFechaMX(r.fecha);
                 const esDeEsteMes = fecha.getMonth() + 1 === mesActual && fecha.getFullYear() === añoActual;
-                const yaVencioYSigueSinPagar = fecha < fechaActual;
+                const yaVencioPeroEnGracia = fecha < fechaActual;
 
-                return esDeEsteMes || yaVencioYSigueSinPagar;
+                return esDeEsteMes || yaVencioPeroEnGracia;
             });
 
             sessionStorage.setItem('vencimientosDelMes', JSON.stringify(vencimientos));
