@@ -1409,7 +1409,7 @@
     <div class="modal" id="modalVencimientos">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Pólizas que vencen este mes</h2>
+                <h2>Recibos por pagar este mes</h2>
                 <button class="modal-close" onclick="cerrarModalVencimientos()">✕</button>
             </div>
             <div class="modal-body">
@@ -2104,12 +2104,22 @@
             const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-            // Recibos "por pagar": exactamente los mismos que muestra la
-            // pestaña Recibos con el filtro "Pendiente" (misma función
-            // estadoRealRecibo, sin ninguna exclusión adicional aquí).
-            // Esto evita que la card/modal se desincronice de lo que el
-            // cliente ya ve en la lista de recibos.
-            const vencimientos = data.recibos.filter(r => estadoRealRecibo(r) === 'Pendiente');
+            // Recibos "por pagar este mes": deben estar Pendientes (no
+            // pagados, no cancelados, no vencidos por más de 30 días de
+            // gracia) Y además cumplir alguna de estas dos condiciones:
+            //   a) su fecha límite cae dentro del mes/año actual, o
+            //   b) ya venció en un mes anterior pero sigue dentro de sus
+            //      30 días de gracia (estadoRealRecibo ya garantiza esto,
+            //      así que basta con que su fecha sea anterior a hoy).
+            const vencimientos = data.recibos.filter(r => {
+                if (estadoRealRecibo(r) !== 'Pendiente') return false;
+
+                const fecha = parseFechaMX(r.fecha);
+                const esDeEsteMes = fecha.getMonth() + 1 === mesActual && fecha.getFullYear() === añoActual;
+                const yaVencioPeroSigueEnGracia = fecha < fechaActual;
+
+                return esDeEsteMes || yaVencioPeroSigueEnGracia;
+            });
 
             sessionStorage.setItem('vencimientosDelMes', JSON.stringify(vencimientos));
 
