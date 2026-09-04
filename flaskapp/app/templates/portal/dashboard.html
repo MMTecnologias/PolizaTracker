@@ -2104,29 +2104,12 @@
             const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-            // Pólizas canceladas: sus recibos ya no se van a cobrar.
-            // Se compara por ID (no por folio/numero): el mismo folio puede
-            // repetirse entre una póliza vieja cancelada y su renovación
-            // activa, y comparar por texto excluiría por error los recibos
-            // de la póliza vigente.
-            const polizasCanceladasIds = new Set(
-                data.polizas.filter(p => p.estado === 'Cancelada').map(p => p.id)
-            );
-
-            // Recibos reales sin pagar: los de este mes, más cualquier atrasado
-            // que siga dentro del periodo de gracia (estadoRealRecibo == 'Pendiente'),
-            // siempre que su póliza siga activa. Los que ya pasaron a 'Vencido'
-            // (más de 30 días de atraso) NO se cuentan aquí.
-            const vencimientos = data.recibos.filter(r => {
-                if (polizasCanceladasIds.has(r.polizaId)) return false;
-                if (estadoRealRecibo(r) !== 'Pendiente') return false;
-
-                const fecha = parseFechaMX(r.fecha);
-                const esDeEsteMes = fecha.getMonth() + 1 === mesActual && fecha.getFullYear() === añoActual;
-                const yaVencioPeroEnGracia = fecha < fechaActual;
-
-                return esDeEsteMes || yaVencioPeroEnGracia;
-            });
+            // Recibos "por pagar": exactamente los mismos que muestra la
+            // pestaña Recibos con el filtro "Pendiente" (misma función
+            // estadoRealRecibo, sin ninguna exclusión adicional aquí).
+            // Esto evita que la card/modal se desincronice de lo que el
+            // cliente ya ve en la lista de recibos.
+            const vencimientos = data.recibos.filter(r => estadoRealRecibo(r) === 'Pendiente');
 
             sessionStorage.setItem('vencimientosDelMes', JSON.stringify(vencimientos));
 
