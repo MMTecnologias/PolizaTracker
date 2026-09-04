@@ -363,6 +363,14 @@
             margin-bottom: 0.5rem;
         }
 
+        .metric-value-multi {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
         .metric-detail {
             font-size: 12px;
             color: var(--gray-500);
@@ -881,8 +889,8 @@
             background: var(--gray-50);
             border: 1px solid var(--gray-200);
             border-radius: 8px;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.6rem;
             transition: all 0.2s ease;
         }
 
@@ -895,31 +903,38 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
+            margin-bottom: 0.6rem;
+            padding-bottom: 0.6rem;
             border-bottom: 1px solid var(--gray-200);
         }
 
         .vencimiento-poliza {
             font-weight: 600;
             color: #01303F;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .vencimiento-cuota {
             background: var(--accent);
             color: white;
-            padding: 0.25rem 0.75rem;
+            padding: 0.2rem 0.6rem;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .vencimiento-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 0.75rem;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 700px) {
+            .vencimiento-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .vencimiento-field {
@@ -928,15 +943,15 @@
         }
 
         .vencimiento-label {
-            font-size: 12px;
+            font-size: 10px;
             color: var(--gray-500);
             text-transform: uppercase;
             font-weight: 600;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.15rem;
         }
 
         .vencimiento-value {
-            font-size: 14px;
+            font-size: 13px;
             color: #1a1a1a;
             font-weight: 500;
         }
@@ -945,12 +960,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-top: 1rem;
+            padding-top: 0.6rem;
             border-top: 1px solid var(--gray-200);
         }
 
         .vencimiento-monto {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--accent);
         }
@@ -1342,6 +1357,12 @@
                                 </select>
                             </div>
                             <div class="filter-group">
+                                <label>Aseguradora</label>
+                                <select id="aseguradoraFilterRecibos">
+                                    <option value="">Todas las aseguradoras</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
                                 <label>Estado</label>
                                 <select id="estadoFilterRecibos">
                                     <option value="pendientes" selected>Pendientes de pago</option>
@@ -1351,6 +1372,14 @@
                                     <option value="Vencido">Vencidos</option>
                                     <option value="Cancelado">Cancelados</option>
                                 </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Vencimiento desde</label>
+                                <input type="date" id="fechaDesdeFilterRecibos">
+                            </div>
+                            <div class="filter-group">
+                                <label>Vencimiento hasta</label>
+                                <input type="date" id="fechaHastaFilterRecibos">
                             </div>
                         </div>
                     </div>
@@ -1429,6 +1458,28 @@
             return mapa[estado] || 'pendiente';
         }
 
+        // Días de gracia después de la fecha límite antes de considerar
+        // un recibo realmente "Vencido" (sigue contando como Pendiente
+        // mientras esté dentro de este plazo)
+        const DIAS_GRACIA_RECIBO = 30;
+
+        // Calcula el estado real de un recibo: ignora si la BD dice
+        // "Pendiente" o "Vencido" y lo calcula a partir de fechas —
+        // solo respeta Liquidado/Cancelado como estados finales.
+        // Dentro del periodo de gracia (30 días tras el vencimiento)
+        // sigue contando como Pendiente; después, como Vencido.
+        function estadoRealRecibo(r) {
+            if (r.estado === 'Liquidado' || r.estado === 'Cancelado') return r.estado;
+
+            const fechaLimite = parseFechaMX(r.fecha);
+            const hoy = new Date();
+            const hoyMedianoche = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+            const msPorDia = 24 * 60 * 60 * 1000;
+            const diasTranscurridos = Math.floor((hoyMedianoche - fechaLimite) / msPorDia);
+
+            return diasTranscurridos > DIAS_GRACIA_RECIBO ? 'Vencido' : 'Pendiente';
+        }
+
         // Convierte la respuesta de /portal/api/mis-datos al formato que usan
         // renderPolizas(), renderRecibos() y calcularVencimientosDelMes()
         function transformarDatos(json) {
@@ -1464,6 +1515,7 @@
                     primaTotal: r.primaTotal,
                     fechaInicio: r.fechaInicio,
                     fecha: r.fechaVencimiento,
+                    fechaPago: r.fechaPago,
                     concepto: poliza ? `Prima ${poliza.tipo}` : 'Prima de póliza',
                     estado: r.status,
                     reciboPDF: r.comprobante || '',
@@ -1552,6 +1604,12 @@
 
             actualizarMetricas();
             poblarFiltros();
+
+            // Forzar el filtro de Recibos a "Pendientes de pago" por default
+            // cada vez que se carga un cliente
+            document.getElementById('estadoFilterRecibos').value = 'pendientes';
+            document.getElementById('sortRecibos').value = 'fecha-asc';
+
             renderPolizas();
             renderSiniestros();
             renderRecibos();
@@ -1617,9 +1675,10 @@
             const aseguradoras = [...new Set(data.polizas.map(p => p.compania))].sort();
             const numerosPoliza = [...new Set(data.polizas.map(p => p.numero))].sort();
 
-            const selAseguradora = document.getElementById('aseguradoraFilterPolizas');
-            selAseguradora.innerHTML = '<option value="">Todas las aseguradoras</option>' +
+            const opcionesAseguradora = '<option value="">Todas las aseguradoras</option>' +
                 aseguradoras.map(a => `<option value="${a}">${a}</option>`).join('');
+            document.getElementById('aseguradoraFilterPolizas').innerHTML = opcionesAseguradora;
+            document.getElementById('aseguradoraFilterRecibos').innerHTML = opcionesAseguradora;
 
             const opcionesPoliza = '<option value="">Todas las pólizas</option>' +
                 numerosPoliza.map(n => `<option value="${n}">${n}</option>`).join('');
@@ -1678,8 +1737,8 @@
             }
 
             container.innerHTML = sorted.map(p => `
-                <div class="item-card" onclick="this.classList.toggle('expanded'); this.querySelector('.item-content').classList.toggle('active');">
-                    <div class="item-header">
+                <div class="item-card">
+                    <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
                             <div class="item-title">${p.numero}</div>
                             <div class="item-subtitle">${p.tipo} • ${p.compania}</div>
@@ -1796,8 +1855,8 @@
             }
 
             container.innerHTML = sorted.map(s => `
-                <div class="item-card" onclick="this.classList.toggle('expanded'); this.querySelector('.item-content').classList.toggle('active');">
-                    <div class="item-header">
+                <div class="item-card">
+                    <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
                             <div class="item-title">${s.numero}</div>
                             <div class="item-subtitle">${s.tipo} • Póliza ${s.poliza}</div>
@@ -1868,15 +1927,25 @@
             const container = document.getElementById('recibosContainer');
             const searchVal = document.getElementById('searchRecibos').value.trim().toLowerCase();
             const polizaVal = document.getElementById('polizaFilterRecibos').value;
+            const aseguradoraVal = document.getElementById('aseguradoraFilterRecibos').value;
             const estadoVal = document.getElementById('estadoFilterRecibos').value;
+            const fechaDesdeVal = document.getElementById('fechaDesdeFilterRecibos').value;
+            const fechaHastaVal = document.getElementById('fechaHastaFilterRecibos').value;
             const sortVal = document.getElementById('sortRecibos').value;
 
             let filtrado = data.recibos.filter(r => {
                 if (searchVal && !`${r.numero} ${r.poliza} ${r.concepto}`.toLowerCase().includes(searchVal)) return false;
                 if (polizaVal && r.poliza !== polizaVal) return false;
+                if (aseguradoraVal && r.aseguradora !== aseguradoraVal) return false;
+
+                const fechaRecibo = parseFechaMX(r.fecha);
+                if (fechaDesdeVal && fechaRecibo < new Date(fechaDesdeVal)) return false;
+                if (fechaHastaVal && fechaRecibo > new Date(fechaHastaVal)) return false;
+
+                const real = estadoRealRecibo(r);
                 if (estadoVal === 'pendientes') {
-                    if (!['Pendiente', 'Vencido'].includes(r.estado)) return false;
-                } else if (estadoVal && r.estado !== estadoVal) {
+                    if (!['Pendiente', 'Vencido'].includes(real)) return false;
+                } else if (estadoVal && real !== estadoVal) {
                     return false;
                 }
                 return true;
@@ -1887,7 +1956,7 @@
             if (sortVal === 'fecha-desc') sorted.sort((a, b) => parseFechaMX(b.fecha) - parseFechaMX(a.fecha));
             if (sortVal === 'monto-desc') sorted.sort((a, b) => b.monto - a.monto);
             if (sortVal === 'monto-asc') sorted.sort((a, b) => a.monto - b.monto);
-            if (sortVal === 'estado') sorted.sort((a, b) => a.estado.localeCompare(b.estado));
+            if (sortVal === 'estado') sorted.sort((a, b) => estadoRealRecibo(a).localeCompare(estadoRealRecibo(b)));
 
             document.getElementById('infoRecibos').textContent =
                 `Mostrando ${sorted.length} de ${data.recibos.length} recibos`;
@@ -1897,18 +1966,21 @@
                 return;
             }
 
-            container.innerHTML = sorted.map(r => `
-                <div class="item-card" onclick="this.classList.toggle('expanded'); this.querySelector('.item-content').classList.toggle('active');">
-                    <div class="item-header">
+            container.innerHTML = sorted.map(r => {
+                const real = estadoRealRecibo(r);
+                const yaPagado = real === 'Liquidado';
+                return `
+                <div class="item-card">
+                    <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
                             <div class="item-title">${r.numero}</div>
                             <div class="item-subtitle">${r.concepto} • ${r.fecha}</div>
-                            <div class="item-status status-${estadoClase(r.estado)}">
+                            <div class="item-status status-${estadoClase(real)}">
                                 <svg class="icon" style="width: 14px; height: 14px; margin-right: 0.3rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                     <circle cx="12" cy="12" r="10"></circle>
                                 </svg>
-                                ${(r.estado || '').toUpperCase()}
+                                ${real.toUpperCase()}
                             </div>
                         </div>
                         <div class="expand-icon">
@@ -1928,12 +2000,12 @@
                                 <div class="detail-value">${r.poliza}</div>
                             </div>
                             <div class="detail-group">
-                                <div class="detail-label">Monto Pagado</div>
-                                <div class="detail-value">$${(r.monto || 0).toLocaleString()}</div>
+                                <div class="detail-label">${yaPagado ? 'Monto Pagado' : 'Monto a Pagar'}</div>
+                                <div class="detail-value">${formatMoneda(r.monto, r.moneda)}</div>
                             </div>
                             <div class="detail-group">
-                                <div class="detail-label">Fecha de Pago</div>
-                                <div class="detail-value">${r.fecha}</div>
+                                <div class="detail-label">${yaPagado ? 'Fecha de Pago' : 'Fecha Límite de Pago'}</div>
+                                <div class="detail-value">${yaPagado ? (r.fechaPago || '—') : r.fecha}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Concepto</div>
@@ -1960,7 +2032,8 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // Download functions
@@ -2011,11 +2084,12 @@
             return totales;
         }
 
-        // Convierte {MXN: 1000, USD: 50} en "$1,000.00 MXN + $50.00 USD"
+        // Convierte {MXN: 1000, USD: 50} en "$1,000.00 MXN<br>$50.00 USD"
+        // (una línea por moneda, para no amontonar todo en un solo renglón)
         function formatTotalesPorMoneda(totales) {
             const monedas = Object.keys(totales);
             if (monedas.length === 0) return formatMoneda(0);
-            return monedas.map(m => formatMoneda(totales[m], m)).join(' + ');
+            return monedas.map(m => formatMoneda(totales[m], m)).join('<br>');
         }
 
         function calcularVencimientosDelMes() {
@@ -2053,7 +2127,9 @@
 
             if (totalValue && totalDetail) {
                 const totales = sumarPorMoneda(vencimientos, 'primaTotal');
-                totalValue.textContent = formatTotalesPorMoneda(totales);
+                const monedas = Object.keys(totales);
+                totalValue.innerHTML = formatTotalesPorMoneda(totales);
+                totalValue.className = monedas.length > 1 ? 'metric-value-multi' : 'metric-value';
                 totalDetail.textContent = meses[mesActual - 1] + ' ' + añoActual + ' • Haz clic para ver detalles';
             }
         }
@@ -2106,7 +2182,7 @@
 
             // Actualizar total (agrupado por moneda) y la etiqueta con el número de recibos
             const totales = sumarPorMoneda(vencimientos, 'primaTotal');
-            document.getElementById('modalTotalMonto').textContent = formatTotalesPorMoneda(totales);
+            document.getElementById('modalTotalMonto').innerHTML = formatTotalesPorMoneda(totales);
             document.getElementById('modalTotalLabel').textContent =
                 `Total a pagar en el mes (${vencimientos.length} recibo${vencimientos.length === 1 ? '' : 's'})`;
 
@@ -2139,7 +2215,8 @@
             renderSiniestros
         );
         conectarControles(
-            ['searchRecibos', 'polizaFilterRecibos', 'estadoFilterRecibos', 'sortRecibos'],
+            ['searchRecibos', 'polizaFilterRecibos', 'aseguradoraFilterRecibos', 'estadoFilterRecibos',
+             'fechaDesdeFilterRecibos', 'fechaHastaFilterRecibos', 'sortRecibos'],
             renderRecibos
         );
 

@@ -103,6 +103,7 @@ def mis_datos():
             'polizaId': r.poliza_id,
             'fechaInicio': r.fecha_inicio.strftime('%d/%m/%Y'),
             'fechaVencimiento': r.fecha_vencimiento.strftime('%d/%m/%Y'),
+            'fechaPago': r.fecha_pago.strftime('%d/%m/%Y') if r.fecha_pago else None,
             'primaNeta': float(r.prima_neta),
             'primaTotal': float(r.prima_total),
             'status': r.status,
