@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+   <meta charset="utf-8" />
+   <meta http-equiv="x-ua-compatible" content="ie=edge" />
+   <title>Panel Gerencial</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <link rel="shortcut icon" type="image/png"
+      href="{{ url_for('static',filename='assets/images/icon/favicon.ico') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+
+   <style>
+      /* Pestañas Dashboard / Módulos — mismos tokens de color que el
+         resto del sistema (--color-primario, --gris-medio, Poppins) */
+      .gerente-tabs {
+         display: flex;
+         background-color: white;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio);
+         padding: 0 32px;
+      }
+
+      .gerente-tab {
+         border: none;
+         background: none;
+         padding: 18px 24px;
+         font-size: 1rem;
+         font-weight: 600;
+         color: var(--gris-medio);
+         cursor: pointer;
+         border-bottom: 3px solid transparent;
+         transition: all 0.2s ease;
+      }
+
+      .gerente-tab:hover {
+         color: var(--color-primario);
+      }
+
+      .gerente-tab.active {
+         color: var(--color-primario);
+         border-bottom: 3px solid var(--color-primario);
+      }
+
+      .gerente-tab-content {
+         display: none;
+      }
+
+      .gerente-tab-content.active {
+         display: block;
+      }
+
+      .dashboard-vacio {
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         justify-content: center;
+         height: calc(100vh - 60px - 57px);
+         color: var(--gris-medio);
+         text-align: center;
+      }
+
+      .dashboard-vacio i {
+         font-size: 3rem;
+         margin-bottom: 16px;
+         opacity: 0.4;
+      }
+   </style>
+</head>
+
+<body>
+   <nav class="navbar">
+      <div class="app-section">
+         <h2 class="name-app">Póliza Tracker</h2>
+         <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" class="logo-ggc" />
+      </div>
+      <div class="user-profile pull-right">
+         <h6 class="user-name dropdown-toggle" data-toggle="dropdown">
+            {{ current_user.username }}<i class="fa fa-angle-down"></i>
+         </h6>
+         <div class="dropdown-menu">
+            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
+            <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
+         </div>
+      </div>
+   </nav>
+
+   <!-- Pestañas Dashboard / Módulos -->
+   <div class="gerente-tabs">
+      <button class="gerente-tab active" data-tab="dashboard">Dashboard</button>
+      <button class="gerente-tab" data-tab="modulos">Módulos</button>
+   </div>
+
+   <!-- PESTAÑA: DASHBOARD (vacía por ahora, a propósito) -->
+   <div class="gerente-tab-content active" id="tab-dashboard">
+      <div class="dashboard-vacio">
+         <i class="fa fa-bar-chart"></i>
+         <h4>Dashboard Gerencial</h4>
+         <p>Próximamente</p>
+      </div>
+   </div>
+
+   <!-- PESTAÑA: MÓDULOS (las 6 cards que el Gerente sí puede ver) -->
+   <div class="gerente-tab-content" id="tab-modulos">
+      <div class="general-card-container">
+         <div class="tarjeta-container">
+            <a href="{{ url_for('main.polizas') }}" class="card" id="polizas">
+               <div name="polizas">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/documentos.png') }}" />
+                  <h3 class="text-card">Pólizas</h3>
+               </div>
+            </a>
+            <a href="{{ url_for('main.endosos') }}" class="card" id="endosos">
+               <div name="endosos">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/documentos.png') }}" />
+                  <h3 class="text-card">Endosos</h3>
+               </div>
+            </a>
+            <a href="{{ url_for('main.recibos') }}" class="card" id="recibos">
+               <div name="recibos">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/reportes.png') }}" />
+                  <h3 class="text-card">Recibos</h3>
+               </div>
+            </a>
+            <a href="{{ url_for('main.vencimientos') }}" class="card" id="vencimientos">
+               <div name="vencimientos">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/vencimientos.png') }}" />
+                  <h3 class="text-card">Vencimientos</h3>
+               </div>
+            </a>
+            <a href="{{ url_for('main.reportesG') }}" class="card" id="reportesG">
+               <div name="reportesG">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/reportes.png') }}" />
+                  <h3 class="text-card">Reportes Gerenciales</h3>
+               </div>
+            </a>
+            <a href="{{ url_for('main.solicitudes') }}" class="card" id="solicitudes">
+               <div class="numberOfRequests hidden">
+                  <h4 class="nor-txt" id="numberOfRequests">
+                     ...
+                  </h4>
+               </div>
+               <div name="solicitudes">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/reportes.png') }}" />
+                  <h3 class="text-card">Solicitudes</h3>
+               </div>
+            </a>
+         </div>
+      </div>
+   </div>
+
+   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+
+   <script>
+      $(function () {
+         // Cambio de pestañas
+         $('.gerente-tab').on('click', function () {
+            const tab = $(this).data('tab');
+            $('.gerente-tab').removeClass('active');
+            $(this).addClass('active');
+            $('.gerente-tab-content').removeClass('active');
+            $('#tab-' + tab).addClass('active');
+         });
+
+         // Contador de solicitudes pendientes (igual que en menuP.html)
+         const numberOfRequests = async () => {
+            const response = await fetch('/solicitudes/get_pending');
+            const data = await response.json();
+            const bubble = document.querySelector('.numberOfRequests');
+            const bubbleTxt = document.querySelector('#numberOfRequests');
+            data.recordsTotal == 0
+               ? bubble.classList.add('hidden')
+               : bubble.classList.remove('hidden');
+            bubbleTxt.innerHTML = data.recordsTotal;
+         };
+         numberOfRequests();
+      });
+   </script>
+</body>
+
+</html>
