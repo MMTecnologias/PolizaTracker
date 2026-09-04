@@ -1506,6 +1506,7 @@
                 const poliza = polizasPorId[r.polizaId];
                 return {
                     numero: r.numero,
+                    polizaId: r.polizaId,
                     poliza: poliza ? poliza.numero : '',
                     aseguradora: poliza ? poliza.compania : '',
                     moneda: poliza ? poliza.moneda : 'MXN',
@@ -1672,15 +1673,21 @@
         // seleccionado (aseguradoras, tipos de cobertura, números de póliza)
         function poblarFiltros() {
             const aseguradoras = [...new Set(data.polizas.map(p => p.compania))].sort();
-            const numerosPoliza = [...new Set(data.polizas.map(p => p.numero))].sort();
 
             const opcionesAseguradora = '<option value="">Todas las aseguradoras</option>' +
                 aseguradoras.map(a => `<option value="${a}">${a}</option>`).join('');
             document.getElementById('aseguradoraFilterPolizas').innerHTML = opcionesAseguradora;
             document.getElementById('aseguradoraFilterRecibos').innerHTML = opcionesAseguradora;
 
+            // Se usa el ID único de cada póliza como valor (no el folio):
+            // dos pólizas pueden compartir folio (una cancelada y su
+            // renovación), y filtrar por texto mezclaría los recibos de
+            // ambas. El estado se agrega al texto visible para diferenciarlas.
             const opcionesPoliza = '<option value="">Todas las pólizas</option>' +
-                numerosPoliza.map(n => `<option value="${n}">${n}</option>`).join('');
+                [...data.polizas]
+                    .sort((a, b) => a.numero.localeCompare(b.numero))
+                    .map(p => `<option value="${p.id}">${p.numero} — ${p.estado}</option>`)
+                    .join('');
             document.getElementById('polizaFilterSiniestros').innerHTML = opcionesPoliza;
             document.getElementById('polizaFilterRecibos').innerHTML = opcionesPoliza;
         }
@@ -1829,7 +1836,7 @@
 
             let filtrado = data.siniestros.filter(s => {
                 if (searchVal && !`${s.numero} ${s.tipo} ${s.poliza}`.toLowerCase().includes(searchVal)) return false;
-                if (polizaVal && s.poliza !== polizaVal) return false;
+                if (polizaVal && String(s.polizaId) !== polizaVal) return false;
                 if (estadoVal && s.estado !== estadoVal) return false;
                 return true;
             });
@@ -1934,7 +1941,7 @@
 
             let filtrado = data.recibos.filter(r => {
                 if (searchVal && !`${r.numero} ${r.poliza} ${r.concepto}`.toLowerCase().includes(searchVal)) return false;
-                if (polizaVal && r.poliza !== polizaVal) return false;
+                if (polizaVal && String(r.polizaId) !== polizaVal) return false;
                 if (aseguradoraVal && r.aseguradora !== aseguradoraVal) return false;
 
                 const fechaRecibo = parseFechaMX(r.fecha);
@@ -2097,9 +2104,13 @@
             const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-            // Pólizas canceladas: sus recibos ya no se van a cobrar
-            const polizasCanceladas = new Set(
-                data.polizas.filter(p => p.estado === 'Cancelada').map(p => p.numero)
+            // Pólizas canceladas: sus recibos ya no se van a cobrar.
+            // Se compara por ID (no por folio/numero): el mismo folio puede
+            // repetirse entre una póliza vieja cancelada y su renovación
+            // activa, y comparar por texto excluiría por error los recibos
+            // de la póliza vigente.
+            const polizasCanceladasIds = new Set(
+                data.polizas.filter(p => p.estado === 'Cancelada').map(p => p.id)
             );
 
             // Recibos reales sin pagar: los de este mes, más cualquier atrasado
@@ -2107,7 +2118,7 @@
             // siempre que su póliza siga activa. Los que ya pasaron a 'Vencido'
             // (más de 30 días de atraso) NO se cuentan aquí.
             const vencimientos = data.recibos.filter(r => {
-                if (polizasCanceladas.has(r.poliza)) return false;
+                if (polizasCanceladasIds.has(r.polizaId)) return false;
                 if (estadoRealRecibo(r) !== 'Pendiente') return false;
 
                 const fecha = parseFechaMX(r.fecha);
