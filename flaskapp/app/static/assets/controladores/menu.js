@@ -18,13 +18,9 @@ $(function () {
   } else if (nivelUsuario === 'Gerente') {
     $('#polizas').show();
     $('#endosos').show();
-    $('#clientes').show();
     $('#recibos').show();
     $('#vencimientos').show();
-    $('#reportes').show();
-    $('#usuarios').show();
     $('#reportesG').show();
-    $('#utilerias').show();
     $('#solicitudes').show();
   } else if (nivelUsuario === 'Usuario') {
     $('#polizas').show();
