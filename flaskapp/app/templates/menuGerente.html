@@ -192,7 +192,8 @@
       }
 
       .panorama-card-value.multi {
-         font-size: 1.05rem;
+         font-size: 0.85rem;
+         line-height: 1.5;
       }
 
       .panorama-card-detail {
@@ -551,11 +552,9 @@
             <div class="panorama-card">
                <div class="panorama-card-label">Pólizas Vigentes</div>
                <div class="panorama-card-value" id="valPolizasVigentesPeriodo">—</div>
-               <div class="panorama-card-detail" id="detPolizasVigentesTotal"></div>
                <div class="panorama-vigentes-desglose">
                   <span>Canceladas: <b id="valPolizasCanceladas">—</b></span>
                   <span>Finalizadas: <b id="valPolizasFinalizadas">—</b></span>
-                  <span>No pagadas: <b id="valPolizasNoPagadas">—</b></span>
                </div>
             </div>
             <div class="panorama-card clickable" onclick="abrirModalRenovar()">
@@ -868,11 +867,8 @@
                document.getElementById('detPolizasRenovadas').textContent =
                   `${data.polizasRenovadas} renovadas`;
                document.getElementById('valPolizasVigentesPeriodo').textContent = data.polizasVigentesPeriodo;
-               document.getElementById('detPolizasVigentesTotal').textContent =
-                  `${data.polizasVigentesTotal} vigentes en total`;
                document.getElementById('valPolizasCanceladas').textContent = data.polizasCanceladas;
                document.getElementById('valPolizasFinalizadas').textContent = data.polizasFinalizadas;
-               document.getElementById('valPolizasNoPagadas').textContent = data.polizasNoPagadas;
                document.getElementById('valPolizasPorRenovar').textContent = data.polizasPorRenovar;
 
                const recibosEl = document.getElementById('valRecibosPendientes');
