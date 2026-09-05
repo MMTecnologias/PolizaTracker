@@ -91,6 +91,24 @@ def _filtro_con_gracia(columna_fecha, desde, hasta, dias_gracia):
     )
 
 
+def _filtro_poliza_elegible_para_cobranza():
+    """Una póliza cuenta para efectos de cobranza (Recibos Pendientes
+    de Cobro) si está Vigente, o si ya venció pero sigue dentro de su
+    periodo de gracia de renovación (20 días) — usa el mismo criterio
+    que 'Pólizas por Renovar'. Se excluyen siempre las Canceladas, y
+    cualquier póliza (de cualquier otro estado) cuya fecha_termino ya
+    superó ese margen de gracia."""
+    hoy = date.today()
+    limite_gracia = hoy - timedelta(days=DIAS_GRACIA_RENOVACION)
+    return and_(
+        Poliza.status != 'Cancelada',
+        or_(
+            Poliza.status == 'Vigente',
+            Poliza.fecha_termino >= limite_gracia,
+        ),
+    )
+
+
 @dashboard_gerencial.route('/api/panorama')
 @login_required
 def panorama():
@@ -129,8 +147,38 @@ def panorama():
                                   Poliza.Poliza_renovada == 'Si')
                           .count())
 
-    # 3) Pólizas Vigentes — siempre a hoy
-    polizas_vigentes = Poliza.query.filter(Poliza.status == 'Vigente').count()
+    # 3) Pólizas Vigentes — ahora es un desglose de 5 números, no solo 1
+    hoy = date.today()
+    limite_gracia_vigencia = hoy - timedelta(days=DIAS_GRACIA_RENOVACION)
+
+    # "Vigente" aquí se calcula por fecha (no por el campo status crudo):
+    # no cancelada, no finalizada, y su fecha_termino no ha superado
+    # los 20 días de gracia (una recién vencida en gracia sigue
+    # contando como vigente)
+    filtro_vigente_por_fecha = and_(
+        Poliza.status.notin_(['Cancelada', 'Finalizada']),
+        Poliza.fecha_termino >= limite_gracia_vigencia,
+    )
+
+    # Vigentes dentro del periodo elegido en el filtro: su vigencia se
+    # traslapa con el rango [desde, hasta]
+    polizas_vigentes_periodo = (Poliza.query
+                                 .filter(filtro_vigente_por_fecha,
+                                         Poliza.fecha_inicio <= hasta,
+                                         Poliza.fecha_termino >= desde)
+                                 .count())
+
+    # Vigentes totales — foto de hoy, sin filtrar por periodo
+    polizas_vigentes_total = Poliza.query.filter(filtro_vigente_por_fecha).count()
+
+    polizas_canceladas = Poliza.query.filter(Poliza.status == 'Cancelada').count()
+    polizas_finalizadas = Poliza.query.filter(Poliza.status == 'Finalizada').count()
+
+    # No pagadas / Vencidas: ya venció y ya se le acabó la gracia
+    polizas_no_pagadas = (Poliza.query
+                           .filter(Poliza.status.notin_(['Cancelada', 'Finalizada']),
+                                   Poliza.fecha_termino < limite_gracia_vigencia)
+                           .count())
 
     # 4) Pólizas por Renovar — AHORA depende del periodo elegido (antes
     #    era fija; se ajustó a petición explícita)
@@ -147,7 +195,8 @@ def panorama():
     rows_pendientes = (db.session.query(Recibo, Poliza.moneda)
                         .join(Poliza, Recibo.poliza_id == Poliza.id)
                         .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
-                                filtro_recibos)
+                                filtro_recibos,
+                                _filtro_poliza_elegible_para_cobranza())
                         .all())
     pendientes_por_moneda = {}
     polizas_pendientes_ids = {}
@@ -185,7 +234,11 @@ def panorama():
         'primaNetaCobrada': prima_neta_cobrada,
         'polizasNuevas': polizas_nuevas,
         'polizasRenovadas': polizas_renovadas,
-        'polizasVigentes': polizas_vigentes,
+        'polizasVigentesPeriodo': polizas_vigentes_periodo,
+        'polizasVigentesTotal': polizas_vigentes_total,
+        'polizasCanceladas': polizas_canceladas,
+        'polizasFinalizadas': polizas_finalizadas,
+        'polizasNoPagadas': polizas_no_pagadas,
         'polizasPorRenovar': polizas_por_renovar,
         'recibosPendientes': recibos_pendientes,
         'comisionesGeneradas': comisiones_generadas,
@@ -261,7 +314,8 @@ def recibos_pendientes_listado():
             .join(Cliente, Poliza.cliente_id == Cliente.id)
             .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
             .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
-                    filtro_recibos)
+                    filtro_recibos,
+                    _filtro_poliza_elegible_para_cobranza())
             .order_by(Recibo.fecha_vencimiento)
             .all())
 
