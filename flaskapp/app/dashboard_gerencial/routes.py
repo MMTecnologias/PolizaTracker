@@ -2,17 +2,25 @@
 """
 Panorama General del Dashboard Gerencial.
 
-NOTA: 'Pólizas Vigentes', 'Pólizas por Renovar' y 'Recibos Pendientes de
-Cobro' son siempre una foto del día de hoy (no dependen del filtro de
-fecha global). 'Prima Neta Cobrada', 'Pólizas Nuevas' y 'Comisiones
-Generadas' sí dependen del periodo elegido en el filtro.
+'Pólizas Vigentes' es siempre una foto del día de hoy (total agencia).
+Todo lo demás ('Prima Neta Cobrada', 'Pólizas Nuevas', 'Comisiones
+Generadas', 'Pólizas por Renovar' y 'Recibos Pendientes de Cobro')
+depende del periodo elegido en el filtro de fecha global.
+
+Regla de "periodo de gracia" (aplica a Recibos Pendientes y Pólizas
+por Renovar): si el rango elegido queda COMPLETAMENTE en el pasado
+(su 'hasta' ya pasó), solo importa lo que seguía sin resolver dentro
+de ESE rango exacto — no se agrega nada de gracia respecto a hoy,
+porque ya no aplica. Si el rango incluye el día de hoy o es futuro,
+se le suma lo atrasado (respecto a hoy) que siga dentro de su
+periodo de gracia, igual que ya se hace en el Portal del Asegurado.
 """
 from datetime import date, timedelta
 from flask import jsonify, request
 from flask_login import login_required
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 from app import db
-from app.models import Poliza, Recibo
+from app.models import Poliza, Recibo, Cliente, Aseguradora
 from . import dashboard_gerencial
 
 DIAS_GRACIA_RECIBO = 30
@@ -58,11 +66,28 @@ def _recibos_estado_real(status_bd, fecha_vencimiento, hoy=None):
     return 'Vencido' if dias_transcurridos > DIAS_GRACIA_RECIBO else 'Pendiente'
 
 
+def _filtro_con_gracia(columna_fecha, desde, hasta, dias_gracia):
+    """Arma el filtro SQL para 'dentro del periodo elegido, o atrasado
+    respecto a HOY pero aún en gracia'. Si el periodo elegido ya quedó
+    completamente en el pasado, NO se agrega la gracia — solo aplica
+    el rango exacto elegido."""
+    hoy = date.today()
+
+    if hasta < hoy:
+        # Periodo totalmente pasado: sin gracia extra, solo el rango tal cual
+        return and_(columna_fecha >= desde, columna_fecha <= hasta)
+
+    limite_gracia = hoy - timedelta(days=dias_gracia)
+    return or_(
+        and_(columna_fecha >= desde, columna_fecha <= hasta),
+        and_(columna_fecha < hoy, columna_fecha >= limite_gracia),
+    )
+
+
 @dashboard_gerencial.route('/api/panorama')
 @login_required
 def panorama():
     desde, hasta = _resolver_periodo()
-    hoy = date.today()
 
     # 1) Prima Neta Cobrada (por moneda) — periodo seleccionado
     rows_prima = (db.session.query(
@@ -89,25 +114,33 @@ def panorama():
                                Poliza.fecha_captura <= hasta)
                        .count())
 
+    # De esas mismas pólizas capturadas en el periodo, cuántas son
+    # renovaciones (Poliza_renovada = 'Si')
+    polizas_renovadas = (Poliza.query
+                          .filter(Poliza.fecha_captura >= desde,
+                                  Poliza.fecha_captura <= hasta,
+                                  Poliza.Poliza_renovada == 'Si')
+                          .count())
+
     # 3) Pólizas Vigentes — siempre a hoy
     polizas_vigentes = Poliza.query.filter(Poliza.status == 'Vigente').count()
 
-    # 4) Pólizas por Renovar — siempre a hoy (fecha_termino entre
-    #    hoy-20 dias y fin del mes en curso), sin canceladas
-    _, fin_mes_actual = _primer_y_ultimo_dia_mes(hoy)
-    limite_gracia_renovacion = hoy - timedelta(days=DIAS_GRACIA_RENOVACION)
+    # 4) Pólizas por Renovar — AHORA depende del periodo elegido (antes
+    #    era fija; se ajustó a petición explícita)
+    filtro_renovar = _filtro_con_gracia(
+        Poliza.fecha_termino, desde, hasta, DIAS_GRACIA_RENOVACION)
     polizas_por_renovar = (Poliza.query
-                            .filter(Poliza.fecha_termino >= limite_gracia_renovacion,
-                                    Poliza.fecha_termino <= fin_mes_actual,
+                            .filter(filtro_renovar,
                                     Poliza.status != 'Cancelada')
                             .count())
 
-    # 5) Recibos Pendientes de Cobro — siempre a hoy, agencia completa
-    limite_gracia_recibo = hoy - timedelta(days=DIAS_GRACIA_RECIBO)
+    # 5) Recibos Pendientes de Cobro — depende del periodo elegido
+    filtro_recibos = _filtro_con_gracia(
+        Recibo.fecha_vencimiento, desde, hasta, DIAS_GRACIA_RECIBO)
     rows_pendientes = (db.session.query(Recibo, Poliza.moneda)
                         .join(Poliza, Recibo.poliza_id == Poliza.id)
                         .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
-                                Recibo.fecha_vencimiento >= limite_gracia_recibo)
+                                filtro_recibos)
                         .all())
     pendientes_por_moneda = {}
     polizas_pendientes_ids = {}
@@ -144,6 +177,7 @@ def panorama():
         'periodo': {'desde': desde.isoformat(), 'hasta': hasta.isoformat()},
         'primaNetaCobrada': prima_neta_cobrada,
         'polizasNuevas': polizas_nuevas,
+        'polizasRenovadas': polizas_renovadas,
         'polizasVigentes': polizas_vigentes,
         'polizasPorRenovar': polizas_por_renovar,
         'recibosPendientes': recibos_pendientes,
@@ -151,19 +185,45 @@ def panorama():
     })
 
 
-@dashboard_gerencial.route('/api/polizas_por_renovar/listado')
+@dashboard_gerencial.route('/api/polizas_nuevas/listado')
 @login_required
-def polizas_por_renovar_listado():
-    hoy = date.today()
-    _, fin_mes_actual = _primer_y_ultimo_dia_mes(hoy)
-    limite_gracia = hoy - timedelta(days=DIAS_GRACIA_RENOVACION)
+def polizas_nuevas_listado():
+    """Listado combinado de pólizas Nuevas + Renovadas del periodo
+    (para el modal que se abre al hacer clic en la card)."""
+    desde, hasta = _resolver_periodo()
 
-    from app.models import Cliente, Aseguradora
     rows = (db.session.query(Poliza, Cliente, Aseguradora)
             .join(Cliente, Poliza.cliente_id == Cliente.id)
             .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
-            .filter(Poliza.fecha_termino >= limite_gracia,
-                    Poliza.fecha_termino <= fin_mes_actual,
+            .filter(Poliza.fecha_captura >= desde,
+                    Poliza.fecha_captura <= hasta)
+            .order_by(Poliza.fecha_captura)
+            .all())
+
+    data = [{
+        'poliza': p.poliza,
+        'cliente': f'{c.nombre} {c.apellido}'.strip(),
+        'aseguradora': a.aseguradora,
+        'fechaCaptura': p.fecha_captura.strftime('%d/%m/%Y'),
+        'tipo': 'Renovada' if p.Poliza_renovada == 'Si' else 'Nueva',
+        'primaTotal': float(p.prima_total),
+        'moneda': p.moneda,
+    } for p, c, a in rows]
+
+    return jsonify({'items': data})
+
+
+@dashboard_gerencial.route('/api/polizas_por_renovar/listado')
+@login_required
+def polizas_por_renovar_listado():
+    desde, hasta = _resolver_periodo()
+    filtro_renovar = _filtro_con_gracia(
+        Poliza.fecha_termino, desde, hasta, DIAS_GRACIA_RENOVACION)
+
+    rows = (db.session.query(Poliza, Cliente, Aseguradora)
+            .join(Cliente, Poliza.cliente_id == Cliente.id)
+            .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+            .filter(filtro_renovar,
                     Poliza.status != 'Cancelada')
             .order_by(Poliza.fecha_termino)
             .all())
@@ -185,15 +245,16 @@ def polizas_por_renovar_listado():
 @login_required
 def recibos_pendientes_listado():
     hoy = date.today()
-    limite_gracia = hoy - timedelta(days=DIAS_GRACIA_RECIBO)
+    desde, hasta = _resolver_periodo()
+    filtro_recibos = _filtro_con_gracia(
+        Recibo.fecha_vencimiento, desde, hasta, DIAS_GRACIA_RECIBO)
 
-    from app.models import Cliente, Aseguradora
     rows = (db.session.query(Recibo, Poliza, Cliente, Aseguradora)
             .join(Poliza, Recibo.poliza_id == Poliza.id)
             .join(Cliente, Poliza.cliente_id == Cliente.id)
             .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
             .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
-                    Recibo.fecha_vencimiento >= limite_gracia)
+                    filtro_recibos)
             .order_by(Recibo.fecha_vencimiento)
             .all())
 

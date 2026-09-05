@@ -137,6 +137,12 @@
          cursor: pointer;
       }
 
+      .panorama-periodo-texto {
+         font-size: 0.85rem;
+         font-weight: 500;
+         color: var(--gris-medio);
+      }
+
       .panorama-cards {
          display: flex;
          gap: 16px;
@@ -282,6 +288,20 @@
          border-bottom: 1px solid var(--color-claro);
       }
 
+      .modal-total-footer {
+         margin-top: 14px;
+         padding-top: 12px;
+         border-top: 2px solid var(--color-primario);
+         text-align: right;
+         font-weight: 700;
+         font-size: 0.95rem;
+         color: var(--color-primario);
+      }
+
+      .modal-total-footer .modal-total-linea {
+         display: block;
+      }
+
       @media print {
          body * {
             visibility: hidden;
@@ -301,6 +321,110 @@
             top: 0;
             left: 0;
             width: 100%;
+            max-height: none !important;
+            overflow: visible !important;
+         }
+
+         .modal-gerencial-content {
+            max-height: none !important;
+            overflow: visible !important;
+            width: 100% !important;
+            box-shadow: none !important;
+         }
+
+         .print-header {
+            display: flex !important;
+         }
+      }
+
+      /* Logo + título, solo visible al imprimir (oculto en pantalla) */
+      .print-header {
+         display: none;
+         align-items: center;
+         gap: 12px;
+         margin-bottom: 16px;
+         padding-bottom: 12px;
+         border-bottom: 2px solid var(--color-primario);
+      }
+
+      .print-header img {
+         height: 50px;
+         width: auto;
+      }
+
+      .print-header h3 {
+         margin: 0;
+         color: var(--color-primario);
+      }
+
+      /* ============ RESPONSIVIDAD MÓVIL ============ */
+      @media (max-width: 768px) {
+         .name-app {
+            display: none;
+         }
+
+         .navbar-tabs {
+            gap: 4px;
+         }
+
+         .gerente-tab {
+            padding: 0 12px;
+            font-size: 0.82rem;
+         }
+
+         .panorama-container {
+            padding: 16px;
+         }
+
+         .panorama-periodo-texto {
+            display: block;
+            font-size: 0.8rem;
+            margin-top: 4px;
+         }
+
+         .panorama-filtro {
+            flex-wrap: wrap;
+         }
+
+         .panorama-cards {
+            flex-direction: column;
+            overflow-x: visible;
+         }
+
+         .panorama-card {
+            min-width: 0;
+         }
+
+         #tab-modulos .card {
+            width: calc(100% - 32px);
+         }
+
+         #tab-modulos .card img.card-img-top {
+            max-width: 70px;
+         }
+
+         .modal-gerencial-content {
+            width: 96%;
+            max-height: 90vh;
+         }
+
+         .modal-gerencial-acciones {
+            flex-wrap: wrap;
+         }
+
+         .modal-gerencial-body {
+            overflow-x: auto;
+         }
+
+         .modal-gerencial-table {
+            font-size: 0.75rem;
+            min-width: 560px;
+         }
+      }
+
+      @media (min-width: 769px) and (max-width: 1024px) {
+         #tab-modulos .card {
+            width: calc((100% - 128px) / 2);
          }
       }
    </style>
@@ -332,7 +456,7 @@
    <!-- PESTAÑA: DASHBOARD -->
    <div class="gerente-tab-content active" id="tab-dashboard">
       <div class="panorama-container">
-         <h4>Panorama General</h4>
+         <h4>Panorama General <span id="panoramaPeriodoTexto" class="panorama-periodo-texto"></span></h4>
 
          <div class="panorama-filtro">
             <label>Periodo:</label>
@@ -355,9 +479,10 @@
                <div class="panorama-card-value" id="valPrimaNeta">—</div>
                <div class="panorama-card-detail" id="detPrimaNeta"></div>
             </div>
-            <div class="panorama-card">
+            <div class="panorama-card clickable" onclick="abrirModalPolizasNuevas()">
                <div class="panorama-card-label">Pólizas Nuevas</div>
                <div class="panorama-card-value" id="valPolizasNuevas">—</div>
+               <div class="panorama-card-detail" id="detPolizasRenovadas"></div>
             </div>
             <div class="panorama-card">
                <div class="panorama-card-label">Pólizas Vigentes</div>
@@ -381,6 +506,40 @@
       </div>
    </div>
 
+   <!-- MODAL: PÓLIZAS NUEVAS + RENOVADAS -->
+   <div class="modal-gerencial" id="modalPolizasNuevas">
+      <div class="modal-gerencial-content">
+         <div class="modal-gerencial-header">
+            <h4>Pólizas Nuevas y Renovadas</h4>
+            <button class="modal-gerencial-close" onclick="cerrarModal('modalPolizasNuevas')">✕</button>
+         </div>
+         <div class="modal-gerencial-body">
+            <div class="print-header">
+               <img src="{{ url_for('static', filename='assets/images/GGcorp_logo_for_Repor.png') }}" alt="GGcorp">
+               <h3>Pólizas Nuevas y Renovadas</h3>
+            </div>
+            <div class="modal-gerencial-acciones">
+               <button onclick="exportarExcel('modalPolizasNuevas', 'polizas_nuevas_renovadas')">Exportar Excel</button>
+               <button onclick="exportarPDF('modalPolizasNuevas', 'polizas_nuevas_renovadas', 'Pólizas Nuevas y Renovadas')">Exportar PDF</button>
+               <button onclick="window.print()">Imprimir</button>
+            </div>
+            <table class="modal-gerencial-table" id="tablaPolizasNuevas">
+               <thead>
+                  <tr>
+                     <th>Póliza</th>
+                     <th>Cliente</th>
+                     <th>Aseguradora</th>
+                     <th>Fecha Captura</th>
+                     <th>Tipo</th>
+                     <th>Prima Total</th>
+                  </tr>
+               </thead>
+               <tbody></tbody>
+            </table>
+         </div>
+      </div>
+   </div>
+
    <!-- MODAL: PÓLIZAS POR RENOVAR -->
    <div class="modal-gerencial" id="modalRenovar">
       <div class="modal-gerencial-content">
@@ -389,9 +548,13 @@
             <button class="modal-gerencial-close" onclick="cerrarModal('modalRenovar')">✕</button>
          </div>
          <div class="modal-gerencial-body">
+            <div class="print-header">
+               <img src="{{ url_for('static', filename='assets/images/GGcorp_logo_for_Repor.png') }}" alt="GGcorp">
+               <h3>Pólizas por Renovar</h3>
+            </div>
             <div class="modal-gerencial-acciones">
-               <button onclick="exportarCSV('modalRenovar', 'polizas_por_renovar')">Exportar Excel</button>
-               <button onclick="window.print()">Exportar PDF</button>
+               <button onclick="exportarExcel('modalRenovar', 'polizas_por_renovar')">Exportar Excel</button>
+               <button onclick="exportarPDF('modalRenovar', 'polizas_por_renovar', 'Pólizas por Renovar')">Exportar PDF</button>
                <button onclick="window.print()">Imprimir</button>
             </div>
             <table class="modal-gerencial-table" id="tablaRenovar">
@@ -419,9 +582,13 @@
             <button class="modal-gerencial-close" onclick="cerrarModal('modalRecibos')">✕</button>
          </div>
          <div class="modal-gerencial-body">
+            <div class="print-header">
+               <img src="{{ url_for('static', filename='assets/images/GGcorp_logo_for_Repor.png') }}" alt="GGcorp">
+               <h3>Recibos Pendientes de Cobro</h3>
+            </div>
             <div class="modal-gerencial-acciones">
-               <button onclick="exportarCSV('modalRecibos', 'recibos_pendientes')">Exportar Excel</button>
-               <button onclick="window.print()">Exportar PDF</button>
+               <button onclick="exportarExcel('modalRecibos', 'recibos_pendientes')">Exportar Excel</button>
+               <button onclick="exportarPDF('modalRecibos', 'recibos_pendientes', 'Recibos Pendientes de Cobro')">Exportar PDF</button>
                <button onclick="window.print()">Imprimir</button>
             </div>
             <table class="modal-gerencial-table" id="tablaRecibos">
@@ -438,6 +605,7 @@
                </thead>
                <tbody></tbody>
             </table>
+            <div class="modal-total-footer" id="totalRecibosPendientes"></div>
          </div>
       </div>
    </div>
@@ -507,6 +675,11 @@
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
 
+   <!-- Librerías para exportar Excel (.xlsx) y PDF reales -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
    <script>
       // Formatea montos con coma de miles + código de moneda
       function formatMoneda(valor, moneda) {
@@ -525,7 +698,13 @@
       }
 
       function fmtFecha(d) {
-         return d.toISOString().slice(0, 10);
+         // OJO: toISOString() convierte a UTC y puede recorrer la fecha
+         // un día si la zona horaria local está detrás de UTC (México).
+         // Usamos los componentes de fecha LOCAL en vez de eso.
+         const y = d.getFullYear();
+         const m = String(d.getMonth() + 1).padStart(2, '0');
+         const day = String(d.getDate()).padStart(2, '0');
+         return `${y}-${m}-${day}`;
       }
 
       function calcularRangoPreset(preset) {
@@ -551,10 +730,40 @@
          return { desde: fmtFecha(desde), hasta: fmtFecha(hasta) };
       }
 
-      let ultimoRenovarItems = [];
-      let ultimoRecibosItems = [];
+      // Guarda los últimos datos cargados de cada modal, para exportar
+      const ultimosItemsPorModal = {
+         modalPolizasNuevas: [],
+         modalRenovar: [],
+         modalRecibos: [],
+      };
+
+      const MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+      // Convierte "2026-09-01".."2026-09-30" en "· Septiembre 2026",
+      // o un rango legible si las fechas no cubren un mes exacto
+      function textoPeriodo(desdeStr, hastaStr) {
+         const [ay, am, ad] = desdeStr.split('-').map(Number);
+         const [by, bm, bd] = hastaStr.split('-').map(Number);
+
+         if (ay === by && am === bm) {
+            return `· ${MESES_ES[am - 1]} ${ay}`;
+         }
+         const fmt = (d, m, y) => `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+         return `· ${fmt(ad, am, ay)} — ${fmt(bd, bm, by)}`;
+      }
+
+      // Guarda el periodo actualmente seleccionado en el filtro, para
+      // que los modales (Pólizas Nuevas, Recibos Pendientes) lo usen
+      // en vez de asumir siempre "mes en curso"
+      let periodoActualDesde = null;
+      let periodoActualHasta = null;
 
       function cargarPanorama(desde, hasta) {
+         periodoActualDesde = desde;
+         periodoActualHasta = hasta;
+         document.getElementById('panoramaPeriodoTexto').textContent = textoPeriodo(desde, hasta);
+
          const qs = new URLSearchParams({ desde, hasta }).toString();
          fetch(`/dashboard_gerencial/api/panorama?${qs}`)
             .then(r => r.json())
@@ -570,6 +779,8 @@
                   `${totalRecibos} recibos · ${totalPolizas} pólizas`;
 
                document.getElementById('valPolizasNuevas').textContent = data.polizasNuevas;
+               document.getElementById('detPolizasRenovadas').textContent =
+                  `${data.polizasRenovadas} renovadas`;
                document.getElementById('valPolizasVigentes').textContent = data.polizasVigentes;
                document.getElementById('valPolizasPorRenovar').textContent = data.polizasPorRenovar;
 
@@ -608,11 +819,33 @@
          document.getElementById(id).classList.remove('active');
       }
 
-      function abrirModalRenovar() {
-         fetch('/dashboard_gerencial/api/polizas_por_renovar/listado')
+      function abrirModalPolizasNuevas() {
+         const qs = new URLSearchParams({ desde: periodoActualDesde, hasta: periodoActualHasta }).toString();
+         fetch(`/dashboard_gerencial/api/polizas_nuevas/listado?${qs}`)
             .then(r => r.json())
             .then(data => {
-               ultimoRenovarItems = data.items;
+               ultimosItemsPorModal.modalPolizasNuevas = data.items;
+               const tbody = document.querySelector('#tablaPolizasNuevas tbody');
+               tbody.innerHTML = data.items.map(it => `
+                  <tr>
+                     <td>${it.poliza}</td>
+                     <td>${it.cliente}</td>
+                     <td>${it.aseguradora}</td>
+                     <td>${it.fechaCaptura}</td>
+                     <td>${it.tipo}</td>
+                     <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
+                  </tr>
+               `).join('') || '<tr><td colspan="6">Sin resultados</td></tr>';
+               abrirModal('modalPolizasNuevas');
+            });
+      }
+
+      function abrirModalRenovar() {
+         const qs = new URLSearchParams({ desde: periodoActualDesde, hasta: periodoActualHasta }).toString();
+         fetch(`/dashboard_gerencial/api/polizas_por_renovar/listado?${qs}`)
+            .then(r => r.json())
+            .then(data => {
+               ultimosItemsPorModal.modalRenovar = data.items;
                const tbody = document.querySelector('#tablaRenovar tbody');
                tbody.innerHTML = data.items.map(it => `
                   <tr>
@@ -628,11 +861,29 @@
             });
       }
 
+      // Suma un campo numérico de una lista, agrupado por moneda
+      function agruparMontoPorMoneda(items, key) {
+         const totales = {};
+         items.forEach(it => {
+            totales[it.moneda] = (totales[it.moneda] || 0) + (it[key] || 0);
+         });
+         return totales;
+      }
+
+      function renderTotalPorMonedaHTML(totales, etiqueta) {
+         const monedas = Object.keys(totales);
+         if (monedas.length === 0) return '';
+         return monedas.map(m =>
+            `<span class="modal-total-linea">${etiqueta}: ${formatMoneda(totales[m], m)}</span>`
+         ).join('');
+      }
+
       function abrirModalRecibos() {
-         fetch('/dashboard_gerencial/api/recibos_pendientes/listado')
+         const qs = new URLSearchParams({ desde: periodoActualDesde, hasta: periodoActualHasta }).toString();
+         fetch(`/dashboard_gerencial/api/recibos_pendientes/listado?${qs}`)
             .then(r => r.json())
             .then(data => {
-               ultimoRecibosItems = data.items;
+               ultimosItemsPorModal.modalRecibos = data.items;
                const tbody = document.querySelector('#tablaRecibos tbody');
                tbody.innerHTML = data.items.map(it => `
                   <tr>
@@ -645,28 +896,139 @@
                      <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
                   </tr>
                `).join('') || '<tr><td colspan="7">Sin resultados</td></tr>';
+
+               const totales = agruparMontoPorMoneda(data.items, 'primaTotal');
+               document.getElementById('totalRecibosPendientes').innerHTML =
+                  renderTotalPorMonedaHTML(totales, `Total (${data.items.length} recibos)`);
+
                abrirModal('modalRecibos');
             });
       }
 
       // Exporta a CSV (se abre directo en Excel) el listado ya cargado en el modal
-      function exportarCSV(modalId, nombreArchivo) {
-         const items = modalId === 'modalRenovar' ? ultimoRenovarItems : ultimoRecibosItems;
+      // Configuración de columnas para cada modal — usada por Excel y PDF
+      const COLUMNAS_EXPORT = {
+         modalPolizasNuevas: {
+            columnas: [
+               { key: 'poliza', label: 'Póliza' },
+               { key: 'cliente', label: 'Cliente' },
+               { key: 'aseguradora', label: 'Aseguradora' },
+               { key: 'fechaCaptura', label: 'Fecha Captura' },
+               { key: 'tipo', label: 'Tipo' },
+               { key: 'primaTotal', label: 'Prima Total' },
+               { key: 'moneda', label: 'Moneda' },
+            ],
+         },
+         modalRenovar: {
+            columnas: [
+               { key: 'poliza', label: 'Póliza' },
+               { key: 'cliente', label: 'Cliente' },
+               { key: 'aseguradora', label: 'Aseguradora' },
+               { key: 'fechaTermino', label: 'Fin de Vigencia' },
+               { key: 'status', label: 'Estado' },
+               { key: 'primaTotal', label: 'Prima Total' },
+               { key: 'moneda', label: 'Moneda' },
+            ],
+         },
+         modalRecibos: {
+            columnas: [
+               { key: 'recibo', label: 'Recibo' },
+               { key: 'poliza', label: 'Póliza' },
+               { key: 'cliente', label: 'Cliente' },
+               { key: 'aseguradora', label: 'Aseguradora' },
+               { key: 'fechaVencimiento', label: 'Vencimiento' },
+               { key: 'status', label: 'Estado' },
+               { key: 'primaTotal', label: 'Prima Total' },
+               { key: 'moneda', label: 'Moneda' },
+            ],
+         },
+      };
+
+      // Exporta a un archivo .xlsx real (no CSV) usando SheetJS
+      function exportarExcel(modalId, nombreArchivo) {
+         const items = ultimosItemsPorModal[modalId];
          if (!items || items.length === 0) return;
 
-         const headers = Object.keys(items[0]);
-         const filas = [headers.join(',')];
-         items.forEach(it => {
-            filas.push(headers.map(h => `"${String(it[h]).replace(/"/g, '""')}"`).join(','));
+         const config = COLUMNAS_EXPORT[modalId];
+         const filas = items.map(it => {
+            const fila = {};
+            config.columnas.forEach(c => { fila[c.label] = it[c.key]; });
+            return fila;
          });
-         const csv = filas.join('\n');
-         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-         const url = URL.createObjectURL(blob);
-         const a = document.createElement('a');
-         a.href = url;
-         a.download = `${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.csv`;
-         a.click();
-         URL.revokeObjectURL(url);
+
+         const ws = XLSX.utils.json_to_sheet(filas);
+         const wb = XLSX.utils.book_new();
+         XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+         XLSX.writeFile(wb, `${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      }
+
+      // Descarga el logo de GGcorp una sola vez y lo guarda en base64,
+      // para poder incrustarlo en el PDF con jsPDF
+      let logoBase64Cache = null;
+      async function obtenerLogoBase64() {
+         if (logoBase64Cache) return logoBase64Cache;
+         const url = document.querySelector('.print-header img').src;
+         const resp = await fetch(url);
+         const blob = await resp.blob();
+         return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => { logoBase64Cache = reader.result; resolve(reader.result); };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+         });
+      }
+
+      // Genera y descarga un PDF real (no imprime) con el logo de GGcorp
+      async function exportarPDF(modalId, nombreArchivo, titulo) {
+         const items = ultimosItemsPorModal[modalId];
+         if (!items || items.length === 0) return;
+
+         const config = COLUMNAS_EXPORT[modalId];
+         const { jsPDF } = window.jspdf;
+         const doc = new jsPDF({ orientation: 'landscape' });
+
+         let inicioTextoX = 14;
+         try {
+            const logo = await obtenerLogoBase64();
+            const logoW = 12;
+            const logoH = logoW * (1024 / 615); // proporción real del logo (615x1024)
+            doc.addImage(logo, 'PNG', 14, 8, logoW, logoH);
+            inicioTextoX = 14 + logoW + 6;
+         } catch (e) {
+            // Si falla la descarga del logo, seguimos sin él en vez de
+            // bloquear la exportación por completo
+         }
+
+         doc.setFontSize(14);
+         doc.text(titulo, inicioTextoX, 18);
+         doc.setFontSize(9);
+         doc.setTextColor(120);
+         doc.text(`Generado: ${new Date().toLocaleString('es-MX')}`, inicioTextoX, 24);
+         doc.setTextColor(0);
+
+         doc.autoTable({
+            startY: 34,
+            head: [config.columnas.map(c => c.label)],
+            body: items.map(it => config.columnas.map(c => String(it[c.key]))),
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [201, 74, 28] }, // var(--color-primario) #c94a1c
+         });
+
+         if (modalId === 'modalRecibos') {
+            const totales = agruparMontoPorMoneda(items, 'primaTotal');
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(11);
+            doc.setTextColor(201, 74, 28);
+            Object.keys(totales).forEach((moneda, i) => {
+               doc.text(
+                  `Total (${items.length} recibos): ${formatMoneda(totales[moneda], moneda)}`,
+                  14, finalY + (i * 6)
+               );
+            });
+            doc.setTextColor(0);
+         }
+
+         doc.save(`${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
       }
 
       $(function () {
