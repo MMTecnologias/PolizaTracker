@@ -20,7 +20,7 @@ from flask import jsonify, request
 from flask_login import login_required
 from sqlalchemy import func, or_, and_
 from app import db
-from app.models import Poliza, Recibo, Cliente, Aseguradora
+from app.models import Poliza, Recibo, Cliente, Aseguradora, Ramo, Subramo
 from . import dashboard_gerencial
 
 DIAS_GRACIA_RECIBO = 30
@@ -270,3 +270,37 @@ def recibos_pendientes_listado():
     } for r, p, c, a in rows]
 
     return jsonify({'items': data})
+
+
+@dashboard_gerencial.route('/api/poliza_info/<path:numero_poliza>')
+@login_required
+def poliza_info(numero_poliza):
+    """Datos clave de una póliza por su folio, para el mini-modal de
+    detalle que se abre al hacer clic en un número de póliza."""
+    fila = (db.session.query(Poliza, Cliente, Aseguradora, Ramo, Subramo)
+            .join(Cliente, Poliza.cliente_id == Cliente.id)
+            .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+            .join(Ramo, Poliza.ramo_id == Ramo.id)
+            .join(Subramo, Poliza.subramo_id == Subramo.id)
+            .filter(Poliza.poliza == numero_poliza)
+            .first())
+
+    if not fila:
+        return jsonify({'error': 'Póliza no encontrada'}), 404
+
+    p, c, a, ramo, subramo = fila
+    return jsonify({
+        'poliza': p.poliza,
+        'cliente': f'{c.nombre} {c.apellido}'.strip(),
+        'aseguradora': a.aseguradora,
+        'ramo': ramo.ramo,
+        'subramo': subramo.subramo,
+        'fechaInicio': p.fecha_inicio.strftime('%d/%m/%Y'),
+        'fechaTermino': p.fecha_termino.strftime('%d/%m/%Y'),
+        'status': p.status,
+        'primaNeta': float(p.prima_neta),
+        'primaTotal': float(p.prima_total),
+        'moneda': p.moneda,
+        'renovada': p.Poliza_renovada,
+    })
+

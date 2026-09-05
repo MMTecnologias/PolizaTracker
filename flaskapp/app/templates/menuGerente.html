@@ -87,7 +87,12 @@
          forzamos 3 por fila / 2 filas, únicamente dentro de esta
          pestaña — no se toca la regla .card compartida. */
       #tab-modulos .card {
-         width: calc((100% - 192px) / 3);
+         width: 280px;
+      }
+
+      #tab-modulos .tarjeta-container {
+         max-width: 1050px;
+         margin: 0 auto;
       }
 
       /* El ícono (.card-img-top de Bootstrap) crece al 100% del ancho
@@ -239,6 +244,10 @@
          color: white;
       }
 
+      .modal-gerencial-header .panorama-periodo-texto {
+         color: rgba(255, 255, 255, 0.85);
+      }
+
       .modal-gerencial-close {
          background: none;
          border: none;
@@ -302,6 +311,35 @@
          display: block;
       }
 
+      .poliza-link {
+         color: var(--primario-complementario);
+         cursor: pointer;
+         text-decoration: underline;
+         font-weight: 600;
+      }
+
+      .poliza-link:hover {
+         color: var(--color-primario);
+      }
+
+      .info-poliza-grid {
+         display: grid;
+         grid-template-columns: 1fr 1fr;
+         gap: 14px;
+      }
+
+      .info-poliza-campo-label {
+         font-size: 0.72rem;
+         text-transform: uppercase;
+         color: var(--gris-medio);
+         font-weight: 600;
+      }
+
+      .info-poliza-campo-valor {
+         font-size: 0.95rem;
+         color: #333;
+      }
+
       @media print {
          body * {
             visibility: hidden;
@@ -317,19 +355,26 @@
          }
 
          .modal-gerencial-body {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
+            position: static;
             max-height: none !important;
             overflow: visible !important;
+            width: 100%;
          }
 
          .modal-gerencial-content {
+            position: static !important;
             max-height: none !important;
             overflow: visible !important;
             width: 100% !important;
             box-shadow: none !important;
+         }
+
+         .modal-gerencial {
+            position: static !important;
+            display: block !important;
+            height: auto !important;
+            background: none !important;
+            overflow: visible !important;
          }
 
          .print-header {
@@ -506,6 +551,19 @@
       </div>
    </div>
 
+   <!-- MINI-MODAL: DETALLE DE UNA PÓLIZA (al hacer clic en un número de póliza) -->
+   <div class="modal-gerencial" id="modalInfoPoliza">
+      <div class="modal-gerencial-content" style="max-width: 480px;">
+         <div class="modal-gerencial-header">
+            <h4>Detalle de Póliza</h4>
+            <button class="modal-gerencial-close" onclick="cerrarModal('modalInfoPoliza')">✕</button>
+         </div>
+         <div class="modal-gerencial-body" id="contenidoInfoPoliza">
+            Cargando...
+         </div>
+      </div>
+   </div>
+
    <!-- MODAL: PÓLIZAS NUEVAS + RENOVADAS -->
    <div class="modal-gerencial" id="modalPolizasNuevas">
       <div class="modal-gerencial-content">
@@ -578,13 +636,13 @@
    <div class="modal-gerencial" id="modalRecibos">
       <div class="modal-gerencial-content">
          <div class="modal-gerencial-header">
-            <h4>Recibos Pendientes de Cobro</h4>
+            <h4>Recibos Pendientes de Cobro <span id="modalRecibosPeriodoTexto" class="panorama-periodo-texto"></span></h4>
             <button class="modal-gerencial-close" onclick="cerrarModal('modalRecibos')">✕</button>
          </div>
          <div class="modal-gerencial-body">
             <div class="print-header">
                <img src="{{ url_for('static', filename='assets/images/GGcorp_logo_for_Repor.png') }}" alt="GGcorp">
-               <h3>Recibos Pendientes de Cobro</h3>
+               <h3 id="modalRecibosPrintTitulo">Recibos Pendientes de Cobro</h3>
             </div>
             <div class="modal-gerencial-acciones">
                <button onclick="exportarExcel('modalRecibos', 'recibos_pendientes')">Exportar Excel</button>
@@ -884,11 +942,17 @@
             .then(r => r.json())
             .then(data => {
                ultimosItemsPorModal.modalRecibos = data.items;
+
+               const textoPer = textoPeriodo(periodoActualDesde, periodoActualHasta);
+               document.getElementById('modalRecibosPeriodoTexto').textContent = textoPer;
+               document.getElementById('modalRecibosPrintTitulo').textContent =
+                  `Recibos Pendientes de Cobro ${textoPer}`;
+
                const tbody = document.querySelector('#tablaRecibos tbody');
                tbody.innerHTML = data.items.map(it => `
                   <tr>
                      <td>${it.recibo}</td>
-                     <td>${it.poliza}</td>
+                     <td><span class="poliza-link" onclick="abrirModalInfoPoliza('${it.poliza}')">${it.poliza}</span></td>
                      <td>${it.cliente}</td>
                      <td>${it.aseguradora}</td>
                      <td>${it.fechaVencimiento}</td>
@@ -902,6 +966,45 @@
                   renderTotalPorMonedaHTML(totales, `Total (${data.items.length} recibos)`);
 
                abrirModal('modalRecibos');
+            });
+      }
+
+      // Mini-modal de detalle rápido de una póliza (clic en su número)
+      function abrirModalInfoPoliza(numeroPoliza) {
+         const contenedor = document.getElementById('contenidoInfoPoliza');
+         contenedor.innerHTML = 'Cargando...';
+         abrirModal('modalInfoPoliza');
+
+         fetch(`/dashboard_gerencial/api/poliza_info/${encodeURIComponent(numeroPoliza)}`)
+            .then(r => r.json())
+            .then(data => {
+               if (data.error) {
+                  contenedor.innerHTML = `<p>${data.error}</p>`;
+                  return;
+               }
+               const campo = (label, valor) => `
+                  <div>
+                     <div class="info-poliza-campo-label">${label}</div>
+                     <div class="info-poliza-campo-valor">${valor}</div>
+                  </div>
+               `;
+               contenedor.innerHTML = `
+                  <div class="info-poliza-grid">
+                     ${campo('Póliza', data.poliza)}
+                     ${campo('Cliente', data.cliente)}
+                     ${campo('Aseguradora', data.aseguradora)}
+                     ${campo('Ramo / Subramo', `${data.ramo} / ${data.subramo}`)}
+                     ${campo('Vigencia Inicio', data.fechaInicio)}
+                     ${campo('Vigencia Fin', data.fechaTermino)}
+                     ${campo('Estado', data.status)}
+                     ${campo('¿Es Renovación?', data.renovada)}
+                     ${campo('Prima Neta', formatMoneda(data.primaNeta, data.moneda))}
+                     ${campo('Prima Total', formatMoneda(data.primaTotal, data.moneda))}
+                  </div>
+               `;
+            })
+            .catch(() => {
+               contenedor.innerHTML = '<p>No se pudo cargar la información de la póliza.</p>';
             });
       }
 
