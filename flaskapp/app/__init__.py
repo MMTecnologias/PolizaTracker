@@ -36,6 +36,7 @@ from app.vencimientos import vencimientos_route
 from app.reportes import reportes_route
 from app.endosos import endosos_route
 from app.portal import portal
+from app.dashboard_gerencial import dashboard_gerencial
 
 app.register_blueprint(auth)
 app.register_blueprint(main)
@@ -47,5 +48,6 @@ app.register_blueprint(vencimientos_route)
 app.register_blueprint(reportes_route)
 app.register_blueprint(endosos_route)
 app.register_blueprint(portal)
+app.register_blueprint(dashboard_gerencial)
 
 

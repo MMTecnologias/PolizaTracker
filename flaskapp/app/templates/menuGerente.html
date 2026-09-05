@@ -81,6 +81,228 @@
          margin-bottom: 16px;
          opacity: 0.4;
       }
+
+      /* Las cards de Módulos originalmente están calculadas para 7 por
+         fila (ver .card en brc-styles.css). Aquí solo hay 6, así que
+         forzamos 3 por fila / 2 filas, únicamente dentro de esta
+         pestaña — no se toca la regla .card compartida. */
+      #tab-modulos .card {
+         width: calc((100% - 192px) / 3);
+      }
+
+      /* El ícono (.card-img-top de Bootstrap) crece al 100% del ancho
+         de su card por default — como la card ahora es más ancha
+         (1/3 en vez de 1/7), hay que ponerle un tope fijo. */
+      #tab-modulos .card img.card-img-top {
+         max-width: 110px;
+         height: auto;
+         display: block;
+         margin: 0 auto;
+      }
+
+      /* ============ PANORAMA GENERAL ============ */
+      .panorama-container {
+         padding: 32px;
+      }
+
+      .panorama-filtro {
+         display: flex;
+         align-items: center;
+         gap: 12px;
+         margin-bottom: 24px;
+      }
+
+      .panorama-filtro label {
+         font-weight: 600;
+         color: #333;
+         margin: 0;
+      }
+
+      .panorama-filtro select,
+      .panorama-filtro input[type="date"] {
+         border: 1px solid var(--gris-medio);
+         border-radius: 6px;
+         padding: 8px 12px;
+         font-family: 'Poppins', sans-serif;
+         font-size: 0.9rem;
+      }
+
+      .panorama-filtro button {
+         background-color: var(--color-primario);
+         color: white;
+         border: none;
+         border-radius: 6px;
+         padding: 8px 16px;
+         font-weight: 600;
+         cursor: pointer;
+      }
+
+      .panorama-cards {
+         display: flex;
+         gap: 16px;
+         flex-wrap: nowrap;
+         overflow-x: auto;
+      }
+
+      .panorama-card {
+         flex: 1 1 0;
+         min-width: 180px;
+         background: white;
+         border-radius: 10px;
+         padding: 18px;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio);
+         border-top: 4px solid var(--color-primario);
+      }
+
+      .panorama-card.clickable {
+         cursor: pointer;
+         transition: transform 0.15s ease;
+      }
+
+      .panorama-card.clickable:hover {
+         transform: translateY(-3px);
+         box-shadow: 5px 6px 14px -6px var(--gris-medio);
+      }
+
+      .panorama-card-label {
+         font-size: 0.75rem;
+         font-weight: 700;
+         text-transform: uppercase;
+         color: var(--gris-medio);
+         letter-spacing: 0.5px;
+         margin-bottom: 8px;
+      }
+
+      .panorama-card-value {
+         font-size: 1.5rem;
+         font-weight: 700;
+         color: var(--color-primario);
+         line-height: 1.3;
+      }
+
+      .panorama-card-value.multi {
+         font-size: 1.05rem;
+      }
+
+      .panorama-card-detail {
+         font-size: 0.78rem;
+         color: var(--gris-medio);
+         margin-top: 6px;
+      }
+
+      /* ============ MODALES ============ */
+      .modal-gerencial {
+         display: none;
+         position: fixed;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         background: rgba(0, 0, 0, 0.5);
+         z-index: 1000;
+         align-items: center;
+         justify-content: center;
+      }
+
+      .modal-gerencial.active {
+         display: flex;
+      }
+
+      .modal-gerencial-content {
+         background: white;
+         border-radius: 10px;
+         width: 90%;
+         max-width: 900px;
+         max-height: 85vh;
+         display: flex;
+         flex-direction: column;
+         overflow: hidden;
+      }
+
+      .modal-gerencial-header {
+         background: var(--color-primario);
+         color: white;
+         padding: 16px 24px;
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+      }
+
+      .modal-gerencial-header h4 {
+         margin: 0;
+         color: white;
+      }
+
+      .modal-gerencial-close {
+         background: none;
+         border: none;
+         color: white;
+         font-size: 1.3rem;
+         cursor: pointer;
+      }
+
+      .modal-gerencial-body {
+         padding: 20px 24px;
+         overflow-y: auto;
+      }
+
+      .modal-gerencial-acciones {
+         display: flex;
+         gap: 10px;
+         margin-bottom: 16px;
+      }
+
+      .modal-gerencial-acciones button {
+         background-color: var(--primario-complementario);
+         color: white;
+         border: none;
+         border-radius: 6px;
+         padding: 8px 14px;
+         font-size: 0.85rem;
+         font-weight: 600;
+         cursor: pointer;
+      }
+
+      .modal-gerencial-table {
+         width: 100%;
+         border-collapse: collapse;
+         font-size: 0.85rem;
+      }
+
+      .modal-gerencial-table th {
+         text-align: left;
+         background: var(--color-claro);
+         padding: 8px 10px;
+         font-weight: 600;
+         color: #333;
+      }
+
+      .modal-gerencial-table td {
+         padding: 8px 10px;
+         border-bottom: 1px solid var(--color-claro);
+      }
+
+      @media print {
+         body * {
+            visibility: hidden;
+         }
+
+         .modal-gerencial-body,
+         .modal-gerencial-body * {
+            visibility: visible;
+         }
+
+         .modal-gerencial-acciones {
+            display: none !important;
+         }
+
+         .modal-gerencial-body {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+         }
+      }
    </style>
 </head>
 
@@ -107,12 +329,116 @@
       </div>
    </nav>
 
-   <!-- PESTAÑA: DASHBOARD (vacía por ahora, a propósito) -->
+   <!-- PESTAÑA: DASHBOARD -->
    <div class="gerente-tab-content active" id="tab-dashboard">
-      <div class="dashboard-vacio">
-         <i class="fa fa-bar-chart"></i>
-         <h4>Dashboard Gerencial</h4>
-         <p>Próximamente</p>
+      <div class="panorama-container">
+         <h4>Panorama General</h4>
+
+         <div class="panorama-filtro">
+            <label>Periodo:</label>
+            <select id="filtroPeriodo">
+               <option value="hoy">Hoy</option>
+               <option value="semana">Esta semana</option>
+               <option value="mes" selected>Este mes</option>
+               <option value="anio">Este año</option>
+               <option value="personalizado">Rango personalizado</option>
+            </select>
+            <input type="date" id="fechaDesde" style="display:none;">
+            <span id="separadorFechas" style="display:none;">—</span>
+            <input type="date" id="fechaHasta" style="display:none;">
+            <button id="btnAplicarRango" style="display:none;">Aplicar</button>
+         </div>
+
+         <div class="panorama-cards">
+            <div class="panorama-card">
+               <div class="panorama-card-label">Prima Neta Cobrada</div>
+               <div class="panorama-card-value" id="valPrimaNeta">—</div>
+               <div class="panorama-card-detail" id="detPrimaNeta"></div>
+            </div>
+            <div class="panorama-card">
+               <div class="panorama-card-label">Pólizas Nuevas</div>
+               <div class="panorama-card-value" id="valPolizasNuevas">—</div>
+            </div>
+            <div class="panorama-card">
+               <div class="panorama-card-label">Pólizas Vigentes</div>
+               <div class="panorama-card-value" id="valPolizasVigentes">—</div>
+            </div>
+            <div class="panorama-card clickable" onclick="abrirModalRenovar()">
+               <div class="panorama-card-label">Pólizas por Renovar</div>
+               <div class="panorama-card-value" id="valPolizasPorRenovar">—</div>
+               <div class="panorama-card-detail">Ver listado →</div>
+            </div>
+            <div class="panorama-card clickable" onclick="abrirModalRecibos()">
+               <div class="panorama-card-label">Recibos Pendientes de Cobro</div>
+               <div class="panorama-card-value" id="valRecibosPendientes">—</div>
+               <div class="panorama-card-detail" id="detRecibosPendientes">Ver listado →</div>
+            </div>
+            <div class="panorama-card">
+               <div class="panorama-card-label">Comisiones Generadas</div>
+               <div class="panorama-card-value" id="valComisiones">—</div>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- MODAL: PÓLIZAS POR RENOVAR -->
+   <div class="modal-gerencial" id="modalRenovar">
+      <div class="modal-gerencial-content">
+         <div class="modal-gerencial-header">
+            <h4>Pólizas por Renovar</h4>
+            <button class="modal-gerencial-close" onclick="cerrarModal('modalRenovar')">✕</button>
+         </div>
+         <div class="modal-gerencial-body">
+            <div class="modal-gerencial-acciones">
+               <button onclick="exportarCSV('modalRenovar', 'polizas_por_renovar')">Exportar Excel</button>
+               <button onclick="window.print()">Exportar PDF</button>
+               <button onclick="window.print()">Imprimir</button>
+            </div>
+            <table class="modal-gerencial-table" id="tablaRenovar">
+               <thead>
+                  <tr>
+                     <th>Póliza</th>
+                     <th>Cliente</th>
+                     <th>Aseguradora</th>
+                     <th>Fin de Vigencia</th>
+                     <th>Estado</th>
+                     <th>Prima Total</th>
+                  </tr>
+               </thead>
+               <tbody></tbody>
+            </table>
+         </div>
+      </div>
+   </div>
+
+   <!-- MODAL: RECIBOS PENDIENTES -->
+   <div class="modal-gerencial" id="modalRecibos">
+      <div class="modal-gerencial-content">
+         <div class="modal-gerencial-header">
+            <h4>Recibos Pendientes de Cobro</h4>
+            <button class="modal-gerencial-close" onclick="cerrarModal('modalRecibos')">✕</button>
+         </div>
+         <div class="modal-gerencial-body">
+            <div class="modal-gerencial-acciones">
+               <button onclick="exportarCSV('modalRecibos', 'recibos_pendientes')">Exportar Excel</button>
+               <button onclick="window.print()">Exportar PDF</button>
+               <button onclick="window.print()">Imprimir</button>
+            </div>
+            <table class="modal-gerencial-table" id="tablaRecibos">
+               <thead>
+                  <tr>
+                     <th>Recibo</th>
+                     <th>Póliza</th>
+                     <th>Cliente</th>
+                     <th>Aseguradora</th>
+                     <th>Vencimiento</th>
+                     <th>Estado</th>
+                     <th>Prima Total</th>
+                  </tr>
+               </thead>
+               <tbody></tbody>
+            </table>
+         </div>
       </div>
    </div>
 
@@ -182,6 +508,167 @@
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
 
    <script>
+      // Formatea montos con coma de miles + código de moneda
+      function formatMoneda(valor, moneda) {
+         const monto = (valor || 0).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+         });
+         return `$${monto} ${moneda}`;
+      }
+
+      // Convierte un arreglo [{moneda, monto}, ...] en HTML con una
+      // línea por moneda (igual patrón que el Portal del Asegurado)
+      function renderMontosPorMoneda(items) {
+         if (!items || items.length === 0) return formatMoneda(0, 'MXN');
+         return items.map(it => formatMoneda(it.monto, it.moneda)).join('<br>');
+      }
+
+      function fmtFecha(d) {
+         return d.toISOString().slice(0, 10);
+      }
+
+      function calcularRangoPreset(preset) {
+         const hoy = new Date();
+         let desde, hasta;
+
+         if (preset === 'hoy') {
+            desde = hasta = new Date(hoy);
+         } else if (preset === 'semana') {
+            const diaSemana = hoy.getDay() === 0 ? 7 : hoy.getDay(); // Lunes=1..Domingo=7
+            desde = new Date(hoy);
+            desde.setDate(hoy.getDate() - (diaSemana - 1));
+            hasta = new Date(desde);
+            hasta.setDate(desde.getDate() + 6);
+         } else if (preset === 'anio') {
+            desde = new Date(hoy.getFullYear(), 0, 1);
+            hasta = new Date(hoy.getFullYear(), 11, 31);
+         } else {
+            // 'mes' (default)
+            desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+         }
+         return { desde: fmtFecha(desde), hasta: fmtFecha(hasta) };
+      }
+
+      let ultimoRenovarItems = [];
+      let ultimoRecibosItems = [];
+
+      function cargarPanorama(desde, hasta) {
+         const qs = new URLSearchParams({ desde, hasta }).toString();
+         fetch(`/dashboard_gerencial/api/panorama?${qs}`)
+            .then(r => r.json())
+            .then(data => {
+               const primaEl = document.getElementById('valPrimaNeta');
+               primaEl.innerHTML = renderMontosPorMoneda(data.primaNetaCobrada);
+               primaEl.className = data.primaNetaCobrada.length > 1
+                  ? 'panorama-card-value multi' : 'panorama-card-value';
+
+               const totalRecibos = data.primaNetaCobrada.reduce((s, x) => s + x.recibos, 0);
+               const totalPolizas = data.primaNetaCobrada.reduce((s, x) => s + x.polizas, 0);
+               document.getElementById('detPrimaNeta').textContent =
+                  `${totalRecibos} recibos · ${totalPolizas} pólizas`;
+
+               document.getElementById('valPolizasNuevas').textContent = data.polizasNuevas;
+               document.getElementById('valPolizasVigentes').textContent = data.polizasVigentes;
+               document.getElementById('valPolizasPorRenovar').textContent = data.polizasPorRenovar;
+
+               const recibosEl = document.getElementById('valRecibosPendientes');
+               recibosEl.innerHTML = renderMontosPorMoneda(data.recibosPendientes);
+               recibosEl.className = data.recibosPendientes.length > 1
+                  ? 'panorama-card-value multi' : 'panorama-card-value';
+
+               const comisionesEl = document.getElementById('valComisiones');
+               comisionesEl.innerHTML = renderMontosPorMoneda(data.comisionesGeneradas);
+               comisionesEl.className = data.comisionesGeneradas.length > 1
+                  ? 'panorama-card-value multi' : 'panorama-card-value';
+            })
+            .catch(() => {
+               document.getElementById('valPrimaNeta').textContent = 'Error';
+            });
+      }
+
+      function aplicarFiltroPeriodo() {
+         const preset = document.getElementById('filtroPeriodo').value;
+         if (preset === 'personalizado') {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            if (desde && hasta) cargarPanorama(desde, hasta);
+            return;
+         }
+         const { desde, hasta } = calcularRangoPreset(preset);
+         cargarPanorama(desde, hasta);
+      }
+
+      function abrirModal(id) {
+         document.getElementById(id).classList.add('active');
+      }
+
+      function cerrarModal(id) {
+         document.getElementById(id).classList.remove('active');
+      }
+
+      function abrirModalRenovar() {
+         fetch('/dashboard_gerencial/api/polizas_por_renovar/listado')
+            .then(r => r.json())
+            .then(data => {
+               ultimoRenovarItems = data.items;
+               const tbody = document.querySelector('#tablaRenovar tbody');
+               tbody.innerHTML = data.items.map(it => `
+                  <tr>
+                     <td>${it.poliza}</td>
+                     <td>${it.cliente}</td>
+                     <td>${it.aseguradora}</td>
+                     <td>${it.fechaTermino}</td>
+                     <td>${it.status}</td>
+                     <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
+                  </tr>
+               `).join('') || '<tr><td colspan="6">Sin resultados</td></tr>';
+               abrirModal('modalRenovar');
+            });
+      }
+
+      function abrirModalRecibos() {
+         fetch('/dashboard_gerencial/api/recibos_pendientes/listado')
+            .then(r => r.json())
+            .then(data => {
+               ultimoRecibosItems = data.items;
+               const tbody = document.querySelector('#tablaRecibos tbody');
+               tbody.innerHTML = data.items.map(it => `
+                  <tr>
+                     <td>${it.recibo}</td>
+                     <td>${it.poliza}</td>
+                     <td>${it.cliente}</td>
+                     <td>${it.aseguradora}</td>
+                     <td>${it.fechaVencimiento}</td>
+                     <td>${it.status}</td>
+                     <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
+                  </tr>
+               `).join('') || '<tr><td colspan="7">Sin resultados</td></tr>';
+               abrirModal('modalRecibos');
+            });
+      }
+
+      // Exporta a CSV (se abre directo en Excel) el listado ya cargado en el modal
+      function exportarCSV(modalId, nombreArchivo) {
+         const items = modalId === 'modalRenovar' ? ultimoRenovarItems : ultimoRecibosItems;
+         if (!items || items.length === 0) return;
+
+         const headers = Object.keys(items[0]);
+         const filas = [headers.join(',')];
+         items.forEach(it => {
+            filas.push(headers.map(h => `"${String(it[h]).replace(/"/g, '""')}"`).join(','));
+         });
+         const csv = filas.join('\n');
+         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = `${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.csv`;
+         a.click();
+         URL.revokeObjectURL(url);
+      }
+
       $(function () {
          // Cambio de pestañas
          $('.gerente-tab').on('click', function () {
@@ -191,6 +678,23 @@
             $('.gerente-tab-content').removeClass('active');
             $('#tab-' + tab).addClass('active');
          });
+
+         // Filtro de periodo del Panorama General
+         $('#filtroPeriodo').on('change', function () {
+            const esPersonalizado = $(this).val() === 'personalizado';
+            $('#fechaDesde, #separadorFechas, #fechaHasta, #btnAplicarRango')
+               .css('display', esPersonalizado ? 'inline-block' : 'none');
+            if (!esPersonalizado) aplicarFiltroPeriodo();
+         });
+         $('#btnAplicarRango').on('click', aplicarFiltroPeriodo);
+
+         // Cerrar modal al hacer clic fuera del contenido
+         $('.modal-gerencial').on('click', function (e) {
+            if (e.target === this) $(this).removeClass('active');
+         });
+
+         // Carga inicial: mes en curso
+         aplicarFiltroPeriodo();
 
          // Contador de solicitudes pendientes (igual que en menuP.html)
          const numberOfRequests = async () => {
