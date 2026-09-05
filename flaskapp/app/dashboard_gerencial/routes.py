@@ -14,6 +14,13 @@ de ESE rango exacto — no se agrega nada de gracia respecto a hoy,
 porque ya no aplica. Si el rango incluye el día de hoy o es futuro,
 se le suma lo atrasado (respecto a hoy) que siga dentro de su
 periodo de gracia, igual que ya se hace en el Portal del Asegurado.
+
+'Pólizas Nuevas' y 'Pólizas Renovadas' se filtran por fecha_inicio,
+NO por fecha_captura: se confirmó con datos reales que las pólizas
+renovadas cargadas por migración comparten una misma fecha_captura
+falsa (fecha en que se metieron al sistema, no la real de renovación),
+lo que hacía que nunca aparecieran fuera de esa fecha de migración.
+fecha_inicio sí refleja la fecha real de negocio.
 """
 from datetime import date, timedelta
 from flask import jsonify, request
@@ -110,15 +117,15 @@ def panorama():
 
     # 2) Pólizas Nuevas — periodo seleccionado
     polizas_nuevas = (Poliza.query
-                       .filter(Poliza.fecha_captura >= desde,
-                               Poliza.fecha_captura <= hasta)
+                       .filter(Poliza.fecha_inicio >= desde,
+                               Poliza.fecha_inicio <= hasta)
                        .count())
 
     # De esas mismas pólizas capturadas en el periodo, cuántas son
     # renovaciones (Poliza_renovada = 'Si')
     polizas_renovadas = (Poliza.query
-                          .filter(Poliza.fecha_captura >= desde,
-                                  Poliza.fecha_captura <= hasta,
+                          .filter(Poliza.fecha_inicio >= desde,
+                                  Poliza.fecha_inicio <= hasta,
                                   Poliza.Poliza_renovada == 'Si')
                           .count())
 
@@ -195,16 +202,16 @@ def polizas_nuevas_listado():
     rows = (db.session.query(Poliza, Cliente, Aseguradora)
             .join(Cliente, Poliza.cliente_id == Cliente.id)
             .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
-            .filter(Poliza.fecha_captura >= desde,
-                    Poliza.fecha_captura <= hasta)
-            .order_by(Poliza.fecha_captura)
+            .filter(Poliza.fecha_inicio >= desde,
+                    Poliza.fecha_inicio <= hasta)
+            .order_by(Poliza.fecha_inicio)
             .all())
 
     data = [{
         'poliza': p.poliza,
         'cliente': f'{c.nombre} {c.apellido}'.strip(),
         'aseguradora': a.aseguradora,
-        'fechaCaptura': p.fecha_captura.strftime('%d/%m/%Y'),
+        'fechaCaptura': p.fecha_inicio.strftime('%d/%m/%Y'),  # ojo: es fecha_inicio, ver nota arriba
         'tipo': 'Renovada' if p.Poliza_renovada == 'Si' else 'Nueva',
         'primaTotal': float(p.prima_total),
         'moneda': p.moneda,
