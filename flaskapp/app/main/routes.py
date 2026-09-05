@@ -229,6 +229,8 @@ def usuario():
 @login_required
 def index():
     acceso = NivelAcceso.query.get_or_404(current_user.nivel_id)
+    if acceso.nombre == 'Gerente':
+        return render_template('menuGerente.html', user=current_user, acceso=acceso.nombre)
     return render_template('menuP.html', user=current_user, acceso=acceso.nombre)
 
 # Solicitudes
