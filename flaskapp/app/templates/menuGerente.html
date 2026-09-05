@@ -23,20 +23,25 @@
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
 
    <style>
-      /* Pestañas Dashboard / Módulos — mismos tokens de color que el
-         resto del sistema (--color-primario, --gris-medio, Poppins) */
-      .gerente-tabs {
+      /* Solo las pestañas ocupan el espacio libre entre el logo y el
+         usuario. El logo y la caja de usuario quedan EXACTAMENTE como
+         estaban originalmente (sin flex:1, sin tocar su ancho/estilo).
+         Esto solo aplica a esta plantilla — no se toca brc-styles.css
+         compartido. */
+      .navbar-tabs {
+         flex: 1;
          display: flex;
-         background-color: white;
-         box-shadow: 5px 2px 14px -9px var(--gris-medio);
-         padding: 0 32px;
+         justify-content: center;
+         align-items: center;
+         height: 100%;
       }
 
       .gerente-tab {
          border: none;
          background: none;
-         padding: 18px 24px;
-         font-size: 1rem;
+         height: 100%;
+         padding: 0 20px;
+         font-size: 0.95rem;
          font-weight: 600;
          color: var(--gris-medio);
          cursor: pointer;
@@ -66,7 +71,7 @@
          flex-direction: column;
          align-items: center;
          justify-content: center;
-         height: calc(100vh - 60px - 57px);
+         height: calc(100vh - 60px);
          color: var(--gris-medio);
          text-align: center;
       }
@@ -85,7 +90,13 @@
          <h2 class="name-app">Póliza Tracker</h2>
          <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" class="logo-ggc" />
       </div>
-      <div class="user-profile pull-right">
+
+      <div class="navbar-tabs">
+         <button class="gerente-tab active" data-tab="dashboard">Dashboard</button>
+         <button class="gerente-tab" data-tab="modulos">Módulos</button>
+      </div>
+
+      <div class="user-profile">
          <h6 class="user-name dropdown-toggle" data-toggle="dropdown">
             {{ current_user.username }}<i class="fa fa-angle-down"></i>
          </h6>
@@ -95,12 +106,6 @@
          </div>
       </div>
    </nav>
-
-   <!-- Pestañas Dashboard / Módulos -->
-   <div class="gerente-tabs">
-      <button class="gerente-tab active" data-tab="dashboard">Dashboard</button>
-      <button class="gerente-tab" data-tab="modulos">Módulos</button>
-   </div>
 
    <!-- PESTAÑA: DASHBOARD (vacía por ahora, a propósito) -->
    <div class="gerente-tab-content active" id="tab-dashboard">
