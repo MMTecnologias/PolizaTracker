@@ -284,6 +284,12 @@
          font-size: 0.85rem;
       }
 
+      .col-numero {
+         width: 40px;
+         text-align: center !important;
+         color: var(--gris-medio);
+      }
+
       .modal-gerencial-table th {
          text-align: left;
          background: var(--color-claro);
@@ -345,23 +351,23 @@
             visibility: hidden;
          }
 
-         .modal-gerencial-body,
-         .modal-gerencial-body * {
+         .modal-gerencial.active .modal-gerencial-body,
+         .modal-gerencial.active .modal-gerencial-body * {
             visibility: visible;
          }
 
-         .modal-gerencial-acciones {
+         .modal-gerencial.active .modal-gerencial-acciones {
             display: none !important;
          }
 
-         .modal-gerencial-body {
+         .modal-gerencial.active .modal-gerencial-body {
             position: static;
             max-height: none !important;
             overflow: visible !important;
             width: 100%;
          }
 
-         .modal-gerencial-content {
+         .modal-gerencial.active .modal-gerencial-content {
             position: static !important;
             max-height: none !important;
             overflow: visible !important;
@@ -369,7 +375,7 @@
             box-shadow: none !important;
          }
 
-         .modal-gerencial {
+         .modal-gerencial.active {
             position: static !important;
             display: block !important;
             height: auto !important;
@@ -377,7 +383,7 @@
             overflow: visible !important;
          }
 
-         .print-header {
+         .modal-gerencial.active .print-header {
             display: flex !important;
          }
       }
@@ -552,7 +558,7 @@
    </div>
 
    <!-- MINI-MODAL: DETALLE DE UNA PÓLIZA (al hacer clic en un número de póliza) -->
-   <div class="modal-gerencial" id="modalInfoPoliza">
+   <div class="modal-gerencial" id="modalInfoPoliza" style="z-index: 1100;">
       <div class="modal-gerencial-content" style="max-width: 480px;">
          <div class="modal-gerencial-header">
             <h4>Detalle de Póliza</h4>
@@ -568,13 +574,13 @@
    <div class="modal-gerencial" id="modalPolizasNuevas">
       <div class="modal-gerencial-content">
          <div class="modal-gerencial-header">
-            <h4>Pólizas Nuevas y Renovadas</h4>
+            <h4>Pólizas Nuevas y Renovadas <span id="modalPolizasNuevasPeriodoTexto" class="panorama-periodo-texto"></span></h4>
             <button class="modal-gerencial-close" onclick="cerrarModal('modalPolizasNuevas')">✕</button>
          </div>
          <div class="modal-gerencial-body">
             <div class="print-header">
                <img src="{{ url_for('static', filename='assets/images/GGcorp_logo_for_Repor.png') }}" alt="GGcorp">
-               <h3>Pólizas Nuevas y Renovadas</h3>
+               <h3 id="modalPolizasNuevasPrintTitulo">Pólizas Nuevas y Renovadas</h3>
             </div>
             <div class="modal-gerencial-acciones">
                <button onclick="exportarExcel('modalPolizasNuevas', 'polizas_nuevas_renovadas')">Exportar Excel</button>
@@ -584,6 +590,7 @@
             <table class="modal-gerencial-table" id="tablaPolizasNuevas">
                <thead>
                   <tr>
+                     <th class="col-numero">#</th>
                      <th>Póliza</th>
                      <th>Cliente</th>
                      <th>Aseguradora</th>
@@ -602,13 +609,13 @@
    <div class="modal-gerencial" id="modalRenovar">
       <div class="modal-gerencial-content">
          <div class="modal-gerencial-header">
-            <h4>Pólizas por Renovar</h4>
+            <h4>Pólizas por Renovar <span id="modalRenovarPeriodoTexto" class="panorama-periodo-texto"></span></h4>
             <button class="modal-gerencial-close" onclick="cerrarModal('modalRenovar')">✕</button>
          </div>
          <div class="modal-gerencial-body">
             <div class="print-header">
                <img src="{{ url_for('static', filename='assets/images/GGcorp_logo_for_Repor.png') }}" alt="GGcorp">
-               <h3>Pólizas por Renovar</h3>
+               <h3 id="modalRenovarPrintTitulo">Pólizas por Renovar</h3>
             </div>
             <div class="modal-gerencial-acciones">
                <button onclick="exportarExcel('modalRenovar', 'polizas_por_renovar')">Exportar Excel</button>
@@ -618,6 +625,7 @@
             <table class="modal-gerencial-table" id="tablaRenovar">
                <thead>
                   <tr>
+                     <th class="col-numero">#</th>
                      <th>Póliza</th>
                      <th>Cliente</th>
                      <th>Aseguradora</th>
@@ -652,6 +660,7 @@
             <table class="modal-gerencial-table" id="tablaRecibos">
                <thead>
                   <tr>
+                     <th class="col-numero">#</th>
                      <th>Recibo</th>
                      <th>Póliza</th>
                      <th>Cliente</th>
@@ -883,9 +892,16 @@
             .then(r => r.json())
             .then(data => {
                ultimosItemsPorModal.modalPolizasNuevas = data.items;
+
+               const textoPer = textoPeriodo(periodoActualDesde, periodoActualHasta);
+               document.getElementById('modalPolizasNuevasPeriodoTexto').textContent = textoPer;
+               document.getElementById('modalPolizasNuevasPrintTitulo').textContent =
+                  `Pólizas Nuevas y Renovadas ${textoPer}`;
+
                const tbody = document.querySelector('#tablaPolizasNuevas tbody');
-               tbody.innerHTML = data.items.map(it => `
+               tbody.innerHTML = data.items.map((it, i) => `
                   <tr>
+                     <td class="col-numero">${i + 1}</td>
                      <td>${it.poliza}</td>
                      <td>${it.cliente}</td>
                      <td>${it.aseguradora}</td>
@@ -893,7 +909,7 @@
                      <td>${it.tipo}</td>
                      <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
                   </tr>
-               `).join('') || '<tr><td colspan="6">Sin resultados</td></tr>';
+               `).join('') || '<tr><td colspan="7">Sin resultados</td></tr>';
                abrirModal('modalPolizasNuevas');
             });
       }
@@ -904,9 +920,16 @@
             .then(r => r.json())
             .then(data => {
                ultimosItemsPorModal.modalRenovar = data.items;
+
+               const textoPer = textoPeriodo(periodoActualDesde, periodoActualHasta);
+               document.getElementById('modalRenovarPeriodoTexto').textContent = textoPer;
+               document.getElementById('modalRenovarPrintTitulo').textContent =
+                  `Pólizas por Renovar ${textoPer}`;
+
                const tbody = document.querySelector('#tablaRenovar tbody');
-               tbody.innerHTML = data.items.map(it => `
+               tbody.innerHTML = data.items.map((it, i) => `
                   <tr>
+                     <td class="col-numero">${i + 1}</td>
                      <td>${it.poliza}</td>
                      <td>${it.cliente}</td>
                      <td>${it.aseguradora}</td>
@@ -914,7 +937,7 @@
                      <td>${it.status}</td>
                      <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
                   </tr>
-               `).join('') || '<tr><td colspan="6">Sin resultados</td></tr>';
+               `).join('') || '<tr><td colspan="7">Sin resultados</td></tr>';
                abrirModal('modalRenovar');
             });
       }
@@ -949,8 +972,9 @@
                   `Recibos Pendientes de Cobro ${textoPer}`;
 
                const tbody = document.querySelector('#tablaRecibos tbody');
-               tbody.innerHTML = data.items.map(it => `
+               tbody.innerHTML = data.items.map((it, i) => `
                   <tr>
+                     <td class="col-numero">${i + 1}</td>
                      <td>${it.recibo}</td>
                      <td><span class="poliza-link" onclick="abrirModalInfoPoliza('${it.poliza}')">${it.poliza}</span></td>
                      <td>${it.cliente}</td>
@@ -959,7 +983,7 @@
                      <td>${it.status}</td>
                      <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
                   </tr>
-               `).join('') || '<tr><td colspan="7">Sin resultados</td></tr>';
+               `).join('') || '<tr><td colspan="8">Sin resultados</td></tr>';
 
                const totales = agruparMontoPorMoneda(data.items, 'primaTotal');
                document.getElementById('totalRecibosPendientes').innerHTML =
