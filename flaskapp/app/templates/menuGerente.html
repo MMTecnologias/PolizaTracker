@@ -1128,6 +1128,30 @@
          });
       }
 
+      // Como la Prima Neta puede tener varias monedas, en vez de una
+      // sola barra por periodo se grafica una serie de color POR
+      // MONEDA (barras agrupadas), para no perder ninguna
+      function renderBarChartComparativoPorMoneda(canvasId, etiquetaA, etiquetaB, datosA, datosB) {
+         const monedas = [...new Set([...Object.keys(datosA), ...Object.keys(datosB)])];
+         const ctx = document.getElementById(canvasId);
+         if (graficosActivos[canvasId]) graficosActivos[canvasId].destroy();
+         graficosActivos[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+               labels: [etiquetaA, etiquetaB],
+               datasets: monedas.map((moneda, i) => ({
+                  label: moneda,
+                  data: [datosA[moneda] || 0, datosB[moneda] || 0],
+                  backgroundColor: PALETA_GRAFICOS[i % PALETA_GRAFICOS.length],
+               })),
+            },
+            options: {
+               plugins: { legend: { display: monedas.length > 1, position: 'bottom' } },
+               scales: { y: { beginAtZero: true } },
+            },
+         });
+      }
+
       function compararTendencias() {
          const desdeA = document.getElementById('tendenciaDesdeA').value;
          const hastaA = document.getElementById('tendenciaHastaA').value;
@@ -1142,16 +1166,8 @@
                const etiquetaA = textoPeriodo(desdeA, hastaA);
                const etiquetaB = textoPeriodo(desdeB, hastaB);
 
-               // Prima Neta: puede haber varias monedas — se grafica
-               // cada moneda presente en cualquiera de los 2 periodos
-               const monedas = [...new Set([
-                  ...Object.keys(data.primaNeta.A),
-                  ...Object.keys(data.primaNeta.B),
-               ])];
-               const monedaPrincipal = monedas[0] || 'MXN';
-               renderBarChartComparativo('chartTendenciaPrima', etiquetaA, etiquetaB,
-                  data.primaNeta.A[monedaPrincipal] || 0,
-                  data.primaNeta.B[monedaPrincipal] || 0);
+               renderBarChartComparativoPorMoneda('chartTendenciaPrima', etiquetaA, etiquetaB,
+                  data.primaNeta.A, data.primaNeta.B);
 
                renderBarChartComparativo('chartTendenciaPolizas', etiquetaA, etiquetaB,
                   data.polizasNuevas.A, data.polizasNuevas.B);
