@@ -15,3 +15,14 @@ PENDIENTES - Portal del Asegurado (rama portal-asegurado):
       - Quitar el buscador de cliente del dashboard.
       - Que esas 3 rutas tomen el cliente desde la sesion, no desde parametros
         de la URL (cliente_id / poliza_id abiertos).
+
+PENDIENTES - Revision de renovacion de polizas (rama fix-renovación-polizas):
+7.- Al terminar TODOS los puntos de la revision de renovacion (bugs/mejoras
+    detectados: metrica Poliza_renovada vs poliza_anterior, mensaje de error
+    con renovacion vacio + backfill, condicion de carrera por doble clic,
+    posible traslape de 1 dia en vigencia, nombres de campos duplicados
+    poliza-anterior/polizaAnterior, validacion de folio duplicado, falta de
+    transaccion atomica, prints de debug sueltos) -- probar el FLUJO
+    COMPLETO de renovar una poliza de principio a fin en el sistema real,
+    para verificar que no haya quedado ningun error o bug nuevo introducido
+    por los fixes.

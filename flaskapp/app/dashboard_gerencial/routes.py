@@ -140,11 +140,17 @@ def panorama():
                        .count())
 
     # De esas mismas pólizas capturadas en el periodo, cuántas son
-    # renovaciones (Poliza_renovada = 'Si')
+    # renovaciones. Ojo: NO se usa Poliza_renovada aquí — ese campo se
+    # marca en la póliza VIEJA cuando la reemplaza una nueva (significa
+    # "esta póliza ya fue renovada por otra"), no en la póliza nueva.
+    # El dato correcto para "esta póliza ES una renovación" es que su
+    # propio poliza_anterior tenga folio (apunta hacia atrás, a la que
+    # reemplazó). Confirmado con datos reales.
     polizas_renovadas = (Poliza.query
                           .filter(Poliza.fecha_inicio >= desde,
                                   Poliza.fecha_inicio <= hasta,
-                                  Poliza.Poliza_renovada == 'Si')
+                                  Poliza.poliza_anterior.isnot(None),
+                                  Poliza.poliza_anterior != '')
                           .count())
 
     # 3) Pólizas Vigentes — ahora es un desglose de 5 números, no solo 1
@@ -265,7 +271,9 @@ def polizas_nuevas_listado():
         'cliente': f'{c.nombre} {c.apellido}'.strip(),
         'aseguradora': a.aseguradora,
         'fechaCaptura': p.fecha_inicio.strftime('%d/%m/%Y'),  # ojo: es fecha_inicio, ver nota arriba
-        'tipo': 'Renovada' if p.Poliza_renovada == 'Si' else 'Nueva',
+        # 'Renovada' si tiene poliza_anterior lleno (ver nota arriba
+        # sobre por qué NO se usa Poliza_renovada aquí)
+        'tipo': 'Renovada' if (p.poliza_anterior and p.poliza_anterior.strip()) else 'Nueva',
         'primaTotal': float(p.prima_total),
         'moneda': p.moneda,
     } for p, c, a in rows]

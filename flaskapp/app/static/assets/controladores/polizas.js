@@ -2199,6 +2199,21 @@ $(function () {
     });
   }
 
+  // Arma los mismos campos que ya usa createReceipts(), para poder
+  // mandarlos JUNTO con la creación de la póliza/endoso en una sola
+  // petición (en vez de 2 peticiones separadas sin relación entre sí)
+  function datosRecibosDelModal() {
+    return {
+      netPremium: $('#prima-neta').val(),
+      totalPremium: $('#prima-total').val(),
+      iva: $('#iva').val(),
+      insurance: $('#derecho_poliza').val(),
+      commission: $('#comision').val(),
+      receipts: $('#nopagos').val(),
+      rec_pago: $('#rec_pago').val(),
+    };
+  }
+
   function createReceipts(selectPoliza, endoso_id = '') {
     const netPremium = $('#prima-neta').val();
     const totalPremium = $('#prima-total').val();
@@ -2224,10 +2239,9 @@ $(function () {
       data: $.param(sendObj),
       success: function (resp) {
         if (resp.error) {
-          // alert(resp.msg, "error", resp.title);
+          alert(resp.msg, 'error', resp.title);
           console.log('Error crear recibos', resp.error, resp.msg);
         } else {
-          // alert(resp.msg, "success", resp.title);
           console.log('Recibos creados exitosamente');
         }
       },
@@ -2447,19 +2461,19 @@ $(function () {
       $(this).addClass('was-validated');
       return;
     }
-      const formDataPoliza = serializePolizaFormWithRawCurrencyValues();
+    const formDataPoliza = serializePolizaFormWithRawCurrencyValues();
     if ($('#tipo').val()) {
+      const paramsEndoso = `${formDataPoliza}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         type: 'POST',
         url: '/polizas/create_endoso',
-        data: formDataPoliza,
+        data: paramsEndoso,
         success: function (resp) {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
             $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
-            createReceipts(null, resp.endoso_id);
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
@@ -2467,11 +2481,15 @@ $(function () {
         },
         error: function (xhr, status, error) {
           console.error('Error en create_endoso', error);
+          alert(
+            xhr.responseJSON?.msg || 'Ocurrió un error al crear el endoso y sus recibos',
+            'error',
+          );
         },
       });
     } else if ($('#title_poliza')?.text()?.includes('Editar')) {
       let newParams = serializePolizaFormWithRawCurrencyValues();
-      newParams = `${newParams}&poliza_id=${poliza_id}`;
+      newParams = `${newParams}&poliza_id=${poliza_id}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         url: 'polizas/edit',
         method: 'POST',
@@ -2483,7 +2501,6 @@ $(function () {
           } else {
             $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
-            createReceipts(resp.poliza_id);
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
@@ -2491,11 +2508,15 @@ $(function () {
         },
         error: function (xhr, textStatus, error) {
           console.error('Error al editar poliza /edit', error);
+          alert(
+            xhr.responseJSON?.msg || 'Ocurrió un error al actualizar la póliza y sus recibos',
+            'error',
+          );
         },
       });
     } else {
       $('#poliza_id').val('New');
-      const newParams = serializePolizaFormWithRawCurrencyValues();
+      const newParams = `${serializePolizaFormWithRawCurrencyValues()}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         type: 'POST',
         url: '/polizas/create',
@@ -2510,7 +2531,6 @@ $(function () {
           } else {
             $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
-            createReceipts(resp.poliza_id);
             alert(resp.title, 'success');
             getPolizas();
             resetForm();
@@ -2518,6 +2538,10 @@ $(function () {
         },
         error: function (xhr, status, error) {
           console.error('Error al crear poliza /create', error);
+          alert(
+            xhr.responseJSON?.msg || 'Ocurrió un error al crear la póliza y sus recibos',
+            'error',
+          );
         },
       });
     }

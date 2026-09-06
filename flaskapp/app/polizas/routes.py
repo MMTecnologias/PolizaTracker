@@ -240,21 +240,25 @@ def get():
 @polizas_route.route('/create', methods=['POST'])
 @login_required
 def create():
-    # if not check_access("Clientes"):
-    #    return redirect(url_for('main.index'))
-    # flask_request.form.get('start')
     poliza_id = flask_request.form.get('poliza_id')
-    print("Here")
     poliza_old = None
     if not (poliza_id == "New"):
         try:
             poliza_id = int(poliza_id)
         except:
             return jsonify({'error': True, 'msg': 'No se encontró la póliza a renovar'})
-        poliza_old = Poliza.query.get(poliza_id)
+        # Bloqueo de fila (SELECT ... FOR UPDATE): si dos peticiones casi
+        # simultáneas intentan renovar la MISMA póliza (ej. doble clic),
+        # la base de datos hace que la segunda espere a que la primera
+        # termine su transacción. Cuando le toque su turno, ya verá
+        # Poliza_renovada='Si' y correctamente saldrá el error de abajo,
+        # en vez de crear una segunda renovación duplicada.
+        poliza_old = Poliza.query.filter_by(
+            id=poliza_id).with_for_update().first()
         if not poliza_old:
             return jsonify({'error': True, 'msg': 'No se encontró la póliza a renovar'})
         if poliza_old.Poliza_renovada == "Si":
+            db.session.rollback()
             return jsonify({'error': True, 'msg': f'esta póliza ya ha sido renovada con el número de póliza {poliza_old.renovacion}'})
 
     if not poliza_id:
@@ -383,39 +387,60 @@ def create():
     arg_values['recibos'] = 'Por generar'
 
     new_poliza = Poliza(**arg_values)
-    print(
-        f"[CREATE] Poliza a guardar - poliza: '{arg_values.get('poliza')}', pdf_path: '{arg_values.get('pdf_path', 'NO DEFINIDO')}', recibos: '{arg_values.get('recibos')}'")
-    # Save the new client to the database
     db.session.add(new_poliza)
-    db.session.commit()
-    print(
-        f"[CREATE] Poliza guardada en BD - ID: {new_poliza.id}, pdf_path en BD: '{new_poliza.pdf_path}', recibos: '{new_poliza.recibos}'")
+    # flush (no commit): asigna new_poliza.id sin cerrar la transacción
+    # todavía — así podemos seguir agregando cosas (marcar la vieja,
+    # generar recibos) y confirmarlo TODO junto al final, o deshacerlo
+    # TODO junto si algo falla.
+    db.session.flush()
 
     if poliza_old:
         poliza_old.Poliza_renovada = "Si"
+        poliza_old.renovacion = new_poliza.poliza
         request_entry = Request(usuario_id=current_user.id,
                                 description=f"Renovar póliza {poliza_old.poliza} a {new_poliza.poliza}",
                                 status="Aceptada",
                                 table_name='Poliza',
                                 row_id=new_poliza.id)
-        db.session.add(request_entry)
-        db.session.commit()
     else:
         request_entry = Request(usuario_id=current_user.id,
                                 description=f"Crear poliza {new_poliza.poliza}",
                                 status="Aceptada",
                                 table_name='Poliza',
                                 row_id=new_poliza.id)
-        db.session.add(request_entry)
-        db.session.commit()
+    db.session.add(request_entry)
 
-    """for col,value in arg_values.items():
-        log_entry = Log(request_id=request_entry.id,
-                        column_name=col,
-                        old_value="",
-                        new_value=value)
-        db.session.add(log_entry)
-    db.session.commit() """
+    # Si el formulario ya incluye los datos de recibos (flujo nuevo:
+    # todo se manda junto al hacer clic en "Guardar" del modal), se
+    # generan aquí mismo, en la MISMA transacción. Si el formulario no
+    # los manda (compatibilidad hacia atrás), la póliza se crea igual
+    # que antes, con recibos='Por generar', para generarse después vía
+    # /save_receipts.
+    if flask_request.form.get('netPremium'):
+        try:
+            response = calcular_recibos()
+            response['poliza_id'] = new_poliza.id
+            _generar_registros_recibos(
+                new_poliza.id, None, response, new_poliza, new_poliza,
+                is_endoso=False, multiplier=1)
+        except (TypeError, ValueError, ZeroDivisionError) as error:
+            db.session.rollback()
+            current_app.logger.exception(
+                "[CREATE] Datos inválidos para calcular recibos")
+            return jsonify({'error': True, 'msg': f'No se pudieron calcular los recibos: {error}'})
+        except Exception as error:
+            db.session.rollback()
+            current_app.logger.exception(
+                "[CREATE] Error al generar recibos junto con la póliza")
+            return jsonify({'error': True, 'msg': f'Error al generar los recibos: {error}'})
+
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        current_app.logger.exception(
+            "[CREATE] Error al guardar la póliza")
+        return jsonify({'error': True, 'msg': f'Error al guardar la póliza: {error}'})
 
     return jsonify({
         'error': False,
@@ -526,10 +551,40 @@ def edit():
     for key, value in related_entities.items():
         setattr(poliza, key, value)
 
+    # Si el formulario incluye datos de recibos, significa que hay que
+    # regenerarlos (cambió prima y/o tipo de pago). Se hace TODO en la
+    # misma transacción: borrar los viejos + generar los nuevos + los
+    # cambios de la póliza — si algo falla, no se pierden los recibos
+    # viejos (antes se borraban aparte, de una vez, antes de que el
+    # usuario confirmara nada en el modal).
+    if flask_request.form.get('netPremium'):
+        ok, msg, endoso_or_poliza, receipts = _validar_puede_borrar_recibos(
+            poliza.id, endoso_id=None)
+        if not ok:
+            db.session.rollback()
+            return jsonify({'error': True, 'msg': msg})
+
+        _eliminar_recibos_existentes(endoso_or_poliza, receipts)
+
+        try:
+            response = calcular_recibos()
+            response['poliza_id'] = poliza.id
+            _generar_registros_recibos(
+                poliza.id, None, response, poliza, poliza,
+                is_endoso=False, multiplier=1)
+        except (TypeError, ValueError, ZeroDivisionError) as error:
+            db.session.rollback()
+            current_app.logger.exception(
+                "[EDIT] Datos inválidos para calcular recibos")
+            return jsonify({'error': True, 'msg': f'No se pudieron calcular los recibos: {error}'})
+        except Exception as error:
+            db.session.rollback()
+            current_app.logger.exception(
+                "[EDIT] Error al regenerar recibos junto con la edición")
+            return jsonify({'error': True, 'msg': f'Error al generar los recibos: {error}'})
+
     # Save changes to the database
     try:
-        db.session.commit()
-        # Log the edit action
         request_entry = Request(
             usuario_id=current_user.id,
             description=f"Editar póliza {poliza.poliza}",
@@ -676,56 +731,33 @@ def get_policy_values():
                     })
 
 
-def calcular_recibos():
-    # Retrieve data from the form
-    prima_total = float(flask_request.form.get('totalPremium'))
-    prima_neta = float(flask_request.form.get('netPremium'))
-    iva = float(flask_request.form.get('iva'))
-    derecho_poliza = float(flask_request.form.get('insurance'))
-    print(
-        f"[CALCULAR_RECIBOS] totalPremium={prima_total}, netPremium={prima_neta}, iva={iva}, insurance={derecho_poliza}")
-    print(f"[CALCULAR_RECIBOS] receipts={flask_request.form.get('receipts')}, commission={flask_request.form.get('commission')}, rec_pago={flask_request.form.get('rec_pago')}, selectPoliza={flask_request.form.get('selectPoliza')}")
-    derecho_poliza_con_iva = derecho_poliza * (1+iva / 100)
-    iva = prima_total*iva / (100+iva)
-    commission = float(flask_request.form.get('commission'))
-    commission = prima_neta * commission/100
-    # Assuming this is the number of payments
-    nopagos = int(flask_request.form.get('receipts'))
+def _calcular_montos_recibos(prima_total, prima_neta, iva_pct, derecho_poliza,
+                              comision_pct, nopagos, rec_pago_modo):
+    """Función pura: hace el cálculo de recibos con parámetros explícitos,
+    sin depender de flask_request.form. Así la puede usar tanto la ruta
+    web (que lee el form) como el script de backfill de recibos faltantes
+    (que lee los datos ya guardados en la Poliza)."""
+    derecho_poliza_con_iva = derecho_poliza * (1 + iva_pct / 100)
+    iva = prima_total * iva_pct / (100 + iva_pct)
+    commission = prima_neta * comision_pct / 100
 
-    recargo_por_pago = prima_total - iva-prima_neta-derecho_poliza
+    recargo_por_pago = prima_total - iva - prima_neta - derecho_poliza
 
-    # Es "primer_recibo" o "dividir_recibos"
-    rec_pago = flask_request.form.get('rec_pago')
-    print(rec_pago)
-    print(nopagos)
-    print(derecho_poliza_con_iva)
-
-    # Perform calculations
     response = {
-        'firstpay': {
-            "netPremium": "",
-            "comision": "",
-            "totalPremium": ""
-        },
-        'subspay': {
-            "netPremium": "",
-            "comision": "",
-            "totalPremium": ""
-        }
+        'firstpay': {"netPremium": "", "comision": "", "totalPremium": ""},
+        'subspay': {"netPremium": "", "comision": "", "totalPremium": ""}
     }
 
-    # Calculate the values for the first payment
-    total_premium = (prima_total-derecho_poliza_con_iva) / \
-        nopagos if rec_pago == "primer_recibo" else prima_total/nopagos
+    total_premium = (prima_total - derecho_poliza_con_iva) / \
+        nopagos if rec_pago_modo == "primer_recibo" else prima_total / nopagos
     net_premium = prima_neta / nopagos
     commission_pp = commission / nopagos
 
     response['firstpay']['netPremium'] = net_premium
     response['firstpay']['totalPremium'] = total_premium + \
-        derecho_poliza_con_iva if rec_pago == "primer_recibo" else total_premium
+        derecho_poliza_con_iva if rec_pago_modo == "primer_recibo" else total_premium
     response['firstpay']['comision'] = commission_pp
 
-    # If there are subsequent payments, calculate their values as well
     if nopagos > 1:
         response['subspay']['netPremium'] = net_premium
         response['subspay']['totalPremium'] = total_premium
@@ -735,8 +767,26 @@ def calcular_recibos():
     response['iva'] = iva
     response['rec_pago'] = recargo_por_pago
     response['comision'] = commission
-    response['poliza_id'] = flask_request.form.get('selectPoliza')
     response['nopagos'] = nopagos
+    return response
+
+
+def calcular_recibos():
+    # Retrieve data from the form
+    prima_total = float(flask_request.form.get('totalPremium'))
+    prima_neta = float(flask_request.form.get('netPremium'))
+    iva = float(flask_request.form.get('iva'))
+    derecho_poliza = float(flask_request.form.get('insurance'))
+    print(
+        f"[CALCULAR_RECIBOS] totalPremium={prima_total}, netPremium={prima_neta}, iva={iva}, insurance={derecho_poliza}")
+    print(f"[CALCULAR_RECIBOS] receipts={flask_request.form.get('receipts')}, commission={flask_request.form.get('commission')}, rec_pago={flask_request.form.get('rec_pago')}, selectPoliza={flask_request.form.get('selectPoliza')}")
+    commission = float(flask_request.form.get('commission'))
+    nopagos = int(flask_request.form.get('receipts'))
+    rec_pago = flask_request.form.get('rec_pago')
+
+    response = _calcular_montos_recibos(
+        prima_total, prima_neta, iva, derecho_poliza, commission, nopagos, rec_pago)
+    response['poliza_id'] = flask_request.form.get('selectPoliza')
 
     print(response)
     return response
@@ -762,6 +812,83 @@ def calculate_receipts():
     return jsonify(response)
 
 
+def _generar_registros_recibos(poliza_id, endoso_id, response, poliza, endoso_or_poliza, is_endoso, multiplier):
+    """Crea los objetos Recibo en la sesión de SQLAlchemy (db.session.add),
+    SIN hacer commit — el llamador decide cuándo confirmar la transacción
+    completa. Así se puede combinar con la creación de la póliza/endoso
+    en una sola operación atómica (todo o nada)."""
+    start_date = endoso_or_poliza.fecha_inicio
+    end_date = endoso_or_poliza.fecha_termino
+    tipo_pago = TipoPago.query.get(endoso_or_poliza.tipo_pago_id)
+
+    if tipo_pago.contado == "Si":
+        nuevo_recibo = Recibo(fecha_inicio=start_date,
+                              fecha_vencimiento=end_date,
+                              poliza_id=poliza_id,
+                              endoso_id=endoso_id,
+                              prima_neta=multiplier *
+                              response['firstpay']['netPremium'],
+                              prima_total=multiplier *
+                              response['firstpay']['totalPremium'],
+                              comision=multiplier *
+                              response['firstpay']['comision']
+                              )
+        db.session.add(nuevo_recibo)
+    else:
+        num_months = int(12/tipo_pago.pagos_anuales)
+        fecha_inicio = start_date
+        fecha_vencimiento = add_months(fecha_inicio, num_months)
+        if is_endoso:
+            if TipoPago.query.get(poliza.tipo_pago_id).tipo_pago == tipo_pago.tipo_pago and poliza.fecha_termino == end_date:
+                recibo = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <=
+                                             end_date, Recibo.endoso_id == None).order_by(Recibo.id).first()
+                if recibo:
+                    fecha_vencimiento = recibo.fecha_vencimiento.strftime(
+                        '%Y-%m-%d')
+                else:
+                    current_app.logger.warning(
+                        "[GENERAR_RECIBOS] La póliza %s no tiene recibos base; se usará la periodicidad calculada para el endoso %s",
+                        poliza_id, endoso_id)
+        nopagos = response['nopagos']
+        nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
+                              fecha_vencimiento=fecha_vencimiento,
+                              poliza_id=poliza_id,
+                              endoso_id=endoso_id,
+                              prima_neta=multiplier *
+                              response['firstpay']['netPremium'],
+                              prima_total=multiplier *
+                              response['firstpay']['totalPremium'],
+                              comision=multiplier *
+                              response['firstpay']['comision'],
+                              no_de_recibo="1 / "+str(nopagos)
+                              )
+        db.session.add(nuevo_recibo)
+        for nopay in range(2, nopagos+1):
+            fecha_inicio = fecha_vencimiento
+            fecha_vencimiento = end_date if nopay == nopagos else add_months(
+                fecha_inicio, num_months)
+            nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
+                                  fecha_vencimiento=fecha_vencimiento,
+                                  poliza_id=poliza_id,
+                                  endoso_id=endoso_id,
+                                  prima_neta=multiplier *
+                                  response['subspay']['netPremium'],
+                                  prima_total=multiplier *
+                                  response['subspay']['totalPremium'],
+                                  comision=multiplier *
+                                  response['subspay']['comision'],
+                                  no_de_recibo=str(
+                                      nopay)+" / "+str(nopagos)
+                                  )
+            db.session.add(nuevo_recibo)
+
+    endoso_or_poliza.derecho_poliza = response['derecho_poliza']
+    endoso_or_poliza.iva = round(response['iva'], 2)
+    endoso_or_poliza.rec_pago = response['rec_pago']
+    endoso_or_poliza.comision = response['comision']
+    endoso_or_poliza.recibos = "Generados"
+
+
 @polizas_route.route('/save_receipts', methods=['POST'])
 @login_required
 def save_receipts():
@@ -778,11 +905,6 @@ def save_receipts():
 
     poliza = Poliza.query.get(poliza_id)
     endoso_id = flask_request.form.get('endoso_id')
-    print(f"[SAVE_RECEIPTS] poliza_id='{poliza_id}', endoso_id='{endoso_id}'")
-    print(f"[SAVE_RECEIPTS] poliza encontrada: {poliza is not None}")
-    if poliza:
-        print(
-            f"[SAVE_RECEIPTS] poliza.recibos='{poliza.recibos}', poliza.poliza='{poliza.poliza}'")
     multiplier = 1
     endoso_or_poliza = poliza
     is_endoso = False
@@ -807,97 +929,16 @@ def save_receipts():
         is_endoso = True
 
     elif not poliza:
-        print(
-            f"[SAVE_RECEIPTS] ERROR: Poliza con id='{poliza_id}' no encontrada en BD")
         return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
     elif poliza.recibos == "Generados":
-        print(
-            f"[SAVE_RECEIPTS] ERROR: La poliza '{poliza.poliza}' ya tiene recibos generados")
         return jsonify({'error': True, 'msg': 'Esta poliza ya tiene recibos generados'})
 
     try:
-        # Ejecuta el bucle para crear registros
-        start_date = endoso_or_poliza.fecha_inicio
-        end_date = endoso_or_poliza.fecha_termino
-        tipo_pago = TipoPago.query.get(endoso_or_poliza.tipo_pago_id)
-        print(tipo_pago.tipo_pago)
-        if tipo_pago.contado == "Si":
-            print("done")
-            nuevo_recibo = Recibo(fecha_inicio=start_date,
-                                  fecha_vencimiento=end_date,
-                                  poliza_id=poliza_id,
-                                  endoso_id=endoso_id,
-                                  prima_neta=multiplier *
-                                  response['firstpay']['netPremium'],
-                                  prima_total=multiplier *
-                                  response['firstpay']['totalPremium'],
-                                  comision=multiplier *
-                                  response['firstpay']['comision']
-                                  )
-            db.session.add(nuevo_recibo)
-        else:
-            num_months = int(12/tipo_pago.pagos_anuales)
-            fecha_inicio = start_date
-            fecha_vencimiento = add_months(fecha_inicio, num_months)
-            if is_endoso:
-                if TipoPago.query.get(poliza.tipo_pago_id).tipo_pago == tipo_pago.tipo_pago and poliza.fecha_termino == end_date:
-                    recibo = Recibo.query.filter(Recibo.poliza_id == poliza_id, Recibo.fecha_vencimiento <=
-                                                 end_date, Recibo.endoso_id == None).order_by(Recibo.id).first()
-                    if recibo:
-                        fecha_vencimiento = recibo.fecha_vencimiento.strftime(
-                            '%Y-%m-%d')
-                    else:
-                        current_app.logger.warning(
-                            "[SAVE_RECEIPTS] La póliza %s no tiene recibos base; se usará la periodicidad calculada para el endoso %s",
-                            poliza_id,
-                            endoso_id)
-            nopagos = response['nopagos']
-            print(nopagos)
-            nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
-                                  fecha_vencimiento=fecha_vencimiento,
-                                  poliza_id=poliza_id,
-                                  endoso_id=endoso_id,
-                                  prima_neta=multiplier *
-                                  response['firstpay']['netPremium'],
-                                  prima_total=multiplier *
-                                  response['firstpay']['totalPremium'],
-                                  comision=multiplier *
-                                  response['firstpay']['comision'],
-                                  no_de_recibo="1 / "+str(nopagos)
-                                  )
-            db.session.add(nuevo_recibo)
-            for nopay in range(2, nopagos+1):
-                fecha_inicio = fecha_vencimiento
-                fecha_vencimiento = end_date if nopay == nopagos else add_months(
-                    fecha_inicio, num_months)
-                nuevo_recibo = Recibo(fecha_inicio=fecha_inicio,
-                                      fecha_vencimiento=fecha_vencimiento,
-                                      poliza_id=poliza_id,
-                                      endoso_id=endoso_id,
-                                      prima_neta=multiplier *
-                                      response['subspay']['netPremium'],
-                                      prima_total=multiplier *
-                                      response['subspay']['totalPremium'],
-                                      comision=multiplier *
-                                      response['subspay']['comision'],
-                                      no_de_recibo=str(
-                                          nopay)+" / "+str(nopagos)
-                                      )
-                db.session.add(nuevo_recibo)
-
-        endoso_or_poliza.derecho_poliza = response['derecho_poliza']
-        endoso_or_poliza.iva = round(response['iva'], 2)
-        endoso_or_poliza.rec_pago = response['rec_pago']
-        endoso_or_poliza.comision = response['comision']
-        endoso_or_poliza.recibos = "Generados"
-
-        # Realiza el commit después de completar las inserciones
+        _generar_registros_recibos(
+            poliza_id, endoso_id, response, poliza, endoso_or_poliza, is_endoso, multiplier)
         db.session.commit()
-        print(
-            f"[SAVE_RECEIPTS] Recibos guardados exitosamente para poliza_id='{poliza_id}', total recibos={response['nopagos']}")
         return jsonify({'error': False, 'msg': 'Recibos generados con exito'})
     except Exception as e:
-        # Si ocurre algún error, realiza un rollback
         db.session.rollback()
         print(e)
         return jsonify({'error': True, 'msg': 'Error en la creación de recibos '+str(e)})
@@ -906,39 +947,25 @@ def save_receipts():
 """Endosos"""
 
 
-@polizas_route.route('/check_delete_receipts', methods=['POST'])
-@login_required
-def check_delete_receipts():
-    """
-    Elimina recibos de una póliza o endoso para que puedan ser generados de nuevo.
-
-    Los requisitos son:
-    - La póliza o endoso debe tener recibos generados.
-    - La póliza o endoso no debe estar cancelada o finalizada.
-    - No debe haber recibos pagados o cancelados.
-    - No debe haber endosos con recibos asociados a la póliza (si es una póliza).
-    """
-    poliza_id = flask_request.form.get('poliza_id')
-    endoso_id = flask_request.form.get('endoso_id')
-
-    # Determinar si se está trabajando con una póliza o un endoso
+def _validar_puede_borrar_recibos(poliza_id, endoso_id):
+    """Corre todas las validaciones de negocio para saber si es seguro
+    borrar los recibos de una póliza/endoso, SIN borrar nada todavía.
+    Retorna (ok: bool, msg: str, endoso_or_poliza, receipts)."""
     if endoso_id:
         endoso_or_poliza = Endoso.query.get(endoso_id)
         if not endoso_or_poliza:
-            return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+            return False, 'Endoso no encontrado', None, None
         poliza_id = endoso_or_poliza.poliza_id
     else:
         endoso_or_poliza = Poliza.query.get(poliza_id)
         if not endoso_or_poliza:
-            return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+            return False, 'Póliza no encontrada', None, None
 
-    # Validar estado de la póliza o endoso
     if endoso_or_poliza.recibos != "Generados" and endoso_or_poliza.recibos != "Por generar":
-        return jsonify({'error': True, 'msg': 'No se han generado recibos para esta póliza/endoso'})
+        return False, 'No se han generado recibos para esta póliza/endoso', None, None
     if endoso_or_poliza.status in ["Cancelada", "Finalizada"]:
-        return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una póliza/endoso cancelada o finalizada'})
+        return False, 'No se pueden eliminar recibos de una póliza/endoso cancelada o finalizada', None, None
 
-    # Obtener los recibos asociados
     if endoso_id:
         receipts = Recibo.query.filter(
             Recibo.poliza_id == poliza_id,
@@ -949,42 +976,49 @@ def check_delete_receipts():
             Recibo.poliza_id == poliza_id
         ).all()
 
-    # Validar recibos
     for receipt in receipts:
         if not endoso_id and receipt.endoso_id is not None:
-            return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos de una póliza con endosos que tienen recibos'})
-
+            return False, 'No se pueden eliminar recibos de una póliza con endosos que tienen recibos', None, None
         if receipt.status in ["Liquidado", "Cancelado"]:
-            return jsonify({'error': True, 'msg': 'No se pueden eliminar recibos que ya han sido liquidados o cancelados'})
+            return False, 'No se pueden eliminar recibos que ya han sido liquidados o cancelados', None, None
 
-    # Si todas las validaciones pasan, eliminar recibos
-    try:
-        for receipt in receipts:
-            db.session.delete(receipt)
+    return True, 'OK', endoso_or_poliza, receipts
 
-        endoso_or_poliza.recibos = "Por generar"
-        db.session.commit()
 
-        # Registrar la acción
-        request_entry = Request(usuario_id=current_user.id,
-                                description=f"Eliminar recibos de {'endoso' if endoso_id else 'póliza'} {endoso_or_poliza.poliza} con prima total previa {endoso_or_poliza.prima_total}",
-                                status="Aceptada",
-                                table_name='Endoso' if endoso_id else 'Poliza',
-                                row_id=endoso_or_poliza.id)
-        db.session.add(request_entry)
-        db.session.commit()
+def _eliminar_recibos_existentes(endoso_or_poliza, receipts):
+    """Borra los recibos ya validados (db.session.delete), SIN hacer
+    commit — el llamador decide cuándo, para poder combinarlo con la
+    edición de la póliza y la generación de los recibos nuevos en una
+    sola transacción atómica (todo o nada)."""
+    for receipt in receipts:
+        db.session.delete(receipt)
+    endoso_or_poliza.recibos = "Por generar"
 
-        log_entry = Log(request_id=request_entry.id,
-                        column_name='recibos',
-                        old_value="Generados",
-                        new_value="Por generar")
-        db.session.add(log_entry)
-        db.session.commit()
 
-        return jsonify({'error': False, 'msg': 'Recibos eliminados con éxito'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': True, 'msg': f'Error al eliminar recibos: {str(e)}'})
+@polizas_route.route('/check_delete_receipts', methods=['POST'])
+@login_required
+def check_delete_receipts():
+    """
+    SOLO VALIDA si se pueden borrar los recibos de una póliza/endoso
+    para regenerarlos — YA NO BORRA NADA aquí. El borrado real ahora
+    ocurre en /polizas/edit, en la misma transacción que la edición y
+    la generación de los recibos nuevos, para no dejar a la póliza sin
+    recibos si el usuario cancela el modal a medio camino.
+
+    Los requisitos son:
+    - La póliza o endoso debe tener recibos generados.
+    - La póliza o endoso no debe estar cancelada o finalizada.
+    - No debe haber recibos pagados o cancelados.
+    - No debe haber endosos con recibos asociados a la póliza (si es una póliza).
+    """
+    poliza_id = flask_request.form.get('poliza_id')
+    endoso_id = flask_request.form.get('endoso_id')
+
+    ok, msg, _, _ = _validar_puede_borrar_recibos(poliza_id, endoso_id)
+    if not ok:
+        return jsonify({'error': True, 'msg': msg})
+
+    return jsonify({'error': False, 'msg': 'Se pueden regenerar los recibos'})
 
 
 @polizas_route.route('/create_endoso', methods=['POST'])
@@ -1092,9 +1126,11 @@ def create_endoso():
     # poliza_data['tipo_endoso'] = tipo
 
     endoso = Endoso(**arg_values)
-    # Save the new endoso to the database
     db.session.add(endoso)
-    db.session.commit()
+    # flush (no commit): asigna endoso.id sin cerrar la transacción,
+    # igual que en create() — así se puede generar los recibos en la
+    # misma operación atómica.
+    db.session.flush()
 
     request_entry = Request(usuario_id=current_user.id,
                             description=f"Crear endoso {endoso.tipo_endoso} para la póliza {endoso.poliza}",
@@ -1102,7 +1138,35 @@ def create_endoso():
                             table_name='Endoso',
                             row_id=endoso.id)
     db.session.add(request_entry)
-    db.session.commit()
+
+    # Los endosos tipo B nunca generan recibos (regla de negocio ya
+    # existente). Para A y D, si el form incluye los datos de recibos,
+    # se generan aquí mismo, en la misma transacción que el endoso.
+    if tipo != "B" and flask_request.form.get('netPremium'):
+        try:
+            response = calcular_recibos()
+            response['poliza_id'] = poliza.id
+            multiplier = -1 if tipo == "D" else 1
+            _generar_registros_recibos(
+                poliza.id, endoso.id, response, poliza, endoso,
+                is_endoso=True, multiplier=multiplier)
+        except (TypeError, ValueError, ZeroDivisionError) as error:
+            db.session.rollback()
+            current_app.logger.exception(
+                "[CREATE_ENDOSO] Datos inválidos para calcular recibos")
+            return jsonify({'error': True, 'msg': f'No se pudieron calcular los recibos: {error}'})
+        except Exception as error:
+            db.session.rollback()
+            current_app.logger.exception(
+                "[CREATE_ENDOSO] Error al generar recibos junto con el endoso")
+            return jsonify({'error': True, 'msg': f'Error al generar los recibos: {error}'})
+
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        current_app.logger.exception("[CREATE_ENDOSO] Error al guardar el endoso")
+        return jsonify({'error': True, 'msg': f'Error al guardar el endoso: {error}'})
 
     return jsonify({
         'error': False,
