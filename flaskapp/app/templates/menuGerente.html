@@ -175,6 +175,16 @@
          box-shadow: 5px 6px 14px -6px var(--gris-medio);
       }
 
+      .chart-box.clickable {
+         cursor: pointer;
+         transition: transform 0.15s ease;
+      }
+
+      .chart-box.clickable:hover {
+         transform: translateY(-3px);
+         box-shadow: 5px 6px 14px -6px var(--gris-medio);
+      }
+
       .panorama-card-label {
          font-size: 0.75rem;
          font-weight: 700;
@@ -230,11 +240,11 @@
       }
 
       .chart-box {
-         flex: 1 1 280px;
-         max-width: 360px;
+         flex: 1 1 220px;
+         max-width: 280px;
          background: white;
          border-radius: 10px;
-         padding: 16px;
+         padding: 12px;
          box-shadow: 5px 2px 14px -9px var(--gris-medio);
       }
 
@@ -248,7 +258,58 @@
       }
 
       .chart-box canvas {
-         max-height: 220px;
+         max-height: 180px;
+      }
+
+      .chart-box-solicitudes {
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+         align-items: center;
+         text-align: center;
+      }
+
+      .solicitudes-numero {
+         font-size: 2rem;
+         font-weight: 700;
+         color: var(--color-primario);
+         margin: 10px 0 4px;
+      }
+
+      .solicitud-fila {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         gap: 14px;
+         padding: 12px 0;
+         border-bottom: 1px solid var(--color-claro);
+      }
+
+      .solicitud-fila:last-child {
+         border-bottom: none;
+      }
+
+      .solicitud-descripcion {
+         font-size: 0.9rem;
+         color: #333;
+      }
+
+      .solicitud-meta {
+         font-size: 0.72rem;
+         color: var(--gris-medio);
+         margin-top: 2px;
+      }
+
+      .solicitud-btn-aceptar {
+         background-color: var(--color-primario);
+         color: white;
+         border: none;
+         border-radius: 6px;
+         padding: 6px 16px;
+         font-weight: 600;
+         font-size: 0.85rem;
+         cursor: pointer;
+         white-space: nowrap;
       }
 
       .tendencias-filtro {
@@ -650,6 +711,7 @@
                <option value="hoy">Hoy</option>
                <option value="semana">Esta semana</option>
                <option value="mes" selected>Este mes</option>
+               <option value="mes_pasado">Mes pasado</option>
                <option value="anio">Este año</option>
                <option value="personalizado">Rango personalizado</option>
             </select>
@@ -710,6 +772,11 @@
                   <div class="chart-title">Por Tipo de Pago</div>
                   <canvas id="chartTipoPago"></canvas>
                </div>
+               <div class="chart-box chart-box-solicitudes clickable" onclick="abrirModalSolicitudes()">
+                  <div class="chart-title">Solicitudes</div>
+                  <div class="solicitudes-numero" id="valSolicitudesPendientes">—</div>
+                  <div class="panorama-card-detail">Ver listado →</div>
+               </div>
             </div>
          </div>
 
@@ -751,6 +818,19 @@
          <div class="seccion-dashboard">
             <h4>Cobranza por Aseguradora <span id="cobranzaPeriodoTexto" class="panorama-periodo-texto"></span></h4>
             <div id="listaCobranza" class="cobranza-lista"></div>
+         </div>
+      </div>
+   </div>
+
+   <!-- MODAL: SOLICITUDES PENDIENTES -->
+   <div class="modal-gerencial" id="modalSolicitudes">
+      <div class="modal-gerencial-content" style="max-width: 640px;">
+         <div class="modal-gerencial-header">
+            <h4>Solicitudes Pendientes</h4>
+            <button class="modal-gerencial-close" onclick="cerrarModal('modalSolicitudes')">✕</button>
+         </div>
+         <div class="modal-gerencial-body" id="contenidoSolicitudes">
+            Cargando...
          </div>
       </div>
    </div>
@@ -988,6 +1068,9 @@
          } else if (preset === 'anio') {
             desde = new Date(hoy.getFullYear(), 0, 1);
             hasta = new Date(hoy.getFullYear(), 11, 31);
+         } else if (preset === 'mes_pasado') {
+            desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+            hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
          } else {
             // 'mes' (default)
             desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -1050,7 +1133,20 @@
             },
             options: {
                plugins: {
-                  legend: { position: 'bottom', labels: { font: { size: 10 } } },
+                  legend: {
+                     position: 'bottom',
+                     labels: {
+                        font: { size: 10 },
+                        generateLabels: function (chart) {
+                           const original = Chart.overrides.pie.plugins.legend.labels.generateLabels(chart);
+                           original.forEach((item, i) => {
+                              const pct = total > 0 ? (montos[i] / total * 100).toFixed(1) : 0;
+                              item.text = `${item.text} (${pct}%)`;
+                           });
+                           return original;
+                        },
+                     },
+                  },
                   tooltip: {
                      callbacks: {
                         label: function (item) {
@@ -1388,6 +1484,63 @@
             });
       }
 
+      function actualizarConteoSolicitudes(total) {
+         const bubble = document.querySelector('.numberOfRequests');
+         const bubbleTxt = document.querySelector('#numberOfRequests');
+         const valSolicitudes = document.getElementById('valSolicitudesPendientes');
+         if (bubble) total == 0 ? bubble.classList.add('hidden') : bubble.classList.remove('hidden');
+         if (bubbleTxt) bubbleTxt.innerHTML = total;
+         if (valSolicitudes) valSolicitudes.textContent = total;
+      }
+
+      function abrirModalSolicitudes() {
+         const contenedor = document.getElementById('contenidoSolicitudes');
+         contenedor.innerHTML = 'Cargando...';
+         abrirModal('modalSolicitudes');
+
+         fetch('/solicitudes/get_pending')
+            .then(r => r.json())
+            .then(data => {
+               actualizarConteoSolicitudes(data.recordsTotal);
+               if (data.data.length === 0) {
+                  contenedor.innerHTML = '<p style="text-align:center; color: var(--gris-medio);">No hay solicitudes pendientes</p>';
+                  return;
+               }
+               contenedor.innerHTML = data.data.map(sol => `
+                  <div class="solicitud-fila">
+                     <div>
+                        <div class="solicitud-descripcion">${sol.descripcion}</div>
+                        <div class="solicitud-meta">${sol.usuario} · ${sol.timestamp}</div>
+                     </div>
+                     <button class="solicitud-btn-aceptar" onclick="aceptarSolicitud(${sol.id})">Aceptar</button>
+                  </div>
+               `).join('');
+            })
+            .catch(() => {
+               contenedor.innerHTML = '<p>No se pudieron cargar las solicitudes.</p>';
+            });
+      }
+
+      function aceptarSolicitud(requestId) {
+         const params = new URLSearchParams({ request_id: requestId, action: 'Aceptada' });
+         fetch('/solicitudes/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+         })
+            .then(r => r.json())
+            .then(resp => {
+               if (resp.error) {
+                  alert(resp.msg, 'error', resp.title);
+                  return;
+               }
+               abrirModalSolicitudes();
+            })
+            .catch(() => {
+               alert('No se pudo procesar la solicitud', 'error');
+            });
+      }
+
       // Exporta a CSV (se abre directo en Excel) el listado ya cargado en el modal
       // Configuración de columnas para cada modal — usada por Excel y PDF
       const COLUMNAS_EXPORT = {
@@ -1566,6 +1719,9 @@
                ? bubble.classList.add('hidden')
                : bubble.classList.remove('hidden');
             bubbleTxt.innerHTML = data.recordsTotal;
+
+            const valSolicitudes = document.getElementById('valSolicitudesPendientes');
+            if (valSolicitudes) valSolicitudes.textContent = data.recordsTotal;
          };
          numberOfRequests();
       });

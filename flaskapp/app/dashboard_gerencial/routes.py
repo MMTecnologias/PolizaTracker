@@ -196,7 +196,8 @@ def panorama():
                         .join(Poliza, Recibo.poliza_id == Poliza.id)
                         .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
                                 filtro_recibos,
-                                _filtro_poliza_elegible_para_cobranza())
+                                _filtro_poliza_elegible_para_cobranza(),
+                                Recibo.prima_total > 0)
                         .all())
     pendientes_por_moneda = {}
     polizas_pendientes_ids = {}
@@ -315,7 +316,8 @@ def recibos_pendientes_listado():
             .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
             .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
                     filtro_recibos,
-                    _filtro_poliza_elegible_para_cobranza())
+                    _filtro_poliza_elegible_para_cobranza(),
+                    Recibo.prima_total > 0)
             .order_by(Recibo.fecha_vencimiento)
             .all())
 
@@ -517,7 +519,14 @@ def cobranza_por_aseguradora():
             .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
             .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
                     filtro_recibos,
-                    _filtro_poliza_elegible_para_cobranza())
+                    _filtro_poliza_elegible_para_cobranza(),
+                    # Se excluyen los recibos con prima_total negativa
+                    # (créditos de endosos tipo D / cancelaciones): eso
+                    # es dinero que se le debe AL cliente, no algo que
+                    # haya que cobrarLE — mezclarlo hacía que el total
+                    # de cobranza saliera negativo, lo cual no tiene
+                    # sentido de negocio. Decisión confirmada 2026-09.
+                    Recibo.prima_total > 0)
             .all())
 
     por_aseguradora = {}
