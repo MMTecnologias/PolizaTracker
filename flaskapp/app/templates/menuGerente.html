@@ -755,7 +755,7 @@
                <div class="panorama-card-detail">Ver listado →</div>
             </div>
             <div class="panorama-card clickable" onclick="abrirModalRecibos()">
-               <div class="panorama-card-label">Recibos Pendientes de Cobro <span id="totalRecibosPanorama" class="panorama-periodo-texto"></span></div>
+               <div class="panorama-card-label"><span id="totalRecibosPanorama" class="panorama-periodo-texto"></span>Recibos Pendientes de Cobro</div>
                <div class="panorama-card-value" id="valRecibosPendientes">—</div>
                <div class="panorama-card-detail" id="detRecibosPendientes">Ver listado →</div>
             </div>
@@ -1358,7 +1358,7 @@
 
                const totalRecibosCount = data.recibosPendientes.reduce((s, x) => s + x.recibos, 0);
                document.getElementById('totalRecibosPanorama').textContent =
-                  totalRecibosCount > 0 ? `· ${totalRecibosCount} recibos` : '';
+                  totalRecibosCount > 0 ? `${totalRecibosCount} · ` : '';
 
                const comisionesEl = document.getElementById('valComisiones');
                comisionesEl.innerHTML = renderMontosPorMoneda(data.comisionesGeneradas);
