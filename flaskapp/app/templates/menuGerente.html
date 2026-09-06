@@ -755,7 +755,7 @@
                <div class="panorama-card-detail">Ver listado →</div>
             </div>
             <div class="panorama-card clickable" onclick="abrirModalRecibos()">
-               <div class="panorama-card-label">Recibos Pendientes de Cobro</div>
+               <div class="panorama-card-label">Recibos Pendientes de Cobro <span id="totalRecibosPanorama" class="panorama-periodo-texto"></span></div>
                <div class="panorama-card-value" id="valRecibosPendientes">—</div>
                <div class="panorama-card-detail" id="detRecibosPendientes">Ver listado →</div>
             </div>
@@ -1356,6 +1356,10 @@
                recibosEl.className = data.recibosPendientes.length > 1
                   ? 'panorama-card-value multi' : 'panorama-card-value';
 
+               const totalRecibosCount = data.recibosPendientes.reduce((s, x) => s + x.recibos, 0);
+               document.getElementById('totalRecibosPanorama').textContent =
+                  totalRecibosCount > 0 ? `· ${totalRecibosCount} recibos` : '';
+
                const comisionesEl = document.getElementById('valComisiones');
                comisionesEl.innerHTML = renderMontosPorMoneda(data.comisionesGeneradas);
                comisionesEl.className = data.comisionesGeneradas.length > 1
@@ -1454,11 +1458,19 @@
          return totales;
       }
 
-      function renderTotalPorMonedaHTML(totales, etiqueta) {
+      function contarPorMoneda(items) {
+         const conteos = {};
+         items.forEach(it => {
+            conteos[it.moneda] = (conteos[it.moneda] || 0) + 1;
+         });
+         return conteos;
+      }
+
+      function renderTotalPorMonedaHTML(totales, conteos, etiquetaBase) {
          const monedas = Object.keys(totales);
          if (monedas.length === 0) return '';
          return monedas.map(m =>
-            `<span class="modal-total-linea">${etiqueta}: ${formatMoneda(totales[m], m)}</span>`
+            `<span class="modal-total-linea">${etiquetaBase} (${conteos[m] || 0} recibos): ${formatMoneda(totales[m], m)}</span>`
          ).join('');
       }
 
@@ -1489,8 +1501,9 @@
                `).join('') || '<tr><td colspan="8">Sin resultados</td></tr>';
 
                const totales = agruparMontoPorMoneda(data.items, 'primaTotal');
+               const conteos = contarPorMoneda(data.items);
                document.getElementById('totalRecibosPendientes').innerHTML =
-                  renderTotalPorMonedaHTML(totales, `Total (${data.items.length} recibos)`);
+                  renderTotalPorMonedaHTML(totales, conteos, 'Total');
 
                abrirModal('modalRecibos');
             });
@@ -1703,12 +1716,13 @@
 
          if (modalId === 'modalRecibos') {
             const totales = agruparMontoPorMoneda(items, 'primaTotal');
+            const conteos = contarPorMoneda(items);
             const finalY = doc.lastAutoTable.finalY + 10;
             doc.setFontSize(11);
             doc.setTextColor(201, 74, 28);
             Object.keys(totales).forEach((moneda, i) => {
                doc.text(
-                  `Total (${items.length} recibos): ${formatMoneda(totales[moneda], moneda)}`,
+                  `Total (${conteos[moneda] || 0} recibos): ${formatMoneda(totales[moneda], moneda)}`,
                   14, finalY + (i * 6)
                );
             });
