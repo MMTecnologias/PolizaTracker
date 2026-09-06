@@ -27,7 +27,7 @@ from flask import jsonify, request
 from flask_login import login_required
 from sqlalchemy import func, or_, and_
 from app import db
-from app.models import Poliza, Recibo, Cliente, Aseguradora, Ramo, Subramo
+from app.models import Poliza, Recibo, Cliente, Aseguradora, Ramo, Subramo, TipoPago
 from . import dashboard_gerencial
 
 DIAS_GRACIA_RECIBO = 30
@@ -363,5 +363,181 @@ def poliza_info(numero_poliza):
         'primaTotal': float(p.prima_total),
         'moneda': p.moneda,
         'renovada': p.Poliza_renovada,
+    })
+
+
+# ============================================================
+# SECCIÓN: COMPOSICIÓN DEL NEGOCIO
+# ============================================================
+
+TOP_ASEGURADORAS = 8
+
+
+@dashboard_gerencial.route('/api/composicion_negocio')
+@login_required
+def composicion_negocio():
+    """3 distribuciones (%) de la Prima Neta Cobrada del periodo:
+    por Aseguradora (top 8 + 'Otras'), por Moneda, y por Tipo de Pago.
+    Usa la misma definición de 'Prima Neta Cobrada' que el Panorama
+    General (Recibo.prima_neta, status='Liquidado', por fecha_pago)."""
+    desde, hasta = _resolver_periodo()
+
+    base_query = (db.session.query(Recibo, Poliza)
+                  .join(Poliza, Recibo.poliza_id == Poliza.id)
+                  .filter(Recibo.status == 'Liquidado',
+                          Recibo.fecha_pago >= desde,
+                          Recibo.fecha_pago <= hasta))
+
+    # --- Por aseguradora ---
+    rows_aseg = (base_query
+                 .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+                 .with_entities(Aseguradora.aseguradora,
+                                 func.sum(Recibo.prima_neta))
+                 .group_by(Aseguradora.aseguradora)
+                 .all())
+    aseguradoras_ordenadas = sorted(
+        rows_aseg, key=lambda r: float(r[1] or 0), reverse=True)
+    top = aseguradoras_ordenadas[:TOP_ASEGURADORAS]
+    resto = aseguradoras_ordenadas[TOP_ASEGURADORAS:]
+    por_aseguradora = [{'etiqueta': nombre, 'monto': float(monto or 0)}
+                        for nombre, monto in top]
+    if resto:
+        monto_resto = sum(float(m or 0) for _, m in resto)
+        por_aseguradora.append({'etiqueta': 'Otras', 'monto': monto_resto})
+
+    # --- Por moneda ---
+    rows_moneda = (base_query
+                   .with_entities(Poliza.moneda, func.sum(Recibo.prima_neta))
+                   .group_by(Poliza.moneda)
+                   .all())
+    por_moneda = [{'etiqueta': moneda, 'monto': float(monto or 0)}
+                  for moneda, monto in rows_moneda]
+
+    # --- Por tipo de pago ---
+    rows_tipo_pago = (base_query
+                       .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
+                       .with_entities(TipoPago.tipo_pago,
+                                       func.sum(Recibo.prima_neta))
+                       .group_by(TipoPago.tipo_pago)
+                       .all())
+    por_tipo_pago = [{'etiqueta': tipo, 'monto': float(monto or 0)}
+                      for tipo, monto in rows_tipo_pago]
+
+    return jsonify({
+        'periodo': {'desde': desde.isoformat(), 'hasta': hasta.isoformat()},
+        'porAseguradora': por_aseguradora,
+        'porMoneda': por_moneda,
+        'porTipoPago': por_tipo_pago,
+    })
+
+
+# ============================================================
+# SECCIÓN: TENDENCIAS EN EL TIEMPO
+# ============================================================
+
+def _prima_neta_del_periodo(desde, hasta):
+    """Prima Neta Cobrada del periodo, agrupada por moneda."""
+    rows = (db.session.query(Poliza.moneda, func.sum(Recibo.prima_neta))
+            .join(Poliza, Recibo.poliza_id == Poliza.id)
+            .filter(Recibo.status == 'Liquidado',
+                    Recibo.fecha_pago >= desde,
+                    Recibo.fecha_pago <= hasta)
+            .group_by(Poliza.moneda)
+            .all())
+    return {moneda: float(monto or 0) for moneda, monto in rows}
+
+
+def _polizas_nuevas_del_periodo(desde, hasta):
+    return (Poliza.query
+            .filter(Poliza.fecha_inicio >= desde, Poliza.fecha_inicio <= hasta)
+            .count())
+
+
+def _tasa_renovacion_del_periodo(desde, hasta):
+    """% de pólizas del periodo que son renovaciones (poliza_anterior
+    lleno) sobre el total de pólizas capturadas en ese mismo periodo."""
+    total = _polizas_nuevas_del_periodo(desde, hasta)
+    if total == 0:
+        return 0.0
+    renovadas = (Poliza.query
+                 .filter(Poliza.fecha_inicio >= desde,
+                         Poliza.fecha_inicio <= hasta,
+                         Poliza.poliza_anterior.isnot(None),
+                         Poliza.poliza_anterior != '')
+                 .count())
+    return round(renovadas / total * 100, 1)
+
+
+@dashboard_gerencial.route('/api/tendencias')
+@login_required
+def tendencias():
+    """Compara 2 periodos (A y B) en 3 métricas: Prima Neta Cobrada,
+    Pólizas Nuevas, y Tasa de Renovación."""
+    try:
+        desde_a = date.fromisoformat(request.args.get('desdeA'))
+        hasta_a = date.fromisoformat(request.args.get('hastaA'))
+        desde_b = date.fromisoformat(request.args.get('desdeB'))
+        hasta_b = date.fromisoformat(request.args.get('hastaB'))
+    except (TypeError, ValueError):
+        return jsonify({'error': True, 'msg': 'Rangos de fecha inválidos'}), 400
+
+    return jsonify({
+        'periodoA': {'desde': desde_a.isoformat(), 'hasta': hasta_a.isoformat()},
+        'periodoB': {'desde': desde_b.isoformat(), 'hasta': hasta_b.isoformat()},
+        'primaNeta': {
+            'A': _prima_neta_del_periodo(desde_a, hasta_a),
+            'B': _prima_neta_del_periodo(desde_b, hasta_b),
+        },
+        'polizasNuevas': {
+            'A': _polizas_nuevas_del_periodo(desde_a, hasta_a),
+            'B': _polizas_nuevas_del_periodo(desde_b, hasta_b),
+        },
+        'tasaRenovacion': {
+            'A': _tasa_renovacion_del_periodo(desde_a, hasta_a),
+            'B': _tasa_renovacion_del_periodo(desde_b, hasta_b),
+        },
+    })
+
+
+# ============================================================
+# SECCIÓN: COBRANZA
+# ============================================================
+
+@dashboard_gerencial.route('/api/cobranza_por_aseguradora')
+@login_required
+def cobranza_por_aseguradora():
+    """Recibos Pendientes de Cobro (misma lógica y elegibilidad que el
+    Panorama General), agrupados por aseguradora en vez de un solo total."""
+    desde, hasta = _resolver_periodo()
+    filtro_recibos = _filtro_con_gracia(
+        Recibo.fecha_vencimiento, desde, hasta, DIAS_GRACIA_RECIBO)
+
+    rows = (db.session.query(Recibo, Poliza.moneda, Aseguradora.aseguradora)
+            .join(Poliza, Recibo.poliza_id == Poliza.id)
+            .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+            .filter(Recibo.status.notin_(['Liquidado', 'Cancelado']),
+                    filtro_recibos,
+                    _filtro_poliza_elegible_para_cobranza())
+            .all())
+
+    por_aseguradora = {}
+    for recibo, moneda, aseguradora in rows:
+        clave = (aseguradora, moneda)
+        d = por_aseguradora.setdefault(
+            clave, {'monto': 0.0, 'recibos': 0})
+        d['monto'] += float(recibo.prima_total)
+        d['recibos'] += 1
+
+    data = [{
+        'aseguradora': aseguradora,
+        'moneda': moneda,
+        'monto': datos['monto'],
+        'recibos': datos['recibos'],
+    } for (aseguradora, moneda), datos in por_aseguradora.items()]
+    data.sort(key=lambda x: x['monto'], reverse=True)
+
+    return jsonify({
+        'periodo': {'desde': desde.isoformat(), 'hasta': hasta.isoformat()},
+        'items': data,
     })
 

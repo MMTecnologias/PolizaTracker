@@ -213,6 +213,127 @@
          color: var(--gris-medio);
       }
 
+      /* ============ SECCIONES NUEVAS DEL DASHBOARD ============ */
+      .seccion-dashboard {
+         margin-top: 36px;
+      }
+
+      .seccion-dashboard h4 {
+         margin-bottom: 16px;
+      }
+
+      .composicion-charts,
+      .tendencias-charts {
+         display: flex;
+         gap: 16px;
+         flex-wrap: wrap;
+      }
+
+      .chart-box {
+         flex: 1 1 280px;
+         max-width: 360px;
+         background: white;
+         border-radius: 10px;
+         padding: 16px;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio);
+      }
+
+      .chart-title {
+         font-size: 0.8rem;
+         font-weight: 700;
+         color: var(--gris-medio);
+         text-transform: uppercase;
+         margin-bottom: 10px;
+         text-align: center;
+      }
+
+      .chart-box canvas {
+         max-height: 220px;
+      }
+
+      .tendencias-filtro {
+         display: flex;
+         align-items: center;
+         gap: 20px;
+         flex-wrap: wrap;
+         margin-bottom: 20px;
+         background: white;
+         padding: 14px 18px;
+         border-radius: 10px;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio);
+      }
+
+      .periodo-selector {
+         display: flex;
+         align-items: center;
+         gap: 8px;
+      }
+
+      .periodo-selector label {
+         font-weight: 600;
+         font-size: 0.85rem;
+         color: #333;
+         margin: 0;
+      }
+
+      .periodo-selector input[type="date"] {
+         border: 1px solid var(--gris-medio);
+         border-radius: 6px;
+         padding: 6px 10px;
+         font-family: 'Poppins', sans-serif;
+         font-size: 0.85rem;
+      }
+
+      #btnCompararTendencias {
+         background-color: var(--color-primario);
+         color: white;
+         border: none;
+         border-radius: 6px;
+         padding: 8px 18px;
+         font-weight: 600;
+         cursor: pointer;
+      }
+
+      .cobranza-lista {
+         background: white;
+         border-radius: 10px;
+         padding: 16px 20px;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio);
+      }
+
+      .cobranza-fila {
+         display: grid;
+         grid-template-columns: 160px 1fr 140px;
+         align-items: center;
+         gap: 14px;
+         padding: 8px 0;
+         border-bottom: 1px solid var(--color-claro);
+         font-size: 0.85rem;
+      }
+
+      .cobranza-fila:last-child {
+         border-bottom: none;
+      }
+
+      .cobranza-barra-track {
+         background: var(--color-claro);
+         border-radius: 6px;
+         height: 10px;
+         overflow: hidden;
+      }
+
+      .cobranza-barra-fill {
+         background: var(--color-primario);
+         height: 100%;
+         border-radius: 6px;
+      }
+
+      .cobranza-monto {
+         text-align: right;
+         font-weight: 700;
+         color: var(--color-primario);
+      }
+
       /* ============ MODALES ============ */
       .modal-gerencial {
          display: none;
@@ -572,6 +693,65 @@
                <div class="panorama-card-value" id="valComisiones">—</div>
             </div>
          </div>
+
+         <!-- ============ COMPOSICIÓN DEL NEGOCIO ============ -->
+         <div class="seccion-dashboard">
+            <h4>Composición del Negocio <span id="composicionPeriodoTexto" class="panorama-periodo-texto"></span></h4>
+            <div class="composicion-charts">
+               <div class="chart-box">
+                  <div class="chart-title">Por Aseguradora</div>
+                  <canvas id="chartAseguradora"></canvas>
+               </div>
+               <div class="chart-box">
+                  <div class="chart-title">Por Moneda</div>
+                  <canvas id="chartMoneda"></canvas>
+               </div>
+               <div class="chart-box">
+                  <div class="chart-title">Por Tipo de Pago</div>
+                  <canvas id="chartTipoPago"></canvas>
+               </div>
+            </div>
+         </div>
+
+         <!-- ============ TENDENCIAS EN EL TIEMPO ============ -->
+         <div class="seccion-dashboard">
+            <h4>Tendencias en el Tiempo</h4>
+            <div class="tendencias-filtro">
+               <div class="periodo-selector">
+                  <label>Periodo A:</label>
+                  <input type="date" id="tendenciaDesdeA">
+                  <span>—</span>
+                  <input type="date" id="tendenciaHastaA">
+               </div>
+               <div class="periodo-selector">
+                  <label>Periodo B:</label>
+                  <input type="date" id="tendenciaDesdeB">
+                  <span>—</span>
+                  <input type="date" id="tendenciaHastaB">
+               </div>
+               <button id="btnCompararTendencias">Comparar</button>
+            </div>
+            <div class="tendencias-charts">
+               <div class="chart-box">
+                  <div class="chart-title">Prima Neta Cobrada</div>
+                  <canvas id="chartTendenciaPrima"></canvas>
+               </div>
+               <div class="chart-box">
+                  <div class="chart-title">Pólizas Nuevas</div>
+                  <canvas id="chartTendenciaPolizas"></canvas>
+               </div>
+               <div class="chart-box">
+                  <div class="chart-title">Tasa de Renovación (%)</div>
+                  <canvas id="chartTendenciaRenovacion"></canvas>
+               </div>
+            </div>
+         </div>
+
+         <!-- ============ COBRANZA ============ -->
+         <div class="seccion-dashboard">
+            <h4>Cobranza por Aseguradora <span id="cobranzaPeriodoTexto" class="panorama-periodo-texto"></span></h4>
+            <div id="listaCobranza" class="cobranza-lista"></div>
+         </div>
       </div>
    </div>
 
@@ -764,6 +944,7 @@
    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 
    <script>
       // Formatea montos con coma de miles + código de moneda
@@ -844,6 +1025,142 @@
       let periodoActualDesde = null;
       let periodoActualHasta = null;
 
+      // Paleta de colores para los gráficos de pastel/barras — el primer
+      // color es el --color-primario del sistema, el resto son variaciones
+      const PALETA_GRAFICOS = [
+         '#c94a1c', '#1cb3c9', '#e8853f', '#4a90a4', '#d97b52',
+         '#7fb8c4', '#a85a2c', '#2f7d8c', '#f0a06b', '#5d8791',
+      ];
+
+      const graficosActivos = {};
+
+      function renderPieChart(canvasId, labels, montos) {
+         const ctx = document.getElementById(canvasId);
+         if (graficosActivos[canvasId]) graficosActivos[canvasId].destroy();
+
+         const total = montos.reduce((s, m) => s + m, 0);
+         graficosActivos[canvasId] = new Chart(ctx, {
+            type: 'pie',
+            data: {
+               labels: labels,
+               datasets: [{
+                  data: montos,
+                  backgroundColor: PALETA_GRAFICOS,
+               }],
+            },
+            options: {
+               plugins: {
+                  legend: { position: 'bottom', labels: { font: { size: 10 } } },
+                  tooltip: {
+                     callbacks: {
+                        label: function (item) {
+                           const pct = total > 0 ? (item.raw / total * 100).toFixed(1) : 0;
+                           return `${item.label}: ${pct}%`;
+                        },
+                     },
+                  },
+               },
+            },
+         });
+      }
+
+      function cargarComposicionNegocio(desde, hasta) {
+         document.getElementById('composicionPeriodoTexto').textContent = textoPeriodo(desde, hasta);
+         const qs = new URLSearchParams({ desde, hasta }).toString();
+         fetch(`/dashboard_gerencial/api/composicion_negocio?${qs}`)
+            .then(r => r.json())
+            .then(data => {
+               renderPieChart('chartAseguradora',
+                  data.porAseguradora.map(x => x.etiqueta),
+                  data.porAseguradora.map(x => x.monto));
+               renderPieChart('chartMoneda',
+                  data.porMoneda.map(x => x.etiqueta),
+                  data.porMoneda.map(x => x.monto));
+               renderPieChart('chartTipoPago',
+                  data.porTipoPago.map(x => x.etiqueta),
+                  data.porTipoPago.map(x => x.monto));
+            });
+      }
+
+      function cargarCobranza(desde, hasta) {
+         document.getElementById('cobranzaPeriodoTexto').textContent = textoPeriodo(desde, hasta);
+         const qs = new URLSearchParams({ desde, hasta }).toString();
+         fetch(`/dashboard_gerencial/api/cobranza_por_aseguradora?${qs}`)
+            .then(r => r.json())
+            .then(data => {
+               const contenedor = document.getElementById('listaCobranza');
+               if (data.items.length === 0) {
+                  contenedor.innerHTML = '<p style="color: var(--gris-medio); text-align: center;">Sin recibos pendientes en este periodo</p>';
+                  return;
+               }
+               const montoMax = Math.max(...data.items.map(x => x.monto));
+               contenedor.innerHTML = data.items.map(item => {
+                  const pctBarra = montoMax > 0 ? (item.monto / montoMax * 100) : 0;
+                  return `
+                     <div class="cobranza-fila">
+                        <span>${item.aseguradora}</span>
+                        <div class="cobranza-barra-track">
+                           <div class="cobranza-barra-fill" style="width: ${pctBarra}%"></div>
+                        </div>
+                        <span class="cobranza-monto">${formatMoneda(item.monto, item.moneda)}</span>
+                     </div>
+                  `;
+               }).join('');
+            });
+      }
+
+      function renderBarChartComparativo(canvasId, etiquetaA, etiquetaB, valorA, valorB) {
+         const ctx = document.getElementById(canvasId);
+         if (graficosActivos[canvasId]) graficosActivos[canvasId].destroy();
+         graficosActivos[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+               labels: [etiquetaA, etiquetaB],
+               datasets: [{
+                  data: [valorA, valorB],
+                  backgroundColor: [PALETA_GRAFICOS[1], PALETA_GRAFICOS[0]],
+               }],
+            },
+            options: {
+               plugins: { legend: { display: false } },
+               scales: { y: { beginAtZero: true } },
+            },
+         });
+      }
+
+      function compararTendencias() {
+         const desdeA = document.getElementById('tendenciaDesdeA').value;
+         const hastaA = document.getElementById('tendenciaHastaA').value;
+         const desdeB = document.getElementById('tendenciaDesdeB').value;
+         const hastaB = document.getElementById('tendenciaHastaB').value;
+         if (!desdeA || !hastaA || !desdeB || !hastaB) return;
+
+         const qs = new URLSearchParams({ desdeA, hastaA, desdeB, hastaB }).toString();
+         fetch(`/dashboard_gerencial/api/tendencias?${qs}`)
+            .then(r => r.json())
+            .then(data => {
+               const etiquetaA = textoPeriodo(desdeA, hastaA);
+               const etiquetaB = textoPeriodo(desdeB, hastaB);
+
+               // Prima Neta: puede haber varias monedas — se grafica
+               // cada moneda presente en cualquiera de los 2 periodos
+               const monedas = [...new Set([
+                  ...Object.keys(data.primaNeta.A),
+                  ...Object.keys(data.primaNeta.B),
+               ])];
+               const monedaPrincipal = monedas[0] || 'MXN';
+               renderBarChartComparativo('chartTendenciaPrima', etiquetaA, etiquetaB,
+                  data.primaNeta.A[monedaPrincipal] || 0,
+                  data.primaNeta.B[monedaPrincipal] || 0);
+
+               renderBarChartComparativo('chartTendenciaPolizas', etiquetaA, etiquetaB,
+                  data.polizasNuevas.A, data.polizasNuevas.B);
+
+               renderBarChartComparativo('chartTendenciaRenovacion', etiquetaA, etiquetaB,
+                  data.tasaRenovacion.A, data.tasaRenovacion.B);
+            });
+      }
+
       function cargarPanorama(desde, hasta) {
          periodoActualDesde = desde;
          periodoActualHasta = hasta;
@@ -888,14 +1205,17 @@
 
       function aplicarFiltroPeriodo() {
          const preset = document.getElementById('filtroPeriodo').value;
+         let desde, hasta;
          if (preset === 'personalizado') {
-            const desde = document.getElementById('fechaDesde').value;
-            const hasta = document.getElementById('fechaHasta').value;
-            if (desde && hasta) cargarPanorama(desde, hasta);
-            return;
+            desde = document.getElementById('fechaDesde').value;
+            hasta = document.getElementById('fechaHasta').value;
+            if (!desde || !hasta) return;
+         } else {
+            ({ desde, hasta } = calcularRangoPreset(preset));
          }
-         const { desde, hasta } = calcularRangoPreset(preset);
          cargarPanorama(desde, hasta);
+         cargarComposicionNegocio(desde, hasta);
+         cargarCobranza(desde, hasta);
       }
 
       function abrirModal(id) {
@@ -1196,11 +1516,26 @@
             if (!esPersonalizado) aplicarFiltroPeriodo();
          });
          $('#btnAplicarRango').on('click', aplicarFiltroPeriodo);
+         $('#btnCompararTendencias').on('click', compararTendencias);
 
          // Cerrar modal al hacer clic fuera del contenido
          $('.modal-gerencial').on('click', function (e) {
             if (e.target === this) $(this).removeClass('active');
          });
+
+         // Tendencias: default Periodo A = mes anterior, Periodo B = mes actual
+         {
+            const hoy = new Date();
+            const mesActual = calcularRangoPreset('mes');
+            const mesAnteriorRef = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+            const desdeAnterior = new Date(mesAnteriorRef.getFullYear(), mesAnteriorRef.getMonth(), 1);
+            const hastaAnterior = new Date(mesAnteriorRef.getFullYear(), mesAnteriorRef.getMonth() + 1, 0);
+            $('#tendenciaDesdeA').val(fmtFecha(desdeAnterior));
+            $('#tendenciaHastaA').val(fmtFecha(hastaAnterior));
+            $('#tendenciaDesdeB').val(mesActual.desde);
+            $('#tendenciaHastaB').val(mesActual.hasta);
+            compararTendencias();
+         }
 
          // Carga inicial: mes en curso
          aplicarFiltroPeriodo();
