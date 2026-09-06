@@ -237,6 +237,34 @@ def get():
     })
 
 
+@polizas_route.route('/check_renovada', methods=['POST'])
+@login_required
+def check_renovada():
+    """Verificación rápida y temprana: se llama justo al hacer clic en
+    'Renovar' (antes de abrir el formulario), para no dejar que el
+    usuario llene todo el formulario y hasta el final se entere de que
+    la póliza ya había sido renovada. La validación autoritativa real
+    sigue siendo la de create() (con bloqueo de fila) — esta es solo
+    para dar feedback inmediato y ahorrar tiempo."""
+    poliza_id = flask_request.form.get('poliza_id')
+    try:
+        poliza_id = int(poliza_id)
+    except (TypeError, ValueError):
+        return jsonify({'error': True, 'msg': 'ID de póliza inválido'})
+
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+
+    if poliza.Poliza_renovada == "Si":
+        return jsonify({
+            'error': False,
+            'yaRenovada': True,
+            'renovacion': poliza.renovacion,
+        })
+    return jsonify({'error': False, 'yaRenovada': False})
+
+
 @polizas_route.route('/create', methods=['POST'])
 @login_required
 def create():

@@ -1491,6 +1491,33 @@ $(function () {
   }
 
   async function renewPoliza(poliza_id) {
+    // Verificación temprana: antes de abrir el formulario, checamos si
+    // esta póliza ya fue renovada — así el usuario no pierde tiempo
+    // llenando todo para enterarse hasta el final.
+    try {
+      const check = await $.ajax({
+        ...ajaxConfig,
+        url: '/polizas/check_renovada',
+        data: { poliza_id },
+      });
+      if (check.error) {
+        alert(check.msg, 'error');
+        return;
+      }
+      if (check.yaRenovada) {
+        alert(
+          `Esta póliza ya fue renovada con el número de póliza ${check.renovacion}`,
+          'error',
+        );
+        return;
+      }
+    } catch (err) {
+      console.error('Error al verificar si la póliza ya fue renovada', err);
+      // Si la verificación temprana falla por algún motivo de red, no
+      // bloqueamos al usuario — la validación real y definitiva sigue
+      // ocurriendo en el servidor al guardar.
+    }
+
     pdfMode = 'renew';
     const data = await resetForm();
     $('#btnGuardar').html('Renovar póliza');
