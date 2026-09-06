@@ -355,6 +355,15 @@
          cursor: pointer;
       }
 
+      .cobranza-total {
+         display: flex;
+         gap: 20px;
+         margin-bottom: 12px;
+         font-size: 0.95rem;
+         font-weight: 700;
+         color: var(--color-primario);
+      }
+
       .cobranza-lista {
          background: white;
          border-radius: 10px;
@@ -817,6 +826,7 @@
          <!-- ============ COBRANZA ============ -->
          <div class="seccion-dashboard">
             <h4>Cobranza por Aseguradora <span id="cobranzaPeriodoTexto" class="panorama-periodo-texto"></span></h4>
+            <div id="totalCobranza" class="cobranza-total"></div>
             <div id="listaCobranza" class="cobranza-lista"></div>
          </div>
       </div>
@@ -1110,6 +1120,17 @@
 
       // Paleta de colores para los gráficos de pastel/barras — el primer
       // color es el --color-primario del sistema, el resto son variaciones
+      // Chart.js usa el formato regional del navegador por default (a
+      // veces sale con coma decimal, como "10.584,17"). Este formateador
+      // fuerza el mismo estilo que el resto del sistema: coma de miles,
+      // punto decimal.
+      function formatNumeroGrafica(valor) {
+         return Number(valor).toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+         });
+      }
+
       const PALETA_GRAFICOS = [
          '#c94a1c', '#1cb3c9', '#e8853f', '#4a90a4', '#d97b52',
          '#7fb8c4', '#a85a2c', '#2f7d8c', '#f0a06b', '#5d8791',
@@ -1184,6 +1205,12 @@
          fetch(`/dashboard_gerencial/api/cobranza_por_aseguradora?${qs}`)
             .then(r => r.json())
             .then(data => {
+               const totalEl = document.getElementById('totalCobranza');
+               const monedasTotal = Object.keys(data.totalesPorMoneda);
+               totalEl.innerHTML = monedasTotal.length === 0
+                  ? ''
+                  : `Total: ${monedasTotal.map(m => formatMoneda(data.totalesPorMoneda[m], m)).join(' · ')}`;
+
                const contenedor = document.getElementById('listaCobranza');
                if (data.items.length === 0) {
                   contenedor.innerHTML = '<p style="color: var(--gris-medio); text-align: center;">Sin recibos pendientes en este periodo</p>';
@@ -1218,8 +1245,20 @@
                }],
             },
             options: {
-               plugins: { legend: { display: false } },
-               scales: { y: { beginAtZero: true } },
+               plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                     callbacks: {
+                        label: (item) => formatNumeroGrafica(item.raw),
+                     },
+                  },
+               },
+               scales: {
+                  y: {
+                     beginAtZero: true,
+                     ticks: { callback: (value) => formatNumeroGrafica(value) },
+                  },
+               },
             },
          });
       }
@@ -1242,8 +1281,20 @@
                })),
             },
             options: {
-               plugins: { legend: { display: monedas.length > 1, position: 'bottom' } },
-               scales: { y: { beginAtZero: true } },
+               plugins: {
+                  legend: { display: monedas.length > 1, position: 'bottom' },
+                  tooltip: {
+                     callbacks: {
+                        label: (item) => `${item.dataset.label}: ${formatNumeroGrafica(item.raw)}`,
+                     },
+                  },
+               },
+               scales: {
+                  y: {
+                     beginAtZero: true,
+                     ticks: { callback: (value) => formatNumeroGrafica(value) },
+                  },
+               },
             },
          });
       }

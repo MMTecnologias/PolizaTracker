@@ -545,8 +545,17 @@ def cobranza_por_aseguradora():
     } for (aseguradora, moneda), datos in por_aseguradora.items()]
     data.sort(key=lambda x: x['monto'], reverse=True)
 
+    # Total por moneda — debe coincidir exactamente con la card de
+    # "Recibos Pendientes de Cobro" del Panorama General, ya que
+    # comparten la misma definición y filtros.
+    totales_por_moneda = {}
+    for item in data:
+        totales_por_moneda[item['moneda']] = totales_por_moneda.get(
+            item['moneda'], 0) + item['monto']
+
     return jsonify({
         'periodo': {'desde': desde.isoformat(), 'hasta': hasta.isoformat()},
         'items': data,
+        'totalesPorMoneda': totales_por_moneda,
     })
 
