@@ -26,3 +26,7 @@ PENDIENTES - Revision de renovacion de polizas (rama fix-renovación-polizas):
     COMPLETO de renovar una poliza de principio a fin en el sistema real,
     para verificar que no haya quedado ningun error o bug nuevo introducido
     por los fixes.
+8.- Los recibos de los endosos no estan jalando correctamente. Pendiente
+    de platicar el detalle exacto del problema antes de diagnosticar/
+    programar el fix (que datos salen mal: montos, fechas, cantidad de
+    recibos, si es tipo A, D, o ambos).

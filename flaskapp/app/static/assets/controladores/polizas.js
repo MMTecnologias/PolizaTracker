@@ -1274,7 +1274,6 @@ $(function () {
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
         if (!resp.data || !resp.data[0]) return;
-        resp.data[0].renovacion ||= resp.data[0].poliza;
         $('#only_show_poliza').show();
         $('#buscar-cliente').val(resp.data[0].cliente);
         $('#Poliza').val(resp.data[0].poliza);
@@ -1367,6 +1366,13 @@ $(function () {
           }
           $('#agente').append(`<option value="New">Nuevo Agente</option>`);
         }
+
+        // "Ver póliza" es solo de lectura: se deshabilitan TODOS los
+        // campos del formulario, no solo prima_neta/prima_total como
+        // antes (dejaba el resto editable por error).
+        $('#form-polizas input').prop('disabled', true);
+        $('#form-polizas select').prop('disabled', true);
+        $('#form-polizas textarea').prop('disabled', true);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -2515,7 +2521,11 @@ $(function () {
         },
       });
     } else {
-      $('#poliza_id').val('New');
+      // OJO: NO resetear #poliza_id a 'New' aquí — si es una renovación,
+      // renewPoliza() ya lo dejó con el ID real de la póliza vieja desde
+      // antes; resetearlo aquí borraba ese vínculo justo antes de mandar
+      // la petición, y el backend nunca se enteraba de que era una
+      // renovación (por eso dejaba renovar la misma póliza varias veces).
       const newParams = `${serializePolizaFormWithRawCurrencyValues()}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         type: 'POST',

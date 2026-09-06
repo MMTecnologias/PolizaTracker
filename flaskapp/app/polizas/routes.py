@@ -351,6 +351,26 @@ def create():
     arg_values.update(check_new_form())
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
 
+    # El campo 'poliza' en la base de datos tiene un máximo de 30
+    # caracteres — si se excede, MySQL tira un error técnico feo
+    # ("Data too long..."). Lo validamos antes, con un mensaje que el
+    # usuario sí pueda entender y corregir.
+    MAX_LEN_POLIZA = 30
+    valor_poliza = str(arg_values.get('poliza') or '')
+    if len(valor_poliza) > MAX_LEN_POLIZA:
+        return jsonify({
+            'error': True,
+            'msg': f'El número de póliza no puede tener más de {MAX_LEN_POLIZA} caracteres (tiene {len(valor_poliza)}). Corrígelo e intenta de nuevo.',
+            'title': 'Número de póliza demasiado largo',
+        })
+    valor_poliza_anterior = str(arg_values.get('poliza_anterior') or '')
+    if len(valor_poliza_anterior) > MAX_LEN_POLIZA:
+        return jsonify({
+            'error': True,
+            'msg': f'El número de póliza anterior no puede tener más de {MAX_LEN_POLIZA} caracteres.',
+            'title': 'Póliza anterior inválida',
+        })
+
     # Vincular PDF si fue subido
     pdf_path = flask_request.form.get('pdf_path')
     print(f"[CREATE] pdf_path recibido del form: '{pdf_path}'")
@@ -504,6 +524,24 @@ def edit():
         'Poliza': flask_request.form.get('Poliza'),
         'conducto_pago': flask_request.form.get('conducto_pago')
     }
+
+    # Misma validación que en create(): el campo 'poliza' tiene máximo
+    # 30 caracteres en la base de datos.
+    MAX_LEN_POLIZA = 30
+    valor_poliza = str(form_value_mapping.get('Poliza') or '')
+    if len(valor_poliza) > MAX_LEN_POLIZA:
+        return jsonify({
+            'error': True,
+            'msg': f'El número de póliza no puede tener más de {MAX_LEN_POLIZA} caracteres (tiene {len(valor_poliza)}). Corrígelo e intenta de nuevo.',
+            'title': 'Número de póliza demasiado largo',
+        })
+    valor_poliza_anterior = str(form_value_mapping.get('polizaAnterior') or '')
+    if len(valor_poliza_anterior) > MAX_LEN_POLIZA:
+        return jsonify({
+            'error': True,
+            'msg': f'El número de póliza anterior no puede tener más de {MAX_LEN_POLIZA} caracteres.',
+            'title': 'Póliza anterior inválida',
+        })
 
     # Update Poliza attributes
     for col, form_field in column_name_mapping.items():
@@ -1110,6 +1148,17 @@ def create_endoso():
     arg_values["fecha_captura"] = datetime.now().strftime('%Y-%m-%d')
     arg_values['poliza_id'] = poliza.id
     arg_values['tipo_endoso'] = tipo
+
+    # Misma validación que en create(): el campo 'poliza' tiene máximo
+    # 30 caracteres en la base de datos.
+    MAX_LEN_POLIZA = 30
+    valor_poliza = str(arg_values.get('poliza') or '')
+    if len(valor_poliza) > MAX_LEN_POLIZA:
+        return jsonify({
+            'error': True,
+            'msg': f'El número de póliza no puede tener más de {MAX_LEN_POLIZA} caracteres (tiene {len(valor_poliza)}). Corrígelo e intenta de nuevo.',
+            'title': 'Número de póliza demasiado largo',
+        })
 
     dict_to_keep = {
         "A": ['poliza'],
