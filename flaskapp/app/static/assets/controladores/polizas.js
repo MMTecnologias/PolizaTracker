@@ -18,7 +18,7 @@ $(function () {
   // unos cuantos reintentos para converger, sin arriesgar un ciclo
   // infinito.
   let polizasAutoAdjustAttempts = 0;
-  const POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS = 3;
+  const POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS = 5;
 
   // Menú de acciones ("3 puntos") de la tabla de pólizas: al abrirse se
   // saca del flujo normal y se pega al <body> con position:fixed, para
@@ -2289,6 +2289,15 @@ $(function () {
     $('#modal-poliza').modal('hide');
   }
 
+  // Cuando cualquier modal (Bootstrap agrega/quita padding-right al body
+  // para compensar la barra de scroll mientras hay uno abierto) termina
+  // de cerrarse, el layout de la tabla pudo haberse medido distinto
+  // mientras tanto — se recalcula por si acaso.
+  $(document).on('hidden.bs.modal', '.modal', () => {
+    polizasAutoAdjustAttempts = 0;
+    adjustPolizasItemsOnPageAndReload();
+  });
+
   function getFiltrosPolizas() {
     const filtros = {};
     const aseguradora = $('#filtroAseguradora').val();
@@ -2342,12 +2351,17 @@ $(function () {
     });
   }
 
-  // Calcula cuántas filas caben de verdad en el espacio disponible
-  // (altura de .table-polizas__scroll menos el encabezado, entre la
-  // altura real de una fila ya renderizada) y, si es distinto de lo que
-  // se pidió, vuelve a pedir la página 1 con la cantidad correcta. Se
-  // reintenta (con tope) mientras no converja, en vez de rendirse tras
-  // un solo intento.
+  // Calcula cuántas filas MÁS caben de verdad, midiendo el contenido ya
+  // renderizado (alto real de la tabla completa, después de que las
+  // fuentes ya cargaron) contra el espacio disponible — en vez de
+  // proyectar a partir de una sola fila de muestra, que resultó frágil
+  // (una fila sola puede no representar bien el promedio, y cualquier
+  // pequeño error de medición se amplificaba al multiplicar). Si ya hay
+  // overflow (scroll), no se toca nada. Si sobra espacio, se calcula el
+  // espacio libre exacto entre el alto real del contenido y el espacio
+  // disponible, se divide entre el alto promedio de fila ya renderizada,
+  // y se piden esas filas de más. Se reintenta (con tope) mientras no
+  // converja, en vez de rendirse tras un solo intento.
   function adjustPolizasItemsOnPageAndReload() {
     if (polizasAutoAdjustAttempts >= POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS) return;
 
@@ -2357,20 +2371,32 @@ $(function () {
     ajustarAlturaTablaPolizas();
 
     const $scrollWrap = $('#table-polizas .table-polizas__scroll');
-    const $thead = $scrollWrap.find('thead');
-    const $firstRow = $('#polizas-table tr').first();
-    if (!$scrollWrap.length || !$firstRow.length) return;
+    const $table = $scrollWrap.find('> table');
+    const $rows = $('#polizas-table tr');
+    if (!$scrollWrap.length || !$table.length || !$rows.length) return;
 
     const availableHeight = $scrollWrap[0].clientHeight;
-    const headerHeight = $thead.length ? $thead[0].getBoundingClientRect().height : 0;
-    const rowHeight = $firstRow[0].getBoundingClientRect().height;
-    if (!availableHeight || !rowHeight) return;
+    // scrollHeight = alto real de TODO el contenido (thead + filas), sin
+    // recortar por el scroll — es lo que realmente ocupa en pantalla.
+    const contentHeight = $table[0].scrollHeight;
+    if (!availableHeight || !contentHeight) return;
 
-    const idealCount = Math.max(5, Math.floor((availableHeight - headerHeight) / rowHeight));
-    if (idealCount === polizasItemsOnPage) return; // ya converge, no cuenta como intento
+    // Si el contenido ya es más alto que el espacio disponible, ya hay
+    // scroll (o está justo al límite) — no hay nada que ajustar aquí.
+    if (contentHeight > availableHeight + 1) return;
+
+    const rowCount = $rows.length;
+    const $thead = $scrollWrap.find('thead');
+    const theadHeight = $thead.length ? $thead[0].getBoundingClientRect().height : 0;
+    const avgRowHeight = (contentHeight - theadHeight) / rowCount;
+    if (!avgRowHeight) return;
+
+    const extraSpace = availableHeight - contentHeight;
+    const extraRows = Math.floor(extraSpace / avgRowHeight);
+    if (extraRows <= 0) return; // ya converge, no cuenta como intento
 
     polizasAutoAdjustAttempts += 1;
-    polizasItemsOnPage = idealCount;
+    polizasItemsOnPage += extraRows;
     getPolizas(1, 0, true);
   }
 
