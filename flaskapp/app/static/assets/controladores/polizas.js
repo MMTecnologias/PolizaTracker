@@ -4,6 +4,73 @@ $(function () {
   let pdfMode = null; // 'renew', 'endoso', or null
   let receiptSaveRequested = false;
 
+  // Menú de acciones ("3 puntos") de la tabla de pólizas: al abrirse se
+  // saca del flujo normal y se pega al <body> con position:fixed, para
+  // que nunca lo recorte el contenedor con scroll de la tabla
+  // (.table-polizas__scroll), sin importar en qué fila esté ni el nivel
+  // de zoom. Se calcula la posición a partir del botón que lo abrió y se
+  // ajusta si se saldría de la pantalla. Delegado sobre document porque
+  // las filas de la tabla se reconstruyen en cada render.
+  $(document).on(
+    'show.bs.dropdown',
+    '#polizas-table .acciones-menu-wrapper',
+    function () {
+      const $wrapper = $(this);
+      const $menu = $wrapper.find('.acciones-menu');
+      const $toggle = $wrapper.find('.acciones-toggle');
+      if (!$menu.length || !$toggle.length) return;
+
+      $menu.data('acciones-original-parent', $wrapper);
+      $('body').append($menu);
+
+      const toggleRect = $toggle[0].getBoundingClientRect();
+      $menu.css({ display: 'block', visibility: 'hidden', position: 'fixed', top: 0, left: 0 });
+      const menuWidth = $menu.outerWidth();
+      const menuHeight = $menu.outerHeight();
+
+      let left = toggleRect.right - menuWidth;
+      if (left < 8) left = 8;
+      if (left + menuWidth > window.innerWidth - 8) {
+        left = window.innerWidth - 8 - menuWidth;
+      }
+
+      let top = toggleRect.bottom + 4;
+      if (top + menuHeight > window.innerHeight - 8) {
+        top = toggleRect.top - menuHeight - 4;
+      }
+
+      $menu.css({ top: `${top}px`, left: `${left}px`, visibility: 'visible', zIndex: 2000 });
+    },
+  );
+
+  $(document).on(
+    'hide.bs.dropdown',
+    '#polizas-table .acciones-menu-wrapper',
+    function () {
+      const $wrapper = $(this);
+      // El menú fue reubicado a <body> al abrirse, así que ya no es hijo
+      // del wrapper: se busca en <body> por el dato que guarda de dónde
+      // vino, y se regresa a su lugar original.
+      $('body')
+        .children('.acciones-menu')
+        .each(function () {
+          const $m = $(this);
+          const $original = $m.data('acciones-original-parent');
+          if ($original && $original.length && $original.is($wrapper)) {
+            $original.append($m);
+            $m.css({ position: '', top: '', left: '', display: '', visibility: '', zIndex: '' });
+          }
+        });
+    },
+  );
+
+  // Si se hace scroll dentro de la tabla mientras el menú está abierto, se
+  // cierra (el botón se movería mientras el menú, ya flotante, se
+  // quedaría fijo — mejor cerrarlo que dejarlo desalineado).
+  $(document).on('scroll', '.table-polizas__scroll', function () {
+    $('#polizas-table .acciones-toggle[aria-expanded="true"]').dropdown('hide');
+  });
+
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -1703,6 +1770,12 @@ $(function () {
     const { data, recordsTotal } = resp;
     totalPolizas = recordsTotal;
     const table = $('#polizas-table');
+    // Si la tabla se vuelve a pintar (cambio de página, búsqueda) mientras
+    // un menú de acciones seguía abierto y "flotando" sobre <body>, se
+    // elimina para no dejarlo huérfano.
+    $('body')
+      .children('.acciones-menu')
+      .remove();
     table.html('');
     $.each(data, function (idx, poliza) {
       table.append(
@@ -1735,70 +1808,54 @@ $(function () {
             poliza.tipoPago
           }</td>
           <td>
-            <ul class="btn_table_options">
-              <li>
-                <a title="Cancelar poliza" class="btn__icon_delete pointer" id="btnDelete_${poliza.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
-                    poliza.status,
-                  )}><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"/></svg>
+            <div class="dropdown acciones-menu-wrapper">
+              <button type="button" class="acciones-toggle pointer" id="dropdownAcciones_${poliza.id}"
+                data-toggle="dropdown" data-display="static" aria-haspopup="true" aria-expanded="false" title="Acciones">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill=${getTextColor(
+                  poliza.status,
+                )}><path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"/></svg>
+              </button>
+              <div class="dropdown-menu dropdown-menu-right acciones-menu" aria-labelledby="dropdownAcciones_${poliza.id}">
+                <a title="Ver detalle de poliza" class="dropdown-item pointer" id="btnShow_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
+                  Ver detalle
                 </a>
-              </li>
-              ${
-                poliza.pdf_path
-                  ? `
-              <li>
-                <a title="Ver pdf" class="btn__icon_show pointer" id="btnViewPdf_${poliza.id}" title="Ver PDF">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/></svg>
+                <a title="Editar poliza" class="dropdown-item pointer" id="btnEdit_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
+                  Editar
                 </a>
-              </li>
-              `
-                  : ''
-              }
-              <li>
-                <a title="Cargar PDF de póliza" class="btn__icon_show pointer" id="btnUploadPolicyPdf_${poliza.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                <a title="Renovar poliza" class="dropdown-item pointer" id="btnRenew_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v240h-80v-80H200v400h280v80H200ZM760 0q-73 0-127.5-45.5T564-160h62q13 44 49.5 72T760-60q58 0 99-41t41-99q0-58-41-99t-99-41q-29 0-54 10.5T662-300h58v60H560v-160h60v57q27-26 63-41.5t77-15.5q83 0 141.5 58.5T960-200q0 83-58.5 141.5T760 0ZM200-640h560v-80H200v80Zm0 0v-80 80Z"/></svg>
+                  Renovar
                 </a>
-              </li>
-              <li>
-                <a title="Crear endoso" class="btn__icon_delete pointer" id="btnAddEndoso_${
-                  poliza.id
-                }">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
-                    poliza.status,
-                  )}><path d="M120-320v-80h280v80H120Zm0-160v-80h440v80H120Zm0-160v-80h440v80H120Zm520 480v-160H480v-80h160v-160h80v160h160v80H720v160h-80Z"/></svg>
+                <a title="Crear endoso" class="dropdown-item pointer" id="btnAddEndoso_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M120-320v-80h280v80H120Zm0-160v-80h440v80H120Zm0-160v-80h440v80H120Zm520 480v-160H480v-80h160v-160h80v160h160v80H720v160h-80Z"/></svg>
+                  Crear endoso
                 </a>
-              </li>
-              <li>
-                <a title="Editar poliza" class="btn__icon_edit pointer" id="btnEdit_${poliza.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
-                    poliza.status,
-                  )}><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
+                <a title="Ver endosos" class="dropdown-item pointer" id="btnViewEndosos_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M120-220v-80h80v80h-80Zm0-140v-80h80v80h-80Zm0-140v-80h80v80h-80ZM260-80v-80h80v80h-80Zm100-160q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480Zm40 240v-80h80v80h-80Zm-200 0q-33 0-56.5-23.5T120-160h80v80Zm340 0v-80h80q0 33-23.5 56.5T540-80ZM120-640q0-33 23.5-56.5T200-720v80h-80Zm420 80Z"/></svg>
+                  Ver endosos
                 </a>
-              </li>
-              <li>
-                <a title="Ver endosos" class="btn__icon_show pointer" id="btnViewEndosos_${
-                  poliza.id
-                }">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
-                    poliza.status,
-                  )}><path d="M120-220v-80h80v80h-80Zm0-140v-80h80v80h-80Zm0-140v-80h80v80h-80ZM260-80v-80h80v80h-80Zm100-160q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480Zm40 240v-80h80v80h-80Zm-200 0q-33 0-56.5-23.5T120-160h80v80Zm340 0v-80h80q0 33-23.5 56.5T540-80ZM120-640q0-33 23.5-56.5T200-720v80h-80Zm420 80Z"/></svg>
+                <div class="dropdown-divider"></div>
+                ${
+                  poliza.pdf_path
+                    ? `<a title="Ver pdf" class="dropdown-item pointer" id="btnViewPdf_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/></svg>
+                  Ver PDF
+                </a>`
+                    : ''
+                }
+                <a title="Cargar PDF de póliza" class="dropdown-item pointer" id="btnUploadPolicyPdf_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                  Cargar PDF
                 </a>
-              </li>
-              <li>
-                <a title="Ver detalle de poliza" class="btn__icon_show pointer" id="btnShow_${poliza.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
-                    poliza.status,
-                  )}><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
+                <div class="dropdown-divider"></div>
+                <a title="Cancelar poliza" class="dropdown-item pointer text-danger" id="btnDelete_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"/></svg>
+                  Cancelar póliza
                 </a>
-              </li>
-              <li>
-                <a title="Renovar poliza" class="btn__icon_renew pointer" id="btnRenew_${poliza.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
-                    poliza.status,
-                  )}><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v240h-80v-80H200v400h280v80H200ZM760 0q-73 0-127.5-45.5T564-160h62q13 44 49.5 72T760-60q58 0 99-41t41-99q0-58-41-99t-99-41q-29 0-54 10.5T662-300h58v60H560v-160h60v57q27-26 63-41.5t77-15.5q83 0 141.5 58.5T960-200q0 83-58.5 141.5T760 0ZM200-640h560v-80H200v80Zm0 0v-80 80Z"/></svg>
-                </a>
-              </li>
-            </ul>
+              </div>
+            </div>
           </td>
         </tr>`,
       );

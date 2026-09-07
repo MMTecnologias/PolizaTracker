@@ -324,6 +324,38 @@ p {
    padding: 0;
 }
 
+/* Card contenedora de la tabla de pólizas: layout en columna para que el
+   paginador nunca quede encimado sobre la última fila, sin importar
+   cuántas filas quepan en pantalla o el nivel de zoom. */
+.card-tabla-polizas {
+   position: relative;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.table-polizas--flex {
+   flex: 1 1 auto;
+   min-height: 0;
+   display: flex;
+   flex-direction: column;
+}
+
+/* Único elemento que hace scroll: el cuerpo de la tabla. El encabezado,
+   los controles de búsqueda/exportar y el paginador quedan siempre
+   visibles y en flujo normal (nunca position:absolute). */
+.table-polizas__scroll {
+   flex: 1 1 auto;
+   min-height: 0;
+   overflow-y: auto;
+   overflow-x: auto;
+}
+
+.table-polizas__pagination {
+   flex: 0 0 auto;
+   padding-top: 8px;
+}
+
 .label-option {
    display: flex;
    justify-content: space-between;
@@ -547,6 +579,54 @@ a .delete {
 .btn_table_options {
    display: flex;
    width: fit-content;
+}
+
+/* Menú de acciones tipo "3 puntos": reemplaza la fila de íconos de la
+   tabla de pólizas cuando no caben (pantallas angostas o zoom alto).
+   El botón nunca cambia de tamaño; todas las acciones viven dentro del
+   menú desplegable, así que jamás se recortan ni desaparecen. */
+.acciones-toggle {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   border-radius: 50%;
+   background: transparent;
+   border: none;
+   cursor: pointer;
+}
+
+.acciones-toggle:hover,
+.acciones-toggle:focus {
+   background: var(--gris-claro, rgba(0, 0, 0, 0.06));
+}
+
+.acciones-toggle::after {
+   display: none !important;
+}
+
+.acciones-menu {
+   min-width: 210px;
+   padding: 4px 0;
+   z-index: 1050;
+}
+
+.acciones-menu .dropdown-item {
+   display: flex;
+   align-items: center;
+   gap: 10px;
+   padding: 8px 16px;
+   font-size: 14px;
+}
+
+.acciones-menu .dropdown-item svg {
+   flex: 0 0 auto;
+}
+
+.acciones-menu .dropdown-item.disabled {
+   pointer-events: none;
+   opacity: 0.4;
 }
 
 .btn_icon {
