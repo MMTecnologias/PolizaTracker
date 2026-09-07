@@ -350,6 +350,10 @@ p {
    flex: 1 1 auto;
    min-height: 0;
    min-width: 0;
+   /* Valor de respaldo antes de que corra el cálculo exacto en JS (ver
+      ajustarAlturaTablaPolizas en polizas.js), que mide la posición real
+      de esta tarjeta contra el alto real de la ventana en vez de
+      adivinar con un número fijo. */
    height: calc(100vh - 160px);
 }
 
@@ -928,13 +932,17 @@ a .delete {
    box-shadow: 5px 2px 14px -9px var(--gris-medio);
 }
 
-/* Bootstrap 4 en este proyecto no incluye .modal-xl (solo .modal-lg
-   hasta 800px) -- se agrega a mano para el modal de polizas, que tiene
-   muchos campos y necesita mas ancho. */
-@media (min-width: 992px) {
-   #modal-poliza .modal-dialog.modal-xl {
-      max-width: 960px;
-   }
+/* El proyecto trae varias reglas globales de otras hojas de estilo que
+   compiten por el ancho de .modal-dialog (una de ellas, en styles.css,
+   fuerza max-width:1000px sin ninguna condición, con la misma
+   especificidad que una regla nuestra sin !important podría perder
+   dependiendo del orden de carga). Para blindar el modal de pólizas
+   contra esos conflictos, se fija su ancho con !important y sin
+   depender de un breakpoint. */
+#modal-poliza .modal-dialog {
+   max-width: 900px !important;
+   width: 90% !important;
+   margin: 1.75rem auto !important;
 }
 
 #modal-poliza .modal-body {

@@ -6,14 +6,9 @@ $(function () {
 
   // Cantidad de filas por página de la tabla de pólizas. Ya no es un
   // número fijo: se recalcula según cuántas filas caben realmente en el
-  // espacio disponible (que ahora depende de la altura del formulario,
-  // por el alineado entre ambas columnas), para que la tabla se llene
-  // por completo en vez de dejar espacio en blanco abajo.
+  // espacio disponible, para que la tabla se llene por completo en vez
+  // de dejar espacio en blanco abajo.
   let polizasItemsOnPage = 10;
-  // Se resetea a false en cada carga "real" (inicial, cambio de página,
-  // búsqueda, resize) y se pone en true en cuanto se hace el ajuste
-  // automático correspondiente a esa carga, para garantizar como máximo
-  // un re-fetch por disparador y así evitar cualquier ciclo infinito.
   // Se resetea a 0 en cada carga "real" (inicial, cambio de página,
   // búsqueda, resize) y se incrementa cada vez que se hace un re-fetch
   // automático para ajustar itemsOnPage. Un límite (no un booleano de un
@@ -1801,6 +1796,21 @@ $(function () {
   // columnas), así que medir una celda nunca detectaba el colapso.
   let accionesResizeObserver = null;
 
+  // Calcula la altura exacta que le corresponde a la tarjeta de la
+  // tabla, midiendo su posición real (getBoundingClientRect) contra el
+  // alto real de la ventana, en vez de adivinar con un número fijo tipo
+  // calc(100vh - 160px) — ese número fijo no considera el alto real del
+  // navbar ni de márgenes, y podía dejar espacio sin usar entre la
+  // tabla y el borde inferior de la pantalla.
+  function ajustarAlturaTablaPolizas() {
+    const $card = $('.card-tabla-polizas');
+    if (!$card.length) return;
+    const top = $card[0].getBoundingClientRect().top;
+    const margenInferior = 24;
+    const alturaDisponible = window.innerHeight - top - margenInferior;
+    $card.css('height', `${Math.max(300, alturaDisponible)}px`);
+  }
+
   function setupAccionesResponsive() {
     const $tablePolizas = $('#table-polizas');
     const $scrollWrap = $tablePolizas.find('.table-polizas__scroll');
@@ -2341,6 +2351,11 @@ $(function () {
   function adjustPolizasItemsOnPageAndReload() {
     if (polizasAutoAdjustAttempts >= POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS) return;
 
+    // Primero se fija la altura real de la tarjeta contra el viewport;
+    // solo después tiene sentido medir cuánto espacio libre queda dentro
+    // de ella para calcular cuántas filas caben.
+    ajustarAlturaTablaPolizas();
+
     const $scrollWrap = $('#table-polizas .table-polizas__scroll');
     const $thead = $scrollWrap.find('thead');
     const $firstRow = $('#polizas-table tr').first();
@@ -2365,6 +2380,7 @@ $(function () {
   $(window).on('resize', () => {
     clearTimeout(polizasResizeDebounce);
     polizasResizeDebounce = setTimeout(() => {
+      ajustarAlturaTablaPolizas();
       polizasAutoAdjustAttempts = 0;
       adjustPolizasItemsOnPageAndReload();
     }, 200);
@@ -2375,9 +2391,15 @@ $(function () {
   // de que una fuente terminara de cargar, la altura real de fila pudo
   // haber cambiado un poco después.
   $(window).on('load', () => {
+    ajustarAlturaTablaPolizas();
     polizasAutoAdjustAttempts = 0;
     adjustPolizasItemsOnPageAndReload();
   });
+
+  // Primer cálculo, apenas el DOM está listo (antes de la primera carga
+  // de datos), para que la tabla ya tenga su altura real correcta desde
+  // el primer render.
+  ajustarAlturaTablaPolizas();
 
   function getEndosos(poliza_id, pageNumber = 1, start = 0) {
     const length = 10;
