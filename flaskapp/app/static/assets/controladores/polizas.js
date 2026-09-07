@@ -4,6 +4,23 @@ $(function () {
   let pdfMode = null; // 'renew', 'endoso', or null
   let receiptSaveRequested = false;
 
+  // El modal de pólizas seguía apareciendo a todo el ancho de pantalla
+  // pese a la regla CSS con !important — hay reglas de tema (styles.css)
+  // compitiendo por .modal-dialog y, por lo que sea (orden de carga,
+  // build/caché intermedio, etc.), no estaban perdiendo esa pelea de
+  // forma confiable. En vez de seguir peleando en CSS, se fuerza el
+  // ancho directamente por JS cada vez que el modal se abre, con
+  // setProperty(...,'important') — la única forma de garantizar que
+  // absolutamente nada más lo pueda pisar, sin importar qué hoja de
+  // estilos cargue después o qué esté cacheado.
+  $('#modal-poliza').on('show.bs.modal shown.bs.modal', function () {
+    const dialog = this.querySelector('.modal-dialog');
+    if (!dialog) return;
+    dialog.style.setProperty('max-width', '900px', 'important');
+    dialog.style.setProperty('width', '90%', 'important');
+    dialog.style.setProperty('margin', '1.75rem auto', 'important');
+  });
+
   // Cantidad de filas por página de la tabla de pólizas. Ya no es un
   // número fijo: se recalcula según cuántas filas caben realmente en el
   // espacio disponible, para que la tabla se llene por completo en vez
@@ -1806,7 +1823,7 @@ $(function () {
     const $card = $('.card-tabla-polizas');
     if (!$card.length) return;
     const top = $card[0].getBoundingClientRect().top;
-    const margenInferior = 24;
+    const margenInferior = 8;
     const alturaDisponible = window.innerHeight - top - margenInferior;
     $card.css('height', `${Math.max(300, alturaDisponible)}px`);
   }
