@@ -16,16 +16,17 @@ PENDIENTES - Portal del Asegurado (rama portal-asegurado):
       - Que esas 3 rutas tomen el cliente desde la sesion, no desde parametros
         de la URL (cliente_id / poliza_id abiertos).
 
-PENDIENTES - Revision de renovacion de polizas (rama fix-renovación-polizas):
-7.- Al terminar TODOS los puntos de la revision de renovacion (bugs/mejoras
-    detectados: metrica Poliza_renovada vs poliza_anterior, mensaje de error
-    con renovacion vacio + backfill, condicion de carrera por doble clic,
-    posible traslape de 1 dia en vigencia, nombres de campos duplicados
-    poliza-anterior/polizaAnterior, validacion de folio duplicado, falta de
-    transaccion atomica, prints de debug sueltos) -- probar el FLUJO
-    COMPLETO de renovar una poliza de principio a fin en el sistema real,
-    para verificar que no haya quedado ningun error o bug nuevo introducido
-    por los fixes.
+PENDIENTES - Revision de renovacion de polizas:
+7.- YA HECHO: se probo el flujo completo de renovar/crear/endoso/editar
+    en el sistema real (varias rondas), se encontraron y corrigieron 5
+    bugs adicionales durante las pruebas. De los 8 hallazgos originales
+    de la revision, 4 quedan SIN resolver -- ver el detalle tecnico
+    completo (ubicacion exacta en codigo, por que es un problema, y
+    siguiente paso) en flaskapp/REVISION_RENOVACION_PENDIENTES.md:
+      - Posible traslape de 1 dia en vigencia al renovar
+      - Nombres de campos duplicados poliza-anterior/polizaAnterior
+      - Validacion de folio duplicado podria bloquear renovaciones legitimas
+      - Prints de debug sueltos (24 restantes)
 8.- Los recibos de los endosos no estan jalando correctamente. Pendiente
     de platicar el detalle exacto del problema antes de diagnosticar/
     programar el fix (que datos salen mal: montos, fechas, cantidad de
