@@ -4,6 +4,18 @@ $(function () {
   let pdfMode = null; // 'renew', 'endoso', or null
   let receiptSaveRequested = false;
 
+  // Cantidad de filas por página de la tabla de pólizas. Ya no es un
+  // número fijo: se recalcula según cuántas filas caben realmente en el
+  // espacio disponible (que ahora depende de la altura del formulario,
+  // por el alineado entre ambas columnas), para que la tabla se llene
+  // por completo en vez de dejar espacio en blanco abajo.
+  let polizasItemsOnPage = 10;
+  // Se resetea a false en cada carga "real" (inicial, cambio de página,
+  // búsqueda, resize) y se pone en true en cuanto se hace el ajuste
+  // automático correspondiente a esa carga, para garantizar como máximo
+  // un re-fetch por disparador y así evitar cualquier ciclo infinito.
+  let polizasAutoAdjustDone = false;
+
   // Menú de acciones ("3 puntos") de la tabla de pólizas: al abrirse se
   // saca del flujo normal y se pega al <body> con position:fixed, para
   // que nunca lo recorte el contenedor con scroll de la tabla
@@ -2024,6 +2036,11 @@ $(function () {
     // fila completa de íconos (.acciones-full) contra el ancho
     // disponible en la celda, en vez de adivinar con un breakpoint fijo.
     setupAccionesResponsive();
+    // Ajusta cuántas filas se piden por página según el espacio
+    // realmente disponible, para que la tabla se llene por completo
+    // (sin espacio en blanco) mientras mantiene la misma altura que el
+    // formulario.
+    adjustPolizasItemsOnPageAndReload();
     if (!data.length) return;
     $('#pagination').pagination({
       items: recordsTotal,
@@ -2228,8 +2245,9 @@ $(function () {
     });
   }
 
-  function getPolizas(pageNumber = 1, start = 0) {
-    const length = 10;
+  function getPolizas(pageNumber = 1, start = 0, isAutoAdjust = false) {
+    if (!isAutoAdjust) polizasAutoAdjustDone = false;
+    const length = polizasItemsOnPage;
     const searchValue = $('#searchPoliza').val();
     const params = { start, length, order: true };
     if (searchValue) params.searchValue = searchValue;
@@ -2241,6 +2259,44 @@ $(function () {
       error: (xhr, status, error) => console.error(error),
     });
   }
+
+  // Calcula cuántas filas caben de verdad en el espacio disponible
+  // (altura de .table-polizas__scroll menos el encabezado, entre la
+  // altura real de una fila ya renderizada) y, si es distinto de lo que
+  // se pidió, vuelve a pedir la página 1 con la cantidad correcta.
+  // polizasAutoAdjustDone garantiza como máximo un re-fetch por carga,
+  // así que no hay riesgo de ciclo aunque la medición oscile.
+  function adjustPolizasItemsOnPageAndReload() {
+    if (polizasAutoAdjustDone) return;
+
+    const $scrollWrap = $('#table-polizas .table-polizas__scroll');
+    const $thead = $scrollWrap.find('thead');
+    const $firstRow = $('#polizas-table tr').first();
+    if (!$scrollWrap.length || !$firstRow.length) return;
+
+    const availableHeight = $scrollWrap[0].clientHeight;
+    const headerHeight = $thead.length ? $thead[0].getBoundingClientRect().height : 0;
+    const rowHeight = $firstRow[0].getBoundingClientRect().height;
+    if (!availableHeight || !rowHeight) return;
+
+    const idealCount = Math.max(5, Math.floor((availableHeight - headerHeight) / rowHeight));
+    polizasAutoAdjustDone = true;
+    if (idealCount === polizasItemsOnPage) return;
+
+    polizasItemsOnPage = idealCount;
+    getPolizas(1, 0, true);
+  }
+
+  // Recalcula al cambiar el tamaño de la ventana (debounced), porque la
+  // altura disponible cambia con ella.
+  let polizasResizeDebounce = null;
+  $(window).on('resize', () => {
+    clearTimeout(polizasResizeDebounce);
+    polizasResizeDebounce = setTimeout(() => {
+      polizasAutoAdjustDone = false;
+      adjustPolizasItemsOnPageAndReload();
+    }, 200);
+  });
 
   function getEndosos(poliza_id, pageNumber = 1, start = 0) {
     const length = 10;

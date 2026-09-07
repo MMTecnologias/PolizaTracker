@@ -21,7 +21,7 @@
       .pdf-upload-area {
          border: 2px dashed #cbd5e0;
          border-radius: 8px;
-         padding: 15px 20px;
+         padding: 6px 12px;
          text-align: center;
          background-color: #f7fafc;
          transition: all 0.3s ease;
@@ -36,23 +36,30 @@
          background-color: #ebf8ff;
          transform: scale(1.02);
       }
+      .upload-content {
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         gap: 8px;
+      }
       .upload-content svg {
          color: #4299e1;
-         margin-bottom: 5px;
+         margin-bottom: 0;
+         width: 20px;
+         height: 20px;
+         flex: 0 0 auto;
       }
       .upload-text {
-         font-size: 13px;
+         font-size: 12px;
          color: #4a5568;
-         margin: 5px 0 3px 0;
+         margin: 0;
       }
       .upload-link {
          color: #4299e1;
          font-weight: 600;
       }
       .upload-hint {
-         font-size: 12px;
-         color: #a0aec0;
-         margin: 0;
+         display: none;
       }
       .upload-loading {
          display: flex;
