@@ -1843,6 +1843,11 @@ $(function () {
 
   function fillTablePolizas(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
+    console.log('[polizas-debug] respuesta del servidor', {
+      itemsOnPagePedidos: itemsOnPage,
+      filasRecibidas: data.length,
+      recordsTotal,
+    });
     totalPolizas = recordsTotal;
     $('#polizasTotalLabel').text(
       `${recordsTotal} póliza${recordsTotal === 1 ? '' : 's'} encontrada${recordsTotal === 1 ? '' : 's'}`,
@@ -2333,6 +2338,7 @@ $(function () {
   function getPolizas(pageNumber = 1, start = 0, isAutoAdjust = false) {
     if (!isAutoAdjust) polizasAutoAdjustAttempts = 0;
     const length = polizasItemsOnPage;
+    console.log('[polizas-debug] pidiendo al servidor', { pageNumber, start, length, isAutoAdjust });
     const searchValue = $('#searchPoliza').val();
     const params = { start, length, order: true, ...getFiltrosPolizas() };
     if (searchValue) params.searchValue = searchValue;
@@ -2363,7 +2369,10 @@ $(function () {
   // y se piden esas filas de más. Se reintenta (con tope) mientras no
   // converja, en vez de rendirse tras un solo intento.
   function adjustPolizasItemsOnPageAndReload() {
-    if (polizasAutoAdjustAttempts >= POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS) return;
+    if (polizasAutoAdjustAttempts >= POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS) {
+      console.log('[polizas-debug] tope de intentos alcanzado, no se ajusta más');
+      return;
+    }
 
     // Primero se fija la altura real de la tarjeta contra el viewport;
     // solo después tiene sentido medir cuánto espacio libre queda dentro
@@ -2373,27 +2382,56 @@ $(function () {
     const $scrollWrap = $('#table-polizas .table-polizas__scroll');
     const $table = $scrollWrap.find('> table');
     const $rows = $('#polizas-table tr');
-    if (!$scrollWrap.length || !$table.length || !$rows.length) return;
+    if (!$scrollWrap.length || !$table.length || !$rows.length) {
+      console.log('[polizas-debug] no se encontraron los elementos esperados', {
+        scrollWrap: $scrollWrap.length,
+        table: $table.length,
+        rows: $rows.length,
+      });
+      return;
+    }
 
     const availableHeight = $scrollWrap[0].clientHeight;
     // scrollHeight = alto real de TODO el contenido (thead + filas), sin
     // recortar por el scroll — es lo que realmente ocupa en pantalla.
     const contentHeight = $table[0].scrollHeight;
-    if (!availableHeight || !contentHeight) return;
+    if (!availableHeight || !contentHeight) {
+      console.log('[polizas-debug] altura en 0, algo no está listo todavía', {
+        availableHeight,
+        contentHeight,
+      });
+      return;
+    }
 
     // Si el contenido ya es más alto que el espacio disponible, ya hay
     // scroll (o está justo al límite) — no hay nada que ajustar aquí.
-    if (contentHeight > availableHeight + 1) return;
+    if (contentHeight > availableHeight + 1) {
+      console.log('[polizas-debug] el contenido ya llena o excede el espacio, no se ajusta', {
+        availableHeight,
+        contentHeight,
+        polizasItemsOnPage,
+      });
+      return;
+    }
 
     const rowCount = $rows.length;
     const $thead = $scrollWrap.find('thead');
     const theadHeight = $thead.length ? $thead[0].getBoundingClientRect().height : 0;
     const avgRowHeight = (contentHeight - theadHeight) / rowCount;
-    if (!avgRowHeight) return;
-
     const extraSpace = availableHeight - contentHeight;
-    const extraRows = Math.floor(extraSpace / avgRowHeight);
-    if (extraRows <= 0) return; // ya converge, no cuenta como intento
+    const extraRows = avgRowHeight ? Math.floor(extraSpace / avgRowHeight) : 0;
+    console.log('[polizas-debug] cálculo de filas', {
+      availableHeight,
+      contentHeight,
+      rowCount,
+      theadHeight,
+      avgRowHeight,
+      extraSpace,
+      extraRows,
+      polizasItemsOnPageActual: polizasItemsOnPage,
+      intento: polizasAutoAdjustAttempts + 1,
+    });
+    if (!avgRowHeight || extraRows <= 0) return; // ya converge, no cuenta como intento
 
     polizasAutoAdjustAttempts += 1;
     polizasItemsOnPage += extraRows;
