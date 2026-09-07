@@ -1274,7 +1274,6 @@ $(function () {
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
         if (!resp.data || !resp.data[0]) return;
-        resp.data[0].renovacion ||= resp.data[0].poliza;
         $('#only_show_poliza').show();
         $('#buscar-cliente').val(resp.data[0].cliente);
         $('#Poliza').val(resp.data[0].poliza);
@@ -1367,6 +1366,13 @@ $(function () {
           }
           $('#agente').append(`<option value="New">Nuevo Agente</option>`);
         }
+
+        // "Ver póliza" es solo de lectura: se deshabilitan TODOS los
+        // campos del formulario, no solo prima_neta/prima_total como
+        // antes (dejaba el resto editable por error).
+        $('#form-polizas input').prop('disabled', true);
+        $('#form-polizas select').prop('disabled', true);
+        $('#form-polizas textarea').prop('disabled', true);
       },
       error: (xhr, status, error) => console.error(error),
     });
@@ -1485,6 +1491,33 @@ $(function () {
   }
 
   async function renewPoliza(poliza_id) {
+    // Verificación temprana: antes de abrir el formulario, checamos si
+    // esta póliza ya fue renovada — así el usuario no pierde tiempo
+    // llenando todo para enterarse hasta el final.
+    try {
+      const check = await $.ajax({
+        ...ajaxConfig,
+        url: '/polizas/check_renovada',
+        data: { poliza_id },
+      });
+      if (check.error) {
+        alert(check.msg, 'error');
+        return;
+      }
+      if (check.yaRenovada) {
+        alert(
+          `Esta póliza ya fue renovada con el número de póliza ${check.renovacion}`,
+          'error',
+        );
+        return;
+      }
+    } catch (err) {
+      console.error('Error al verificar si la póliza ya fue renovada', err);
+      // Si la verificación temprana falla por algún motivo de red, no
+      // bloqueamos al usuario — la validación real y definitiva sigue
+      // ocurriendo en el servidor al guardar.
+    }
+
     pdfMode = 'renew';
     const data = await resetForm();
     $('#btnGuardar').html('Renovar póliza');
@@ -2199,6 +2232,21 @@ $(function () {
     });
   }
 
+  // Arma los mismos campos que ya usa createReceipts(), para poder
+  // mandarlos JUNTO con la creación de la póliza/endoso en una sola
+  // petición (en vez de 2 peticiones separadas sin relación entre sí)
+  function datosRecibosDelModal() {
+    return {
+      netPremium: $('#prima-neta').val(),
+      totalPremium: $('#prima-total').val(),
+      iva: $('#iva').val(),
+      insurance: $('#derecho_poliza').val(),
+      commission: $('#comision').val(),
+      receipts: $('#nopagos').val(),
+      rec_pago: $('#rec_pago').val(),
+    };
+  }
+
   function createReceipts(selectPoliza, endoso_id = '') {
     const netPremium = $('#prima-neta').val();
     const totalPremium = $('#prima-total').val();
@@ -2224,10 +2272,9 @@ $(function () {
       data: $.param(sendObj),
       success: function (resp) {
         if (resp.error) {
-          // alert(resp.msg, "error", resp.title);
+          alert(resp.msg, 'error', resp.title);
           console.log('Error crear recibos', resp.error, resp.msg);
         } else {
-          // alert(resp.msg, "success", resp.title);
           console.log('Recibos creados exitosamente');
         }
       },
@@ -2447,19 +2494,19 @@ $(function () {
       $(this).addClass('was-validated');
       return;
     }
-      const formDataPoliza = serializePolizaFormWithRawCurrencyValues();
+    const formDataPoliza = serializePolizaFormWithRawCurrencyValues();
     if ($('#tipo').val()) {
+      const paramsEndoso = `${formDataPoliza}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         type: 'POST',
         url: '/polizas/create_endoso',
-        data: formDataPoliza,
+        data: paramsEndoso,
         success: function (resp) {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
             $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
-            createReceipts(null, resp.endoso_id);
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
@@ -2467,11 +2514,15 @@ $(function () {
         },
         error: function (xhr, status, error) {
           console.error('Error en create_endoso', error);
+          alert(
+            xhr.responseJSON?.msg || 'Ocurrió un error al crear el endoso y sus recibos',
+            'error',
+          );
         },
       });
     } else if ($('#title_poliza')?.text()?.includes('Editar')) {
       let newParams = serializePolizaFormWithRawCurrencyValues();
-      newParams = `${newParams}&poliza_id=${poliza_id}`;
+      newParams = `${newParams}&poliza_id=${poliza_id}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         url: 'polizas/edit',
         method: 'POST',
@@ -2483,7 +2534,6 @@ $(function () {
           } else {
             $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
-            createReceipts(resp.poliza_id);
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
@@ -2491,11 +2541,19 @@ $(function () {
         },
         error: function (xhr, textStatus, error) {
           console.error('Error al editar poliza /edit', error);
+          alert(
+            xhr.responseJSON?.msg || 'Ocurrió un error al actualizar la póliza y sus recibos',
+            'error',
+          );
         },
       });
     } else {
-      $('#poliza_id').val('New');
-      const newParams = serializePolizaFormWithRawCurrencyValues();
+      // OJO: NO resetear #poliza_id a 'New' aquí — si es una renovación,
+      // renewPoliza() ya lo dejó con el ID real de la póliza vieja desde
+      // antes; resetearlo aquí borraba ese vínculo justo antes de mandar
+      // la petición, y el backend nunca se enteraba de que era una
+      // renovación (por eso dejaba renovar la misma póliza varias veces).
+      const newParams = `${serializePolizaFormWithRawCurrencyValues()}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         type: 'POST',
         url: '/polizas/create',
@@ -2510,7 +2568,6 @@ $(function () {
           } else {
             $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
-            createReceipts(resp.poliza_id);
             alert(resp.title, 'success');
             getPolizas();
             resetForm();
@@ -2518,6 +2575,10 @@ $(function () {
         },
         error: function (xhr, status, error) {
           console.error('Error al crear poliza /create', error);
+          alert(
+            xhr.responseJSON?.msg || 'Ocurrió un error al crear la póliza y sus recibos',
+            'error',
+          );
         },
       });
     }
