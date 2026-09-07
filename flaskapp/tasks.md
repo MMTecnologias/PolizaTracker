@@ -9,25 +9,28 @@ Gastos de expedición/DErecho de poliza
 PENDIENTES - Extraccion de PDF con Ollama:
 0.- Feature de extraccion automatica de datos de polizas desde PDF,
     corriendo Ollama localmente (modelo llama3.1:8b). Codigo en
-    flaskapp/app/polizas/routes.py y flaskapp/app/endosos/routes.py
-    (buscar "ollama"/"llama3" en esos archivos para ubicarlo).
-    BUG CONOCIDO (nivel de detalle limitado -- esto se documento desde
-    un resumen de conversacion anterior, no de una revision de codigo
-    en vivo como los demas puntos de este archivo, asi que falta
-    verificar los detalles exactos cuando se retome):
-      - El preprocesamiento con regex (que corre ANTES o EN PARALELO al
-        resultado de Ollama) esta pisando/sobreescribiendo lo que
-        Ollama extrae correctamente, causando errores como:
-          * confundir "suma asegurada" con "prima_neta"
-          * fechas mal extraidas
-          * el nombre del agente terminando en el campo de aseguradora
+    flaskapp/app/polizas/routes.py -- endosos/routes.py NO tiene copia
+    propia, importa y reutiliza call_ollama_model() de polizas, asi
+    que el mismo bug afecta a ambos flujos por igual.
+    BUG CONFIRMADO EN CODIGO (ya no es solo un resumen vago -- se
+    reviso el codigo real): en merge_extraction_results() (linea
+    ~4544), para casi todos los campos importantes (numero_de_poliza,
+    cliente, rfc, aseguradora, agente, ramo, fechas, forma de pago,
+    primas, moneda, endoso, derecho de poliza, gastos, descripcion,
+    numero de serie) el valor que saca el REGEX gana automaticamente
+    sobre lo que dice Ollama, con tal de que el regex haya encontrado
+    algo (aunque sea el dato equivocado). Un ejemplo concreto: el
+    ultimo patron de la cascada para "prima neta" es literalmente la
+    palabra suelta "Prima" sin mas contexto (linea ~2966), lo cual
+    puede agarrar el monto equivocado en layouts de PDF donde ese
+    patron generico hace match con otro concepto (ej. suma asegurada).
+    Ver el detalle tecnico completo (mecanismo exacto, numeros de
+    linea, y que falta confirmar aun con fechas/agente) en
+    flaskapp/EXTRACCION_PDF_OLLAMA_PENDIENTES.md
     ESTADO: arreglo pausado, en espera de que el cliente mande PDFs de
     muestra de las 24 aseguradoras que maneja, cubriendo los 10 ramos y
     32 subramos que usa el sistema -- sin esa muestra representativa no
     se puede validar bien el fix contra casos reales variados.
-    SIGUIENTE PASO: cuando lleguen los PDFs de muestra, revisar a fondo
-    el codigo real (linea por linea, como se hizo con renovacion) antes
-    de tocar nada.
 
 PENDIENTES - Portal del Asegurado (rama portal-asegurado):
 6.- SEGURIDAD: /portal/api/mis-datos, /portal/api/buscar-cliente y /portal/descargar_pdf
