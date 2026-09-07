@@ -324,35 +324,24 @@ p {
    padding: 0;
 }
 
-/* Columnas del formulario y de la tabla de pólizas: ambas se estiran a
-   la misma altura (la del contenido más alto entre las dos, gracias al
-   align-items:stretch por default de .row en Bootstrap) y sus tarjetas
-   internas llenan esa altura al 100%, para que ambas queden alineadas
-   también en la parte de abajo.
-   min-width:0 es necesario porque, por default, un flex item no se
-   encoge más allá del ancho mínimo de su contenido (inputs, selects,
-   fechas). Sin esto, al angostar la columna del formulario, esos campos
-   empujaban toda la fila y desbordaban horizontalmente la página,
-   rompiendo el layout (formulario "vacío"/cortado) y arrastrando
-   consigo el cálculo de altura de la columna de la tabla. */
-.col-form-flex,
+/* Columna de la tabla de pólizas. Antes se estiraba para igualar la
+   altura del formulario (que vivía en una columna hermana); ahora que el
+   formulario es un modal, la tabla ocupa el ancho completo y necesita su
+   propia altura explícita (ver .card-tabla-polizas más abajo).
+   min-width:0 evita que el contenido interno fuerce un desborde
+   horizontal de la fila. */
 .col-tabla-flex {
    display: flex;
    flex-direction: column;
    min-width: 0;
 }
 
-.card-form-polizas {
-   flex: 1 1 auto;
-   min-height: 0;
-   min-width: 0;
-}
-
 /* Card contenedora de la tabla de pólizas: layout en columna para que el
    paginador nunca quede encimado sobre la última fila, sin importar
-   cuántas filas quepan en pantalla o el nivel de zoom. Su altura ahora
-   la da el flex del padre (misma altura que el formulario), ya no un
-   valor fijo en px. */
+   cuántas filas quepan en pantalla o el nivel de zoom. Altura explícita
+   relativa al viewport (ya no depende de una columna hermana como antes
+   del modal); el cálculo dinámico de itemsOnPage (ver polizas.js) se
+   encarga de llenarla sin dejar espacio en blanco.
 .card-tabla-polizas {
    position: relative;
    display: flex;
@@ -361,6 +350,7 @@ p {
    flex: 1 1 auto;
    min-height: 0;
    min-width: 0;
+   height: calc(100vh - 160px);
 }
 
 .table-polizas--flex {
@@ -416,23 +406,88 @@ p {
    white-space: nowrap;
 }
 
+.polizas-total {
+   font-size: 13px;
+   color: var(--gris-medio, #718096);
+   margin: -4px 0 6px 2px;
+}
+
 /* Panel de filtros (aseguradora, estado, grupo, cliente, rango de
-   fechas). Oculto por default; se muestra con el botón "Filtros". */
+   fechas). Oculto por default; se muestra con el botón "Filtros".
+   Compacto: todo en una sola fila con flex-wrap en vez de dos filas de
+   columnas Bootstrap, labels más chicos, y menos padding. */
 .polizas-filtros {
    background: var(--gris-claro, #f7fafc);
    border-radius: 10px;
-   padding: 14px 14px 6px 14px;
-   margin-bottom: 12px;
+   padding: 10px 12px 4px 12px;
+   margin-bottom: 10px;
+   display: flex;
+   flex-wrap: wrap;
+   align-items: flex-end;
+   gap: 8px 10px;
+}
+
+.polizas-filtros__campo {
+   display: flex;
+   flex-direction: column;
+   flex: 1 1 130px;
+   min-width: 110px;
+}
+
+.polizas-filtros__campo--fecha {
+   flex-basis: 150px;
+}
+
+.polizas-filtros__campo label {
+   font-size: 11px;
+   color: var(--gris-medio, #718096);
+   margin-bottom: 2px;
+   white-space: nowrap;
+}
+
+.polizas-filtros__campo .form-control,
+.polizas-filtros__campo .custom-select {
+   height: 34px;
+   padding: 4px 8px;
+   font-size: 13px;
 }
 
 .polizas-filtros__acciones {
    display: flex;
-   align-items: flex-end;
-   padding-bottom: 2px;
+   gap: 6px;
+   flex: 0 0 auto;
+   margin-bottom: 2px;
 }
 
 .polizas-filtros__acciones .btn {
-   width: 100%;
+   padding: 6px 14px;
+   font-size: 13px;
+   white-space: nowrap;
+}
+
+/* Autocomplete del campo Cliente dentro del panel de filtros. */
+.polizas-filtros__campo {
+   position: relative;
+}
+
+#filtroClienteOptions {
+   position: absolute;
+   top: 100%;
+   left: 0;
+   right: 0;
+   z-index: 1060;
+   max-height: 220px;
+   overflow-y: auto;
+   background: white;
+   border: 1px solid #e2e8f0;
+   border-radius: 6px;
+   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+#filtroClienteOptions .dropdown-item {
+   font-size: 13px;
+   padding: 6px 10px;
+   cursor: pointer;
 }
 
 .label-option {
@@ -871,4 +926,18 @@ a .delete {
    background-color: white;
    border-radius: 14px;
    box-shadow: 5px 2px 14px -9px var(--gris-medio);
+}
+
+/* Bootstrap 4 en este proyecto no incluye .modal-xl (solo .modal-lg
+   hasta 800px) -- se agrega a mano para el modal de polizas, que tiene
+   muchos campos y necesita mas ancho. */
+@media (min-width: 992px) {
+   #modal-poliza .modal-dialog.modal-xl {
+      max-width: 1140px;
+   }
+}
+
+#modal-poliza .modal-body {
+   max-height: 80vh;
+   overflow-y: auto;
 }

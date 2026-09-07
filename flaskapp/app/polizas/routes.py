@@ -217,8 +217,15 @@ def get():
         polizas_query = polizas_query.filter(
             Grupo.id == int(filtro_grupo_id))
 
+    filtro_cliente_id = flask_request.form.get('filtro_cliente_id')
     filtro_cliente = flask_request.form.get('filtro_cliente')
-    if filtro_cliente:
+    if filtro_cliente_id:
+        try:
+            polizas_query = polizas_query.filter(
+                Cliente.id == int(filtro_cliente_id))
+        except (TypeError, ValueError):
+            pass
+    elif filtro_cliente:
         cliente_normalized = ' '.join(filtro_cliente.strip().lower().split())
         polizas_query = polizas_query.filter(or_(
             func.lower(func.replace(Cliente.nombre, ' ', '')).like(

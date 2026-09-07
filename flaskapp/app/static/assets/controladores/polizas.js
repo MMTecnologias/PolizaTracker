@@ -1240,6 +1240,7 @@ $(function () {
     pdfMode = 'endoso';
     const data = await resetForm();
     $('#endoso-type').modal('hide');
+    $('#modal-poliza').modal('show');
     $('#tipo').val(tipo);
     $('#btnGuardar').html('Generar endoso');
     $('#poliza_id').val(poliza_id);
@@ -1345,6 +1346,7 @@ $(function () {
 
   async function showPoliza(poliza_id) {
     const data = await resetForm();
+    $('#modal-poliza').modal('show');
     $('#btnGuardar').hide();
     $('#poliza_id').val(poliza_id);
     $.ajax({
@@ -1459,6 +1461,7 @@ $(function () {
 
   async function editPoliza(poliza_id) {
     const data = await resetForm();
+    $('#modal-poliza').modal('show');
     $('#poliza_id').val(poliza_id);
     $.ajax({
       ...ajaxConfig,
@@ -1599,6 +1602,7 @@ $(function () {
 
     pdfMode = 'renew';
     const data = await resetForm();
+    $('#modal-poliza').modal('show');
     $('#btnGuardar').html('Renovar póliza');
     $('#div_poliza_anterior').show();
     $('#title_poliza').text('Renovacion');
@@ -1821,6 +1825,9 @@ $(function () {
   function fillTablePolizas(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
     totalPolizas = recordsTotal;
+    $('#polizasTotalLabel').text(
+      `${recordsTotal} póliza${recordsTotal === 1 ? '' : 's'} encontrada${recordsTotal === 1 ? '' : 's'}`,
+    );
     const table = $('#polizas-table');
     // Si la tabla se vuelve a pintar (cambio de página, búsqueda) mientras
     // un menú de acciones seguía abierto y "flotando" sobre <body>, se
@@ -2255,17 +2262,32 @@ $(function () {
     const aseguradora = $('#filtroAseguradora').val();
     const status = $('#filtroStatus').val();
     const grupo = $('#filtroGrupo').val();
+    const clienteId = $('#filtroClienteId').val();
     const cliente = $('#filtroCliente').val();
     const desde = $('#filtroFechaDesde').val();
     const hasta = $('#filtroFechaHasta').val();
     if (aseguradora) filtros.filtro_aseguradora_id = aseguradora;
     if (status) filtros.filtro_status = status;
     if (grupo) filtros.filtro_grupo_id = grupo;
-    if (cliente) filtros.filtro_cliente = cliente;
+    // Si se eligió un cliente del autocomplete se manda su ID (exacto);
+    // si solo escribió texto sin elegir nada de la lista, se manda como
+    // texto libre y el backend hace match por nombre/apellido.
+    if (clienteId) {
+      filtros.filtro_cliente_id = clienteId;
+    } else if (cliente) {
+      filtros.filtro_cliente = cliente;
+    }
     if (desde) filtros.filtro_fecha_desde = desde;
     if (hasta) filtros.filtro_fecha_hasta = hasta;
     return filtros;
   }
+
+  // Petición en curso de la tabla de pólizas. Se cancela antes de lanzar
+  // una nueva: sin esto, escribir rápido en el buscador disparaba varias
+  // peticiones que podían responder desordenadas (la más vieja llegando
+  // después de la más nueva), pisando el resultado correcto — eso era
+  // la inestabilidad de la búsqueda.
+  let currentPolizasRequest = null;
 
   function getPolizas(pageNumber = 1, start = 0, isAutoAdjust = false) {
     if (!isAutoAdjust) polizasAutoAdjustDone = false;
@@ -2273,12 +2295,18 @@ $(function () {
     const searchValue = $('#searchPoliza').val();
     const params = { start, length, order: true, ...getFiltrosPolizas() };
     if (searchValue) params.searchValue = searchValue;
-    $.ajax({
+    if (currentPolizasRequest) {
+      currentPolizasRequest.abort();
+    }
+    currentPolizasRequest = $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
       data: $.param(params),
       success: (resp) => fillTablePolizas(resp, pageNumber, length),
-      error: (xhr, status, error) => console.error(error),
+      error: (xhr, status, error) => {
+        if (status === 'abort') return; // esperado: se canceló a propósito
+        console.error(error);
+      },
     });
   }
 
@@ -2674,6 +2702,7 @@ $(function () {
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
+            $('#modal-poliza').modal('hide');
           },
           error: function (xhr, status, error) {
             console.error('Error al crear endoso tipo B', error);
@@ -2779,6 +2808,7 @@ $(function () {
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
+            $('#modal-poliza').modal('hide');
           }
         },
         error: function (xhr, status, error) {
@@ -2806,6 +2836,7 @@ $(function () {
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
+            $('#modal-poliza').modal('hide');
           }
         },
         error: function (xhr, textStatus, error) {
@@ -2840,6 +2871,7 @@ $(function () {
             alert(resp.title, 'success');
             getPolizas();
             resetForm();
+            $('#modal-poliza').modal('hide');
           }
         },
         error: function (xhr, status, error) {
@@ -2856,6 +2888,7 @@ $(function () {
   $('#reset-btn').click(async (e) => {
     e.preventDefault();
     await resetForm();
+    $('#modal-poliza').modal('hide');
   });
 
   $('#btnGuardar-recibos').click(() => {
@@ -2913,17 +2946,17 @@ $(function () {
     });
   });
 
-  $('#searchPoliza').on('keyup', function (e) {
-    e.preventDefault();
-    const searchValue = e.target.value;
-    if (searchValue == '') return getPolizas();
-    $.ajax({
-      ...ajaxConfig,
-      url: '/polizas/get',
-      data: $.param({ start: 0, length: 10, searchValue, order: true }),
-      success: (resp) => fillTablePolizas(resp, 1, 10),
-      error: (xhr, status, error) => console.error(error),
-    });
+  // Buscador de la tabla de pólizas: antes disparaba una petición por
+  // cada tecla (sin debounce) con datos hardcodeados (length:10, sin
+  // filtros), y esas peticiones podían llegar desordenadas y pisar el
+  // resultado correcto — de ahí la inestabilidad. Ahora usa 'input' (más
+  // confiable que 'keyup' para pegar/borrar), espera 300ms de pausa antes
+  // de buscar, y pasa siempre por getPolizas(), que ya cancela la
+  // petición anterior y respeta filtros + itemsOnPage dinámico.
+  let searchPolizaDebounce = null;
+  $('#searchPoliza').on('input', function () {
+    clearTimeout(searchPolizaDebounce);
+    searchPolizaDebounce = setTimeout(() => getPolizas(1, 0), 300);
   });
 
   $('#buscar-cliente').on('keyup', function (e) {
@@ -3051,6 +3084,13 @@ $(function () {
     $('#panelFiltrosPolizas').slideToggle(150);
   });
 
+  $('#btnCrearPoliza').click(async (e) => {
+    e.preventDefault();
+    await resetForm();
+    $('#title_poliza').text('Crear póliza');
+    $('#modal-poliza').modal('show');
+  });
+
   $('#btnAplicarFiltros').click((e) => {
     e.preventDefault();
     getPolizas(1, 0);
@@ -3062,11 +3102,68 @@ $(function () {
     $('#filtroStatus').val('');
     $('#filtroGrupo').val('');
     $('#filtroCliente').val('');
+    $('#filtroClienteId').val('');
+    $('#filtroClienteOptions').hide().empty();
     $('#filtroFechaDesde').val('');
     $('#filtroFechaHasta').val('');
     $('#filtroMesRapido').val('');
     $('#filtroMesRapidoAnio').val('');
     getPolizas(1, 0);
+  });
+
+  // Autocomplete del campo "Cliente" en el panel de filtros: reutiliza el
+  // mismo endpoint que ya usa el formulario (/polizas/search_clients),
+  // pero con sus propios elementos para no interferir con el buscador de
+  // cliente del formulario de creación/edición.
+  let filtroClienteDebounce = null;
+  $('#filtroCliente').on('input', function () {
+    // Si el usuario vuelve a escribir después de haber elegido un
+    // cliente de la lista, se invalida esa selección exacta (vuelve a
+    // ser texto libre hasta que elija de nuevo o aplique tal cual).
+    $('#filtroClienteId').val('');
+    const inputValue = this.value;
+    clearTimeout(filtroClienteDebounce);
+    if (inputValue.length < 3) {
+      $('#filtroClienteOptions').hide().empty();
+      return;
+    }
+    filtroClienteDebounce = setTimeout(() => {
+      $.ajax({
+        url: 'polizas/search_clients',
+        method: 'POST',
+        dataType: 'json',
+        data: { query: inputValue },
+        success: function (response) {
+          const options = response.options;
+          const dropdownMenu = $('#filtroClienteOptions');
+          dropdownMenu.empty();
+          if (!options.length) {
+            dropdownMenu.append(
+              '<p class="dropdown-item no-results">No hay coincidencias</p>',
+            );
+          } else {
+            $.each(options, function (i, option) {
+              dropdownMenu.append(
+                `<a class="dropdown-item" id="filtro-client__${option.id}">${option.name}</a>`,
+              );
+              $(`#filtro-client__${option.id}`).on('click', () => {
+                $('#filtroCliente').val(option.name);
+                $('#filtroClienteId').val(option.id);
+                dropdownMenu.hide();
+              });
+            });
+          }
+          dropdownMenu.show();
+        },
+        error: (xhr, status, error) => console.error(error),
+      });
+    }, 250);
+  });
+  // Cierra la lista de coincidencias al hacer click fuera del campo.
+  $(document).on('click', (e) => {
+    if (!$(e.target).closest('.polizas-filtros__campo').length) {
+      $('#filtroClienteOptions').hide();
+    }
   });
 
   // Atajo "Mes rápido": al elegir un mes (y opcionalmente un año, si no

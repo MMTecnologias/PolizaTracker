@@ -90,11 +90,21 @@
    </nav>
 
    <div class="container-fluid">
-      <div class="row mt-3">
-         <div class="col-3 p-3 col-form-flex">
-            <div class="w-100 card__shadow p-3 card-form-polizas">
-               <h4 class="header-title">Pólizas</h4>
-               <form id="form-polizas" class="needs-validation form-data" novalidate>
+      <!-- Modal de creación/edición/renovación/endoso de póliza. Antes el
+           formulario vivía siempre visible en una columna a la izquierda;
+           ahora solo aparece al presionar "Crear póliza" en la tabla, o
+           al editar/renovar/ver una póliza existente / crear un endoso. -->
+      <div class="modal fade" id="modal-poliza" tabindex="-1" role="dialog" aria-hidden="true">
+         <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+               <div class="modal-header">
+                  <h4 class="header-title mb-0">Pólizas</h4>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar" id="btnCerrarModalPoliza">
+                     <span aria-hidden="true">&times;</span>
+                  </button>
+               </div>
+               <div class="modal-body">
+                  <form id="form-polizas" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
                   <input type="hidden" id="pdf_path" name="pdf_path" value="" />
                   <input type="hidden" id="recibos" name="recibos" value="Por generar" />
@@ -358,16 +368,22 @@
                         Cancelar
                      </button>
                   </div>
-               </form>
+                  </form>
+               </div>
             </div>
          </div>
-         <div class="col-9 p-3 col-tabla-flex">
+      </div>
+      <div class="row mt-3">
+         <div class="col-12 p-3 col-tabla-flex">
             <div class="w-100 card__shadow p-3 card-tabla-polizas">
                <div class="table-polizas table-polizas--flex" id="table-polizas">
                   <h4 class="header-title">Tabla de Pólizas</h4>
                   <div class="polizas-toolbar">
                      <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar Póliza" aria-label="Search"
                         id="searchPoliza" />
+                     <button class="btn px-4 py-2 btn-primary" type="button" id="btnCrearPoliza">
+                        + Crear póliza
+                     </button>
                      <button class="btn px-4 py-2" type="button" id="btnToggleFiltros">
                         Filtros
                      </button>
@@ -381,85 +397,80 @@
                         Imprimir
                      </button>
                   </div>
+                  <div class="polizas-total" id="polizasTotalLabel"></div>
                   <div class="polizas-filtros" id="panelFiltrosPolizas" style="display: none;">
-                     <div class="row">
-                        <div class="col-md-3 form__input-data">
-                           <label class="label-input-data">Aseguradora</label>
-                           <select class="custom-select" id="filtroAseguradora">
-                              <option value="">Todas</option>
-                              {% for aseguradora in aseguradoras %}
-                              <option value="{{ aseguradora.id }}">{{ aseguradora.aseguradora }}</option>
-                              {% endfor %}
-                           </select>
-                        </div>
-                        <div class="col-md-3 form__input-data">
-                           <label class="label-input-data">Estado</label>
-                           <select class="custom-select" id="filtroStatus">
-                              <option value="">Todos</option>
-                              <option value="Vigente">Vigente</option>
-                              <option value="Pendiente">Pendiente</option>
-                              <option value="Por Vencer">Por Vencer</option>
-                              <option value="Cancelada">Cancelada</option>
-                              <option value="Finalizada">Finalizada</option>
-                           </select>
-                        </div>
-                        <div class="col-md-3 form__input-data">
-                           <label class="label-input-data">Grupo</label>
-                           <select class="custom-select" id="filtroGrupo">
-                              <option value="">Todos</option>
-                              {% for grupo in grupos %}
-                              <option value="{{ grupo.id }}">{{ grupo.grupo }}</option>
-                              {% endfor %}
-                           </select>
-                        </div>
-                        <div class="col-md-3 form__input-data">
-                           <label class="label-input-data">Cliente</label>
-                           <input class="form-control" type="text" id="filtroCliente" placeholder="Nombre del cliente" />
-                        </div>
+                     <div class="polizas-filtros__campo">
+                        <label>Aseguradora</label>
+                        <select class="custom-select" id="filtroAseguradora">
+                           <option value="">Todas</option>
+                           {% for aseguradora in aseguradoras %}
+                           <option value="{{ aseguradora.id }}">{{ aseguradora.aseguradora }}</option>
+                           {% endfor %}
+                        </select>
                      </div>
-                     <div class="row align-items-end">
-                        <div class="col-md-3 form__input-data">
-                           <label class="label-input-data">Mes (rápido)</label>
-                           <select class="custom-select" id="filtroMesRapido">
-                              <option value="">-- Elegir mes --</option>
-                              <option value="1">Enero</option>
-                              <option value="2">Febrero</option>
-                              <option value="3">Marzo</option>
-                              <option value="4">Abril</option>
-                              <option value="5">Mayo</option>
-                              <option value="6">Junio</option>
-                              <option value="7">Julio</option>
-                              <option value="8">Agosto</option>
-                              <option value="9">Septiembre</option>
-                              <option value="10">Octubre</option>
-                              <option value="11">Noviembre</option>
-                              <option value="12">Diciembre</option>
-                           </select>
-                        </div>
-                        <div class="col-md-2 form__input-data">
-                           <label class="label-input-data">Año</label>
-                           <input class="form-control" type="number" id="filtroMesRapidoAnio" placeholder="Año" />
-                        </div>
-                        <div class="col-md-3 form__input-data">
-                           <label class="label-input-data">Vigencia desde</label>
-                           <input class="form-control" type="date" id="filtroFechaDesde" />
-                        </div>
-                        <div class="col-md-3 form__input-data">
-                           <label class="label-input-data">Vigencia hasta</label>
-                           <input class="form-control" type="date" id="filtroFechaHasta" />
-                        </div>
-                        <div class="col-md-1 form__input-data polizas-filtros__acciones">
-                           <button class="btn px-3 py-2" type="button" id="btnAplicarFiltros" title="Aplicar filtros">
-                              Aplicar
-                           </button>
-                        </div>
+                     <div class="polizas-filtros__campo">
+                        <label>Estado</label>
+                        <select class="custom-select" id="filtroStatus">
+                           <option value="">Todos</option>
+                           <option value="Vigente">Vigente</option>
+                           <option value="Pendiente">Pendiente</option>
+                           <option value="Por Vencer">Por Vencer</option>
+                           <option value="Cancelada">Cancelada</option>
+                           <option value="Finalizada">Finalizada</option>
+                        </select>
                      </div>
-                     <div class="row">
-                        <div class="col-12 text-right">
-                           <button class="btn btn-link p-0" type="button" id="btnLimpiarFiltros">
-                              Limpiar filtros
-                           </button>
-                        </div>
+                     <div class="polizas-filtros__campo">
+                        <label>Grupo</label>
+                        <select class="custom-select" id="filtroGrupo">
+                           <option value="">Todos</option>
+                           {% for grupo in grupos %}
+                           <option value="{{ grupo.id }}">{{ grupo.grupo }}</option>
+                           {% endfor %}
+                        </select>
+                     </div>
+                     <div class="polizas-filtros__campo">
+                        <label>Cliente</label>
+                        <input class="form-control" type="text" id="filtroCliente" placeholder="Escribe para buscar..." autocomplete="off" />
+                        <input type="hidden" id="filtroClienteId" value="" />
+                        <div class="dropdown-menu" id="filtroClienteOptions" style="display: none;"></div>
+                     </div>
+                     <div class="polizas-filtros__campo polizas-filtros__campo--fecha">
+                        <label>Mes rápido</label>
+                        <select class="custom-select" id="filtroMesRapido">
+                           <option value="">-- Elegir --</option>
+                           <option value="1">Enero</option>
+                           <option value="2">Febrero</option>
+                           <option value="3">Marzo</option>
+                           <option value="4">Abril</option>
+                           <option value="5">Mayo</option>
+                           <option value="6">Junio</option>
+                           <option value="7">Julio</option>
+                           <option value="8">Agosto</option>
+                           <option value="9">Septiembre</option>
+                           <option value="10">Octubre</option>
+                           <option value="11">Noviembre</option>
+                           <option value="12">Diciembre</option>
+                        </select>
+                     </div>
+                     <div class="polizas-filtros__campo" style="flex-basis: 80px;">
+                        <label>Año</label>
+                        <input class="form-control" type="number" id="filtroMesRapidoAnio" placeholder="Año" />
+                     </div>
+                     <div class="polizas-filtros__campo polizas-filtros__campo--fecha">
+                        <label>Vigencia desde</label>
+                        <input class="form-control" type="date" id="filtroFechaDesde" />
+                     </div>
+                     <div class="polizas-filtros__campo polizas-filtros__campo--fecha">
+                        <label>Vigencia hasta</label>
+                        <input class="form-control" type="date" id="filtroFechaHasta" />
+                     </div>
+                     <div class="polizas-filtros__acciones">
+                        <button class="btn px-3 py-2" type="button" id="btnAplicarFiltros" title="Aplicar filtros">
+                           Aplicar
+                        </button>
+                        <button class="btn btn-link p-0" type="button" id="btnLimpiarFiltros">
+                           Limpiar
+                        </button>
                      </div>
                   </div>
                   <div class="table-polizas__scroll">
