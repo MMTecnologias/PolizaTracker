@@ -933,11 +933,19 @@ a .delete {
    muchos campos y necesita mas ancho. */
 @media (min-width: 992px) {
    #modal-poliza .modal-dialog.modal-xl {
-      max-width: 1140px;
+      max-width: 960px;
    }
 }
 
 #modal-poliza .modal-body {
    max-height: 80vh;
    overflow-y: auto;
+}
+
+/* El formulario se veía mal estirado a los 1140px completos del modal
+   (un solo input de 1000px+ de ancho, por ejemplo). Se limita su ancho y
+   se centra dentro del modal para que se vea proporcionado. */
+#modal-poliza #form-polizas {
+   max-width: 760px;
+   margin: 0 auto;
 }

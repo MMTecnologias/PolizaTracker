@@ -14,7 +14,16 @@ $(function () {
   // búsqueda, resize) y se pone en true en cuanto se hace el ajuste
   // automático correspondiente a esa carga, para garantizar como máximo
   // un re-fetch por disparador y así evitar cualquier ciclo infinito.
-  let polizasAutoAdjustDone = false;
+  // Se resetea a 0 en cada carga "real" (inicial, cambio de página,
+  // búsqueda, resize) y se incrementa cada vez que se hace un re-fetch
+  // automático para ajustar itemsOnPage. Un límite (no un booleano de un
+  // solo intento) porque la primera medición puede salir imprecisa —por
+  // ejemplo si las fuentes web todavía no terminaban de cargar y la
+  // altura real de fila cambia un poco después—, así que se permiten
+  // unos cuantos reintentos para converger, sin arriesgar un ciclo
+  // infinito.
+  let polizasAutoAdjustAttempts = 0;
+  const POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS = 3;
 
   // Menú de acciones ("3 puntos") de la tabla de pólizas: al abrirse se
   // saca del flujo normal y se pega al <body> con position:fixed, para
@@ -2257,6 +2266,19 @@ $(function () {
   // tengan valor. Se usa tanto para pintar la tabla como para exportar a
   // Excel/PDF e imprimir, así que siempre reflejan exactamente lo mismo
   // que se ve en pantalla.
+  // Bootstrap 4 no soporta bien tener dos modales abiertos al mismo
+  // tiempo (backdrop y stacking se pisan) — por eso, al guardar una
+  // póliza y necesitar abrir el modal de recibos justo después, primero
+  // se espera a que el modal de la póliza termine de cerrarse (evento
+  // 'hidden.bs.modal', que dispara cuando la transición ya acabó) y solo
+  // entonces se abre el siguiente, en vez de tenerlos ambos a la vez.
+  function hideModalPolizaThenShow(nextModalSelector) {
+    $('#modal-poliza').one('hidden.bs.modal', function () {
+      $(nextModalSelector).modal('show');
+    });
+    $('#modal-poliza').modal('hide');
+  }
+
   function getFiltrosPolizas() {
     const filtros = {};
     const aseguradora = $('#filtroAseguradora').val();
@@ -2290,7 +2312,7 @@ $(function () {
   let currentPolizasRequest = null;
 
   function getPolizas(pageNumber = 1, start = 0, isAutoAdjust = false) {
-    if (!isAutoAdjust) polizasAutoAdjustDone = false;
+    if (!isAutoAdjust) polizasAutoAdjustAttempts = 0;
     const length = polizasItemsOnPage;
     const searchValue = $('#searchPoliza').val();
     const params = { start, length, order: true, ...getFiltrosPolizas() };
@@ -2313,11 +2335,11 @@ $(function () {
   // Calcula cuántas filas caben de verdad en el espacio disponible
   // (altura de .table-polizas__scroll menos el encabezado, entre la
   // altura real de una fila ya renderizada) y, si es distinto de lo que
-  // se pidió, vuelve a pedir la página 1 con la cantidad correcta.
-  // polizasAutoAdjustDone garantiza como máximo un re-fetch por carga,
-  // así que no hay riesgo de ciclo aunque la medición oscile.
+  // se pidió, vuelve a pedir la página 1 con la cantidad correcta. Se
+  // reintenta (con tope) mientras no converja, en vez de rendirse tras
+  // un solo intento.
   function adjustPolizasItemsOnPageAndReload() {
-    if (polizasAutoAdjustDone) return;
+    if (polizasAutoAdjustAttempts >= POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS) return;
 
     const $scrollWrap = $('#table-polizas .table-polizas__scroll');
     const $thead = $scrollWrap.find('thead');
@@ -2330,9 +2352,9 @@ $(function () {
     if (!availableHeight || !rowHeight) return;
 
     const idealCount = Math.max(5, Math.floor((availableHeight - headerHeight) / rowHeight));
-    polizasAutoAdjustDone = true;
-    if (idealCount === polizasItemsOnPage) return;
+    if (idealCount === polizasItemsOnPage) return; // ya converge, no cuenta como intento
 
+    polizasAutoAdjustAttempts += 1;
     polizasItemsOnPage = idealCount;
     getPolizas(1, 0, true);
   }
@@ -2343,9 +2365,18 @@ $(function () {
   $(window).on('resize', () => {
     clearTimeout(polizasResizeDebounce);
     polizasResizeDebounce = setTimeout(() => {
-      polizasAutoAdjustDone = false;
+      polizasAutoAdjustAttempts = 0;
       adjustPolizasItemsOnPageAndReload();
     }, 200);
+  });
+
+  // Reintenta una vez más cuando la página termina de cargar del todo
+  // (imágenes, fuentes web, etc.): si la primera medición se hizo antes
+  // de que una fuente terminara de cargar, la altura real de fila pudo
+  // haber cambiado un poco después.
+  $(window).on('load', () => {
+    polizasAutoAdjustAttempts = 0;
+    adjustPolizasItemsOnPageAndReload();
   });
 
   function getEndosos(poliza_id, pageNumber = 1, start = 0) {
@@ -2803,12 +2834,11 @@ $(function () {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
-            $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
-            $('#modal-poliza').modal('hide');
+            hideModalPolizaThenShow('#create-recib');
           }
         },
         error: function (xhr, status, error) {
@@ -2831,12 +2861,11 @@ $(function () {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
-            $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
-            $('#modal-poliza').modal('hide');
+            hideModalPolizaThenShow('#create-recib');
           }
         },
         error: function (xhr, textStatus, error) {
@@ -2866,12 +2895,11 @@ $(function () {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
-            $('#create-recib').modal('toggle');
             $('#receipts_created').val('si');
             alert(resp.title, 'success');
             getPolizas();
             resetForm();
-            $('#modal-poliza').modal('hide');
+            hideModalPolizaThenShow('#create-recib');
           }
         },
         error: function (xhr, status, error) {
