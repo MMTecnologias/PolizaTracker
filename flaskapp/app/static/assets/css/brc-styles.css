@@ -324,14 +324,34 @@ p {
    padding: 0;
 }
 
+/* Columnas del formulario y de la tabla de pólizas: ambas se estiran a
+   la misma altura (la del contenido más alto entre las dos, gracias al
+   align-items:stretch por default de .row en Bootstrap) y sus tarjetas
+   internas llenan esa altura al 100%, para que ambas queden alineadas
+   también en la parte de abajo. */
+.col-form-flex,
+.col-tabla-flex {
+   display: flex;
+   flex-direction: column;
+}
+
+.card-form-polizas {
+   flex: 1 1 auto;
+   min-height: 0;
+}
+
 /* Card contenedora de la tabla de pólizas: layout en columna para que el
    paginador nunca quede encimado sobre la última fila, sin importar
-   cuántas filas quepan en pantalla o el nivel de zoom. */
+   cuántas filas quepan en pantalla o el nivel de zoom. Su altura ahora
+   la da el flex del padre (misma altura que el formulario), ya no un
+   valor fijo en px. */
 .card-tabla-polizas {
    position: relative;
    display: flex;
    flex-direction: column;
    overflow: hidden;
+   flex: 1 1 auto;
+   min-height: 0;
 }
 
 .table-polizas--flex {
@@ -354,6 +374,14 @@ p {
 .table-polizas__pagination {
    flex: 0 0 auto;
    padding-top: 8px;
+}
+
+/* Tabla de pólizas compacta: menos separación entre columnas y filas
+   más bajas, para que entren más registros sin scroll. Se limita a
+   #table-polizas para no afectar otras tablas del sistema. */
+#table-polizas .table td,
+#table-polizas .table th {
+   padding: 0.4rem 0.6rem;
 }
 
 .label-option {
@@ -581,10 +609,30 @@ a .delete {
    width: fit-content;
 }
 
-/* Menú de acciones tipo "3 puntos": reemplaza la fila de íconos de la
-   tabla de pólizas cuando no caben (pantallas angostas o zoom alto).
-   El botón nunca cambia de tamaño; todas las acciones viven dentro del
-   menú desplegable, así que jamás se recortan ni desaparecen. */
+/* Acciones de la tabla de pólizas: por default se muestran todos los
+   íconos en fila (.acciones-full). Solo cuando NO caben (medido por JS
+   vía ResizeObserver, no adivinado por breakpoint) la tabla agrega la
+   clase .table-polizas--collapsed y se cambia al menú "3 puntos"
+   (.acciones-menu-wrapper), que agrupa todas las acciones sin recortarlas
+   nunca, sin importar pantalla angosta o nivel de zoom. */
+.acciones-full {
+   display: flex;
+   width: fit-content;
+   gap: 2px;
+}
+
+.acciones-menu-wrapper {
+   display: none;
+}
+
+.table-polizas--collapsed .acciones-full {
+   display: none;
+}
+
+.table-polizas--collapsed .acciones-menu-wrapper {
+   display: inline-block;
+}
+
 .acciones-toggle {
    display: inline-flex;
    align-items: center;

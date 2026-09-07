@@ -1766,6 +1766,45 @@ $(function () {
     });
   }
 
+  // Observa el ancho real disponible en la columna "Acciones" de la
+  // tabla de pólizas y decide si caben todos los íconos en fila o si hay
+  // que colapsarlos al menú "3 puntos". Se mide contra el ancho natural
+  // de la fila de íconos (.acciones-full), no contra un número inventado,
+  // así que responde correctamente tanto a redimensionar la ventana como
+  // a hacer zoom (ambos casos cambian el ancho real disponible).
+  let accionesResizeObserver = null;
+
+  function setupAccionesResponsive() {
+    const $tablePolizas = $('#table-polizas');
+    const $firstRow = $('#polizas-table tr').first();
+    const $firstFull = $firstRow.find('.acciones-full');
+    const $firstCell = $firstFull.closest('td');
+    if (!$firstFull.length || !$firstCell.length) return;
+
+    if (accionesResizeObserver) {
+      accionesResizeObserver.disconnect();
+    }
+
+    // Se mide en estado expandido: si la tabla ya venía marcada como
+    // colapsada de un render anterior, se quita momentáneamente la clase
+    // para poder tomar el ancho natural real de los íconos.
+    const wasCollapsed = $tablePolizas.hasClass('table-polizas--collapsed');
+    $tablePolizas.removeClass('table-polizas--collapsed');
+    const naturalWidth = $firstFull[0].scrollWidth;
+    if (wasCollapsed) {
+      $tablePolizas.addClass('table-polizas--collapsed');
+    }
+
+    accionesResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const available = entry.contentRect.width;
+        const collapsed = available < naturalWidth + 8; // pequeño margen
+        $tablePolizas.toggleClass('table-polizas--collapsed', collapsed);
+      }
+    });
+    accionesResizeObserver.observe($firstCell[0]);
+  }
+
   function fillTablePolizas(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
     totalPolizas = recordsTotal;
@@ -1808,6 +1847,66 @@ $(function () {
             poliza.tipoPago
           }</td>
           <td>
+            <ul class="btn_table_options acciones-full">
+              <li>
+                <a title="Ver detalle de poliza" class="btn__icon_show pointer" id="btnShowFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
+                    poliza.status,
+                  )}><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a title="Editar poliza" class="btn__icon_edit pointer" id="btnEditFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
+                    poliza.status,
+                  )}><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a title="Renovar poliza" class="btn__icon_renew pointer" id="btnRenewFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
+                    poliza.status,
+                  )}><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v240h-80v-80H200v400h280v80H200ZM760 0q-73 0-127.5-45.5T564-160h62q13 44 49.5 72T760-60q58 0 99-41t41-99q0-58-41-99t-99-41q-29 0-54 10.5T662-300h58v60H560v-160h60v57q27-26 63-41.5t77-15.5q83 0 141.5 58.5T960-200q0 83-58.5 141.5T760 0ZM200-640h560v-80H200v80Zm0 0v-80 80Z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a title="Crear endoso" class="btn__icon_delete pointer" id="btnAddEndosoFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
+                    poliza.status,
+                  )}><path d="M120-320v-80h280v80H120Zm0-160v-80h440v80H120Zm0-160v-80h440v80H120Zm520 480v-160H480v-80h160v-160h80v160h160v80H720v160h-80Z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a title="Ver endosos" class="btn__icon_show pointer" id="btnViewEndososFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
+                    poliza.status,
+                  )}><path d="M120-220v-80h80v80h-80Zm0-140v-80h80v80h-80Zm0-140v-80h80v80h-80ZM260-80v-80h80v80h-80Zm100-160q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480Zm40 240v-80h80v80h-80Zm-200 0q-33 0-56.5-23.5T120-160h80v80Zm340 0v-80h80q0 33-23.5 56.5T540-80ZM120-640q0-33 23.5-56.5T200-720v80h-80Zm420 80Z"/></svg>
+                </a>
+              </li>
+              ${
+                poliza.pdf_path
+                  ? `
+              <li>
+                <a title="Ver pdf" class="btn__icon_show pointer" id="btnViewPdfFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/></svg>
+                </a>
+              </li>
+              `
+                  : ''
+              }
+              <li>
+                <a title="Cargar PDF de póliza" class="btn__icon_show pointer" id="btnUploadPolicyPdfFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a title="Cancelar poliza" class="btn__icon_delete pointer" id="btnDeleteFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
+                    poliza.status,
+                  )}><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"/></svg>
+                </a>
+              </li>
+            </ul>
             <div class="dropdown acciones-menu-wrapper">
               <button type="button" class="acciones-toggle pointer" id="dropdownAcciones_${poliza.id}"
                 data-toggle="dropdown" data-display="static" aria-haspopup="true" aria-expanded="false" title="Acciones">
@@ -1889,7 +1988,41 @@ $(function () {
         e.preventDefault();
         uploadExistingPolicyPdf(poliza.id);
       });
+      // Misma lógica que arriba, pero para la fila de íconos completos
+      // (.acciones-full), que se muestra en vez del menú "3 puntos"
+      // cuando sí caben todas las acciones en pantalla.
+      $(`#btnAddEndosoFull_${poliza.id}`).on('click', (e) => {
+        $('#poliza_id').val(poliza.id);
+        $('#endoso-type').modal();
+      });
+      $(`#btnEditFull_${poliza.id}`).on('click', (e) => {
+        editPoliza(poliza.id);
+        $('#btnGuardar').html('Actualizar póliza');
+        $('#title_poliza').text('Editar póliza');
+      });
+      $(`#btnDeleteFull_${poliza.id}`).on('click', (e) => cancelPoliza(poliza.id));
+      $(`#btnRenewFull_${poliza.id}`).on('click', (e) => renewPoliza(poliza.id));
+      $(`#btnViewEndososFull_${poliza.id}`).on('click', (e) => {
+        getEndosos(poliza.id);
+        $('#endoso-list').modal();
+      });
+      $(`#btnShowFull_${poliza.id}`).on('click', (e) => showPoliza(poliza.id));
+      $(`#btnViewPdfFull_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
+        if (poliza.pdf_path) {
+          window.open(`/polizas/download_pdf/${poliza.id}`, '_blank');
+        }
+      });
+      $(`#btnUploadPolicyPdfFull_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadExistingPolicyPdf(poliza.id);
+      });
     });
+    // Decide si caben todos los íconos de acción en fila o si hay que
+    // colapsarlos al menú "3 puntos": se mide el ancho real que ocupa la
+    // fila completa de íconos (.acciones-full) contra el ancho
+    // disponible en la celda, en vez de adivinar con un breakpoint fijo.
+    setupAccionesResponsive();
     if (!data.length) return;
     $('#pagination').pagination({
       items: recordsTotal,
