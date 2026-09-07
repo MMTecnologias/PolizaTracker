@@ -1802,13 +1802,54 @@ $(function () {
   // calc(100vh - 160px) — ese número fijo no considera el alto real del
   // navbar ni de márgenes, y podía dejar espacio sin usar entre la
   // tabla y el borde inferior de la pantalla.
+  //
+  // IMPORTANTE: no basta con fijar la altura de la tarjeta y confiar en
+  // que el flex (card > #table-polizas > .table-polizas__scroll, 3
+  // niveles anidados) reparta el espacio sobrante correctamente — en la
+  // práctica esa cadena no estaba llegando bien a .table-polizas__scroll
+  // (se veía un hueco enorme en pantalla que el cálculo de filas nunca
+  // detectaba, porque medía un .table-polizas__scroll mucho más chico
+  // de lo que realmente se veía en pantalla). Por eso ahora se calcula
+  // y fija por JS, de forma explícita, la altura de CADA nivel: la
+  // tarjeta, y también .table-polizas__scroll (restándole lo que miden
+  // sus hermanos: título, buscador/toolbar, total de pólizas, panel de
+  // filtros, y el paginador).
   function ajustarAlturaTablaPolizas() {
     const $card = $('.card-tabla-polizas');
     if (!$card.length) return;
+
     const top = $card[0].getBoundingClientRect().top;
     const margenInferior = 8;
-    const alturaDisponible = window.innerHeight - top - margenInferior;
-    $card.css('height', `${Math.max(300, alturaDisponible)}px`);
+    const alturaCard = Math.max(300, window.innerHeight - top - margenInferior);
+    $card.css('height', `${alturaCard}px`);
+
+    const $tablePolizas = $('#table-polizas');
+    const $scrollWrap = $tablePolizas.find('.table-polizas__scroll');
+    const $pagination = $card.find('.table-polizas__pagination');
+    if (!$tablePolizas.length || !$scrollWrap.length) return;
+
+    // Todo lo que va ARRIBA de .table-polizas__scroll dentro de
+    // #table-polizas (h4, toolbar de búsqueda/botones, total de pólizas,
+    // panel de filtros si está abierto) — se suma su alto real actual.
+    let altoHermanosArriba = 0;
+    $tablePolizas.children().each(function () {
+      if (this === $scrollWrap[0]) return false; // detiene el .each al llegar al scroll
+      altoHermanosArriba += $(this).outerHeight(true);
+    });
+
+    const altoPaginacion = $pagination.length ? $pagination.outerHeight(true) : 0;
+    const margenExtra = 4; // colchón mínimo por redondeos de sub-pixel
+    const alturaScroll = Math.max(
+      100,
+      alturaCard - altoHermanosArriba - altoPaginacion - margenExtra,
+    );
+    $scrollWrap.css('height', `${alturaScroll}px`);
+    console.log('[polizas-debug] ajuste de alturas', {
+      alturaCard,
+      altoHermanosArriba,
+      altoPaginacion,
+      alturaScroll,
+    });
   }
 
   function setupAccionesResponsive() {

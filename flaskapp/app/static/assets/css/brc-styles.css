@@ -366,9 +366,13 @@ p {
 
 /* Único elemento que hace scroll: el cuerpo de la tabla. El encabezado,
    los controles de búsqueda/exportar y el paginador quedan siempre
-   visibles y en flujo normal (nunca position:absolute). */
+   visibles y en flujo normal (nunca position:absolute). Su altura la
+   fija explícitamente ajustarAlturaTablaPolizas() (polizas.js) restando
+   lo que miden sus hermanos — flex:0 0 auto (en vez de 1 1 auto) para
+   que el navegador respete ese cálculo tal cual, sin que el algoritmo
+   de flex-grow intente redistribuir el espacio por su cuenta encima. */
 .table-polizas__scroll {
-   flex: 1 1 auto;
+   flex: 0 0 auto;
    min-height: 0;
    overflow-y: auto;
    overflow-x: auto;
