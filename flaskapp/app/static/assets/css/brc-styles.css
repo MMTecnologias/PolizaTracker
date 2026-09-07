@@ -949,3 +949,42 @@ a .delete {
    max-width: 760px;
    margin: 0 auto;
 }
+
+/* Header de modal estilo "marca": franja de color con titulo en blanco
+   y boton de cerrar blanco, igual al que ya se usa en el modal de
+   Recibos Pendientes de Cobro del dashboard gerencial (--color-primario).
+   Se aplica al modal de poliza y al de generacion de recibos para que
+   ambos se vean consistentes con el resto del sistema. */
+#modal-poliza .modal-header,
+#create-recib .modal-header {
+   background: var(--color-primario);
+   color: white;
+   padding: 16px 24px;
+}
+
+#modal-poliza .modal-header .header-title,
+#create-recib .modal-header .header-title {
+   margin: 0;
+   color: white;
+   font-weight: 600;
+}
+
+#modal-poliza .modal-header .close,
+#create-recib .modal-header .close {
+   color: white;
+   opacity: 0.85;
+   text-shadow: none;
+}
+
+#modal-poliza .modal-header .close:hover,
+#create-recib .modal-header .close:hover {
+   color: white;
+   opacity: 1;
+}
+
+#modal-poliza .modal-content,
+#create-recib .modal-content {
+   border-radius: 10px;
+   overflow: hidden;
+   border: none;
+}
