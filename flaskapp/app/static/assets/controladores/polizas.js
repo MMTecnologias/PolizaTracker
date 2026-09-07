@@ -4,23 +4,6 @@ $(function () {
   let pdfMode = null; // 'renew', 'endoso', or null
   let receiptSaveRequested = false;
 
-  // El modal de pólizas seguía apareciendo a todo el ancho de pantalla
-  // pese a la regla CSS con !important — hay reglas de tema (styles.css)
-  // compitiendo por .modal-dialog y, por lo que sea (orden de carga,
-  // build/caché intermedio, etc.), no estaban perdiendo esa pelea de
-  // forma confiable. En vez de seguir peleando en CSS, se fuerza el
-  // ancho directamente por JS cada vez que el modal se abre, con
-  // setProperty(...,'important') — la única forma de garantizar que
-  // absolutamente nada más lo pueda pisar, sin importar qué hoja de
-  // estilos cargue después o qué esté cacheado.
-  $('#modal-poliza').on('show.bs.modal shown.bs.modal', function () {
-    const dialog = this.querySelector('.modal-dialog');
-    if (!dialog) return;
-    dialog.style.setProperty('max-width', '900px', 'important');
-    dialog.style.setProperty('width', '90%', 'important');
-    dialog.style.setProperty('margin', '1.75rem auto', 'important');
-  });
-
   // Cantidad de filas por página de la tabla de pólizas. Ya no es un
   // número fijo: se recalcula según cuántas filas caben realmente en el
   // espacio disponible, para que la tabla se llene por completo en vez
@@ -2403,10 +2386,24 @@ $(function () {
     }, 200);
   });
 
+  // El evento 'load' de la ventana NO espera a que las fuentes web
+  // (@font-face, como Lato/Poppins que carga esta página) terminen de
+  // descargarse — eso pasa de forma asíncrona por separado. Si la
+  // primera medición de altura de fila se hizo con la fuente de
+  // respaldo del sistema (más angosta/baja que la fuente real), el
+  // cálculo de cuántas filas caben salía corto y nunca se corregía. La
+  // API document.fonts.ready es la forma correcta de esperar a que las
+  // fuentes ya estén listas antes de medir.
+  if (window.document && document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      ajustarAlturaTablaPolizas();
+      polizasAutoAdjustAttempts = 0;
+      adjustPolizasItemsOnPageAndReload();
+    });
+  }
+
   // Reintenta una vez más cuando la página termina de cargar del todo
-  // (imágenes, fuentes web, etc.): si la primera medición se hizo antes
-  // de que una fuente terminara de cargar, la altura real de fila pudo
-  // haber cambiado un poco después.
+  // (imágenes, etc.), como red de seguridad adicional.
   $(window).on('load', () => {
     ajustarAlturaTablaPolizas();
     polizasAutoAdjustAttempts = 0;

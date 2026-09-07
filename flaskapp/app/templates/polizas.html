@@ -16,7 +16,7 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
-   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=7" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=8" />
    <style>
       .pdf-upload-area {
          border: 2px dashed #cbd5e0;
@@ -95,7 +95,7 @@
            ahora solo aparece al presionar "Crear póliza" en la tabla, o
            al editar/renovar/ver una póliza existente / crear un endoso. -->
       <div class="modal fade" id="modal-poliza" tabindex="-1" role="dialog" aria-hidden="true">
-         <div class="modal-dialog modal-xl" role="document">
+         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content">
                <div class="modal-header">
                   <h4 class="header-title mb-0">Pólizas</h4>
@@ -839,7 +839,7 @@
    </div>
 
    <!-- main content area end -->
-   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=7"></script>
+   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=8"></script>
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>

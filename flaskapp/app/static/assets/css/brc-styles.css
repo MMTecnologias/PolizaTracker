@@ -932,29 +932,20 @@ a .delete {
    box-shadow: 5px 2px 14px -9px var(--gris-medio);
 }
 
-/* El proyecto trae varias reglas globales de otras hojas de estilo que
-   compiten por el ancho de .modal-dialog (una de ellas, en styles.css,
-   fuerza max-width:1000px sin ninguna condición, con la misma
-   especificidad que una regla nuestra sin !important podría perder
-   dependiendo del orden de carga). Para blindar el modal de pólizas
-   contra esos conflictos, se fija su ancho con !important y sin
-   depender de un breakpoint. */
-#modal-poliza .modal-dialog {
-   max-width: 900px !important;
-   width: 90% !important;
-   margin: 1.75rem auto !important;
-}
-
+/* El modal de pólizas ahora usa las mismas clases de Bootstrap que los
+   demás modales de esta página (modal-lg modal-dialog-centered), que ya
+   funcionan correctamente — se abandonó el ancho personalizado
+   (modal-xl + !important) porque competía con reglas de otras hojas de
+   estilo del tema de forma que no se pudo resolver de forma confiable.
+   Solo queda el límite de alto/scroll del body, y el formulario ajustado
+   al ancho real disponible en un modal-lg (~800px). */
 #modal-poliza .modal-body {
    max-height: 80vh;
    overflow-y: auto;
 }
 
-/* El formulario se veía mal estirado a los 1140px completos del modal
-   (un solo input de 1000px+ de ancho, por ejemplo). Se limita su ancho y
-   se centra dentro del modal para que se vea proporcionado. */
 #modal-poliza #form-polizas {
-   max-width: 760px;
+   max-width: 720px;
    margin: 0 auto;
 }
 
