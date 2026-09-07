@@ -328,16 +328,24 @@ p {
    la misma altura (la del contenido más alto entre las dos, gracias al
    align-items:stretch por default de .row en Bootstrap) y sus tarjetas
    internas llenan esa altura al 100%, para que ambas queden alineadas
-   también en la parte de abajo. */
+   también en la parte de abajo.
+   min-width:0 es necesario porque, por default, un flex item no se
+   encoge más allá del ancho mínimo de su contenido (inputs, selects,
+   fechas). Sin esto, al angostar la columna del formulario, esos campos
+   empujaban toda la fila y desbordaban horizontalmente la página,
+   rompiendo el layout (formulario "vacío"/cortado) y arrastrando
+   consigo el cálculo de altura de la columna de la tabla. */
 .col-form-flex,
 .col-tabla-flex {
    display: flex;
    flex-direction: column;
+   min-width: 0;
 }
 
 .card-form-polizas {
    flex: 1 1 auto;
    min-height: 0;
+   min-width: 0;
 }
 
 /* Card contenedora de la tabla de pólizas: layout en columna para que el
@@ -352,6 +360,7 @@ p {
    overflow: hidden;
    flex: 1 1 auto;
    min-height: 0;
+   min-width: 0;
 }
 
 .table-polizas--flex {
@@ -405,6 +414,7 @@ p {
 
 .input-sibling-child {
    flex-grow: 1;
+   min-width: 0;
 }
 
 .button-container {

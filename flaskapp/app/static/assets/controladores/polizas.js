@@ -1766,20 +1766,21 @@ $(function () {
     });
   }
 
-  // Observa el ancho real disponible en la columna "Acciones" de la
-  // tabla de pólizas y decide si caben todos los íconos en fila o si hay
-  // que colapsarlos al menú "3 puntos". Se mide contra el ancho natural
-  // de la fila de íconos (.acciones-full), no contra un número inventado,
-  // así que responde correctamente tanto a redimensionar la ventana como
-  // a hacer zoom (ambos casos cambian el ancho real disponible).
+  // Observa el ancho real disponible para la tabla y decide si caben
+  // todos los íconos de "Acciones" en fila o si hay que colapsarlos al
+  // menú "3 puntos". Importante: se mide el contenedor con scroll
+  // (.table-polizas__scroll) contra el ancho NATURAL de toda la tabla
+  // (tabla expandida, sin recortar) — no el ancho de una celda suelta,
+  // porque con overflow-x:auto las celdas nunca se angostan de verdad
+  // (el navegador prefiere generar scroll horizontal antes que encoger
+  // columnas), así que medir una celda nunca detectaba el colapso.
   let accionesResizeObserver = null;
 
   function setupAccionesResponsive() {
     const $tablePolizas = $('#table-polizas');
-    const $firstRow = $('#polizas-table tr').first();
-    const $firstFull = $firstRow.find('.acciones-full');
-    const $firstCell = $firstFull.closest('td');
-    if (!$firstFull.length || !$firstCell.length) return;
+    const $scrollWrap = $tablePolizas.find('.table-polizas__scroll');
+    const $table = $scrollWrap.find('> table');
+    if (!$scrollWrap.length || !$table.length) return;
 
     if (accionesResizeObserver) {
       accionesResizeObserver.disconnect();
@@ -1787,10 +1788,10 @@ $(function () {
 
     // Se mide en estado expandido: si la tabla ya venía marcada como
     // colapsada de un render anterior, se quita momentáneamente la clase
-    // para poder tomar el ancho natural real de los íconos.
+    // para poder tomar el ancho natural real de la tabla completa.
     const wasCollapsed = $tablePolizas.hasClass('table-polizas--collapsed');
     $tablePolizas.removeClass('table-polizas--collapsed');
-    const naturalWidth = $firstFull[0].scrollWidth;
+    const naturalTableWidth = $table[0].scrollWidth;
     if (wasCollapsed) {
       $tablePolizas.addClass('table-polizas--collapsed');
     }
@@ -1798,11 +1799,11 @@ $(function () {
     accionesResizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const available = entry.contentRect.width;
-        const collapsed = available < naturalWidth + 8; // pequeño margen
+        const collapsed = available < naturalTableWidth - 4; // pequeño margen
         $tablePolizas.toggleClass('table-polizas--collapsed', collapsed);
       }
     });
-    accionesResizeObserver.observe($firstCell[0]);
+    accionesResizeObserver.observe($scrollWrap[0]);
   }
 
   function fillTablePolizas(resp, currentPage, itemsOnPage) {
