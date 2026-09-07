@@ -6,6 +6,29 @@
 
 Gastos de expedición/DErecho de poliza
 
+PENDIENTES - Extraccion de PDF con Ollama:
+0.- Feature de extraccion automatica de datos de polizas desde PDF,
+    corriendo Ollama localmente (modelo llama3.1:8b). Codigo en
+    flaskapp/app/polizas/routes.py y flaskapp/app/endosos/routes.py
+    (buscar "ollama"/"llama3" en esos archivos para ubicarlo).
+    BUG CONOCIDO (nivel de detalle limitado -- esto se documento desde
+    un resumen de conversacion anterior, no de una revision de codigo
+    en vivo como los demas puntos de este archivo, asi que falta
+    verificar los detalles exactos cuando se retome):
+      - El preprocesamiento con regex (que corre ANTES o EN PARALELO al
+        resultado de Ollama) esta pisando/sobreescribiendo lo que
+        Ollama extrae correctamente, causando errores como:
+          * confundir "suma asegurada" con "prima_neta"
+          * fechas mal extraidas
+          * el nombre del agente terminando en el campo de aseguradora
+    ESTADO: arreglo pausado, en espera de que el cliente mande PDFs de
+    muestra de las 24 aseguradoras que maneja, cubriendo los 10 ramos y
+    32 subramos que usa el sistema -- sin esa muestra representativa no
+    se puede validar bien el fix contra casos reales variados.
+    SIGUIENTE PASO: cuando lleguen los PDFs de muestra, revisar a fondo
+    el codigo real (linea por linea, como se hizo con renovacion) antes
+    de tocar nada.
+
 PENDIENTES - Portal del Asegurado (rama portal-asegurado):
 6.- SEGURIDAD: /portal/api/mis-datos, /portal/api/buscar-cliente y /portal/descargar_pdf
     no tienen ningun control de acceso (cualquiera con el link puede ver/descargar
