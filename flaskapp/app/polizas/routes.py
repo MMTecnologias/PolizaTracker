@@ -198,6 +198,61 @@ def get():
             func.lower(func.replace(Poliza.poliza, ' ', '')).like(
                 f'{search_normalized.replace(" ", "")}%'),
         ))
+
+    # Filtros estructurados (panel de "Filtros"): se combinan entre sí con
+    # AND y se pueden usar junto con la búsqueda rápida de arriba. Pensado
+    # para armar reportes acotados (ej. pólizas de julio, de una
+    # aseguradora, de un grupo, etc.) para exportar o imprimir.
+    filtro_aseguradora_id = flask_request.form.get('filtro_aseguradora_id')
+    if filtro_aseguradora_id:
+        polizas_query = polizas_query.filter(
+            Poliza.aseguradora_id == int(filtro_aseguradora_id))
+
+    filtro_status = flask_request.form.get('filtro_status')
+    if filtro_status:
+        polizas_query = polizas_query.filter(Poliza.status == filtro_status)
+
+    filtro_grupo_id = flask_request.form.get('filtro_grupo_id')
+    if filtro_grupo_id:
+        polizas_query = polizas_query.filter(
+            Grupo.id == int(filtro_grupo_id))
+
+    filtro_cliente = flask_request.form.get('filtro_cliente')
+    if filtro_cliente:
+        cliente_normalized = ' '.join(filtro_cliente.strip().lower().split())
+        polizas_query = polizas_query.filter(or_(
+            func.lower(func.replace(Cliente.nombre, ' ', '')).like(
+                f'%{cliente_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Cliente.apellido, ' ', '')).like(
+                f'%{cliente_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(func.concat(Cliente.nombre, ' ', Cliente.apellido), ' ', '')).like(
+                f'%{cliente_normalized.replace(" ", "")}%'),
+        ))
+
+    # Rango de fechas: filtra por fecha de inicio de vigencia (así "pólizas
+    # de julio" son las que arrancan vigencia en julio). Ambos extremos son
+    # opcionales e independientes, para poder usar solo "desde" o solo
+    # "hasta" si hace falta.
+    filtro_fecha_desde = flask_request.form.get('filtro_fecha_desde')
+    if filtro_fecha_desde:
+        try:
+            fecha_desde = datetime.strptime(
+                filtro_fecha_desde, '%Y-%m-%d').date()
+            polizas_query = polizas_query.filter(
+                Poliza.fecha_inicio >= fecha_desde)
+        except ValueError:
+            pass
+
+    filtro_fecha_hasta = flask_request.form.get('filtro_fecha_hasta')
+    if filtro_fecha_hasta:
+        try:
+            fecha_hasta = datetime.strptime(
+                filtro_fecha_hasta, '%Y-%m-%d').date()
+            polizas_query = polizas_query.filter(
+                Poliza.fecha_inicio <= fecha_hasta)
+        except ValueError:
+            pass
+
     total_records = polizas_query.count()
     if order:
         polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))

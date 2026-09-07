@@ -365,20 +365,101 @@
             <div class="w-100 card__shadow p-3 card-tabla-polizas">
                <div class="table-polizas table-polizas--flex" id="table-polizas">
                   <h4 class="header-title">Tabla de Pólizas</h4>
-                  <div class="row">
-                     <div class="col-8">
-                        <input class="form-control my-2" type="search" placeholder="Buscar Póliza" aria-label="Search"
-                           id="searchPoliza" />
+                  <div class="polizas-toolbar">
+                     <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar Póliza" aria-label="Search"
+                        id="searchPoliza" />
+                     <button class="btn px-4 py-2" type="button" id="btnToggleFiltros">
+                        Filtros
+                     </button>
+                     <button class="btn px-4 py-2" type="button" id="btnExportar">
+                        Exportar a Excel
+                     </button>
+                     <button class="btn px-4 py-2" type="button" id="btnPdf">
+                        Exportar PDF
+                     </button>
+                     <button class="btn px-4 py-2" type="button" id="btnImprimir">
+                        Imprimir
+                     </button>
+                  </div>
+                  <div class="polizas-filtros" id="panelFiltrosPolizas" style="display: none;">
+                     <div class="row">
+                        <div class="col-md-3 form__input-data">
+                           <label class="label-input-data">Aseguradora</label>
+                           <select class="custom-select" id="filtroAseguradora">
+                              <option value="">Todas</option>
+                              {% for aseguradora in aseguradoras %}
+                              <option value="{{ aseguradora.id }}">{{ aseguradora.aseguradora }}</option>
+                              {% endfor %}
+                           </select>
+                        </div>
+                        <div class="col-md-3 form__input-data">
+                           <label class="label-input-data">Estado</label>
+                           <select class="custom-select" id="filtroStatus">
+                              <option value="">Todos</option>
+                              <option value="Vigente">Vigente</option>
+                              <option value="Pendiente">Pendiente</option>
+                              <option value="Por Vencer">Por Vencer</option>
+                              <option value="Cancelada">Cancelada</option>
+                              <option value="Finalizada">Finalizada</option>
+                           </select>
+                        </div>
+                        <div class="col-md-3 form__input-data">
+                           <label class="label-input-data">Grupo</label>
+                           <select class="custom-select" id="filtroGrupo">
+                              <option value="">Todos</option>
+                              {% for grupo in grupos %}
+                              <option value="{{ grupo.id }}">{{ grupo.grupo }}</option>
+                              {% endfor %}
+                           </select>
+                        </div>
+                        <div class="col-md-3 form__input-data">
+                           <label class="label-input-data">Cliente</label>
+                           <input class="form-control" type="text" id="filtroCliente" placeholder="Nombre del cliente" />
+                        </div>
                      </div>
-                     <div class="col-2">
-                        <button class="btn px-4 py-2" type="button" id="btnExportar">
-                           Exportar a Excel
-                        </button>
+                     <div class="row align-items-end">
+                        <div class="col-md-3 form__input-data">
+                           <label class="label-input-data">Mes (rápido)</label>
+                           <select class="custom-select" id="filtroMesRapido">
+                              <option value="">-- Elegir mes --</option>
+                              <option value="1">Enero</option>
+                              <option value="2">Febrero</option>
+                              <option value="3">Marzo</option>
+                              <option value="4">Abril</option>
+                              <option value="5">Mayo</option>
+                              <option value="6">Junio</option>
+                              <option value="7">Julio</option>
+                              <option value="8">Agosto</option>
+                              <option value="9">Septiembre</option>
+                              <option value="10">Octubre</option>
+                              <option value="11">Noviembre</option>
+                              <option value="12">Diciembre</option>
+                           </select>
+                        </div>
+                        <div class="col-md-2 form__input-data">
+                           <label class="label-input-data">Año</label>
+                           <input class="form-control" type="number" id="filtroMesRapidoAnio" placeholder="Año" />
+                        </div>
+                        <div class="col-md-3 form__input-data">
+                           <label class="label-input-data">Vigencia desde</label>
+                           <input class="form-control" type="date" id="filtroFechaDesde" />
+                        </div>
+                        <div class="col-md-3 form__input-data">
+                           <label class="label-input-data">Vigencia hasta</label>
+                           <input class="form-control" type="date" id="filtroFechaHasta" />
+                        </div>
+                        <div class="col-md-1 form__input-data polizas-filtros__acciones">
+                           <button class="btn px-3 py-2" type="button" id="btnAplicarFiltros" title="Aplicar filtros">
+                              Aplicar
+                           </button>
+                        </div>
                      </div>
-                     <div class="col-2">
-                        <button class="btn px-4 py-2" type="button" id="btnPdf">
-                           Exportar PDF
-                        </button>
+                     <div class="row">
+                        <div class="col-12 text-right">
+                           <button class="btn btn-link p-0" type="button" id="btnLimpiarFiltros">
+                              Limpiar filtros
+                           </button>
+                        </div>
                      </div>
                   </div>
                   <div class="table-polizas__scroll">

@@ -210,7 +210,8 @@ def polizas():
     aseguradoras = Aseguradora.query.all()
     agentes = Agente.query.all()
     vendedores = Vendedor.query.all()
-    return render_template('polizas.html', user=current_user, ramos=ramos, subramos=subramos, pagos=pagos, aseguradoras=aseguradoras, agentes=agentes, vendedores=vendedores)
+    grupos = Grupo.query.order_by(Grupo.grupo).all()
+    return render_template('polizas.html', user=current_user, ramos=ramos, subramos=subramos, pagos=pagos, aseguradoras=aseguradoras, agentes=agentes, vendedores=vendedores, grupos=grupos)
 
 # Ruta usuarios
 

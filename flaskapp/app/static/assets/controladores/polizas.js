@@ -2245,11 +2245,33 @@ $(function () {
     });
   }
 
+  // Junta los filtros del panel "Filtros" (aseguradora, estado, grupo,
+  // cliente, rango de fechas) en un objeto plano, incluyendo solo los que
+  // tengan valor. Se usa tanto para pintar la tabla como para exportar a
+  // Excel/PDF e imprimir, así que siempre reflejan exactamente lo mismo
+  // que se ve en pantalla.
+  function getFiltrosPolizas() {
+    const filtros = {};
+    const aseguradora = $('#filtroAseguradora').val();
+    const status = $('#filtroStatus').val();
+    const grupo = $('#filtroGrupo').val();
+    const cliente = $('#filtroCliente').val();
+    const desde = $('#filtroFechaDesde').val();
+    const hasta = $('#filtroFechaHasta').val();
+    if (aseguradora) filtros.filtro_aseguradora_id = aseguradora;
+    if (status) filtros.filtro_status = status;
+    if (grupo) filtros.filtro_grupo_id = grupo;
+    if (cliente) filtros.filtro_cliente = cliente;
+    if (desde) filtros.filtro_fecha_desde = desde;
+    if (hasta) filtros.filtro_fecha_hasta = hasta;
+    return filtros;
+  }
+
   function getPolizas(pageNumber = 1, start = 0, isAutoAdjust = false) {
     if (!isAutoAdjust) polizasAutoAdjustDone = false;
     const length = polizasItemsOnPage;
     const searchValue = $('#searchPoliza').val();
-    const params = { start, length, order: true };
+    const params = { start, length, order: true, ...getFiltrosPolizas() };
     if (searchValue) params.searchValue = searchValue;
     $.ajax({
       ...ajaxConfig,
@@ -2966,6 +2988,7 @@ $(function () {
       length: totalPolizas,
       export_csv: true,
       searchValue: $('#searchPoliza').val(),
+      ...getFiltrosPolizas(),
     });
     $.ajax({
       type: 'POST',
@@ -2995,6 +3018,7 @@ $(function () {
       searchValue: $('#searchPoliza').val(),
       start: 0,
       length: totalPolizas,
+      ...getFiltrosPolizas(),
     });
     const formMultiple = $('#form-multiple').serialize();
     params = `${params}&${formMultiple}`;
@@ -3014,6 +3038,102 @@ $(function () {
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
+      },
+      error: (xhr, status, error) => console.error(error),
+    });
+  });
+
+  // Panel de filtros: mostrar/ocultar, aplicar (reinicia a la página 1
+  // con los filtros actuales) y limpiar (borra todo y vuelve a cargar
+  // sin filtros).
+  $('#btnToggleFiltros').click((e) => {
+    e.preventDefault();
+    $('#panelFiltrosPolizas').slideToggle(150);
+  });
+
+  $('#btnAplicarFiltros').click((e) => {
+    e.preventDefault();
+    getPolizas(1, 0);
+  });
+
+  $('#btnLimpiarFiltros').click((e) => {
+    e.preventDefault();
+    $('#filtroAseguradora').val('');
+    $('#filtroStatus').val('');
+    $('#filtroGrupo').val('');
+    $('#filtroCliente').val('');
+    $('#filtroFechaDesde').val('');
+    $('#filtroFechaHasta').val('');
+    $('#filtroMesRapido').val('');
+    $('#filtroMesRapidoAnio').val('');
+    getPolizas(1, 0);
+  });
+
+  // Atajo "Mes rápido": al elegir un mes (y opcionalmente un año, si no
+  // se indica usa el año actual) se llenan automáticamente "Vigencia
+  // desde/hasta" con el primer y último día de ese mes. El usuario puede
+  // seguir editando esas fechas a mano después para armar un rango
+  // personalizado (ej. 23 de abril al 3 de agosto).
+  function aplicarMesRapido() {
+    const mes = parseInt($('#filtroMesRapido').val(), 10);
+    if (!mes) return;
+    const anioInput = parseInt($('#filtroMesRapidoAnio').val(), 10);
+    const anio = anioInput || new Date().getFullYear();
+    const primerDia = new Date(anio, mes - 1, 1);
+    const ultimoDia = new Date(anio, mes, 0);
+    const toISODate = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate(),
+      ).padStart(2, '0')}`;
+    $('#filtroFechaDesde').val(toISODate(primerDia));
+    $('#filtroFechaHasta').val(toISODate(ultimoDia));
+  }
+  $('#filtroMesRapido').on('change', aplicarMesRapido);
+  $('#filtroMesRapidoAnio').on('change', aplicarMesRapido);
+
+  // Imprimir directamente: genera el mismo PDF que "Exportar PDF" (con
+  // los filtros actuales aplicados) pero en vez de descargarlo, lo abre
+  // en un iframe oculto y dispara el diálogo de impresión del navegador
+  // sobre ese PDF automáticamente.
+  $('#btnImprimir').click((e) => {
+    e.preventDefault();
+    let params = $.param({
+      export_pdf: true,
+      searchValue: $('#searchPoliza').val(),
+      start: 0,
+      length: totalPolizas,
+      ...getFiltrosPolizas(),
+    });
+    const formMultiple = $('#form-multiple').serialize();
+    params = `${params}&${formMultiple}`;
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/get',
+      data: params,
+      xhrFields: {
+        responseType: 'blob',
+      },
+      success: function (blob) {
+        const url = window.URL.createObjectURL(blob);
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          } catch (err) {
+            // Si el navegador bloquea el auto-print (poco común), al
+            // menos se abre el PDF en una pestaña para imprimir manual.
+            window.open(url, '_blank');
+          }
+        };
       },
       error: (xhr, status, error) => console.error(error),
     });
