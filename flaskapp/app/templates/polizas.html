@@ -16,7 +16,7 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
-   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=12" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=13" />
    <style>
       .pdf-upload-area {
          border: 2px dashed #cbd5e0;
@@ -839,7 +839,7 @@
    </div>
 
    <!-- main content area end -->
-   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=12"></script>
+   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=13"></script>
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
@@ -852,6 +852,10 @@
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
+   <!-- Librerías para exportar Excel (.xlsx) y PDF reales, mismo diseño que el dashboard gerencial -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <!-- Auto-expand textarea de observaciones -->
 <script>

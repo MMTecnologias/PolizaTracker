@@ -3074,65 +3074,120 @@ $(function () {
     }
   });
 
+  // Columnas del PDF/Excel de pólizas — mismas que se ven en la tabla.
+  const POLIZAS_COLUMNAS_EXPORT = [
+    { key: 'poliza', label: 'Póliza' },
+    { key: 'cliente', label: 'Cliente' },
+    { key: 'fecha_inicio', label: 'Inicio Vigencia' },
+    { key: 'fecha_termino', label: 'Fin Vigencia' },
+    { key: 'subramo', label: 'Sub Ramo' },
+    { key: 'aseguradora', label: 'Aseguradora' },
+    { key: 'tipoPago', label: 'Forma de Pago' },
+  ];
+
+  // Trae TODAS las pólizas que coinciden con la búsqueda/filtros
+  // actuales (no solo la página visible), para exportar/imprimir
+  // exactamente lo que el usuario ve filtrado en pantalla.
+  function fetchAllPolizasFiltradas() {
+    const searchValue = $('#searchPoliza').val();
+    const params = { start: 0, length: totalPolizas, order: true, ...getFiltrosPolizas() };
+    if (searchValue) params.searchValue = searchValue;
+    return $.ajax({
+      ...ajaxConfig,
+      url: '/polizas/get',
+      data: $.param(params),
+    }).then((resp) => resp.data || []);
+  }
+
+  // Descarga y cachea en base64 el logo de GGcorp, para incrustarlo en
+  // el PDF con jsPDF — mismo mecanismo que usa el dashboard gerencial.
+  let polizasLogoBase64Cache = null;
+  function obtenerLogoPolizasBase64() {
+    if (polizasLogoBase64Cache) return Promise.resolve(polizasLogoBase64Cache);
+    const url = $('.logo-ggc').attr('src');
+    return fetch(url)
+      .then((resp) => resp.blob())
+      .then(
+        (blob) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              polizasLogoBase64Cache = reader.result;
+              resolve(reader.result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          }),
+      );
+  }
+
+  // Arma el documento jsPDF con el mismo diseño que ya se usa en los
+  // PDFs del dashboard gerencial: logo arriba a la izquierda, título,
+  // fecha de generación, y tabla con encabezado en el color de marca.
+  // No lo guarda ni lo imprime — eso lo decide quien llama a esta
+  // función (Exportar PDF hace .save(), Imprimir hace autoPrint()).
+  async function construirPolizasPdfDoc(items) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+
+    let inicioTextoX = 14;
+    try {
+      const logo = await obtenerLogoPolizasBase64();
+      const logoW = 12;
+      const logoH = logoW * (1024 / 615); // proporción real del logo (615x1024)
+      doc.addImage(logo, 'PNG', 14, 8, logoW, logoH);
+      inicioTextoX = 14 + logoW + 6;
+    } catch (e) {
+      // Si falla la descarga del logo, seguimos sin él en vez de
+      // bloquear la exportación por completo.
+    }
+
+    doc.setFontSize(14);
+    doc.text('Tabla de Pólizas', inicioTextoX, 18);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`Generado: ${new Date().toLocaleString('es-MX')}`, inicioTextoX, 24);
+    doc.setTextColor(0);
+
+    doc.autoTable({
+      startY: 34,
+      head: [POLIZAS_COLUMNAS_EXPORT.map((c) => c.label)],
+      body: items.map((it) => POLIZAS_COLUMNAS_EXPORT.map((c) => String(it[c.key] ?? ''))),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [201, 74, 28] }, // var(--color-primario) #c94a1c
+    });
+
+    return doc;
+  }
+
+  // Exportar a Excel: mismo mecanismo que el dashboard gerencial, un
+  // .xlsx real via SheetJS (no un .csv disfrazado de Excel).
   $('#btnExportar').click((e) => {
     e.preventDefault();
-    let params = $.param({
-      start: 0,
-      length: totalPolizas,
-      export_csv: true,
-      searchValue: $('#searchPoliza').val(),
-      ...getFiltrosPolizas(),
-    });
-    $.ajax({
-      type: 'POST',
-      url: '/polizas/get',
-      data: params,
-      xhrFields: {
-        responseType: 'blob',
-      },
-      success: function (blob, status, xhr) {
-        let a = document.createElement('a');
-        let url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `polizas_${new Date().toLocaleDateString()}.csv`;
-        document.body.append(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-      },
-      error: (xhr, status, error) => console.error(error),
+    fetchAllPolizasFiltradas().then((items) => {
+      if (!items.length) return;
+      const filas = items.map((it) => {
+        const fila = {};
+        POLIZAS_COLUMNAS_EXPORT.forEach((c) => {
+          fila[c.label] = it[c.key];
+        });
+        return fila;
+      });
+      const ws = XLSX.utils.json_to_sheet(filas);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Pólizas');
+      XLSX.writeFile(wb, `polizas_${new Date().toISOString().slice(0, 10)}.xlsx`);
     });
   });
 
+  // Exportar a PDF: mismo diseño que el dashboard gerencial (logo,
+  // título, franja de color en el encabezado de la tabla).
   $('#btnPdf').click((e) => {
     e.preventDefault();
-    let params = $.param({
-      export_pdf: true,
-      searchValue: $('#searchPoliza').val(),
-      start: 0,
-      length: totalPolizas,
-      ...getFiltrosPolizas(),
-    });
-    const formMultiple = $('#form-multiple').serialize();
-    params = `${params}&${formMultiple}`;
-    $.ajax({
-      type: 'POST',
-      url: '/polizas/get',
-      data: params,
-      xhrFields: {
-        responseType: 'blob',
-      },
-      success: function (blob, status, xhr) {
-        let a = document.createElement('a');
-        let url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `reporte_cobranza_${new Date().toLocaleDateString()}.pdf`;
-        document.body.append(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-      },
-      error: (xhr, status, error) => console.error(error),
+    fetchAllPolizasFiltradas().then(async (items) => {
+      if (!items.length) return;
+      const doc = await construirPolizasPdfDoc(items);
+      doc.save(`polizas_${new Date().toISOString().slice(0, 10)}.pdf`);
     });
   });
 
@@ -3248,51 +3303,37 @@ $(function () {
   $('#filtroMesRapido').on('change', aplicarMesRapido);
   $('#filtroMesRapidoAnio').on('change', aplicarMesRapido);
 
-  // Imprimir directamente: genera el mismo PDF que "Exportar PDF" (con
-  // los filtros actuales aplicados) pero en vez de descargarlo, lo abre
-  // en un iframe oculto y dispara el diálogo de impresión del navegador
-  // sobre ese PDF automáticamente.
+  // Imprimir directamente: arma el mismo PDF que "Exportar PDF" (mismo
+  // diseño, mismos filtros aplicados) pero en vez de descargarlo, usa
+  // autoPrint() de jsPDF para que el PDF ya traiga la orden de imprimir
+  // consigo, y lo abre en un iframe oculto para disparar el diálogo de
+  // impresión del navegador automáticamente.
   $('#btnImprimir').click((e) => {
     e.preventDefault();
-    let params = $.param({
-      export_pdf: true,
-      searchValue: $('#searchPoliza').val(),
-      start: 0,
-      length: totalPolizas,
-      ...getFiltrosPolizas(),
-    });
-    const formMultiple = $('#form-multiple').serialize();
-    params = `${params}&${formMultiple}`;
-    $.ajax({
-      type: 'POST',
-      url: '/polizas/get',
-      data: params,
-      xhrFields: {
-        responseType: 'blob',
-      },
-      success: function (blob) {
-        const url = window.URL.createObjectURL(blob);
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        iframe.onload = () => {
-          try {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-          } catch (err) {
-            // Si el navegador bloquea el auto-print (poco común), al
-            // menos se abre el PDF en una pestaña para imprimir manual.
-            window.open(url, '_blank');
-          }
-        };
-      },
-      error: (xhr, status, error) => console.error(error),
+    fetchAllPolizasFiltradas().then(async (items) => {
+      if (!items.length) return;
+      const doc = await construirPolizasPdfDoc(items);
+      doc.autoPrint();
+      const url = doc.output('bloburl');
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow.focus();
+        } catch (err) {
+          // Si el navegador bloquea el foco/print automático (poco
+          // común), al menos se abre el PDF en una pestaña para
+          // imprimir manual.
+          window.open(url, '_blank');
+        }
+      };
     });
   });
 
