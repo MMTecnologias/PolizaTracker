@@ -393,6 +393,48 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
+        .scope-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .scope-switcher {
+            display: inline-flex;
+            background: var(--gray-100);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .scope-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.65rem 1.25rem;
+            border: none;
+            background: transparent;
+            border-radius: calc(var(--radius-lg) - 4px);
+            cursor: pointer;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--gray-600);
+            transition: all 0.2s ease;
+        }
+
+        .scope-btn:hover {
+            color: var(--primary);
+        }
+
+        .scope-btn.active {
+            background: var(--white);
+            color: var(--accent);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .scope-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
         .tabs-header {
             display: flex;
             border-bottom: 1px solid var(--gray-200);
@@ -1144,6 +1186,25 @@
         <!-- CONTENIDO DEL PANEL (oculto hasta seleccionar un cliente) -->
         <div id="panelContenido" style="display: none;">
 
+        <!-- SELECTOR DE ÁMBITO: personal vs. empresas del grupo -->
+        <section class="scope-section" id="scopeSection" style="display: none;">
+            <div class="scope-switcher">
+                <button class="scope-btn active" id="scopeBtnPersonal" onclick="cambiarScope('personal')">
+                    <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Personal
+                </button>
+                <button class="scope-btn" id="scopeBtnGrupo" onclick="cambiarScope('grupo')">
+                    <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m-1 4h1m4-4h1m-1 4h1M9 21v-4h6v4"></path>
+                    </svg>
+                    <span id="scopeGrupoLabel">Grupo</span>
+                </button>
+            </div>
+        </section>
+
         <!-- DASHBOARD -->
         <section class="dashboard">
             <h2 class="dashboard-title">
@@ -1191,7 +1252,7 @@
                         <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
                         <polyline points="13 2 13 9 20 9"></polyline>
                     </svg>
-                    Mis Pólizas
+                    Pólizas
                 </button>
                 <button class="tab" data-tab="siniestros">
                     <svg class="icon" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1199,7 +1260,7 @@
                         <path d="M12 8v4"></path>
                         <path d="M12 16h.01"></path>
                     </svg>
-                    Mis Siniestros
+                    Siniestros
                 </button>
                 <button class="tab" data-tab="recibos">
                     <svg class="icon" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1425,12 +1486,31 @@
     <script>
         // ============================================================
         // DATOS DEL CLIENTE (se llenan al elegir un cliente en el buscador)
+        // Se mantienen dos bloques separados —lo personal del asegurado y
+        // lo de las empresas de su mismo grupo— y `data` siempre apunta al
+        // que esté activo según el selector "Personal / Grupo" de arriba,
+        // para que todas las funciones de render/filtrado (que ya existían
+        // y solo leen de `data`) sigan funcionando igual sin duplicarlas.
         // ============================================================
-        let data = {
-            polizas: [],
-            siniestros: [],
-            recibos: []
-        };
+        let dataPersonal = { polizas: [], siniestros: [], recibos: [] };
+        let dataGrupo = { polizas: [], siniestros: [], recibos: [], nombre: null, empresas: [] };
+        let scopeActivo = 'personal';
+        let data = dataPersonal;
+
+        function cambiarScope(scope) {
+            scopeActivo = scope;
+            data = scope === 'grupo' ? dataGrupo : dataPersonal;
+
+            document.getElementById('scopeBtnPersonal').classList.toggle('active', scope === 'personal');
+            document.getElementById('scopeBtnGrupo').classList.toggle('active', scope === 'grupo');
+
+            actualizarMetricas();
+            poblarFiltros();
+            renderPolizas();
+            renderSiniestros();
+            renderRecibos();
+            calcularVencimientosDelMes();
+        }
 
         // Formatea montos con coma como separador de miles, punto para
         // decimales, y la moneda (MXN por default, pólizas en pesos)
@@ -1482,49 +1562,58 @@
         // Convierte la respuesta de /portal/api/mis-datos al formato que usan
         // renderPolizas(), renderRecibos() y calcularVencimientosDelMes()
         function transformarDatos(json) {
-            const polizasPorId = {};
-            json.polizas.forEach(p => { polizasPorId[p.id] = p; });
+            function transformarBloque(bloque, nombreClienteDefault) {
+                const polizasPorId = {};
+                bloque.polizas.forEach(p => { polizasPorId[p.id] = p; });
 
-            data.polizas = json.polizas.map(p => ({
-                id: p.id,
-                numero: p.numero,
-                tipo: p.tipo,
-                compania: p.compania,
-                primaNeta: p.primaNeta,
-                primaTotal: p.primaTotal,
-                frecuencia: p.frecuencia,
-                cuotasAlAño: p.cuotasAlAño,
-                inicioVigencia: p.inicioVigencia,
-                finVigencia: p.finVigencia,
-                estado: p.status,
-                asegurado: json.cliente,
-                tienePdf: p.tienePdf,
-                moneda: p.moneda,
-            }));
+                const polizas = bloque.polizas.map(p => ({
+                    id: p.id,
+                    numero: p.numero,
+                    tipo: p.tipo,
+                    compania: p.compania,
+                    primaNeta: p.primaNeta,
+                    primaTotal: p.primaTotal,
+                    frecuencia: p.frecuencia,
+                    cuotasAlAño: p.cuotasAlAño,
+                    inicioVigencia: p.inicioVigencia,
+                    finVigencia: p.finVigencia,
+                    estado: p.status,
+                    asegurado: p.titular || nombreClienteDefault,
+                    titular: p.titular || null,
+                    tienePdf: p.tienePdf,
+                    moneda: p.moneda,
+                }));
 
-            data.recibos = json.recibos.map(r => {
-                const poliza = polizasPorId[r.polizaId];
-                return {
-                    numero: r.numero,
-                    polizaId: r.polizaId,
-                    poliza: poliza ? poliza.numero : '',
-                    aseguradora: poliza ? poliza.compania : '',
-                    moneda: poliza ? poliza.moneda : 'MXN',
-                    monto: r.primaTotal,
-                    primaNeta: r.primaNeta,
-                    primaTotal: r.primaTotal,
-                    fechaInicio: r.fechaInicio,
-                    fecha: r.fechaVencimiento,
-                    fechaPago: r.fechaPago,
-                    concepto: poliza ? `Prima ${poliza.tipo}` : 'Prima de póliza',
-                    estado: r.status,
-                    reciboPDF: r.comprobante || '',
-                    comprobanteAseguradora: r.comprobante || '',
-                };
-            });
+                const recibos = bloque.recibos.map(r => {
+                    const poliza = polizasPorId[r.polizaId];
+                    return {
+                        numero: r.numero,
+                        polizaId: r.polizaId,
+                        poliza: poliza ? poliza.numero : '',
+                        aseguradora: poliza ? poliza.compania : '',
+                        moneda: poliza ? poliza.moneda : 'MXN',
+                        monto: r.primaTotal,
+                        primaNeta: r.primaNeta,
+                        primaTotal: r.primaTotal,
+                        fechaInicio: r.fechaInicio,
+                        fecha: r.fechaVencimiento,
+                        fechaPago: r.fechaPago,
+                        concepto: poliza ? `Prima ${poliza.tipo}` : 'Prima de póliza',
+                        estado: r.status,
+                        reciboPDF: r.comprobante || '',
+                        comprobanteAseguradora: r.comprobante || '',
+                    };
+                });
 
-            data.siniestros = json.siniestros || [];
+                return { polizas, recibos, siniestros: bloque.siniestros || [] };
+            }
+
+            dataPersonal = transformarBloque(json.personal, json.cliente);
+            dataGrupo = transformarBloque(json.grupo, null);
+            dataGrupo.nombre = json.grupo.nombre;
+            dataGrupo.empresas = json.grupo.empresas || [];
         }
+
 
         function actualizarMetricas() {
             const activas = data.polizas.filter(p => p.estado === 'Vigente' || p.estado === 'Por Vencer').length;
@@ -1602,6 +1691,20 @@
             const iniciales = nombreCliente.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
             document.getElementById('userAvatar').textContent = iniciales;
 
+            // El selector Personal/Grupo solo tiene caso mostrarlo si el
+            // cliente en verdad tiene compañeros de grupo con pólizas
+            // (empresas, u otros clientes que compartan grupo_id).
+            const tieneGrupo = dataGrupo.empresas && dataGrupo.empresas.length > 0;
+            document.getElementById('scopeSection').style.display = tieneGrupo ? 'block' : 'none';
+            document.getElementById('scopeGrupoLabel').textContent =
+                dataGrupo.nombre ? `Grupo (${dataGrupo.nombre})` : 'Grupo';
+
+            // Siempre se arranca en "Personal" al cargar/cambiar de cliente.
+            scopeActivo = 'personal';
+            data = dataPersonal;
+            document.getElementById('scopeBtnPersonal').classList.add('active');
+            document.getElementById('scopeBtnGrupo').classList.remove('active');
+
             actualizarMetricas();
             poblarFiltros();
 
@@ -1621,7 +1724,9 @@
             document.getElementById('buscadorCliente').style.display = 'block';
             buscadorInput.value = '';
             buscadorResultados.innerHTML = '';
-            data = { polizas: [], siniestros: [], recibos: [] };
+            dataPersonal = { polizas: [], siniestros: [], recibos: [] };
+            dataGrupo = { polizas: [], siniestros: [], recibos: [], nombre: null, empresas: [] };
+            data = dataPersonal;
         }
 
         // Elements
@@ -1747,7 +1852,7 @@
                     <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
                             <div class="item-title">${p.numero}</div>
-                            <div class="item-subtitle">${p.tipo} • ${p.compania}</div>
+                            <div class="item-subtitle">${p.titular ? p.titular + ' • ' : ''}${p.tipo} • ${p.compania}</div>
                             <div class="item-status status-${estadoClase(p.estado)}">
                                 <svg class="icon" style="width: 14px; height: 14px; margin-right: 0.3rem;" viewBox="0 0 24 24" fill="currentColor">
                                     <circle cx="12" cy="12" r="10"></circle>

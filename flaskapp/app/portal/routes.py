@@ -12,7 +12,7 @@ from flask import render_template, request, jsonify, current_app, send_from_dire
 from sqlalchemy import func, or_
 import os
 from app import db
-from app.models import Cliente, Poliza, Recibo, Aseguradora, Subramo, TipoPago
+from app.models import Cliente, Poliza, Recibo, Aseguradora, Subramo, TipoPago, Grupo
 from . import portal
 
 
@@ -48,35 +48,47 @@ def buscar_cliente():
     return jsonify({'resultados': data})
 
 
-@portal.route('/api/mis-datos', methods=['GET'])
-def mis_datos():
-    cliente_id = request.args.get('cliente_id', type=int)
+def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
+    """
+    Trae pólizas + recibos para uno o varios cliente_id a la vez.
+    Cuando incluir_titular=True (para el bloque 'grupo', que puede
+    mezclar varias empresas), cada póliza trae también el nombre del
+    Cliente dueño, para que el asegurado pueda distinguir de quién es
+    cada una en pantalla.
+    """
+    if not cliente_ids:
+        return [], []
 
-    if not cliente_id:
-        return jsonify({'error': 'Falta cliente_id'}), 400
+    query = (db.session.query(Poliza,
+                               Aseguradora.aseguradora.label('aseguradora'),
+                               Subramo.subramo.label('subramo'),
+                               TipoPago.tipo_pago.label('tipo_pago'),
+                               TipoPago.pagos_anuales.label('cuotas'))
+             .select_from(Poliza)
+             .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
+             .join(Subramo, Poliza.subramo_id == Subramo.id)
+             .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
+             .filter(Poliza.cliente_id.in_(cliente_ids)))
 
-    cliente = Cliente.query.get(cliente_id)
-    if not cliente:
-        return jsonify({'error': 'Cliente no encontrado'}), 404
+    if incluir_titular:
+        query = query.add_columns(Cliente.nombre, Cliente.apellido).join(
+            Cliente, Poliza.cliente_id == Cliente.id)
 
-    rows = (db.session.query(Poliza,
-                              Aseguradora.aseguradora.label('aseguradora'),
-                              Subramo.subramo.label('subramo'),
-                              TipoPago.tipo_pago.label('tipo_pago'),
-                              TipoPago.pagos_anuales.label('cuotas'))
-            .select_from(Poliza)
-            .join(Aseguradora, Poliza.aseguradora_id == Aseguradora.id)
-            .join(Subramo, Poliza.subramo_id == Subramo.id)
-            .join(TipoPago, Poliza.tipo_pago_id == TipoPago.id)
-            .filter(Poliza.cliente_id == cliente_id)
-            .all())
+    rows = query.all()
 
     polizas_json = []
     poliza_ids = []
 
-    for poliza, aseguradora, subramo, tipo_pago, cuotas in rows:
+    for row in rows:
+        if incluir_titular:
+            poliza, aseguradora, subramo, tipo_pago, cuotas, titular_nombre, titular_apellido = row
+            titular = f'{titular_nombre} {titular_apellido}'
+        else:
+            poliza, aseguradora, subramo, tipo_pago, cuotas = row
+            titular = None
+
         poliza_ids.append(poliza.id)
-        polizas_json.append({
+        item = {
             'id': poliza.id,
             'numero': poliza.poliza,
             'tipo': subramo,
@@ -90,7 +102,10 @@ def mis_datos():
             'cuotasAlAño': cuotas or 1,
             'tienePdf': bool(poliza.pdf_path),
             'moneda': poliza.moneda,
-        })
+        }
+        if incluir_titular:
+            item['titular'] = titular
+        polizas_json.append(item)
 
     recibos_json = []
     if poliza_ids:
@@ -110,12 +125,52 @@ def mis_datos():
             'comprobante': r.comprobante,
         } for r in recibos]
 
+    return polizas_json, recibos_json
+
+
+@portal.route('/api/mis-datos', methods=['GET'])
+def mis_datos():
+    cliente_id = request.args.get('cliente_id', type=int)
+
+    if not cliente_id:
+        return jsonify({'error': 'Falta cliente_id'}), 400
+
+    cliente = Cliente.query.get(cliente_id)
+    if not cliente:
+        return jsonify({'error': 'Cliente no encontrado'}), 404
+
+    # --- Bloque personal: solo lo que está a nombre de este Cliente ---
+    personal_polizas, personal_recibos = _polizas_y_recibos_de([cliente_id])
+
+    # --- Bloque grupo: el resto de Clientes (típicamente empresas) que
+    # comparten el mismo grupo_id, ej. las empresas de un mismo asegurado ---
+    companeros_grupo = (Cliente.query
+                         .filter(Cliente.grupo_id == cliente.grupo_id)
+                         .filter(Cliente.id != cliente_id)
+                         .filter(Cliente.status == 'Activo')
+                         .all())
+    companeros_ids = [c.id for c in companeros_grupo]
+    grupo_polizas, grupo_recibos = _polizas_y_recibos_de(
+        companeros_ids, incluir_titular=True)
+
+    grupo_obj = Grupo.query.get(cliente.grupo_id)
+
     return jsonify({
         'cliente': f'{cliente.nombre} {cliente.apellido}',
-        'polizas': polizas_json,
-        'recibos': recibos_json,
-        'siniestros': [],  # pendiente: aún no existe el sistema de siniestros
+        'personal': {
+            'polizas': personal_polizas,
+            'recibos': personal_recibos,
+            'siniestros': [],  # pendiente: aún no existe el sistema de siniestros
+        },
+        'grupo': {
+            'nombre': grupo_obj.grupo if grupo_obj else None,
+            'empresas': [f'{c.nombre} {c.apellido}' for c in companeros_grupo],
+            'polizas': grupo_polizas,
+            'recibos': grupo_recibos,
+            'siniestros': [],
+        },
     })
+
 
 
 @portal.route('/descargar_pdf/<int:poliza_id>', methods=['GET'])
