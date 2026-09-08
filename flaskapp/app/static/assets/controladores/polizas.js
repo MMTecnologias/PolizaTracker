@@ -1825,11 +1825,26 @@ $(function () {
       $tablePolizas.addClass('table-polizas--collapsed');
     }
 
+    // El toggle de clase se difiere a requestAnimationFrame (en vez de
+    // mutarse directamente dentro del callback del ResizeObserver) y
+    // solo se aplica si el estado realmente cambió. Esto es justo lo
+    // que recomienda la spec para evitar "ResizeObserver loop
+    // completed": si el cambio de clase modifica si aparece o no una
+    // barra de scroll horizontal, el ancho medido cambia como
+    // consecuencia directa de la propia mutación — colapsando y
+    // expandiendo en un ciclo infinito justo en el punto límite (esto
+    // es lo que se veía en consola desde la carga de la página, y
+    // probablemente saturaba el hilo principal del navegador).
     accionesResizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const available = entry.contentRect.width;
-        const collapsed = available < naturalTableWidth - 4; // pequeño margen
-        $tablePolizas.toggleClass('table-polizas--collapsed', collapsed);
+        const collapsed = available < naturalTableWidth - 20; // margen amplio, evita oscilar en el límite
+        requestAnimationFrame(() => {
+          const yaColapsada = $tablePolizas.hasClass('table-polizas--collapsed');
+          if (yaColapsada !== collapsed) {
+            $tablePolizas.toggleClass('table-polizas--collapsed', collapsed);
+          }
+        });
       }
     });
     accionesResizeObserver.observe($scrollWrap[0]);
@@ -3097,15 +3112,25 @@ $(function () {
   // Trae TODAS las pólizas que coinciden con la búsqueda/filtros
   // actuales (no solo la página visible), para exportar/imprimir
   // exactamente lo que el usuario ve filtrado en pantalla.
+  //
+  // IMPORTANTE: este proyecto usa jQuery 2.2.4, cuyo objeto Deferred/
+  // promesa (lo que regresa $.ajax(...).then(...)) NO tiene .catch() —
+  // esa es una API que solo existe en las promesas nativas de JS
+  // (ES6+). Por eso se envuelve el resultado de $.ajax en
+  // Promise.resolve(...): eso "adopta" la promesa de jQuery dentro de
+  // una promesa nativa de verdad, y así el .then(...).catch(...) que
+  // usan los botones de PDF/Imprimir sí funciona.
   function fetchAllPolizasFiltradas() {
     const searchValue = $('#searchPoliza').val();
     const params = { start: 0, length: totalPolizas, order: true, ...getFiltrosPolizas() };
     if (searchValue) params.searchValue = searchValue;
-    return $.ajax({
-      ...ajaxConfig,
-      url: '/polizas/get',
-      data: $.param(params),
-    }).then((resp) => resp.data || []);
+    return Promise.resolve(
+      $.ajax({
+        ...ajaxConfig,
+        url: '/polizas/get',
+        data: $.param(params),
+      }),
+    ).then((resp) => resp.data || []);
   }
 
   // Descarga y cachea en base64 el logo de GGcorp, para incrustarlo en
