@@ -1796,62 +1796,6 @@ $(function () {
   // columnas), así que medir una celda nunca detectaba el colapso.
   let accionesResizeObserver = null;
 
-  // Calcula la altura exacta que le corresponde a la tarjeta de la
-  // tabla, midiendo su posición real (getBoundingClientRect) contra el
-  // alto real de la ventana, en vez de adivinar con un número fijo tipo
-  // calc(100vh - 160px) — ese número fijo no considera el alto real del
-  // navbar ni de márgenes, y podía dejar espacio sin usar entre la
-  // tabla y el borde inferior de la pantalla.
-  //
-  // IMPORTANTE: no basta con fijar la altura de la tarjeta y confiar en
-  // que el flex (card > #table-polizas > .table-polizas__scroll, 3
-  // niveles anidados) reparta el espacio sobrante correctamente — en la
-  // práctica esa cadena no estaba llegando bien a .table-polizas__scroll
-  // (se veía un hueco enorme en pantalla que el cálculo de filas nunca
-  // detectaba, porque medía un .table-polizas__scroll mucho más chico
-  // de lo que realmente se veía en pantalla). Por eso ahora se calcula
-  // y fija por JS, de forma explícita, la altura de CADA nivel: la
-  // tarjeta, y también .table-polizas__scroll (restándole lo que miden
-  // sus hermanos: título, buscador/toolbar, total de pólizas, panel de
-  // filtros, y el paginador).
-  function ajustarAlturaTablaPolizas() {
-    const $card = $('.card-tabla-polizas');
-    if (!$card.length) return;
-
-    const top = $card[0].getBoundingClientRect().top;
-    const margenInferior = 8;
-    const alturaCard = Math.max(300, window.innerHeight - top - margenInferior);
-    $card.css('height', `${alturaCard}px`);
-
-    const $tablePolizas = $('#table-polizas');
-    const $scrollWrap = $tablePolizas.find('.table-polizas__scroll');
-    const $pagination = $card.find('.table-polizas__pagination');
-    if (!$tablePolizas.length || !$scrollWrap.length) return;
-
-    // Todo lo que va ARRIBA de .table-polizas__scroll dentro de
-    // #table-polizas (h4, toolbar de búsqueda/botones, total de pólizas,
-    // panel de filtros si está abierto) — se suma su alto real actual.
-    let altoHermanosArriba = 0;
-    $tablePolizas.children().each(function () {
-      if (this === $scrollWrap[0]) return false; // detiene el .each al llegar al scroll
-      altoHermanosArriba += $(this).outerHeight(true);
-    });
-
-    const altoPaginacion = $pagination.length ? $pagination.outerHeight(true) : 0;
-    const margenExtra = 4; // colchón mínimo por redondeos de sub-pixel
-    const alturaScroll = Math.max(
-      100,
-      alturaCard - altoHermanosArriba - altoPaginacion - margenExtra,
-    );
-    $scrollWrap.css('height', `${alturaScroll}px`);
-    console.log('[polizas-debug] ajuste de alturas', {
-      alturaCard,
-      altoHermanosArriba,
-      altoPaginacion,
-      alturaScroll,
-    });
-  }
-
   function setupAccionesResponsive() {
     const $tablePolizas = $('#table-polizas');
     const $scrollWrap = $tablePolizas.find('.table-polizas__scroll');
@@ -1884,11 +1828,6 @@ $(function () {
 
   function fillTablePolizas(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
-    console.log('[polizas-debug] respuesta del servidor', {
-      itemsOnPagePedidos: itemsOnPage,
-      filasRecibidas: data.length,
-      recordsTotal,
-    });
     totalPolizas = recordsTotal;
     $('#polizasTotalLabel').text(
       `${recordsTotal} póliza${recordsTotal === 1 ? '' : 's'} encontrada${recordsTotal === 1 ? '' : 's'}`,
@@ -2379,7 +2318,6 @@ $(function () {
   function getPolizas(pageNumber = 1, start = 0, isAutoAdjust = false) {
     if (!isAutoAdjust) polizasAutoAdjustAttempts = 0;
     const length = polizasItemsOnPage;
-    console.log('[polizas-debug] pidiendo al servidor', { pageNumber, start, length, isAutoAdjust });
     const searchValue = $('#searchPoliza').val();
     const params = { start, length, order: true, ...getFiltrosPolizas() };
     if (searchValue) params.searchValue = searchValue;
@@ -2409,73 +2347,34 @@ $(function () {
   // disponible, se divide entre el alto promedio de fila ya renderizada,
   // y se piden esas filas de más. Se reintenta (con tope) mientras no
   // converja, en vez de rendirse tras un solo intento.
+  // Calcula directamente cuántas filas de la tabla caben entre su
+  // posición actual en la página y el borde inferior de la ventana (sin
+  // necesidad de fijar la altura de ningún contenedor: la tabla crece
+  // de forma natural y es la página la que hace scroll si hace falta).
+  // Si el resultado es distinto de lo que ya se pidió, se vuelve a
+  // pedir la página 1 con la cantidad correcta.
   function adjustPolizasItemsOnPageAndReload() {
-    if (polizasAutoAdjustAttempts >= POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS) {
-      console.log('[polizas-debug] tope de intentos alcanzado, no se ajusta más');
-      return;
-    }
-
-    // Primero se fija la altura real de la tarjeta contra el viewport;
-    // solo después tiene sentido medir cuánto espacio libre queda dentro
-    // de ella para calcular cuántas filas caben.
-    ajustarAlturaTablaPolizas();
+    if (polizasAutoAdjustAttempts >= POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS) return;
 
     const $scrollWrap = $('#table-polizas .table-polizas__scroll');
-    const $table = $scrollWrap.find('> table');
-    const $rows = $('#polizas-table tr');
-    if (!$scrollWrap.length || !$table.length || !$rows.length) {
-      console.log('[polizas-debug] no se encontraron los elementos esperados', {
-        scrollWrap: $scrollWrap.length,
-        table: $table.length,
-        rows: $rows.length,
-      });
-      return;
-    }
-
-    const availableHeight = $scrollWrap[0].clientHeight;
-    // scrollHeight = alto real de TODO el contenido (thead + filas), sin
-    // recortar por el scroll — es lo que realmente ocupa en pantalla.
-    const contentHeight = $table[0].scrollHeight;
-    if (!availableHeight || !contentHeight) {
-      console.log('[polizas-debug] altura en 0, algo no está listo todavía', {
-        availableHeight,
-        contentHeight,
-      });
-      return;
-    }
-
-    // Si el contenido ya es más alto que el espacio disponible, ya hay
-    // scroll (o está justo al límite) — no hay nada que ajustar aquí.
-    if (contentHeight > availableHeight + 1) {
-      console.log('[polizas-debug] el contenido ya llena o excede el espacio, no se ajusta', {
-        availableHeight,
-        contentHeight,
-        polizasItemsOnPage,
-      });
-      return;
-    }
-
-    const rowCount = $rows.length;
     const $thead = $scrollWrap.find('thead');
+    const $firstRow = $('#polizas-table tr').first();
+    const $pagination = $('.table-polizas__pagination');
+    if (!$scrollWrap.length || !$firstRow.length) return;
+
+    const top = $scrollWrap[0].getBoundingClientRect().top;
     const theadHeight = $thead.length ? $thead[0].getBoundingClientRect().height : 0;
-    const avgRowHeight = (contentHeight - theadHeight) / rowCount;
-    const extraSpace = availableHeight - contentHeight;
-    const extraRows = avgRowHeight ? Math.floor(extraSpace / avgRowHeight) : 0;
-    console.log('[polizas-debug] cálculo de filas', {
-      availableHeight,
-      contentHeight,
-      rowCount,
-      theadHeight,
-      avgRowHeight,
-      extraSpace,
-      extraRows,
-      polizasItemsOnPageActual: polizasItemsOnPage,
-      intento: polizasAutoAdjustAttempts + 1,
-    });
-    if (!avgRowHeight || extraRows <= 0) return; // ya converge, no cuenta como intento
+    const rowHeight = $firstRow[0].getBoundingClientRect().height;
+    const paginacionHeight = $pagination.length ? $pagination.outerHeight(true) : 60;
+    const margenInferior = 16; // aire extra debajo del paginador
+    if (!rowHeight) return;
+
+    const disponible = window.innerHeight - top - theadHeight - paginacionHeight - margenInferior;
+    const idealCount = Math.max(5, Math.floor(disponible / rowHeight));
+    if (idealCount === polizasItemsOnPage) return; // ya converge, no cuenta como intento
 
     polizasAutoAdjustAttempts += 1;
-    polizasItemsOnPage += extraRows;
+    polizasItemsOnPage = idealCount;
     getPolizas(1, 0, true);
   }
 
@@ -2485,7 +2384,6 @@ $(function () {
   $(window).on('resize', () => {
     clearTimeout(polizasResizeDebounce);
     polizasResizeDebounce = setTimeout(() => {
-      ajustarAlturaTablaPolizas();
       polizasAutoAdjustAttempts = 0;
       adjustPolizasItemsOnPageAndReload();
     }, 200);
@@ -2501,7 +2399,6 @@ $(function () {
   // fuentes ya estén listas antes de medir.
   if (window.document && document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => {
-      ajustarAlturaTablaPolizas();
       polizasAutoAdjustAttempts = 0;
       adjustPolizasItemsOnPageAndReload();
     });
@@ -2510,15 +2407,9 @@ $(function () {
   // Reintenta una vez más cuando la página termina de cargar del todo
   // (imágenes, etc.), como red de seguridad adicional.
   $(window).on('load', () => {
-    ajustarAlturaTablaPolizas();
     polizasAutoAdjustAttempts = 0;
     adjustPolizasItemsOnPageAndReload();
   });
-
-  // Primer cálculo, apenas el DOM está listo (antes de la primera carga
-  // de datos), para que la tabla ya tenga su altura real correcta desde
-  // el primer render.
-  ajustarAlturaTablaPolizas();
 
   function getEndosos(poliza_id, pageNumber = 1, start = 0) {
     const length = 10;

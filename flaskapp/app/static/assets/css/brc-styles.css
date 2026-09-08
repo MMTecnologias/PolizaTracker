@@ -324,68 +324,42 @@ p {
    padding: 0;
 }
 
-/* Columna de la tabla de pólizas. Antes se estiraba para igualar la
-   altura del formulario (que vivía en una columna hermana); ahora que el
-   formulario es un modal, la tabla ocupa el ancho completo y necesita su
-   propia altura explícita (ver .card-tabla-polizas más abajo).
-   min-width:0 evita que el contenido interno fuerce un desborde
-   horizontal de la fila. */
+/* Columna de la tabla de pólizas: ocupa el ancho completo (el
+   formulario ahora es un modal, ya no comparte esta fila). min-width:0
+   evita que el contenido interno fuerce un desborde horizontal. */
 .col-tabla-flex {
-   display: flex;
-   flex-direction: column;
    min-width: 0;
 }
 
-/* Card contenedora de la tabla de pólizas: layout en columna para que el
-   paginador nunca quede encimado sobre la última fila, sin importar
-   cuántas filas quepan en pantalla o el nivel de zoom. Altura explícita
-   relativa al viewport (ya no depende de una columna hermana como antes
-   del modal); el cálculo dinámico de itemsOnPage (ver polizas.js) se
-   encarga de llenarla sin dejar espacio en blanco.
+/* Card contenedora de la tabla de pólizas. SIN altura fija ni scroll
+   interno propio a propósito: los múltiples intentos de fijar una
+   altura exacta por CSS y/o JS (calc(100vh...), getBoundingClientRect,
+   flex anidado en 3 niveles) resultaron frágiles y no reflejaban de
+   forma confiable el espacio real disponible en todos los casos. En vez
+   de eso, la tarjeta crece de forma natural según su contenido (altura
+   automática) y es la PÁGINA la que hace scroll si hace falta — el
+   patrón más simple y a prueba de fallas. Lo único que se calcula por
+   JS es CUÁNTAS filas pedir al servidor (ver polizas.js), para que la
+   cantidad de filas mostradas se ajuste razonablemente al alto de
+   pantalla sin necesidad de forzar contenedores. */
 .card-tabla-polizas {
    position: relative;
-   display: flex;
-   flex-direction: column;
-   overflow: hidden;
-   flex: 1 1 auto;
-   min-height: 0;
-   min-width: 0;
-   /* Valor de respaldo antes de que corra el cálculo exacto en JS (ver
-      ajustarAlturaTablaPolizas en polizas.js), que mide la posición real
-      de esta tarjeta contra el alto real de la ventana en vez de
-      adivinar con un número fijo. */
-   height: calc(100vh - 160px);
 }
 
-.table-polizas--flex {
-   flex: 1 1 auto;
-   min-height: 0;
-   display: flex;
-   flex-direction: column;
-}
-
-/* Único elemento que hace scroll: el cuerpo de la tabla. El encabezado,
-   los controles de búsqueda/exportar y el paginador quedan siempre
-   visibles y en flujo normal (nunca position:absolute). Su altura la
-   fija explícitamente ajustarAlturaTablaPolizas() (polizas.js) restando
-   lo que miden sus hermanos — flex:0 0 auto (en vez de 1 1 auto) para
-   que el navegador respete ese cálculo tal cual, sin que el algoritmo
-   de flex-grow intente redistribuir el espacio por su cuenta encima. */
+/* Scroll horizontal únicamente (para pantallas angostas donde no caben
+   todas las columnas) — nunca vertical, la tabla crece con su
+   contenido. */
 .table-polizas__scroll {
-   flex: 0 0 auto;
-   min-height: 0;
-   overflow-y: auto;
    overflow-x: auto;
 }
 
 .table-polizas__pagination {
-   flex: 0 0 auto;
-   padding-top: 8px;
+   padding-top: 12px;
 }
 
 /* Tabla de pólizas compacta: menos separación entre columnas y filas
-   más bajas, para que entren más registros sin scroll. Se limita a
-   #table-polizas para no afectar otras tablas del sistema. */
+   más bajas, para que entren más registros sin desperdiciar espacio.
+   Se limita a #table-polizas para no afectar otras tablas del sistema. */
 #table-polizas .table td,
 #table-polizas .table th {
    padding: 0.4rem 0.6rem;
