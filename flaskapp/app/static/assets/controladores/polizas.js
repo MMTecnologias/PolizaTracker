@@ -1,4 +1,13 @@
 $(function () {
+  // Diagnóstico temporal: si algo se rompe en cualquier parte de este
+  // script durante la carga inicial (antes de que termine de registrar
+  // todos los botones), lo normal es que quede visible en consola de
+  // todas formas, pero este listener lo deja aún más explícito —
+  // ayuda a distinguir "no cargó nada" de "un botón específico falla".
+  window.addEventListener('error', (event) => {
+    console.error('[polizas-error-global]', event.message, event.error);
+  });
+
   let razonInput = '';
   let totalPolizas = 0;
   let pdfMode = null; // 'renew', 'endoso', or null
@@ -3127,8 +3136,18 @@ $(function () {
   // No lo guarda ni lo imprime — eso lo decide quien llama a esta
   // función (Exportar PDF hace .save(), Imprimir hace autoPrint()).
   async function construirPolizasPdfDoc(items) {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error(
+        'La librería jsPDF no cargó (revisa la consola/Network por si el CDN está bloqueado).',
+      );
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape' });
+    if (typeof doc.autoTable !== 'function') {
+      throw new Error(
+        'El plugin jspdf-autotable no cargó (revisa la consola/Network por si el CDN está bloqueado).',
+      );
+    }
 
     let inicioTextoX = 14;
     try {
@@ -3184,11 +3203,16 @@ $(function () {
   // título, franja de color en el encabezado de la tabla).
   $('#btnPdf').click((e) => {
     e.preventDefault();
-    fetchAllPolizasFiltradas().then(async (items) => {
-      if (!items.length) return;
-      const doc = await construirPolizasPdfDoc(items);
-      doc.save(`polizas_${new Date().toISOString().slice(0, 10)}.pdf`);
-    });
+    fetchAllPolizasFiltradas()
+      .then(async (items) => {
+        if (!items.length) return;
+        const doc = await construirPolizasPdfDoc(items);
+        doc.save(`polizas_${new Date().toISOString().slice(0, 10)}.pdf`);
+      })
+      .catch((err) => {
+        console.error('[polizas-pdf-debug] error al exportar PDF', err);
+        alert(`No se pudo generar el PDF: ${err && err.message ? err.message : err}`, 'error', 'Error');
+      });
   });
 
   // Panel de filtros: mostrar/ocultar, aplicar (reinicia a la página 1
@@ -3310,31 +3334,36 @@ $(function () {
   // impresión del navegador automáticamente.
   $('#btnImprimir').click((e) => {
     e.preventDefault();
-    fetchAllPolizasFiltradas().then(async (items) => {
-      if (!items.length) return;
-      const doc = await construirPolizasPdfDoc(items);
-      doc.autoPrint();
-      const url = doc.output('bloburl');
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      iframe.onload = () => {
-        try {
-          iframe.contentWindow.focus();
-        } catch (err) {
-          // Si el navegador bloquea el foco/print automático (poco
-          // común), al menos se abre el PDF en una pestaña para
-          // imprimir manual.
-          window.open(url, '_blank');
-        }
-      };
-    });
+    fetchAllPolizasFiltradas()
+      .then(async (items) => {
+        if (!items.length) return;
+        const doc = await construirPolizasPdfDoc(items);
+        doc.autoPrint();
+        const url = doc.output('bloburl');
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.focus();
+          } catch (err) {
+            // Si el navegador bloquea el foco/print automático (poco
+            // común), al menos se abre el PDF en una pestaña para
+            // imprimir manual.
+            window.open(url, '_blank');
+          }
+        };
+      })
+      .catch((err) => {
+        console.error('[polizas-pdf-debug] error al imprimir', err);
+        alert(`No se pudo generar el PDF para imprimir: ${err && err.message ? err.message : err}`, 'error', 'Error');
+      });
   });
 
   $('#endoso_tipo_a').click((e) => {
