@@ -2345,6 +2345,7 @@ $(function () {
     const searchValue = $('#searchPoliza').val();
     const params = { start, length, order: true, ...getFiltrosPolizas() };
     if (searchValue) params.searchValue = searchValue;
+    console.log('[polizas-filtro-debug] enviando al servidor', params);
     if (currentPolizasRequest) {
       currentPolizasRequest.abort();
     }
@@ -2352,7 +2353,13 @@ $(function () {
       ...ajaxConfig,
       url: '/polizas/get',
       data: $.param(params),
-      success: (resp) => fillTablePolizas(resp, pageNumber, length),
+      success: (resp) => {
+        console.log('[polizas-filtro-debug] respuesta recibida', {
+          recordsTotal: resp.recordsTotal,
+          primerasAseguradoras: (resp.data || []).slice(0, 5).map((p) => p.aseguradora),
+        });
+        fillTablePolizas(resp, pageNumber, length);
+      },
       error: (xhr, status, error) => {
         if (status === 'abort') return; // esperado: se canceló a propósito
         console.error(error);
