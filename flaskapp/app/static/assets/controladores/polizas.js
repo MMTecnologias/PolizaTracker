@@ -1894,6 +1894,12 @@ $(function () {
           <td style="color: ${getTextColor(poliza.status)}">${
             poliza.tipoPago
           }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+            poliza.prima_neta
+          }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
+            poliza.prima_total
+          }</td>
           <td>
             <ul class="btn_table_options acciones-full">
               <li>
@@ -3114,6 +3120,8 @@ $(function () {
     { key: 'subramo', label: 'Sub Ramo' },
     { key: 'aseguradora', label: 'Aseguradora' },
     { key: 'tipoPago', label: 'Forma de Pago' },
+    { key: 'prima_neta', label: 'Prima Neta' },
+    { key: 'prima_total', label: 'Prima Total' },
   ];
 
   // Trae TODAS las pólizas que coinciden con la búsqueda/filtros
