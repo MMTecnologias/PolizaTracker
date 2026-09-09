@@ -52,4 +52,22 @@ app.register_blueprint(endosos_route)
 app.register_blueprint(portal)
 app.register_blueprint(dashboard_gerencial)
 
+from flask import request, redirect, url_for
+
+
+@app.before_request
+def _redirigir_raiz_del_portal():
+    """
+    Si entran al dominio dedicado del portal (portal.ggcorp.mmtec.online
+    o el que sea, ver PORTAL_DOMINIO en config.py) directo a la raíz
+    ('https://ese-dominio/' sin ninguna ruta), los manda automáticamente
+    al login del asegurado -- así no tienen que escribir/recordar
+    '/portal/login' cada vez.
+    """
+    dominio_portal = app.config.get('PORTAL_DOMINIO')
+    if (dominio_portal
+            and request.host.split(':')[0] == dominio_portal
+            and request.path == '/'):
+        return redirect(url_for('portal.login_page'))
+
 
