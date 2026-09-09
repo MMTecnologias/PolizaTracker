@@ -1112,7 +1112,7 @@
                         <div class="user-role">Asegurado</div>
                     </div>
                 </div>
-                <button class="btn-logout" onclick="cambiarCliente()">Cambiar cliente</button>
+                <button class="btn-logout" onclick="cerrarSesion()">Cerrar sesión</button>
             </div>
         </div>
     </header>
@@ -1166,21 +1166,11 @@
 
     <!-- MAIN CONTENT -->
     <main>
-        <!-- BUSCADOR DE CLIENTE (temporal, mientras no existe login del asegurado) -->
+        <!-- Estado de carga inicial, mientras se traen los datos de la sesión -->
         <section class="dashboard" id="buscadorCliente">
-            <h2 class="dashboard-title">
-                <svg class="icon" style="width: 24px; height: 24px; color: #D87A3F;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                Buscar cliente
-            </h2>
-            <div class="section-toolbar" style="margin-bottom: 1rem;">
-                <div class="search-section" style="max-width: 500px;">
-                    <input type="text" class="search-input" id="buscadorClienteInput" placeholder="Escribe el nombre o apellido del cliente..." autocomplete="off">
-                </div>
+            <div style="text-align:center; padding: 60px 20px; color: #999;">
+                <div style="font-size:14px;">Cargando tu información…</div>
             </div>
-            <div id="buscadorClienteResultados"></div>
         </section>
 
         <!-- CONTENIDO DEL PANEL (oculto hasta seleccionar un cliente) -->
@@ -1549,6 +1539,12 @@
         // sigue contando como Pendiente; después, como Vencido.
         function estadoRealRecibo(r) {
             if (r.estado === 'Liquidado' || r.estado === 'Cancelado') return r.estado;
+            // Si ya existe fecha de pago capturada, se considera pagado sin
+            // importar qué diga el campo status crudo -- puede haber
+            // quedado desincronizado si el pago se capturó desde otra
+            // pantalla del sistema sin actualizar ese campo. La fecha de
+            // pago es la señal más confiable de las dos.
+            if (r.fechaPago) return 'Liquidado';
 
             const fechaLimite = parseFechaMX(r.fecha);
             const hoy = new Date();
@@ -1628,60 +1624,35 @@
         // Cuando exista el login del asegurado, esta sección se retira y
         // mostrarPanel() se llama directo con el cliente de la sesión.
         // ============================================================
-        const buscadorInput = document.getElementById('buscadorClienteInput');
-        const buscadorResultados = document.getElementById('buscadorClienteResultados');
-        let buscadorTimeout = null;
-
-        buscadorInput.addEventListener('input', () => {
-            clearTimeout(buscadorTimeout);
-            const q = buscadorInput.value.trim();
-
-            if (q.length < 2) {
-                buscadorResultados.innerHTML = '';
-                return;
-            }
-
-            buscadorTimeout = setTimeout(() => {
-                fetch(`/portal/api/buscar-cliente?q=${encodeURIComponent(q)}`)
-                    .then(r => r.json())
-                    .then(json => renderResultadosBusqueda(json.resultados))
-                    .catch(() => {
-                        buscadorResultados.innerHTML = '<div class="empty-state"><div class="empty-state-text">Ocurrió un error al buscar. Intenta de nuevo.</div></div>';
-                    });
-            }, 300);
-        });
-
-        function renderResultadosBusqueda(resultados) {
-            if (!resultados || resultados.length === 0) {
-                buscadorResultados.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">Sin coincidencias</div></div>';
-                return;
-            }
-
-            buscadorResultados.innerHTML = resultados.map(c => `
-                <div class="item-card" style="cursor: pointer;" onclick="seleccionarCliente(${c.id})">
-                    <div class="item-header">
-                        <div class="item-header-info">
-                            <div class="item-title">${c.nombre_completo}</div>
-                            <div class="item-subtitle">RFC: ${c.rfc || 'N/D'}</div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function seleccionarCliente(clienteId) {
-            fetch(`/portal/api/mis-datos?cliente_id=${clienteId}`)
-                .then(r => r.json())
+        // Carga automática de datos: la sesión ya identifica al cliente
+        // (session['portal_cliente_id']), así que no hace falta ningún
+        // buscador — se piden los datos apenas carga la página.
+        // ============================================================
+        function cargarMisDatos() {
+            fetch('/portal/api/mis-datos')
+                .then(r => {
+                    if (r.status === 401 || r.redirected) {
+                        window.location.href = '/portal/login';
+                        return null;
+                    }
+                    return r.json();
+                })
                 .then(json => {
+                    if (!json) return;
                     if (json.error) {
-                        alert(json.error);
+                        document.getElementById('buscadorCliente').innerHTML =
+                            `<div style="text-align:center; padding: 60px 20px; color: #a83232;">${json.error}</div>`;
                         return;
                     }
                     transformarDatos(json);
                     mostrarPanel(json.cliente);
                 })
-                .catch(() => alert('No se pudo cargar la información del cliente.'));
+                .catch(() => {
+                    document.getElementById('buscadorCliente').innerHTML =
+                        '<div style="text-align:center; padding: 60px 20px; color: #a83232;">No se pudo cargar tu información. Intenta recargar la página.</div>';
+                });
         }
+        document.addEventListener('DOMContentLoaded', cargarMisDatos);
 
         function mostrarPanel(nombreCliente) {
             document.getElementById('buscadorCliente').style.display = 'none';
@@ -1719,14 +1690,8 @@
             calcularVencimientosDelMes();
         }
 
-        function cambiarCliente() {
-            document.getElementById('panelContenido').style.display = 'none';
-            document.getElementById('buscadorCliente').style.display = 'block';
-            buscadorInput.value = '';
-            buscadorResultados.innerHTML = '';
-            dataPersonal = { polizas: [], siniestros: [], recibos: [] };
-            dataGrupo = { polizas: [], siniestros: [], recibos: [], nombre: null, empresas: [] };
-            data = dataPersonal;
+        function cerrarSesion() {
+            window.location.href = '/portal/logout';
         }
 
         // Elements

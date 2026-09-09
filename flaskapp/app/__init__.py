@@ -2,6 +2,7 @@
 from flask import Flask,send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_mail import Mail
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -18,6 +19,7 @@ def send_static(path):
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
+mail = Mail(app)
 
 from app.models import Usuario 
 # Función user_loader para cargar el usuario

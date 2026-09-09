@@ -8,15 +8,17 @@ de cliente se hace vía el buscador dentro del dashboard (fetch a
 demo. Cuando se defina el login definitivo, /portal/api/mis-datos
 deberá tomar el cliente desde la sesión en vez de un parámetro.
 """
-from flask import render_template, request, jsonify, current_app, send_from_directory
+from flask import render_template, request, jsonify, current_app, send_from_directory, session, redirect, url_for
 from sqlalchemy import func, or_
 import os
 from app import db
 from app.models import Cliente, Poliza, Recibo, Aseguradora, Subramo, TipoPago, Grupo
 from . import portal
+from .auth_routes import portal_login_required
 
 
 @portal.route('/dashboard', methods=['GET'])
+@portal_login_required
 def dashboard():
     return render_template('portal/dashboard.html')
 
@@ -129,11 +131,9 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
 
 
 @portal.route('/api/mis-datos', methods=['GET'])
+@portal_login_required
 def mis_datos():
-    cliente_id = request.args.get('cliente_id', type=int)
-
-    if not cliente_id:
-        return jsonify({'error': 'Falta cliente_id'}), 400
+    cliente_id = session.get('portal_cliente_id')
 
     cliente = Cliente.query.get(cliente_id)
     if not cliente:
@@ -174,19 +174,28 @@ def mis_datos():
 
 
 @portal.route('/descargar_pdf/<int:poliza_id>', methods=['GET'])
+@portal_login_required
 def descargar_pdf(poliza_id):
     """
-    Sirve el PDF de una póliza. Misma lógica de resolución de ruta que
-    polizas.download_pdf, pero sin @login_required porque el asegurado
-    no tiene sesión de flask_login.
-
-    TODO (seguridad, ver tasks.md #6): esta ruta no valida que quien la
-    llama sea dueño de la póliza. Es temporal mientras no existe el login
-    del asegurado.
+    Sirve el PDF de una póliza, solo si le pertenece al cliente en sesión
+    o a algún compañero de su mismo grupo (empresas relacionadas).
     """
     poliza = Poliza.query.get(poliza_id)
     if not poliza:
         return jsonify({'error': 'Póliza no encontrada'}), 404
+
+    cliente_sesion = Cliente.query.get(session.get('portal_cliente_id'))
+    if not cliente_sesion:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    es_propia = poliza.cliente_id == cliente_sesion.id
+    es_del_grupo = False
+    if not es_propia:
+        dueño = Cliente.query.get(poliza.cliente_id)
+        es_del_grupo = bool(dueño) and dueño.grupo_id == cliente_sesion.grupo_id
+
+    if not (es_propia or es_del_grupo):
+        return jsonify({'error': 'No autorizado'}), 403
 
     if not poliza.pdf_path:
         return jsonify({'error': 'No hay PDF asociado a esta póliza'}), 404

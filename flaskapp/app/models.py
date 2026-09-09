@@ -1,5 +1,5 @@
 from flask_login import UserMixin
-from sqlalchemy import Column, Integer, String, Date, Enum, DECIMAL, ForeignKey, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Date, Enum, DECIMAL, ForeignKey, TIMESTAMP, Boolean, DateTime
 from app import db, app
 from sqlalchemy.sql import func
 from io import BytesIO, StringIO
@@ -213,6 +213,73 @@ class SolicitudNewPass(db.Model):
     usuario_id = Column(Integer, ForeignKey('usuarios.id'), primary_key=True)
     status = Column(Enum('Resuelta', 'Pendiente'),
                     nullable=False, default="Pendiente")
+
+
+# ============================================================
+# Portal del Asegurado — login/registro de clientes
+# ============================================================
+
+class PortalUsuario(db.Model):
+    """
+    Cuenta de acceso al Portal del Asegurado. Separada por completo de
+    `Usuario` (login interno de agentes/staff con Flask-Login) para que
+    un asegurado nunca pueda, ni por error, tener acceso a rutas internas
+    protegidas con @login_required.
+    """
+    __tablename__ = 'portal_usuarios'
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(Integer, ForeignKey('clientes.id'),
+                         nullable=False, unique=True)
+    correo = Column(String(80), nullable=False, unique=True)
+    password = Column(String(520), nullable=False)
+    correo_confirmado = Column(Boolean, nullable=False, default=False)
+    fecha_registro = Column(DateTime, nullable=False,
+                             server_default=func.now())
+    status = Column(Enum('Activo', 'Eliminado'),
+                     nullable=False, default='Activo')
+
+
+class PortalToken(db.Model):
+    """
+    Tokens de un solo uso para confirmar correo y para restablecer
+    contraseña. Ambos flujos reutilizan la misma tabla, distinguidos por
+    `tipo`.
+    """
+    __tablename__ = 'portal_tokens'
+    id = Column(Integer, primary_key=True)
+    portal_usuario_id = Column(Integer, ForeignKey(
+        'portal_usuarios.id'), nullable=False)
+    tipo = Column(Enum('confirmacion_correo', 'reset_password'),
+                  nullable=False)
+    token = Column(String(64), nullable=False, unique=True)
+    creado_en = Column(DateTime, nullable=False, server_default=func.now())
+    expira_en = Column(DateTime, nullable=False)
+    usado = Column(Boolean, nullable=False, default=False)
+
+
+class PortalSolicitudRegistro(db.Model):
+    """
+    Cuando el registro NO se pudo verificar automáticamente (ni por
+    RFC+nombre, ni por número de póliza+nombre), queda aquí pendiente de
+    revisión manual por parte de un gerente — ver 'Solicitudes de
+    Registro de Asegurado' en el dashboard gerencial.
+    """
+    __tablename__ = 'portal_solicitudes_registro'
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(50), nullable=False)
+    apellido = Column(String(50), nullable=False)
+    rfc = Column(String(13), nullable=False)
+    numero_poliza = Column(String(30))
+    correo = Column(String(80), nullable=False)
+    telefono = Column(String(10), nullable=False)
+    password = Column(String(520), nullable=False)
+    motivo = Column(String(200))
+    status = Column(Enum('Pendiente', 'Aceptada', 'Rechazada'),
+                     nullable=False, default='Pendiente')
+    cliente_id_asignado = Column(Integer, ForeignKey('clientes.id'))
+    fecha_solicitud = Column(DateTime, nullable=False,
+                              server_default=func.now())
+    fecha_resolucion = Column(DateTime)
 
 
 class Request(db.Model):
