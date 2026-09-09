@@ -751,6 +751,18 @@ def delete():
 
         db.session.add(log_entry)
         poliza.status = "Cancelada"
+
+        # Al cancelar la póliza, sus recibos que sigan pendientes/vencidos
+        # ya no tienen razón de cobrarse -- se cancelan también, para que
+        # nunca aparezcan como "pendientes de pago" en ningún lado (tabla
+        # interna, portal del asegurado, reportes de cobranza, etc.).
+        recibos_a_cancelar = Recibo.query.filter(
+            Recibo.poliza_id == poliza.id,
+            Recibo.status.in_(['Pendiente', 'Vencido']),
+        ).all()
+        for recibo in recibos_a_cancelar:
+            recibo.status = 'Cancelado'
+
         db.session.commit()
         return jsonify({'error': False, 'title': 'Póliza cancelada', 'msg': 'La póliza ha sido cancelada con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:
