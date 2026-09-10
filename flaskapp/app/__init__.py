@@ -3,9 +3,20 @@ from flask import Flask,send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
+import logging
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+
+# Se fija el nivel de registro en DEBUG explícitamente -- así los
+# current_app.logger.debug(...)/.warning(...)/.exception(...) que
+# reemplazaron a varios print() sueltos siguen apareciendo en la
+# consola exactamente igual que antes (no se pierde ninguna
+# visibilidad del proceso), sin depender de si Flask los muestra o no
+# por default. Cuando ya no se quiera ver tanto detalle (ej. en el
+# servidor de producción), basta con subir este nivel a logging.INFO o
+# logging.WARNING en un solo lugar.
+app.logger.setLevel(logging.DEBUG)
 
 import mimetypes
 # Explicitly set MIME type for JavaScript files

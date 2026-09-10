@@ -110,8 +110,8 @@
                   <input type="hidden" id="recibos" name="recibos" value="Por generar" />
                   <input type="text" id="tipo" name="tipo" hidden />
                   <input type="text" id="recibo_id" name="id_recibo" hidden />
-                  <input type="text" class="form-control" id="polizaAnterior" name="polizaAnterior" hidden />
                   <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
+                  <input type="hidden" id="old_poliza_id" name="oldPolizaId" value="" />
                   <div class="form__input-data">
                      <label class="label-input-data">Cargar PDF de Póliza</label>
                      <div class="pdf-upload-area" id="pdf_drop_zone">
@@ -150,7 +150,7 @@
                   <div class="form__input-data input-sibling-child" id="div_poliza_anterior">
                      <label class="label-input-data" for="poliza-anterior">Póliza Anterior</label>
                      <div class="input-group">
-                        <input type="text" class="form-control" id="poliza-anterior" name="poliza-anterior" />
+                        <input type="text" class="form-control" id="poliza-anterior" name="polizaAnterior" />
                      </div>
                   </div>
                   <div class="form__input-data" id="div_poliza_id">

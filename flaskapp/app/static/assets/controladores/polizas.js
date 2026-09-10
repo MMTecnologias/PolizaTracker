@@ -303,8 +303,7 @@ $(function () {
   function fillFormWithPdfData(data) {
     const isRenewMode = pdfMode === 'renew';
     const isEndosoMode = pdfMode === 'endoso' || String($('#title_poliza').text() || '').includes('Endoso');
-    const previousPolicyValue = $('#polizaAnterior').val();
-    const previousPolicyDisplayValue = $('#poliza-anterior').val();
+    const previousPolicyValue = $('#poliza-anterior').val();
 
     function normalizeFormaPagoToken(value) {
       if (!value) return '';
@@ -471,10 +470,9 @@ $(function () {
       $('#Poliza').val(data.numero_de_poliza);
     }
     if (isRenewMode) {
-      $('#polizaAnterior').val(previousPolicyValue);
       $('#poliza-anterior')
-        .val(previousPolicyDisplayValue || previousPolicyValue)
-        .prop('disabled', true);
+        .val(previousPolicyValue)
+        .prop('readonly', true);
     }
 
     // Cliente
@@ -1143,8 +1141,8 @@ $(function () {
       $('#selected-client-id').val('None');
       $('#recibo_id').val('');
       $('#id_poliza').val('');
-      $('#polizaAnterior').val('');
-      $('#poliza-anterior').val('').prop('disabled', false);
+      $('#poliza-anterior').val('').prop('readonly', false);
+      $('#old_poliza_id').val('');
       $('#old_prima_neta').val('');
       $('#old_prima_total').val('');
       $('#old_tipo_pago').val('');
@@ -1631,9 +1629,9 @@ $(function () {
           `${resp.data[0].fecha_termino} 23:00:00`,
         ).getDate();
         $('#poliza_id').val(poliza_id);
+        $('#old_poliza_id').val(poliza_id);
         $('#id_poliza').val(resp.data[0].poliza);
-        $('#polizaAnterior').val(resp.data[0].poliza);
-        $('#poliza-anterior').val(resp.data[0].poliza).prop('disabled', true);
+        $('#poliza-anterior').val(resp.data[0].poliza).prop('readonly', true);
         $('#buscar-cliente').val(resp.data[0].cliente);
         $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#serie').val(resp.data[0].serie);

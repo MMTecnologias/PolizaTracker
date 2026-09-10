@@ -23,7 +23,7 @@ Ya resueltos y NO incluidos aquí (ver historial de commits en
 
 ---
 
-## 1. Posible traslape de 1 día en la vigencia al renovar
+## 1. ✅ RESUELTO — Traslape de 1 día en la vigencia al renovar (confirmado intencional)
 
 **Archivo:** `flaskapp/app/static/assets/controladores/polizas.js`, línea 1544
 
@@ -33,125 +33,99 @@ $('#VigenciaI').val(resp.data[0].fecha_termino);
 
 **Qué pasa:** al abrir el formulario de renovación, la fecha de INICIO de
 la póliza nueva se pre-llena con la fecha de FIN de la póliza vieja —
-mismo día exacto, no el día siguiente. Esto deja un día donde,
-técnicamente, ambas pólizas (la vieja y la nueva) están vigentes al
-mismo tiempo.
+mismo día exacto, no el día siguiente.
 
-**Por qué no se corrigió:** puede ser intencional (algunas aseguradoras
-manejan la renovación así, sin "brincarse" un día) — nunca se confirmó
-con el negocio si debería ser `fecha_termino + 1 día` en su lugar.
-
-**Siguiente paso:** confirmar con el cliente/negocio cuál es el
-comportamiento correcto antes de tocar el código.
+**Decisión confirmada con el negocio (2026-09-10):** este comportamiento
+es intencional. Se deja tal cual, sin cambios de código. No es un bug.
 
 ---
 
-## 2. Nombres de campos duplicados y confusos (poliza-anterior / polizaAnterior)
+## 2. ✅ RESUELTO — Campos duplicados consolidados en uno solo
 
-**Archivo:** `flaskapp/app/static/assets/controladores/polizas.js`
+**Archivo:** `flaskapp/app/static/assets/controladores/polizas.js`,
+`flaskapp/app/templates/polizas.html`
 
-Hay 2 inputs con nombres casi idénticos que se actualizan en paralelo, en
-al menos 3 lugares distintos del archivo:
+**Causa raíz encontrada:** el formulario se envía con `$('#form-polizas').serialize()`,
+y jQuery `.serialize()` **excluye automáticamente los campos `disabled`**
+— por eso existía el campo oculto duplicado (`#polizaAnterior`), como
+workaround para que el valor sí llegara al servidor aunque el campo
+visual estuviera deshabilitado.
 
-```javascript
-// línea 214-215 (lectura)
-const previousPolicyValue = $('#polizaAnterior').val();
-const previousPolicyDisplayValue = $('#poliza-anterior').val();
+**Solución aplicada:** se eliminó el campo oculto duplicado. El campo
+visible (`#poliza-anterior`) ahora tiene `name="polizaAnterior"`
+(el nombre que espera el backend) y usa `.prop('readonly', true/false)`
+en vez de `.prop('disabled', true/false)` — los campos `readonly` SÍ se
+incluyen en `.serialize()`, y visualmente se ven idénticos a los
+`disabled` gracias al CSS de Bootstrap ya existente en el proyecto
+(`.form-control[readonly]{background-color:#e9ecef}`), así que no hubo
+que tocar ningún estilo.
 
-// línea 382-383 (restauración)
-$('#polizaAnterior').val(previousPolicyValue);
-$('#poliza-anterior')...
-
-// línea 1054-1055 (reset)
-$('#polizaAnterior').val('');
-$('#poliza-anterior').val('').prop('disabled', false);
-
-// línea 1539-1540 (al renovar)
-$('#polizaAnterior').val(resp.data[0].poliza);
-$('#poliza-anterior').val(resp.data[0].poliza).prop('disabled', true);
-```
-
-**Qué pasa:** `#polizaAnterior` es el campo que realmente se manda al
-servidor (el que tiene `name="polizaAnterior"` en el HTML); `#poliza-anterior`
-parece ser solo un campo de DESPLIEGUE visual, deshabilitado, para que el
-usuario lo vea pero no lo edite. Funcionalmente parece funcionar hoy, pero
-es frágil: cualquier cambio futuro que solo actualice uno de los dos
-(por error) rompería silenciosamente la sincronización entre lo que se ve
-en pantalla y lo que realmente se guarda.
-
-**Siguiente paso:** decidir si de verdad se necesitan 2 campos separados
-(uno oculto/real + uno visual/deshabilitado), o si se puede simplificar a
-uno solo con un solo `id`, ajustando el CSS/HTML según haga falta.
+Un solo campo, un solo `id`, sin duplicación ni riesgo de que se
+desincronicen.
 
 ---
 
-## 3. La validación de folio duplicado podría bloquear renovaciones legítimas
+## 3. ✅ RESUELTO Y CONFIRMADO — Validación de folio duplicado ya no bloquea renovaciones legítimas
 
-**Archivo:** `flaskapp/app/polizas/routes.py`, líneas 416-418
+**Archivos:** `flaskapp/app/polizas/routes.py` (función `create()`),
+`flaskapp/app/templates/polizas.html`, `flaskapp/app/static/assets/controladores/polizas.js`
 
-```python
-poliza = Poliza.query.filter(
-    Poliza.poliza == arg_values["poliza"], Poliza.status != "Cancelada").first()
-if poliza:
-    return jsonify({'error': True, 'msg': f'Ya existe una póliza vigente con el mismo número {poliza.poliza}', 'title': 'Ya existe una póliza vigente con el mismo número'})
-```
+**Confirmado con el negocio (2026-09-10):** sí, algunas aseguradoras
+mantienen el mismo folio al renovar (cambia vigencia, forma de pago,
+etc., pero el número de póliza es idéntico) — el `id` interno es
+justamente lo que ya usan para diferenciar esas pólizas de mismo folio.
 
-**Qué pasa:** si el número de póliza de la renovación es IGUAL al de la
-póliza original (algunas aseguradoras mantienen el mismo folio entre
-renovaciones, solo cambiando el endoso o el periodo), esta validación
-bloquearía la renovación por completo, ya que técnicamente "ya existe"
-una póliza vigente con ese mismo número (la vieja, hasta que se marque
-como renovada).
+**Solución aplicada:** la validación de duplicados ahora excluye a la
+póliza que se está renovando por su **`id` interno**, no por folio.
 
-**Por qué no se corrigió:** nunca se confirmó si esto pasa en la
-práctica con las aseguradoras que maneja la agencia — depende del
-negocio, no es algo que se pueda decidir solo revisando el código.
+Se agregó un campo nuevo (`#old_poliza_id` / `oldPolizaId`) que guarda
+el `id` real de la póliza vieja en el momento de dar clic en "Renovar"
+— separado de `#poliza_id`, que se resetea a `"New"` antes de guardar.
+El backend usa ese `id` para excluir específicamente ese registro de la
+búsqueda de duplicados.
 
-**Siguiente paso:** preguntar directamente si hay casos reales donde el
-folio se repite entre la póliza vieja y su renovación. Si sí, hay que
-excluir explícitamente a `poliza_old` de esta validación cuando el
-`poliza_id` que se está renovando coincide.
+**Por qué NO se hizo por folio (primer intento, con bug):** un primer
+intento excluía por comparación de folio (`poliza_anterior`) en vez de
+por `id` — eso tenía un bug real: si de verdad existieran dos pólizas
+DISTINTAS con el mismo número (el caso que sí se quiere seguir
+bloqueando), ambas habrían quedado excluidas por error, dejando pasar
+un duplicado real sin detectarlo. Corregido antes de confirmar.
 
----
-
-## 4. Prints de depuración sueltos en producción
-
-**Archivo:** `flaskapp/app/polizas/routes.py`
-
-Quedan **24 líneas** con `print(...)` sueltas fuera de las funciones que
-ya se tocaron en esta revisión (`create()`, `create_endoso()`, `edit()`,
-`save_receipts()`, que ya se limpiaron). Algunos ejemplos:
-
-```python
-# línea 32
-print(f"Poliza ID: {poliza_id}")
-
-# línea 45
-print(f"Endoso ID: {endoso_id}")
-
-# línea 187
-print('entro en search value')
-
-# líneas 732-735, 781-782 (varios "DEBUG - ...")
-print(f"DEBUG - Fecha inicio: {start_date}, Fecha fin: {end_date}")
-print(f"DEBUG - Duración en meses: {policy_duration_months}")
-```
-
-**Qué pasa:** son prints de depuración que quedaron de desarrollo,
-imprimiendo directo a la consola del servidor en producción. No rompen
-nada, pero ensucian los logs y no siguen ninguna convención (no usan el
-logger real de Flask, `current_app.logger`, que sí se empezó a usar en
-las partes que se corrigieron esta revisión).
-
-**Siguiente paso:** revisar cada uno y decidir: borrarlo, o convertirlo a
-`current_app.logger.debug(...)` si de verdad aporta valor para
-diagnosticar problemas en producción.
+**Verificado con el escenario exacto planteado por el cliente:**
+renovar la póliza 1234 con el mismo número 1234 → pasa sin problema.
+Si existiera otra póliza con `id` distinto también con folio 1234 →
+sigue bloqueando correctamente.
 
 ---
 
-## Endosos: recibos no jalan correctamente (hallazgo separado, más reciente)
+## 4. ✅ RESUELTO Y CONFIRMADO — Prints de depuración convertidos al logger real
 
-Este NO es parte de la lista de 4 puntos de arriba — es un hallazgo
-posterior, encontrado durante las pruebas del flujo completo. Falta
-platicar el detalle exacto antes de diagnosticar (qué datos salen mal:
-montos, fechas, cantidad de recibos, si es endoso tipo A, D, o ambos).
+**Archivos:** `flaskapp/app/polizas/routes.py`, `flaskapp/app/__init__.py`
+
+Se revisaron los 21 `print(...)` sueltos que quedaban fuera de las
+funciones ya limpiadas en revisiones anteriores. Cada uno se clasificó:
+
+- **Puro ruido sin valor** (IDs sueltos, un booleano sin etiqueta,
+  `'entro en search value'`, etc.) → se borraron directamente.
+- **Con valor real de diagnóstico** (fechas/duración de endosos, cálculo
+  de pagos, `[CALCULAR_RECIBOS]`, advertencias de PDF vacío) →
+  convertidos a `current_app.logger.debug(...)` / `.warning(...)`.
+- **Manejo de excepciones** (`print(e)` dentro de un `except`) →
+  convertidos a `current_app.logger.exception(...)`, que además
+  registra el traceback completo (antes solo se veía el mensaje suelto).
+- Se dejó **1 print intencional** (línea ~2137) como respaldo, solo
+  para cuando la función corre fuera de un contexto de Flask (un script
+  standalone) donde no hay logger disponible.
+
+**Decisión confirmada con el cliente:** los mensajes convertidos a
+`logger.debug(...)` seguían siendo útiles para "ir viendo cómo se va
+dando el proceso" en la terminal — no se quería perder esa visibilidad
+solo por prolijidad de código. Se agregó `app.logger.setLevel(logging.DEBUG)`
+en `app/__init__.py`, que **garantiza** que todos esos mensajes se sigan
+viendo en consola exactamente igual que antes, ahora con hora, nivel, y
+tracebacks completos en los errores. Si en algún momento se quiere
+silenciar ese detalle en producción, basta con subir ese nivel
+(`logging.INFO` o `logging.WARNING`) en una sola línea.
+
+---
+

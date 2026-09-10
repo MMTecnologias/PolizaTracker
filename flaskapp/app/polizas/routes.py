@@ -29,7 +29,6 @@ from app.models import export_to_csv, export_to_pdf
 def get_receipts():
     # Recibe
     poliza_id = flask_request.form.get('poliza_id')
-    print(f"Poliza ID: {poliza_id}")
     start_param = flask_request.form.get('start')
     length_param = flask_request.form.get('length')
 
@@ -42,12 +41,10 @@ def get_receipts():
     endoso_id = flask_request.form.get('endoso_id')
     if endoso_id:
         recibos_query = Recibo.query.filter_by(endoso_id=endoso_id)
-        print(f"Endoso ID: {endoso_id}")
         endoso = Endoso.query.get(endoso_id)
         if not endoso:
             return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
         poliza_id = endoso.poliza_id
-        print(f"Poliza ID de endoso: {poliza_id}")
     else:
         recibos_query = Recibo.query.filter_by(
             poliza_id=poliza_id, endoso_id=None)
@@ -184,7 +181,6 @@ def get():
     if poliza_id:
         polizas_query = polizas_query.filter(Poliza.id == int(poliza_id))
     elif search_value:
-        print('entro en search value')
         search_normalized = ' '.join(search_value.strip().lower().split())
         polizas_query = polizas_query.filter(or_(
             func.lower(func.replace(Cliente.nombre, ' ', '')).like(
@@ -463,19 +459,36 @@ def create():
 
     # Vincular PDF si fue subido
     pdf_path = flask_request.form.get('pdf_path')
-    print(f"[CREATE] pdf_path recibido del form: '{pdf_path}'")
     if pdf_path:
         arg_values["pdf_path"] = pdf_path
-        print(f"[CREATE] pdf_path asignado a arg_values: '{pdf_path}'")
     else:
-        print(f"[CREATE] ADVERTENCIA: pdf_path está vacío o None, no se guardará en BD")
+        current_app.logger.warning(
+            "[CREATE] pdf_path vacío o None -- no se guardará ningún PDF en esta póliza")
 
     # Create a new client
 
     # check if there is a poliza with the same number and not canceled
 
-    poliza = Poliza.query.filter(
-        Poliza.poliza == arg_values["poliza"], Poliza.status != "Cancelada").first()
+    # Algunas aseguradoras mantienen el mismo folio al renovar una
+    # póliza (cambia vigencia, forma de pago, etc., pero el número de
+    # póliza es idéntico) -- para esos casos, la propia póliza que se
+    # está renovando no debe contar como "duplicado" al crear la nueva
+    # con ese mismo folio.
+    #
+    # IMPORTANTE: se excluye por el ID interno de la póliza vieja
+    # (oldPolizaId, capturado en el momento de dar clic en "Renovar"),
+    # NO por comparación de folio -- si se excluyera por folio, y de
+    # verdad existieran dos pólizas DISTINTAS con el mismo número (el
+    # caso real que se quiere seguir bloqueando), ambas quedarían
+    # excluidas por error y el duplicado real pasaría desapercibido.
+    old_poliza_id = flask_request.form.get('oldPolizaId')
+
+    query_duplicado = Poliza.query.filter(
+        Poliza.poliza == arg_values["poliza"], Poliza.status != "Cancelada")
+    if old_poliza_id:
+        query_duplicado = query_duplicado.filter(Poliza.id != int(old_poliza_id))
+
+    poliza = query_duplicado.first()
     if poliza:
         return jsonify({'error': True, 'msg': f'Ya existe una póliza vigente con el mismo número {poliza.poliza}', 'title': 'Ya existe una póliza vigente con el mismo número'})
     # check for pending cancelation request of the same poliza
@@ -790,8 +803,8 @@ def get_policy_values():
         if endoso:
             fecha_inicio = endoso.fecha_inicio.strftime('%Y-%m-%d')
             fecha_termino = endoso.fecha_termino.strftime('%Y-%m-%d')
-            print(
-                f"DEBUG - Usando fechas del endoso: {fecha_inicio} a {fecha_termino}")
+            current_app.logger.debug(
+                f"Usando fechas del endoso: {fecha_inicio} a {fecha_termino}")
 
     # Calcular la duración de la póliza en años, considerando años bisiestos
     start_date = datetime.strptime(fecha_inicio, '%Y-%m-%d')
@@ -802,11 +815,10 @@ def get_policy_values():
     delta = relativedelta(end_date, start_date)
     policy_duration_months = delta.years * 12 + delta.months
 
-    # Debug: imprimir valores
-    print(f"DEBUG - Fecha inicio: {start_date}, Fecha fin: {end_date}")
-    print(
-        f"DEBUG - Delta: {delta.years} años, {delta.months} meses, {delta.days} días")
-    print(f"DEBUG - Duración en meses: {policy_duration_months}")
+    current_app.logger.debug(
+        f"Fecha inicio: {start_date}, Fecha fin: {end_date}, "
+        f"Delta: {delta.years} años, {delta.months} meses, {delta.days} días, "
+        f"Duración en meses: {policy_duration_months}")
 
     # Duración en años, considerando años bisiestos y redondeado a entero
     # policy_duration = int(round((end_date - start_date).days / 365.2425))
@@ -826,8 +838,6 @@ def get_policy_values():
             return jsonify({'error': True, 'msg': 'Poliza no encontrada'})
         if start_date.date() > poliza.fecha_termino:
             return jsonify({'error': True, 'msg': 'El endoso no puede empezar una vez vencida la poliza'})
-        print(TipoPago.query.get(poliza.tipo_pago_id).tipo_pago ==
-              tipo_pago.tipo_pago)
         if tipo_pago.contado != "Si" and TipoPago.query.get(poliza.tipo_pago_id).tipo_pago == tipo_pago.tipo_pago and poliza.fecha_termino == end_date.date():
             # Obtener el numero de pagos de la poliza que estan entre las fechas esocgidas
             num_payments = Recibo.query.filter(
@@ -843,7 +853,7 @@ def get_policy_values():
             msg = ""
         msg = "Los recibos del endoso no coincidiran con los de la poliza, para esto seleccione el tipo de pago: %s y la fecha de termino de la poliza: %s" % (
             TipoPago.query.get(poliza.tipo_pago_id).tipo_pago, poliza.fecha_termino.strftime('%d/%m/%Y'))
-        print(msg)
+        current_app.logger.warning(msg)
         # return jsonify({'error': True, 'msg': msg})
 
     # Obtener el número de pagos según el tipo de pago
@@ -852,14 +862,14 @@ def get_policy_values():
     else:
         # De lo contrario, el número de pagos es igual a los pagos mensuales
         deltames = 12/tipo_pago.pagos_anuales
-        print(f"DEBUG - Meses por pago (deltames): {deltames}")
-        print(f"DEBUG - Pagos anuales: {tipo_pago.pagos_anuales}")
         if deltames > policy_duration_months:
             return jsonify({'error': True, 'msg': 'Este tipo de pago no es valido para la duracion de la poliza/endoso. Porfavor, intente con otro'})
         # Calcular número de pagos redondeando hacia arriba
         import math
         num_payments = math.ceil(policy_duration_months / deltames)
-        print(f"DEBUG - Número de pagos calculado: {num_payments}")
+        current_app.logger.debug(
+            f"Meses por pago: {deltames}, Pagos anuales: {tipo_pago.pagos_anuales}, "
+            f"Número de pagos calculado: {num_payments}")
 
     # Devolver los valores como un objeto JSON
     return jsonify({'error': False,
@@ -917,9 +927,6 @@ def calcular_recibos():
     prima_neta = float(flask_request.form.get('netPremium'))
     iva = float(flask_request.form.get('iva'))
     derecho_poliza = float(flask_request.form.get('insurance'))
-    print(
-        f"[CALCULAR_RECIBOS] totalPremium={prima_total}, netPremium={prima_neta}, iva={iva}, insurance={derecho_poliza}")
-    print(f"[CALCULAR_RECIBOS] receipts={flask_request.form.get('receipts')}, commission={flask_request.form.get('commission')}, rec_pago={flask_request.form.get('rec_pago')}, selectPoliza={flask_request.form.get('selectPoliza')}")
     commission = float(flask_request.form.get('commission'))
     nopagos = int(flask_request.form.get('receipts'))
     rec_pago = flask_request.form.get('rec_pago')
@@ -928,7 +935,10 @@ def calcular_recibos():
         prima_total, prima_neta, iva, derecho_poliza, commission, nopagos, rec_pago)
     response['poliza_id'] = flask_request.form.get('selectPoliza')
 
-    print(response)
+    current_app.logger.debug(
+        f"[CALCULAR_RECIBOS] totalPremium={prima_total}, netPremium={prima_neta}, "
+        f"iva={iva}, insurance={derecho_poliza}, receipts={nopagos}, "
+        f"commission={commission}, rec_pago={rec_pago} -> response={response}")
     return response
 
 
@@ -1080,7 +1090,8 @@ def save_receipts():
         return jsonify({'error': False, 'msg': 'Recibos generados con exito'})
     except Exception as e:
         db.session.rollback()
-        print(e)
+        current_app.logger.exception(
+            "Error al generar recibos para poliza_id=%s endoso_id=%s", poliza_id, endoso_id)
         return jsonify({'error': True, 'msg': 'Error en la creación de recibos '+str(e)})
 
 
@@ -1166,7 +1177,6 @@ def check_delete_receipts():
 def create_endoso():
     poliza_id = flask_request.form.get('poliza_id')
     tipo = flask_request.form.get('tipo')
-    print(tipo)
     if tipo not in ("A", "B", "D"):
         return jsonify({"error": True, "msg": "No se encuentra el tipo de endoso"})
     poliza = Poliza.query.get(poliza_id)
@@ -2121,7 +2131,10 @@ def log_policy_event(stage: str, message: str, **kwargs):
 
     if has_app_context():
         current_app.logger.info(log_message)
-    print(log_message)
+    else:
+        # Fuera de un contexto de Flask (ej. un script standalone) no
+        # hay logger disponible -- print es el único respaldo posible.
+        print(log_message)
 
 
 def build_policy_debug_snapshot(data: dict, fields=POLICY_DEBUG_FIELDS) -> dict:
@@ -5763,12 +5776,12 @@ def delete_temp_pdf():
         full_path = os.path.join(current_app.root_path, 'static', pdf_path)
         if os.path.exists(full_path):
             os.remove(full_path)
-            print(f"PDF temporal eliminado: {pdf_path}")
+            current_app.logger.info(f"PDF temporal eliminado: {pdf_path}")
             return jsonify({'error': False, 'msg': 'PDF eliminado'})
         else:
             return jsonify({'error': False, 'msg': 'PDF no encontrado'})
     except Exception as e:
-        print(f"Error al eliminar PDF: {e}")
+        current_app.logger.exception(f"Error al eliminar PDF temporal: {pdf_path}")
         return jsonify({'error': True, 'msg': f'Error al eliminar PDF: {str(e)}'})
 
 
