@@ -56,6 +56,7 @@ def generar_recibos_faltantes(aplicar=False):
         generadas = []
         bandera_inconsistente = []
         omitidas_datos_insuficientes = []
+        derecho_poliza_vacio = []
         ya_tenian_recibos = 0
 
         for poliza in candidatas:
@@ -82,6 +83,15 @@ def generar_recibos_faltantes(aplicar=False):
             nopagos = 1 if tipo_pago.contado == "Si" else (
                 tipo_pago.pagos_anuales or 1)
 
+            # Distingue "derecho de póliza en $0 de verdad" de "nunca se
+            # capturó" (None) -- ambos se tratan igual para el cálculo
+            # (0 en cualquier caso), pero se reportan por separado para
+            # poder revisarlos antes de aplicar: un derecho de póliza
+            # faltante generaría un recibo cobrando de menos sin avisar.
+            derecho_poliza_era_none = poliza.derecho_poliza is None
+            if derecho_poliza_era_none:
+                derecho_poliza_vacio.append(poliza)
+
             # IMPORTANTE: Poliza.comision guarda el PORCENTAJE original
             # (ej. 10 = 10%) tal como se capturó al crear la póliza.
             # Ese campo solo se sobreescribe con el MONTO en dinero
@@ -107,7 +117,8 @@ def generar_recibos_faltantes(aplicar=False):
 
             print(f"Póliza id={poliza.id} folio='{poliza.poliza}': "
                   f"generar {nopagos} recibo(s), monto total ≈ ${monto_total:,.2f} {poliza.moneda}"
-                  f"{' [BANDERA DECÍA GENERADOS]' if poliza.recibos == 'Generados' else ''}")
+                  f"{' [BANDERA DECÍA GENERADOS]' if poliza.recibos == 'Generados' else ''}"
+                  f"{' [DERECHO DE PÓLIZA VACÍO -> se usará $0]' if derecho_poliza_era_none else ''}")
 
             if aplicar:
                 _generar_registros_recibos(
@@ -121,6 +132,7 @@ def generar_recibos_faltantes(aplicar=False):
                 'nopagos': nopagos,
                 'monto_total': monto_total,
                 'bandera_era_generados': poliza.recibos == 'Generados',
+                'derecho_poliza_era_none': derecho_poliza_era_none,
             })
 
         print("\n" + "=" * 60)
@@ -128,7 +140,15 @@ def generar_recibos_faltantes(aplicar=False):
         print(f"Ya tenían recibos reales (sin tocar): {ya_tenian_recibos}")
         print(f"Se {'generaron' if aplicar else 'generarían'} recibos para: {len(generadas)}")
         print(f"  De esas, con bandera inconsistente (decía 'Generados'): {len(bandera_inconsistente)}")
+        print(f"  De esas, con derecho de póliza VACÍO (se usó $0): {len(derecho_poliza_vacio)}")
         print(f"Omitidas por datos insuficientes: {len(omitidas_datos_insuficientes)}")
+
+        if derecho_poliza_vacio:
+            print("\n⚠️  Pólizas con derecho de póliza VACÍO (se generó el recibo "
+                  "con $0 de derecho de póliza -- revisa si de verdad no debían "
+                  "cobrar nada, o si es un dato que falta capturar):")
+            for p in derecho_poliza_vacio:
+                print(f"  id={p.id} folio='{p.poliza}'")
 
         if omitidas_datos_insuficientes:
             print("\nPólizas omitidas por falta de datos (revisar a mano):")
@@ -156,7 +176,8 @@ def generar_recibos_faltantes(aplicar=False):
                 f.write("Revisa esta lista para decidir cuáles marcar como pagados.\n\n")
                 for item in generadas:
                     marca = " [BANDERA DECÍA 'GENERADOS' - REVISAR POR QUÉ]" if item['bandera_era_generados'] else ""
-                    f.write(f"Póliza: {item['folio']} (id={item['id']}){marca}\n")
+                    marca_derecho = " [DERECHO DE PÓLIZA VACÍO - se usó $0]" if item['derecho_poliza_era_none'] else ""
+                    f.write(f"Póliza: {item['folio']} (id={item['id']}){marca}{marca_derecho}\n")
                     f.write(f"  Recibos generados: {item['nopagos']}\n")
                     f.write(f"  Monto total: ${item['monto_total']:,.2f} {item['moneda']}\n\n")
             print(f"\n📄 Log guardado en: {nombre_archivo}")
