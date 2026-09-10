@@ -28,8 +28,23 @@ TOKEN_RESET_HORAS = 2
 # Helpers de normalización y verificación de identidad
 # ------------------------------------------------------------------
 
+import unicodedata
+
+
 def _normalizar_texto(valor):
-    return re.sub(r'\s+', ' ', (valor or '').strip()).upper()
+    """
+    Además de mayúsculas y espacios, quita acentos y trata la 'ñ' como
+    'n' -- para que "GARDUÑO" y "GARDUNO" (un error de tecleo muy común,
+    sobre todo con la ñ y los acentos) se reconozcan como la misma
+    persona al verificar identidad. Se sigue exigiendo que coincidan
+    TANTO nombre como apellido -- esto no afloja esa exigencia, solo
+    tolera variaciones de tecleo en cómo se escriben los mismos
+    caracteres.
+    """
+    limpio = re.sub(r'\s+', ' ', (valor or '').strip()).upper()
+    sin_acentos = unicodedata.normalize('NFKD', limpio)
+    sin_acentos = ''.join(c for c in sin_acentos if not unicodedata.combining(c))
+    return sin_acentos.replace('Ñ', 'N')
 
 
 def _normalizar_rfc(valor):
