@@ -129,3 +129,36 @@ silenciar ese detalle en producción, basta con subir ese nivel
 
 ---
 
+
+## 5. ✅ RESUELTO Y CONFIRMADO — El modal de recibos se reabría solo después de guardar
+
+**Archivo:** `flaskapp/app/static/assets/controladores/polizas.js`,
+manejador `$('#form-recibo').submit(...)`
+
+**Encontrado durante las pruebas del punto 7/8 (2026-09-10):** al crear
+una póliza nueva, renovarla, o crear un endoso — después de llenar los
+datos de recibos y dar clic en "Guardar" dentro de ese modal, la póliza
+y sus recibos sí se guardaban correctamente, pero el modal de recibos
+se **volvía a abrir solo** justo después del mensaje de éxito.
+
+**Causa raíz:** los 3 casos (crear póliza, crear endoso, editar) tenían
+el mismo error de copiar/pegar en su callback de éxito: llamaban a
+`hideModalPolizaThenShow('#create-recib')` — la función que sirve para
+**abrir** ese modal por primera vez (correcta en el lugar donde de
+verdad se usa, al terminar de llenar la póliza) — en vez de simplemente
+`$('#create-recib').modal('hide')` para cerrarlo, que es lo que
+correspondía en este punto del flujo (ya no hay nada más que mostrar).
+
+**Solución aplicada:** los 3 lugares ahora cierran el modal
+correctamente con `.modal('hide')`.
+
+## Hallazgo aparte, sin corregir (pendiente para después)
+
+Mientras se investigaba el bug de arriba se encontraron **dos elementos
+con el mismo `id="btnGuardar"`** en `polizas.html` — uno es el botón de
+guardar la póliza (línea ~364), el otro pertenece a un formulario
+totalmente distinto, el de marcar un recibo existente como pagado
+(línea ~580, dentro de `#form_date_recib`). Tener IDs duplicados es
+inválido en HTML y es un riesgo latente de bugs similares a futuro,
+aunque no resultó ser la causa del bug de arriba. **Se decidió
+posponerlo** — no se tocó.

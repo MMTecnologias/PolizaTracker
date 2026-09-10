@@ -1128,6 +1128,7 @@ $(function () {
       pdfMode = null;
 
       $('#form-polizas')[0].reset();
+      $('#conducto_pago').val('AGENTE');
       $('#btnGuardar').show();
       $('#reset-btn').show();
       $('#form-polizas').removeClass('was-validated');
@@ -1264,6 +1265,8 @@ $(function () {
       data: $.param({ start: 0, length: 0, poliza_id }),
       success: function (resp) {
         $('#id_poliza').val(resp.data[0].poliza);
+        $('#buscar-cliente').val(resp.data[0].cliente);
+        $('#selected-client-id').val(resp.data[0].cliente_id);
         $('#VigenciaF').val(resp.data[0].fecha_termino);
         $('#serie').val(resp.data[0].serie);
         $('#notas').val(resp.data[0].notas);
@@ -2905,7 +2908,8 @@ $(function () {
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
-            hideModalPolizaThenShow('#create-recib');
+            $('#create-recib').modal('hide');
+            $('#modal-poliza').modal('hide');
           }
         },
         error: function (xhr, status, error) {
@@ -2932,7 +2936,8 @@ $(function () {
             alert(resp.msg, 'success');
             getPolizas();
             resetForm();
-            hideModalPolizaThenShow('#create-recib');
+            $('#create-recib').modal('hide');
+            $('#modal-poliza').modal('hide');
           }
         },
         error: function (xhr, textStatus, error) {
@@ -2966,7 +2971,8 @@ $(function () {
             alert(resp.title, 'success');
             getPolizas();
             resetForm();
-            hideModalPolizaThenShow('#create-recib');
+            $('#create-recib').modal('hide');
+            $('#modal-poliza').modal('hide');
           }
         },
         error: function (xhr, status, error) {
