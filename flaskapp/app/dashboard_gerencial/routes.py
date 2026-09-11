@@ -22,12 +22,12 @@ falsa (fecha en que se metieron al sistema, no la real de renovación),
 lo que hacía que nunca aparecieran fuera de esa fecha de migración.
 fecha_inicio sí refleja la fecha real de negocio.
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from flask import jsonify, request
 from flask_login import login_required
 from sqlalchemy import func, or_, and_
 from app import db
-from app.models import Poliza, Recibo, Cliente, Aseguradora, Ramo, Subramo, TipoPago
+from app.models import Poliza, Recibo, Cliente, Aseguradora, Ramo, Subramo, TipoPago, PortalSolicitudRegistro, PortalUsuario
 from . import dashboard_gerencial
 
 DIAS_GRACIA_RECIBO = 30
@@ -567,3 +567,131 @@ def cobranza_por_aseguradora():
         'totalesPorMoneda': totales_por_moneda,
     })
 
+
+# ============================================================
+# Solicitudes de Registro de Asegurado (Portal del Asegurado)
+#
+# Cuando alguien intenta registrarse en el portal y no se puede
+# verificar automático (RFC+nombre no encuentran match), queda aquí
+# pendiente de revisión manual -- ver app/portal/auth_routes.py
+# (api_registro) para el lado del portal que crea estos registros.
+# ============================================================
+
+@dashboard_gerencial.route('/api/solicitudes_registro/listado')
+@login_required
+def solicitudes_registro_listado():
+    rows = (PortalSolicitudRegistro.query
+            .filter_by(status='Pendiente')
+            .order_by(PortalSolicitudRegistro.fecha_solicitud)
+            .all())
+
+    data = [{
+        'id': s.id,
+        'nombre': s.nombre,
+        'apellido': s.apellido,
+        'rfc': s.rfc,
+        'numeroPoliza': s.numero_poliza,
+        'correo': s.correo,
+        'telefono': s.telefono,
+        'motivo': s.motivo,
+        'fechaSolicitud': s.fecha_solicitud.strftime('%d/%m/%Y %H:%M'),
+    } for s in rows]
+
+    return jsonify({'items': data, 'total': len(data)})
+
+
+@dashboard_gerencial.route('/api/solicitudes_registro/buscar_cliente')
+@login_required
+def solicitudes_registro_buscar_cliente():
+    """
+    Búsqueda de cliente para ligar manualmente una solicitud de registro
+    -- protegida con el login interno de staff. Separada a propósito de
+    /portal/api/buscar-cliente (esa vive en el blueprint 'portal', que
+    está restringido al dominio dedicado del portal y sin protección de
+    login; esta es para el lado del gerente, en el dominio principal).
+    """
+    q = (request.args.get('q') or '').strip()
+    if not q or len(q) < 2:
+        return jsonify({'resultados': []})
+
+    resultados = (Cliente.query
+                  .filter(Cliente.status == 'Activo')
+                  .filter(or_(
+                      Cliente.nombre.ilike(f'%{q}%'),
+                      Cliente.apellido.ilike(f'%{q}%'),
+                      func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(f'%{q}%'),
+                  ))
+                  .order_by(Cliente.nombre)
+                  .limit(15)
+                  .all())
+
+    data = [{
+        'id': c.id,
+        'nombreCompleto': f'{c.nombre} {c.apellido}',
+        'rfc': c.rfc,
+    } for c in resultados]
+
+    return jsonify({'resultados': data})
+
+
+@dashboard_gerencial.route('/api/solicitudes_registro/<int:solicitud_id>/aceptar', methods=['POST'])
+@login_required
+def solicitudes_registro_aceptar(solicitud_id):
+    cliente_id = request.form.get('cliente_id', type=int)
+    if not cliente_id:
+        return jsonify({'error': True, 'msg': 'Falta indicar a qué cliente corresponde.'}), 400
+
+    solicitud = PortalSolicitudRegistro.query.get(solicitud_id)
+    if not solicitud or solicitud.status != 'Pendiente':
+        return jsonify({'error': True, 'msg': 'Esta solicitud ya no está pendiente.'}), 400
+
+    cliente = Cliente.query.get(cliente_id)
+    if not cliente:
+        return jsonify({'error': True, 'msg': 'Cliente no encontrado.'}), 404
+
+    if PortalUsuario.query.filter_by(cliente_id=cliente.id).first():
+        return jsonify({'error': True, 'msg': 'Ese cliente ya tiene una cuenta del portal ligada.'}), 400
+    if PortalUsuario.query.filter_by(correo=solicitud.correo).first():
+        return jsonify({'error': True, 'msg': 'Ya existe una cuenta con ese correo.'}), 400
+
+    # La contraseña que el solicitante eligió ya viene hasheada desde
+    # el registro -- se reutiliza tal cual, no hace falta que la
+    # vuelva a capturar. correo_confirmado=True porque un gerente ya
+    # verificó manualmente que es la persona correcta -- no hace falta
+    # el paso de confirmación por correo en este camino.
+    portal_usuario = PortalUsuario(
+        cliente_id=cliente.id,
+        correo=solicitud.correo,
+        password=solicitud.password,
+        correo_confirmado=True,
+    )
+    db.session.add(portal_usuario)
+
+    cliente.correo = solicitud.correo
+    cliente.tel_movil = solicitud.telefono
+
+    solicitud.status = 'Aceptada'
+    solicitud.cliente_id_asignado = cliente.id
+    solicitud.fecha_resolucion = datetime.utcnow()
+
+    db.session.commit()
+
+    return jsonify({
+        'ok': True,
+        'nombreCliente': f'{cliente.nombre} {cliente.apellido}',
+        'correo': solicitud.correo,
+    })
+
+
+@dashboard_gerencial.route('/api/solicitudes_registro/<int:solicitud_id>/rechazar', methods=['POST'])
+@login_required
+def solicitudes_registro_rechazar(solicitud_id):
+    solicitud = PortalSolicitudRegistro.query.get(solicitud_id)
+    if not solicitud or solicitud.status != 'Pendiente':
+        return jsonify({'error': True, 'msg': 'Esta solicitud ya no está pendiente.'}), 400
+
+    solicitud.status = 'Rechazada'
+    solicitud.fecha_resolucion = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({'ok': True})

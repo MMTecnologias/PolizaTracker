@@ -29,7 +29,6 @@ $(function () {
     $('#recibos').show();
     $('#vencimientos').show();
     $('#reportes').show();
-    $('#utilerias').show();
   }
 
   const numberOfRequests = async () => {

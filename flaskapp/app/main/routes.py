@@ -9,7 +9,7 @@ from sqlalchemy import join, or_, desc, func, select
 import csv
 from io import StringIO
 from . import main
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
@@ -356,3 +356,61 @@ def load_data_from_csv(table, csv_file):
     except Exception as e:
         print(f"Error loading data from CSV: {str(e)}")
         return False, str(e), f"Error loading data from CSV: {str(e)}"
+
+
+@main.route('/api/cumpleanios', methods=['GET'])
+@login_required
+def api_cumpleanios():
+    """
+    Clientes (personas físicas) que cumplen años hoy -- si no hay
+    ninguno, se amplía a los que cumplen esta semana (lunes a domingo
+    actual), para que la franja del menú nunca se vea vacía sin razón.
+    """
+    hoy = date.today()
+
+    def calcular_edad(fecha_nac, referencia):
+        edad = referencia.year - fecha_nac.year
+        if (referencia.month, referencia.day) < (fecha_nac.month, fecha_nac.day):
+            edad -= 1
+        return edad
+
+    clientes_hoy = (Cliente.query
+                     .filter(Cliente.status == 'Activo')
+                     .filter(Cliente.fecha_nacimiento.isnot(None))
+                     .filter(func.month(Cliente.fecha_nacimiento) == hoy.month)
+                     .filter(func.day(Cliente.fecha_nacimiento) == hoy.day)
+                     .all())
+
+    if clientes_hoy:
+        data = [{
+            'nombre': f'{c.nombre} {c.apellido}'.strip(),
+            'edad': calcular_edad(c.fecha_nacimiento, hoy),
+        } for c in clientes_hoy]
+        return jsonify({'periodo': 'hoy', 'items': data})
+
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    dias_semana = [inicio_semana + timedelta(days=i) for i in range(7)]
+    pares_mes_dia = [(d.month, d.day) for d in dias_semana]
+
+    candidatos = (Cliente.query
+                  .filter(Cliente.status == 'Activo')
+                  .filter(Cliente.fecha_nacimiento.isnot(None))
+                  .all())
+
+    data = []
+    for c in candidatos:
+        par = (c.fecha_nacimiento.month, c.fecha_nacimiento.day)
+        if par in pares_mes_dia:
+            idx = pares_mes_dia.index(par)
+            fecha_cumple = dias_semana[idx]
+            data.append({
+                'nombre': f'{c.nombre} {c.apellido}'.strip(),
+                'edad': calcular_edad(c.fecha_nacimiento, fecha_cumple),
+                '_orden': fecha_cumple,
+            })
+
+    data.sort(key=lambda x: x['_orden'])
+    for item in data:
+        del item['_orden']
+
+    return jsonify({'periodo': 'semana', 'items': data})

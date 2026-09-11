@@ -21,6 +21,70 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
+   <style>
+      .contenedor-menu-usuario { max-width: 1200px; margin: 0 auto; padding: 32px; }
+      .grid-compartida { display: grid; grid-template-columns: 1fr 1fr 280px; gap: 20px; align-items: stretch; }
+      .seccion-titulo-menu { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gris-medio); font-weight: 700; }
+      .tile-menu, .panel-card-menu { display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; text-decoration: none; }
+      .tile-menu {
+         background: white; border-radius: 8px; padding: 16px 10px; text-align: center;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio); cursor: pointer; transition: all 0.15s ease;
+      }
+      .tile-menu:hover { outline: 3px solid var(--color-primario); box-shadow: 5px 10px 32px -9px var(--gris-medio); }
+      .icono-menu {
+         width: 56px; height: 56px; border-radius: 50%; background: #fdf2ee;
+         display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;
+      }
+      .icono-menu img { width: 28px; height: 28px; object-fit: contain; }
+      .tile-menu h3 { color: var(--gris-medio); font-size: 15px; font-weight: 500; }
+      .panel-card-menu {
+         background: white; border-radius: 10px; padding: 16px 18px;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio); border-top: 4px solid var(--color-primario);
+         cursor: pointer; transition: transform 0.15s ease;
+      }
+      .panel-card-menu:hover { transform: translateY(-2px); }
+      .panel-card-menu .titulo { font-size: 12px; color: var(--gris-medio); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+      .panel-card-menu .numero { font-size: 26px; font-weight: 700; color: var(--color-primario); }
+      .panel-card-menu .detalle { font-size: 12px; color: #1cb3c9; margin-top: 4px; }
+
+      .franja-cumple-menu {
+         margin-top: 20px; background: white; border-radius: 10px; padding: 10px 20px;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio); display: flex; align-items: center; gap: 16px; overflow: hidden;
+      }
+      .franja-cumple-titulo-menu {
+         font-size: 12px; font-weight: 600; color: var(--gris-medio); white-space: nowrap;
+         display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+      }
+      .franja-cumple-pista-menu {
+         flex: 1; overflow: hidden;
+         -webkit-mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+         mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+      }
+      .franja-cumple-lista-menu { display: flex; gap: 10px; width: max-content; animation: desplazar-cumple-menu 22s linear infinite; }
+      .franja-cumple-pista-menu:hover .franja-cumple-lista-menu { animation-play-state: paused; }
+      @keyframes desplazar-cumple-menu { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+      .cumple-chip-menu {
+         background: #fdf2ee; border-radius: 16px; padding: 5px 14px; white-space: nowrap;
+         font-size: 12.5px; font-weight: 600; color: var(--color-primario); flex-shrink: 0;
+         cursor: pointer; transition: background 0.15s;
+      }
+      .cumple-chip-menu:hover { background: #fbe2d6; }
+
+      .modal-menu-overlay {
+         display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500;
+         align-items: center; justify-content: center; padding: 20px;
+      }
+      .modal-menu-overlay.active { display: flex; }
+      .modal-menu-box { background: white; border-radius: 10px; overflow: hidden; width: 100%; max-width: 600px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+      .modal-menu-header { background: var(--color-primario); color: white; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+      .modal-menu-header h4 { font-size: 15px; font-weight: 600; }
+      .modal-menu-header .close-x { background: none; border: none; color: white; opacity: 0.85; font-size: 20px; cursor: pointer; }
+      .modal-menu-body { padding: 18px 20px; max-height: 60vh; overflow-y: auto; }
+      .modal-menu-body .fila-listado { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--color-claro); font-size: 13px; }
+      .modal-menu-body .fila-listado:last-child { border-bottom: none; }
+      .mensaje-cumple { text-align: left; background: #f7f7f7; border-radius: 8px; padding: 12px; font-size: 13px; color: #444; margin-top: 12px; }
+      .btn-copiar-cumple { width: 100%; margin-top: 14px; background: var(--color-primario); color: white; border: none; padding: 11px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+   </style>
 </head>
 
 <body>
@@ -39,6 +103,74 @@
          </div>
       </div>
    </nav>
+   <div id="layoutUsuarioNormal" style="display:none;">
+      <div class="contenedor-menu-usuario">
+         <div class="grid-compartida" id="gridMenuUsuario">
+            <div class="seccion-titulo-menu" style="grid-column: 1 / 3;">Tus módulos</div>
+            <div class="seccion-titulo-menu">Del panel gerencial</div>
+
+            <a href="{{ url_for('main.polizas') }}" class="tile-menu"><div class="icono-menu"><img src="{{ url_for('static',filename='assets/images/documentos.png') }}" /></div><h3>Pólizas</h3></a>
+            <a href="{{ url_for('main.endosos') }}" class="tile-menu"><div class="icono-menu"><img src="{{ url_for('static',filename='assets/images/documentos.png') }}" /></div><h3>Endosos</h3></a>
+            <div class="panel-card-menu" id="cardPolizasPorRenovarMenu" onclick="abrirModalListadoMenu('renovar')">
+               <div class="titulo">Pólizas por Renovar</div>
+               <div class="numero" id="valPolizasPorRenovarMenu">—</div>
+               <div class="detalle">Ver listado →</div>
+            </div>
+
+            <a href="{{ url_for('main.cliente') }}" class="tile-menu"><div class="icono-menu"><img src="{{ url_for('static',filename='assets/images/clientes.png') }}" /></div><h3>Clientes</h3></a>
+            <a href="{{ url_for('main.recibos') }}" class="tile-menu"><div class="icono-menu"><img src="{{ url_for('static',filename='assets/images/reportes.png') }}" /></div><h3>Recibos</h3></a>
+            <div class="panel-card-menu" id="cardRecibosPendientesMenu" onclick="abrirModalListadoMenu('recibos')">
+               <div class="titulo">Recibos Pendientes de Cobro</div>
+               <div class="numero" id="valRecibosPendientesMenu">—</div>
+               <div class="detalle">Ver listado →</div>
+            </div>
+
+            <a href="{{ url_for('main.vencimientos') }}" class="tile-menu"><div class="icono-menu"><img src="{{ url_for('static',filename='assets/images/vencimientos.png') }}" /></div><h3>Vencimientos</h3></a>
+            <a href="{{ url_for('main.reportes') }}" class="tile-menu"><div class="icono-menu"><img src="{{ url_for('static',filename='assets/images/reportes.png') }}" /></div><h3>Reportes</h3></a>
+            <div class="panel-card-menu" id="cardSolicitudesRegistroMenu" onclick="abrirModalListadoMenu('solicitudes')">
+               <div class="titulo">Solicitudes de Registro de Asegurado</div>
+               <div class="numero" id="valSolicitudesRegistroMenu">—</div>
+               <div class="detalle">Ver listado →</div>
+            </div>
+         </div>
+
+         <div class="franja-cumple-menu" id="franjaCumpleMenu" style="display:none;">
+            <div class="franja-cumple-titulo-menu">🎂 <span id="tituloCumpleMenu">Cumpleaños</span></div>
+            <div class="franja-cumple-pista-menu">
+               <div class="franja-cumple-lista-menu" id="listaCumpleMenu"></div>
+            </div>
+         </div>
+      </div>
+
+      <!-- Modal genérico de listado (pólizas por renovar / recibos pendientes / solicitudes de registro) -->
+      <div class="modal-menu-overlay" id="modalListadoMenu">
+         <div class="modal-menu-box">
+            <div class="modal-menu-header">
+               <h4 id="tituloModalListadoMenu">Listado</h4>
+               <button class="close-x" onclick="cerrarModalMenu('modalListadoMenu')">&times;</button>
+            </div>
+            <div class="modal-menu-body" id="contenidoModalListadoMenu">Cargando...</div>
+         </div>
+      </div>
+
+      <!-- Modal de saludo de cumpleaños -->
+      <div class="modal-menu-overlay" id="modalCumpleMenu">
+         <div class="modal-menu-box" style="max-width:400px;">
+            <div class="modal-menu-header">
+               <h4>Saludo de cumpleaños</h4>
+               <button class="close-x" onclick="cerrarModalMenu('modalCumpleMenu')">&times;</button>
+            </div>
+            <div class="modal-menu-body" style="text-align:center;">
+               <div style="font-size:32px; margin-bottom:10px;">🎉</div>
+               <p id="nombreCumpleModalMenu" style="font-weight:600; color:#2b2b2b;"></p>
+               <p class="mensaje-cumple" id="mensajeCumpleModalMenu"></p>
+               <button class="btn-copiar-cumple" onclick="copiarMensajeCumpleMenu()">📋 Copiar mensaje para WhatsApp</button>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <div id="layoutOtrosRoles" style="display:none;">
    <div class="general-card-container">
       <div class="tarjeta-container">
          <a href="{{ url_for('main.polizas') }}" class="card" id="polizas" style="display:none;">
@@ -125,6 +257,7 @@
          </a>
       </div>
    </div>
+   </div>
    <script type="text/javascript">
       const nivelUsuario = '{{acceso}}';
    </script>
@@ -138,6 +271,120 @@
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/controladores/menu.js') }}"></script>
+   <script>
+      // ============================================================
+      // Layout nuevo: solo para el rol "Usuario" -- el resto de roles
+      // (Administrador, Desarrollador) siguen viendo el layout de
+      // siempre, con su propia lógica de menu.js sin ningún cambio.
+      // ============================================================
+      let ultimosDatosMenuUsuario = { renovar: [], recibos: [], solicitudes: [] };
+      let cumpleDataMenu = [];
+      let mensajeCumpleActualMenu = '';
+
+      function formatMonedaMenu(valor, moneda) {
+         try {
+            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: moneda || 'MXN', maximumFractionDigits: 0 }).format(valor);
+         } catch (e) {
+            return `$${Math.round(valor).toLocaleString('es-MX')}`;
+         }
+      }
+
+      function cargarDatosMenuUsuario() {
+         fetch('/dashboard_gerencial/api/polizas_por_renovar/listado')
+            .then(r => r.json())
+            .then(data => {
+               ultimosDatosMenuUsuario.renovar = data.items;
+               document.getElementById('valPolizasPorRenovarMenu').textContent = data.items.length;
+            })
+            .catch(() => {});
+
+         fetch('/dashboard_gerencial/api/recibos_pendientes/listado')
+            .then(r => r.json())
+            .then(data => {
+               ultimosDatosMenuUsuario.recibos = data.items;
+               const totales = {};
+               data.items.forEach(it => { totales[it.moneda] = (totales[it.moneda] || 0) + it.primaTotal; });
+               const texto = Object.entries(totales).map(([m, v]) => formatMonedaMenu(v, m)).join(' / ') || formatMonedaMenu(0, 'MXN');
+               document.getElementById('valRecibosPendientesMenu').textContent = texto;
+            })
+            .catch(() => {});
+
+         fetch('/dashboard_gerencial/api/solicitudes_registro/listado')
+            .then(r => r.json())
+            .then(data => {
+               ultimosDatosMenuUsuario.solicitudes = data.items;
+               document.getElementById('valSolicitudesRegistroMenu').textContent = data.total;
+            })
+            .catch(() => {});
+
+         fetch('/api/cumpleanios')
+            .then(r => r.json())
+            .then(data => {
+               if (!data.items.length) return;
+               cumpleDataMenu = data.items;
+               document.getElementById('tituloCumpleMenu').textContent =
+                  data.periodo === 'hoy' ? 'Cumpleaños' : 'Cumpleaños esta semana';
+               const chips = data.items.map((p, i) =>
+                  `<div class="cumple-chip-menu" onclick="abrirModalCumpleMenu(${i})">${p.nombre}</div>`
+               ).join('');
+               // Se repite la lista una vez más para que el carrusel se vea continuo, sin cortes
+               document.getElementById('listaCumpleMenu').innerHTML = chips + chips;
+               document.getElementById('franjaCumpleMenu').style.display = 'flex';
+            })
+            .catch(() => {});
+      }
+
+      function abrirModalListadoMenu(tipo) {
+         const titulo = document.getElementById('tituloModalListadoMenu');
+         const contenido = document.getElementById('contenidoModalListadoMenu');
+         let items, render;
+
+         if (tipo === 'renovar') {
+            titulo.textContent = 'Pólizas por Renovar';
+            items = ultimosDatosMenuUsuario.renovar;
+            render = it => `<div class="fila-listado"><span>${it.poliza} — ${it.cliente}</span><span>${it.fechaTermino}</span></div>`;
+         } else if (tipo === 'recibos') {
+            titulo.textContent = 'Recibos Pendientes de Cobro';
+            items = ultimosDatosMenuUsuario.recibos;
+            render = it => `<div class="fila-listado"><span>${it.poliza} — ${it.cliente}</span><span>${formatMonedaMenu(it.primaTotal, it.moneda)}</span></div>`;
+         } else {
+            titulo.textContent = 'Solicitudes de Registro de Asegurado';
+            items = ultimosDatosMenuUsuario.solicitudes;
+            render = it => `<div class="fila-listado"><span>${it.nombre} ${it.apellido}</span><span>${it.rfc || 'N/D'}</span></div>`;
+         }
+
+         contenido.innerHTML = items.length
+            ? items.map(render).join('')
+            : '<p style="text-align:center;color:#999;">Sin resultados</p>';
+         document.getElementById('modalListadoMenu').classList.add('active');
+      }
+
+      function abrirModalCumpleMenu(indice) {
+         const p = cumpleDataMenu[indice];
+         if (!p) return;
+         document.getElementById('nombreCumpleModalMenu').textContent = `${p.nombre} cumple ${p.edad} años`;
+         mensajeCumpleActualMenu = `¡Feliz cumpleaños, ${p.nombre.split(' ')[0]}! De parte de todo el equipo de GGcorp te deseamos un excelente día. 🎉`;
+         document.getElementById('mensajeCumpleModalMenu').textContent = mensajeCumpleActualMenu;
+         document.getElementById('modalCumpleMenu').classList.add('active');
+      }
+
+      function copiarMensajeCumpleMenu() {
+         navigator.clipboard.writeText(mensajeCumpleActualMenu).then(() => {
+            alert('Mensaje copiado — pégalo en WhatsApp');
+         });
+      }
+
+      function cerrarModalMenu(id) {
+         document.getElementById(id).classList.remove('active');
+      }
+
+      if (nivelUsuario === 'Usuario') {
+         document.getElementById('layoutUsuarioNormal').style.display = 'block';
+         cargarDatosMenuUsuario();
+      } else {
+         document.getElementById('layoutOtrosRoles').style.display = 'block';
+      }
+   </script>
 </body>
 
 </html>
