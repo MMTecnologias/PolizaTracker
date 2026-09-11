@@ -298,6 +298,7 @@ def polizas_por_renovar_listado():
             .all())
 
     data = [{
+        'id': p.id,
         'poliza': p.poliza,
         'cliente': f'{c.nombre} {c.apellido}'.strip(),
         'aseguradora': a.aseguradora,
@@ -330,6 +331,7 @@ def recibos_pendientes_listado():
             .all())
 
     data = [{
+        'reciboId': r.id,
         'recibo': r.no_de_recibo,
         'poliza': p.poliza,
         'cliente': f'{c.nombre} {c.apellido}'.strip(),

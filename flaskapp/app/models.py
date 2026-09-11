@@ -55,7 +55,7 @@ class Cliente(db.Model):
     id = Column(Integer, primary_key=True)
     nombre = Column(String(50), nullable=False)
     apellido = Column(String(50), nullable=False)
-    grupo_id = Column(Integer, ForeignKey('grupos.id'), nullable=False)
+    grupo_id = Column(Integer, ForeignKey('grupos.id'), nullable=True)
     rfc = Column(String(13), nullable=False)
     # tel_oficina = Column(String(10))
     tel_movil = Column(String(10))

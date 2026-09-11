@@ -144,11 +144,17 @@ def mis_datos():
 
     # --- Bloque grupo: el resto de Clientes (típicamente empresas) que
     # comparten el mismo grupo_id, ej. las empresas de un mismo asegurado ---
-    companeros_grupo = (Cliente.query
-                         .filter(Cliente.grupo_id == cliente.grupo_id)
-                         .filter(Cliente.id != cliente_id)
-                         .filter(Cliente.status == 'Activo')
-                         .all())
+    # Si el cliente no tiene grupo asignado (grupo_id es None), no se
+    # busca -- comparar "None == None" incorrectamente juntaría a TODOS
+    # los clientes sin grupo como si fueran del mismo grupo.
+    if cliente.grupo_id is not None:
+        companeros_grupo = (Cliente.query
+                             .filter(Cliente.grupo_id == cliente.grupo_id)
+                             .filter(Cliente.id != cliente_id)
+                             .filter(Cliente.status == 'Activo')
+                             .all())
+    else:
+        companeros_grupo = []
     companeros_ids = [c.id for c in companeros_grupo]
     grupo_polizas, grupo_recibos = _polizas_y_recibos_de(
         companeros_ids, incluir_titular=True)
@@ -192,7 +198,10 @@ def descargar_pdf(poliza_id):
     es_del_grupo = False
     if not es_propia:
         dueño = Cliente.query.get(poliza.cliente_id)
-        es_del_grupo = bool(dueño) and dueño.grupo_id == cliente_sesion.grupo_id
+        # Igual que arriba: si cualquiera de los dos no tiene grupo
+        # asignado (None), nunca se cuentan como del mismo grupo.
+        es_del_grupo = (bool(dueño) and cliente_sesion.grupo_id is not None
+                         and dueño.grupo_id == cliente_sesion.grupo_id)
 
     if not (es_propia or es_del_grupo):
         return jsonify({'error': 'No autorizado'}), 403

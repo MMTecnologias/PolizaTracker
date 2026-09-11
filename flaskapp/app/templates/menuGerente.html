@@ -969,6 +969,7 @@
                      <th>Fin de Vigencia</th>
                      <th>Estado</th>
                      <th>Prima Total</th>
+                     <th>Acción</th>
                   </tr>
                </thead>
                <tbody></tbody>
@@ -1005,6 +1006,7 @@
                      <th>Vencimiento</th>
                      <th>Estado</th>
                      <th>Prima Total</th>
+                     <th>Acción</th>
                   </tr>
                </thead>
                <tbody></tbody>
@@ -1470,6 +1472,10 @@
             });
       }
 
+      function irARenovarPoliza(polizaId) {
+         window.location.href = `/polizas?renovar_id=${polizaId}`;
+      }
+
       function abrirModalRenovar() {
          const qs = new URLSearchParams({ desde: periodoActualDesde, hasta: periodoActualHasta }).toString();
          fetch(`/dashboard_gerencial/api/polizas_por_renovar/listado?${qs}`)
@@ -1492,8 +1498,9 @@
                      <td>${it.fechaTermino}</td>
                      <td>${it.status}</td>
                      <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
+                     <td><button class="solicitud-btn-aceptar" onclick="irARenovarPoliza(${it.id})">Renovar</button></td>
                   </tr>
-               `).join('') || '<tr><td colspan="7">Sin resultados</td></tr>';
+               `).join('') || '<tr><td colspan="8">Sin resultados</td></tr>';
                abrirModal('modalRenovar');
             });
       }
@@ -1537,7 +1544,7 @@
 
                const tbody = document.querySelector('#tablaRecibos tbody');
                tbody.innerHTML = data.items.map((it, i) => `
-                  <tr>
+                  <tr data-recibo-id="${it.reciboId}">
                      <td class="col-numero">${i + 1}</td>
                      <td>${it.recibo}</td>
                      <td><span class="poliza-link" onclick="abrirModalInfoPoliza('${it.poliza}')">${it.poliza}</span></td>
@@ -1546,8 +1553,9 @@
                      <td>${it.fechaVencimiento}</td>
                      <td>${it.status}</td>
                      <td>${formatMoneda(it.primaTotal, it.moneda)}</td>
+                     <td><button class="solicitud-btn-aceptar" onclick="marcarReciboPagado(${it.reciboId}, this)">Marcar pagado</button></td>
                   </tr>
-               `).join('') || '<tr><td colspan="8">Sin resultados</td></tr>';
+               `).join('') || '<tr><td colspan="9">Sin resultados</td></tr>';
 
                const totales = agruparMontoPorMoneda(data.items, 'primaTotal');
                const conteos = contarPorMoneda(data.items);
@@ -1555,6 +1563,54 @@
                   renderTotalPorMonedaHTML(totales, conteos, 'Total');
 
                abrirModal('modalRecibos');
+            });
+      }
+
+      function marcarReciboPagado(reciboId, boton) {
+         if (!confirm('¿Marcar este recibo como pagado?')) return;
+         boton.disabled = true;
+
+         const params = new URLSearchParams();
+         params.append('recibo_id', reciboId);
+         params.append('accion', 'Pagar');
+
+         fetch('/polizas/process_receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params,
+         })
+            .then(r => r.json())
+            .then(data => {
+               if (data.error) {
+                  alert(data.msg || 'No se pudo marcar el recibo como pagado.');
+                  boton.disabled = false;
+                  return;
+               }
+
+               // Se quita de la lista en pantalla (ya no está pendiente) y
+               // se recalculan los totales, sin necesidad de volver a
+               // pedir todo el listado al servidor.
+               const fila = boton.closest('tr');
+               fila.remove();
+
+               ultimosItemsPorModal.modalRecibos = ultimosItemsPorModal.modalRecibos.filter(
+                  it => it.reciboId !== reciboId);
+
+               const totales = agruparMontoPorMoneda(ultimosItemsPorModal.modalRecibos, 'primaTotal');
+               const conteos = contarPorMoneda(ultimosItemsPorModal.modalRecibos);
+               document.getElementById('totalRecibosPendientes').innerHTML =
+                  renderTotalPorMonedaHTML(totales, conteos, 'Total');
+
+               if (!ultimosItemsPorModal.modalRecibos.length) {
+                  document.querySelector('#tablaRecibos tbody').innerHTML =
+                     '<tr><td colspan="9">Sin resultados</td></tr>';
+               }
+
+               cargarPanorama(periodoActualDesde, periodoActualHasta);
+            })
+            .catch(() => {
+               alert('Ocurrió un error al marcar el recibo como pagado.');
+               boton.disabled = false;
             });
       }
 

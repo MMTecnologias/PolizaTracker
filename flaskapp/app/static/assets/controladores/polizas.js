@@ -3434,4 +3434,13 @@ $(function () {
   bindCurrencyFormatting('#prima_total');
 
   getPolizas();
+
+  // Si se llegó desde el dashboard con "?renovar_id=123" (botón
+  // "Renovar" en el modal de Pólizas por Renovar), abre el flujo de
+  // renovación automáticamente para esa póliza.
+  const parametrosUrl = new URLSearchParams(window.location.search);
+  const renovarIdDesdeUrl = parametrosUrl.get('renovar_id');
+  if (renovarIdDesdeUrl) {
+    renewPoliza(renovarIdDesdeUrl);
+  }
 });
