@@ -1816,9 +1816,8 @@
                 <div class="item-card">
                     <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
-                            <div class="item-title">${p.numero}${p.serie ? ` <span style="font-size:0.7em; font-weight:500; opacity:0.7;">· Serie: ${p.serie}</span>` : ''}</div>
+                            <div class="item-title">${p.numero}${p.serie ? ` <span style="font-size:0.95em; font-weight:600; opacity:0.85;">· Serie: ${p.serie}</span>` : ''}</div>
                             <div class="item-subtitle">${p.titular ? p.titular + ' • ' : ''}${p.tipo} • ${p.compania}</div>
-                            ${p.notas ? `<div class="item-subtitle" style="opacity:0.75; white-space: pre-line;">${p.notas}</div>` : ''}
                             <div class="item-status status-${estadoClase(p.estado)}">
                                 <svg class="icon" style="width: 14px; height: 14px; margin-right: 0.3rem;" viewBox="0 0 24 24" fill="currentColor">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -1875,6 +1874,12 @@
                                 <div class="detail-label">Estado</div>
                                 <div class="detail-value">${p.estado.toUpperCase()}</div>
                             </div>
+                            ${p.notas ? `
+                            <div class="detail-group" style="grid-column: 1 / -1;">
+                                <div class="detail-label">Observaciones</div>
+                                <div class="detail-value" style="white-space: pre-line;">${p.notas}</div>
+                            </div>
+                            ` : ''}
                         </div>
                         <div class="item-actions">
                             ${p.tienePdf ? `
