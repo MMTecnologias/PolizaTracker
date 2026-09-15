@@ -1102,9 +1102,6 @@
                     <span>GGcorp</span>
                 </div>
             </div>
-            <div class="search-container">
-                <input type="text" class="search-box" id="searchBox" placeholder="Buscar póliza, siniestro o recibo...">
-            </div>
             <div class="header-actions">
                 <div class="user-profile">
                     <div class="avatar" id="userAvatar">--</div>
@@ -1268,7 +1265,7 @@
                     <!-- SEARCH & FILTER BAR for POLIZAS -->
                     <div class="section-toolbar">
                         <div class="search-section">
-                            <input type="text" class="search-input" id="searchPolizas" placeholder="Buscar póliza por número, tipo o aseguradora...">
+                            <input type="text" class="search-input" id="searchPolizas" placeholder="Buscar póliza por número, serie, tipo o aseguradora...">
                         </div>
                         <button class="filter-toggle" id="filterTogglePolizas">
                             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
@@ -1579,6 +1576,8 @@
                     titular: p.titular || null,
                     tienePdf: p.tienePdf,
                     moneda: p.moneda,
+                    serie: p.serie || null,
+                    notas: p.notas || null,
                 }));
 
                 const recibos = bloque.recibos.map(r => {
@@ -1784,7 +1783,7 @@
             const fechaHastaVal = document.getElementById('fechaHastaFilterPolizas').value;
 
             let filtrado = data.polizas.filter(p => {
-                if (searchVal && !`${p.numero} ${p.tipo} ${p.compania}`.toLowerCase().includes(searchVal)) return false;
+                if (searchVal && !`${p.numero} ${p.tipo} ${p.compania} ${p.serie || ''}`.toLowerCase().includes(searchVal)) return false;
                 if (aseguradoraVal && p.compania !== aseguradoraVal) return false;
                 if (estadoVal && p.estado !== estadoVal) return false;
 
@@ -1817,8 +1816,9 @@
                 <div class="item-card">
                     <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
-                            <div class="item-title">${p.numero}</div>
+                            <div class="item-title">${p.numero}${p.serie ? ` <span style="font-size:0.7em; font-weight:500; opacity:0.7;">· Serie: ${p.serie}</span>` : ''}</div>
                             <div class="item-subtitle">${p.titular ? p.titular + ' • ' : ''}${p.tipo} • ${p.compania}</div>
+                            ${p.notas ? `<div class="item-subtitle" style="opacity:0.75; white-space: pre-line;">${p.notas}</div>` : ''}
                             <div class="item-status status-${estadoClase(p.estado)}">
                                 <svg class="icon" style="width: 14px; height: 14px; margin-right: 0.3rem;" viewBox="0 0 24 24" fill="currentColor">
                                     <circle cx="12" cy="12" r="10"></circle>

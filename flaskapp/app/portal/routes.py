@@ -104,6 +104,8 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
             'cuotasAlAño': cuotas or 1,
             'tienePdf': bool(poliza.pdf_path),
             'moneda': poliza.moneda,
+            'serie': poliza.serie,
+            'notas': poliza.notas,
         }
         if incluir_titular:
             item['titular'] = titular

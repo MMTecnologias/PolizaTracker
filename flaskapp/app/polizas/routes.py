@@ -256,6 +256,11 @@ def get():
         except ValueError:
             pass
 
+    filtro_sin_pdf = flask_request.form.get('filtro_sin_pdf')
+    if filtro_sin_pdf:
+        polizas_query = polizas_query.filter(
+            or_(Poliza.pdf_path.is_(None), Poliza.pdf_path == ''))
+
     total_records = polizas_query.count()
     if order:
         polizas_query = polizas_query.order_by(desc(Poliza.fecha_inicio))

@@ -464,6 +464,12 @@
                         <label>Vigencia hasta</label>
                         <input class="form-control" type="date" id="filtroFechaHasta" />
                      </div>
+                     <div class="polizas-filtros__campo" style="display:flex; flex-direction:column; justify-content:flex-end;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-bottom:0;">
+                           <input type="checkbox" id="filtroSinPdf" style="width:16px; height:16px; margin:0;" />
+                           Solo pólizas sin PDF
+                        </label>
+                     </div>
                      <div class="polizas-filtros__acciones">
                         <button class="btn px-3 py-2" type="button" id="btnAplicarFiltros" title="Aplicar filtros">
                            Aplicar

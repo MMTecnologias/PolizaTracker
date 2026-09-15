@@ -1875,6 +1875,11 @@ $(function () {
               poliza.id
             }" style="color: ${getTextColor(poliza.status)}">
                 ${poliza.poliza}
+                ${
+                  poliza.pdf_path
+                    ? ''
+                    : `<span title="Falta cargar el PDF de esta póliza — clic para subirlo" class="pointer" id="badgeSinPdf_${poliza.id}" style="display:inline-block; margin-left:6px; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:600; background-color:#fdecea; color:#c0392b; border:1px solid #f1b0a8; vertical-align:middle;">Sin PDF</span>`
+                }
             </p>
           </td>
           <td style="color: ${getTextColor(poliza.status)}">${
@@ -2016,6 +2021,10 @@ $(function () {
       $(`#td-clickable_${poliza.id}`).on('click', (e) => {
         $('#recib').modal();
         getRecibos(poliza.id);
+      });
+      $(`#badgeSinPdf_${poliza.id}`).on('click', (e) => {
+        e.stopPropagation();
+        uploadExistingPolicyPdf(poliza.id);
       });
       $(`#btnAddEndoso_${poliza.id}`).on('click', (e) => {
         $('#poliza_id').val(poliza.id);
@@ -2336,6 +2345,7 @@ $(function () {
     }
     if (desde) filtros.filtro_fecha_desde = desde;
     if (hasta) filtros.filtro_fecha_hasta = hasta;
+    if ($('#filtroSinPdf').is(':checked')) filtros.filtro_sin_pdf = true;
     return filtros;
   }
 
@@ -3291,6 +3301,7 @@ $(function () {
     $('#filtroFechaHasta').val('');
     $('#filtroMesRapido').val('');
     $('#filtroMesRapidoAnio').val('');
+    $('#filtroSinPdf').prop('checked', false);
     getPolizas(1, 0);
   });
 
