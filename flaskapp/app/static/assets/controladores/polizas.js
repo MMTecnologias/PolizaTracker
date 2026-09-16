@@ -1886,6 +1886,9 @@ $(function () {
             poliza.cliente
           }</td>
           <td style="color: ${getTextColor(poliza.status)}">${
+            poliza.serie || ''
+          }</td>
+          <td style="color: ${getTextColor(poliza.status)}">${
             poliza.fecha_inicio
           }</td>
           <td style="color: ${getTextColor(poliza.status)}">${

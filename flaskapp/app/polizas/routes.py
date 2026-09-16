@@ -193,6 +193,8 @@ def get():
                 f'%{search_normalized.replace(" ", "")}%'),
             func.lower(func.replace(Poliza.poliza, ' ', '')).like(
                 f'{search_normalized.replace(" ", "")}%'),
+            func.lower(func.replace(Poliza.serie, ' ', '')).like(
+                f'%{search_normalized.replace(" ", "")}%'),
         ))
 
     # Filtros estructurados (panel de "Filtros"): se combinan entre sí con
