@@ -28,6 +28,10 @@ $(function () {
   // infinito.
   let polizasAutoAdjustAttempts = 0;
   const POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS = 5;
+  // Página que el usuario está viendo actualmente. Se usa para que el
+  // ajuste automático de tamaño (arriba) recargue la MISMA página en
+  // vez de regresar siempre a la página 1.
+  let polizasCurrentPage = 1;
 
   // Menú de acciones ("3 puntos") de la tabla de pólizas: al abrirse se
   // saca del flujo normal y se pega al <body> con position:fixed, para
@@ -1852,6 +1856,7 @@ $(function () {
   }
 
   function fillTablePolizas(resp, currentPage, itemsOnPage) {
+    polizasCurrentPage = currentPage;
     const { data, recordsTotal } = resp;
     totalPolizas = recordsTotal;
     $('#polizasTotalLabel').text(
@@ -2426,7 +2431,11 @@ $(function () {
 
     polizasAutoAdjustAttempts += 1;
     polizasItemsOnPage = idealCount;
-    getPolizas(1, 0, true);
+    // Recarga la MISMA página que el usuario está viendo (no siempre la
+    // 1) -- así el ajuste de tamaño no interrumpe la navegación entre
+    // páginas.
+    const start = (polizasCurrentPage - 1) * idealCount;
+    getPolizas(polizasCurrentPage, start, true);
   }
 
   // Recalcula al cambiar el tamaño de la ventana (debounced), porque la
