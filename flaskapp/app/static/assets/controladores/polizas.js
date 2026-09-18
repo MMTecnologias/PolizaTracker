@@ -2119,6 +2119,8 @@ $(function () {
 
     const table = $('#receiptsTable');
     table.html('');
+    const hayCancelados = data.some((r) => r.cancelado);
+    $('#tablaRecibosCompacta').toggleClass('tiene-cancelados', hayCancelados);
     $.each(data, function (idx, recibo) {
       const fechaPago = displayCellValue(recibo.fecha_pago);
       table.append(
@@ -2141,22 +2143,20 @@ $(function () {
                 </a>`
                 : ''
             } </td>
-            <td>${recibo.cancelado ? 'Cancelado' : ''}</td>
+            <td class="col-cancelado">${recibo.cancelado ? 'Cancelado' : ''}</td>
             <td>
-              <button type="button" class="btn px-2 py-1" id="btnUploadComprobante_${recibo.id}">
-                Cargar
-              </button>
-              <button type="button" class="btn px-2 py-1" id="btnViewComprobante_${recibo.id}">
-                Ver/Descargar
-              </button>
+              ${
+                recibo.comprobante
+                  ? `<button type="button" class="btn px-2 py-1" id="btnViewComprobante_${recibo.id}">Ver/Descargar</button>`
+                  : `<button type="button" class="btn px-2 py-1" id="btnUploadComprobante_${recibo.id}">Cargar</button>`
+              }
             </td>
             <td>
-              <button type="button" class="btn px-2 py-1" id="btnUploadComplemento_${recibo.id}">
-                Cargar
-              </button>
-              <button type="button" class="btn px-2 py-1" id="btnViewComplemento_${recibo.id}">
-                Ver/Descargar
-              </button>
+              ${
+                recibo.complemento_pago_pdf && recibo.complemento_pago_xml
+                  ? `<button type="button" class="btn px-2 py-1" id="btnViewComplemento_${recibo.id}">Ver/Descargar</button>`
+                  : `<button type="button" class="btn px-2 py-1" id="btnUploadComplemento_${recibo.id}">Cargar</button>`
+              }
             </td>
          </tr>`,
       );
@@ -2173,22 +2173,28 @@ $(function () {
         $('#poliza_id').val(poliza_id);
         $('#edit_recib_date').modal();
       });
-      $(`#btnUploadComprobante_${recibo.id}`).on('click', (e) => {
-        e.preventDefault();
-        uploadReceiptComprobante(recibo.id, () => getRecibos(poliza_id));
-      });
-      $(`#btnViewComprobante_${recibo.id}`).on('click', (e) => {
-        e.preventDefault();
-        viewReceiptComprobante(recibo);
-      });
-      $(`#btnUploadComplemento_${recibo.id}`).on('click', (e) => {
-        e.preventDefault();
-        uploadReceiptComplemento(recibo.id, () => getRecibos(poliza_id));
-      });
-      $(`#btnViewComplemento_${recibo.id}`).on('click', (e) => {
-        e.preventDefault();
-        viewReceiptComplemento(recibo);
-      });
+      if (recibo.comprobante) {
+        $(`#btnViewComprobante_${recibo.id}`).on('click', (e) => {
+          e.preventDefault();
+          viewReceiptComprobante(recibo);
+        });
+      } else {
+        $(`#btnUploadComprobante_${recibo.id}`).on('click', (e) => {
+          e.preventDefault();
+          uploadReceiptComprobante(recibo.id, () => getRecibos(poliza_id));
+        });
+      }
+      if (recibo.complemento_pago_pdf && recibo.complemento_pago_xml) {
+        $(`#btnViewComplemento_${recibo.id}`).on('click', (e) => {
+          e.preventDefault();
+          viewReceiptComplemento(recibo);
+        });
+      } else {
+        $(`#btnUploadComplemento_${recibo.id}`).on('click', (e) => {
+          e.preventDefault();
+          uploadReceiptComplemento(recibo.id, () => getRecibos(poliza_id));
+        });
+      }
     });
     if (!data.length) return $('#pagination-recibos').html('');
     $('#pagination-recibos').pagination({

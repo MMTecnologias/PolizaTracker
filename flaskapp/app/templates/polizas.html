@@ -16,7 +16,7 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
-   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=17" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=20" />
    <style>
       .pdf-upload-area {
          border: 2px dashed #cbd5e0;
@@ -72,15 +72,25 @@
       desperdiciar espacio. */
    #tablaRecibosCompacta th,
    #tablaRecibosCompacta td {
-      padding: 0.35rem 0.5rem;
-      font-size: 0.82rem;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.75rem;
       vertical-align: middle;
-      white-space: nowrap;
+      white-space: normal;
+   }
+   #tablaRecibosCompacta th {
+      white-space: normal;
+      line-height: 1.15;
    }
    #tablaRecibosCompacta .btn {
-      font-size: 0.72rem;
-      padding: 0.2rem 0.45rem;
-      margin: 1px 0;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      margin: 0;
+   }
+   #tablaRecibosCompacta .col-cancelado {
+      display: none;
+   }
+   #tablaRecibosCompacta.tiene-cancelados .col-cancelado {
+      display: table-cell;
    }
    </style>
    <link rel="stylesheet"
@@ -546,6 +556,7 @@
                <div class="row pb-4">
                   <div class="col-12">
                      <h4 class="header-title">Lista de Recibos</h4>
+                     <div class="table-responsive">
                      <table class="table table-sm" id="tablaRecibosCompacta">
                         <thead class="tableHeader">
                            <tr>
@@ -557,14 +568,15 @@
                               <th scope="col">Moneda</th>
                               <th scope="col">Pagado</th>
                               <th scope="col">Fecha de Pago</th>
-                              <th scope="col">Cancelado</th>
+                              <th scope="col" class="col-cancelado">Cancelado</th>
                               <th scope="col">Aviso de Cobro</th>
-                              <th scope="col">Complemento de Pago</th>
+                              <th scope="col">Complemento</th>
                            </tr>
                         </thead>
                         <tbody id="receiptsTable">
                         </tbody>
                      </table>
+                     </div>
                   </div>
                </div>
                <div class="w-100 d-flex justify-content-center">
@@ -864,7 +876,7 @@
    </div>
 
    <!-- main content area end -->
-   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=17"></script>
+   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=20"></script>
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>

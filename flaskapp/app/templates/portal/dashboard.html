@@ -1397,7 +1397,7 @@
                     </div>
 
                     <!-- FILTER PANEL for RECIBOS -->
-                    <div class="filter-panel-inline" id="filterPanelRecibos">
+                    <div class="filter-panel-inline active" id="filterPanelRecibos">
                         <div class="filter-panel-content">
                             <div class="filter-group">
                                 <label>Póliza</label>
@@ -2135,7 +2135,7 @@
         function verComplementoPago(reciboId, tienePdf, tieneXml) {
             const opciones = [];
             if (tienePdf) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_pdf', '_blank')">Ver PDF</button>`);
-            if (tieneXml) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_xml', '_blank')">Ver XML</button>`);
+            if (tieneXml) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_xml', '_blank')">Descargar XML</button>`);
 
             const contenedor = document.createElement('div');
             contenedor.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:9999;';
