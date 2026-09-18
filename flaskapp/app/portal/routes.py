@@ -243,7 +243,7 @@ def descargar_pdf(poliza_id):
     return send_from_directory(
         directory,
         filename,
-        as_attachment=True,
+        as_attachment=False,
         download_name=f'poliza_{poliza.poliza}.pdf'
     )
 
