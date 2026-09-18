@@ -274,6 +274,11 @@ def descargar_recibo_doc(recibo_id, tipo):
         'complemento_pdf': recibo.complemento_pago_pdf,
         'complemento_xml': recibo.complemento_pago_xml,
     }
+    original_por_tipo = {
+        'aviso_cobro': recibo.comprobante_original,
+        'complemento_pdf': recibo.complemento_pago_pdf_original,
+        'complemento_xml': recibo.complemento_pago_xml_original,
+    }
     carpeta_por_tipo = {
         'aviso_cobro': 'recibos_comprobantes',
         'complemento_pdf': 'recibos_complementos_pago',
@@ -286,9 +291,17 @@ def descargar_recibo_doc(recibo_id, tipo):
 
     from werkzeug.utils import secure_filename
     filename = secure_filename(stored_filename)
+    original_filename = original_por_tipo[tipo] or filename
     folder = os.path.join(current_app.root_path, 'static', carpeta_por_tipo[tipo])
     file_path = os.path.join(folder, filename)
     if not os.path.exists(file_path):
         return jsonify({'error': 'El archivo no existe'}), 404
 
-    return send_from_directory(folder, filename, as_attachment=False)
+    # El XML se descarga directo; el PDF/aviso se abren para verse en el navegador.
+    es_descarga_directa = (tipo == 'complemento_xml')
+    return send_from_directory(
+        folder,
+        filename,
+        as_attachment=es_descarga_directa,
+        download_name=original_filename,
+    )

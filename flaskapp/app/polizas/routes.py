@@ -1706,6 +1706,7 @@ def upload_receipt_comprobante():
         pdf_file.write(file_content)
 
     recibo.comprobante = filename
+    recibo.comprobante_original = secure_filename(file.filename)
     request_entry = Request(usuario_id=current_user.id,
                             description=f"Cargar comprobante de pago del recibo {recibo.no_de_recibo}",
                             status="Aceptada",
@@ -1736,7 +1737,12 @@ def download_receipt_comprobante(recibo_id):
     if not os.path.exists(file_path):
         return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
 
-    return send_from_directory(folder, filename, as_attachment=False)
+    return send_from_directory(
+        folder,
+        filename,
+        as_attachment=False,
+        download_name=recibo.comprobante_original or filename,
+    )
 
 
 def get_receipt_complemento_folder():
@@ -1786,6 +1792,7 @@ def upload_receipt_complemento():
         with open(os.path.join(folder, pdf_filename), 'wb') as f:
             f.write(pdf_content)
         recibo.complemento_pago_pdf = pdf_filename
+        recibo.complemento_pago_pdf_original = secure_filename(pdf_file.filename)
 
     if xml_file and xml_file.filename:
         if not xml_file.filename.lower().endswith('.xml'):
@@ -1809,6 +1816,7 @@ def upload_receipt_complemento():
         with open(os.path.join(folder, xml_filename), 'wb') as f:
             f.write(xml_content)
         recibo.complemento_pago_xml = xml_filename
+        recibo.complemento_pago_xml_original = secure_filename(xml_file.filename)
 
     request_entry = Request(usuario_id=current_user.id,
                             description=f"Cargar complemento de pago del recibo {recibo.no_de_recibo}",
@@ -1846,7 +1854,17 @@ def download_receipt_complemento(recibo_id, tipo):
     if not os.path.exists(file_path):
         return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
 
-    return send_from_directory(folder, filename, as_attachment=False)
+    original_filename = (recibo.complemento_pago_pdf_original if tipo == 'pdf'
+                          else recibo.complemento_pago_xml_original)
+    # El XML se descarga directo (no tiene mucho sentido "verlo" en el
+    # navegador); el PDF se abre para verse, igual que el aviso de cobro.
+    es_descarga_directa = (tipo == 'xml')
+    return send_from_directory(
+        folder,
+        filename,
+        as_attachment=es_descarga_directa,
+        download_name=original_filename or filename,
+    )
 
 
 # @main.route('/get_data_multiple', methods=['GET'])
