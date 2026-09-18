@@ -30,7 +30,6 @@ USO (parado en la carpeta flaskapp/):
 """
 import sys
 import os
-import re
 import shutil
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -39,18 +38,21 @@ from app import app
 from app.models import Cliente, Poliza, Recibo
 from app.utils.document_storage import get_carpeta_documento
 
-# Nombres generados por el sistema al subir un archivo (ej.
-# r14403_3f098a09.pdf, cp99_a1b2c3d4.xml, fp3725_d4b49916.pdf,
-# dp10_9f8e7d6c.pdf). Cualquier otro valor guardado en estos campos
-# (como "TC", "tc") es dato viejo que no corresponde a un archivo
-# real -- probablemente una anotación manual de antes de que
-# existiera la función de subir documentos -- y se omite del reporte
-# de "no encontrado" para no generar ruido.
-_PATRON_NOMBRE_GENERADO = re.compile(r'^[a-z]{1,3}\d+_[0-9a-f]{8}\.(pdf|xml)$', re.IGNORECASE)
+# Nombres reales de documentos SIEMPRE terminan en .pdf o .xml --
+# vienen de dos orígenes distintos: los generados por el sistema (ej.
+# r14403_3f098a09.pdf, cp99_a1b2c3d4.xml) y los más viejos, que
+# conservan (normalizado) el nombre original con el que se subieron
+# (ej. sergio_lopez_bonilla_1002000007277_cf367e0a.pdf). Cualquier
+# valor SIN extensión .pdf/.xml (como "TC", "tc", "transfer") es dato
+# viejo que no corresponde a un archivo real -- probablemente una
+# anotación manual de antes de que existiera la función de subir
+# documentos -- y se omite del reporte de "no encontrado" para no
+# generar ruido.
+_EXTENSIONES_VALIDAS = ('.pdf', '.xml')
 
 
 def _parece_archivo_real(valor):
-    return bool(_PATRON_NOMBRE_GENERADO.match(valor or ''))
+    return bool(valor) and valor.lower().endswith(_EXTENSIONES_VALIDAS)
 
 
 def _ruta_vieja_recibo_comprobante(recibo):
@@ -179,16 +181,15 @@ def migrar(aplicar=False):
 
         if faltantes:
             print(f"{'='*90}")
-            print(f"ADVERTENCIA: {len(faltantes)} archivo(s) SI parecen nombres de archivo real "
-                  f"(ej. r123_abcd1234.pdf) pero no se encontraron -- estos si vale la pena "
+            print(f"ADVERTENCIA: {len(faltantes)} archivo(s) SI parecen documentos reales "
+                  f"(terminan en .pdf/.xml) pero no se encontraron -- estos si vale la pena "
                   f"revisarlos a mano.")
             print(f"{'='*90}\n")
 
         if omitidos:
             print(f"{'='*90}")
-            print("Valores omitidos por no parecer nombres de archivo real (se listan solo "
-                  "para que los veas, no requieren acción a menos que reconozcas alguno como "
-                  "un archivo real con un nombre distinto al esperado):")
+            print("Valores omitidos por no terminar en .pdf/.xml (no son archivos, sino texto "
+                  "viejo tipo 'TC' o 'transfer'):")
             print(f"{'='*90}")
             valores_unicos = sorted(set(o['valor'] for o in omitidos))
             for valor in valores_unicos:
