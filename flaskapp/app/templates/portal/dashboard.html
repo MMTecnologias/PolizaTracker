@@ -1596,8 +1596,10 @@
                         fechaPago: r.fechaPago,
                         concepto: poliza ? `Prima ${poliza.tipo}` : 'Prima de póliza',
                         estado: r.status,
-                        reciboPDF: r.comprobante || '',
-                        comprobanteAseguradora: r.comprobante || '',
+                        id: r.id,
+                        tieneAvisoCobro: !!r.tieneAvisoCobro,
+                        tieneComplementoPdf: !!r.tieneComplementoPdf,
+                        tieneComplementoXml: !!r.tieneComplementoXml,
                     };
                 });
 
@@ -2090,22 +2092,24 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            ${r.comprobante ? `
-                            <button class="btn-action" onclick="event.stopPropagation(); descargarRecibo('${r.numero}', '${r.reciboPDF}')">
+                            ${r.tieneAvisoCobro ? `
+                            <button class="btn-action" onclick="event.stopPropagation(); descargarAvisoCobro(${r.id})">
                                 <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                 </svg>
-                                Recibo de Pago
+                                Aviso de Cobro
                             </button>
-                            <button class="btn-action" onclick="event.stopPropagation(); descargarComprobante('${r.numero}', '${r.comprobanteAseguradora}')">
+                            ` : ''}
+                            ${(r.tieneComplementoPdf || r.tieneComplementoXml) ? `
+                            <button class="btn-action" onclick="event.stopPropagation(); verComplementoPago(${r.id}, ${r.tieneComplementoPdf}, ${r.tieneComplementoXml})">
                                 <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="7 10 12 15 17 10"></polyline>
                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                 </svg>
-                                Comprobante Aseguradora
+                                Complemento de Pago
                             </button>
                             ` : ''}
                         </div>
@@ -2124,32 +2128,28 @@
             window.location.href = `/portal/descargar_pdf/${polizaId}`;
         }
 
-        function descargarRecibo(numero, archivo) {
-            const enlace = document.createElement('a');
-            enlace.href = '#';
-            enlace.download = archivo;
-            enlace.textContent = archivo;
-            
-            // Simular descarga con notificación
-            alert(`Iniciando descarga de recibo...\n\nArchivo: ${archivo}\nRecibo: ${numero}`);
-            
-            // En un ambiente real, aquí iría una URL real del servidor
-            // enlace.href = `/descargar/recibos/${archivo}`;
-            // enlace.click();
+        function descargarAvisoCobro(reciboId) {
+            window.open(`/portal/descargar_recibo_doc/${reciboId}/aviso_cobro`, '_blank');
         }
 
-        function descargarComprobante(numero, archivo) {
-            const enlace = document.createElement('a');
-            enlace.href = '#';
-            enlace.download = archivo;
-            enlace.textContent = archivo;
-            
-            // Simular descarga con notificación
-            alert(`Iniciando descarga de comprobante...\n\nArchivo: ${archivo}\nRecibo: ${numero}\nComprobante de la aseguradora`);
-            
-            // En un ambiente real, aquí iría una URL real del servidor
-            // enlace.href = `/descargar/comprobantes/${archivo}`;
-            // enlace.click();
+        function verComplementoPago(reciboId, tienePdf, tieneXml) {
+            const opciones = [];
+            if (tienePdf) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_pdf', '_blank')">Ver PDF</button>`);
+            if (tieneXml) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_xml', '_blank')">Ver XML</button>`);
+
+            const contenedor = document.createElement('div');
+            contenedor.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:9999;';
+            contenedor.innerHTML = `
+                <div style="background:#fff; border-radius:10px; padding:20px; min-width:260px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="font-weight:600; margin-bottom:4px;">Complemento de Pago</div>
+                    ${opciones.join('')}
+                    <button type="button" class="btn-action" style="width:100%; justify-content:center; opacity:0.7;" onclick="this.closest('div[style*=fixed]').remove()">Cerrar</button>
+                </div>
+            `;
+            contenedor.addEventListener('click', (e) => {
+                if (e.target === contenedor) contenedor.remove();
+            });
+            document.body.appendChild(contenedor);
         }
 
         // Calculate vencimientos del mes

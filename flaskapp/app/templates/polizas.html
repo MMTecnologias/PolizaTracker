@@ -67,6 +67,21 @@
          align-items: center;
          justify-content: center;
       }
+   /* Tabla de Recibos (modal) más compacta: menos padding y botones
+      más pequeños, para que quepan las 2 columnas de documentos sin
+      desperdiciar espacio. */
+   #tablaRecibosCompacta th,
+   #tablaRecibosCompacta td {
+      padding: 0.35rem 0.5rem;
+      font-size: 0.82rem;
+      vertical-align: middle;
+      white-space: nowrap;
+   }
+   #tablaRecibosCompacta .btn {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.45rem;
+      margin: 1px 0;
+   }
    </style>
    <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
@@ -520,7 +535,7 @@
 
    <!-- Modal listado recibos -->
    <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
-      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document" style="max-width: 1150px;">
          <div class="modal-content">
             <div class="modal-header">
                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -531,7 +546,7 @@
                <div class="row pb-4">
                   <div class="col-12">
                      <h4 class="header-title">Lista de Recibos</h4>
-                     <table class="table">
+                     <table class="table table-sm" id="tablaRecibosCompacta">
                         <thead class="tableHeader">
                            <tr>
                               <th scope="col">Número</th>
@@ -543,7 +558,8 @@
                               <th scope="col">Pagado</th>
                               <th scope="col">Fecha de Pago</th>
                               <th scope="col">Cancelado</th>
-                              <th scope="col">Comprobante</th>
+                              <th scope="col">Aviso de Cobro</th>
+                              <th scope="col">Complemento de Pago</th>
                            </tr>
                         </thead>
                         <tbody id="receiptsTable">

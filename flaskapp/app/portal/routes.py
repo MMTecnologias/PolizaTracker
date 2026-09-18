@@ -118,6 +118,7 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
                    .order_by(Recibo.fecha_vencimiento)
                    .all())
         recibos_json = [{
+            'id': r.id,
             'numero': r.no_de_recibo,
             'polizaId': r.poliza_id,
             'fechaInicio': r.fecha_inicio.strftime('%d/%m/%Y'),
@@ -127,6 +128,9 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
             'primaTotal': float(r.prima_total),
             'status': r.status,
             'comprobante': r.comprobante,
+            'tieneAvisoCobro': bool(r.comprobante),
+            'tieneComplementoPdf': bool(r.complemento_pago_pdf),
+            'tieneComplementoXml': bool(r.complemento_pago_xml),
         } for r in recibos]
 
     return polizas_json, recibos_json
@@ -229,3 +233,62 @@ def descargar_pdf(poliza_id):
         as_attachment=True,
         download_name=f'poliza_{poliza.poliza}.pdf'
     )
+
+
+@portal.route('/descargar_recibo_doc/<int:recibo_id>/<tipo>', methods=['GET'])
+@portal_login_required
+def descargar_recibo_doc(recibo_id, tipo):
+    """
+    Sirve el aviso de cobro o el complemento de pago (PDF/XML) de un
+    recibo, solo si la póliza de ese recibo le pertenece al cliente en
+    sesión o a algún compañero de su mismo grupo. Mismo criterio de
+    propiedad que descargar_pdf.
+    """
+    if tipo not in ('aviso_cobro', 'complemento_pdf', 'complemento_xml'):
+        return jsonify({'error': 'Tipo de documento inválido'}), 400
+
+    recibo = Recibo.query.get(recibo_id)
+    if not recibo:
+        return jsonify({'error': 'Recibo no encontrado'}), 404
+
+    poliza = Poliza.query.get(recibo.poliza_id)
+    if not poliza:
+        return jsonify({'error': 'Póliza no encontrada'}), 404
+
+    cliente_sesion = Cliente.query.get(session.get('portal_cliente_id'))
+    if not cliente_sesion:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    es_propia = poliza.cliente_id == cliente_sesion.id
+    es_del_grupo = False
+    if not es_propia:
+        dueño = Cliente.query.get(poliza.cliente_id)
+        es_del_grupo = (bool(dueño) and cliente_sesion.grupo_id is not None
+                         and dueño.grupo_id == cliente_sesion.grupo_id)
+
+    if not (es_propia or es_del_grupo):
+        return jsonify({'error': 'No autorizado'}), 403
+
+    campo_por_tipo = {
+        'aviso_cobro': recibo.comprobante,
+        'complemento_pdf': recibo.complemento_pago_pdf,
+        'complemento_xml': recibo.complemento_pago_xml,
+    }
+    carpeta_por_tipo = {
+        'aviso_cobro': 'recibos_comprobantes',
+        'complemento_pdf': 'recibos_complementos_pago',
+        'complemento_xml': 'recibos_complementos_pago',
+    }
+
+    stored_filename = campo_por_tipo[tipo]
+    if not stored_filename:
+        return jsonify({'error': 'No se ha cargado el documento aun'}), 404
+
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(stored_filename)
+    folder = os.path.join(current_app.root_path, 'static', carpeta_por_tipo[tipo])
+    file_path = os.path.join(folder, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'El archivo no existe'}), 404
+
+    return send_from_directory(folder, filename, as_attachment=False)

@@ -171,6 +171,8 @@ class Recibo(db.Model):
                     'Cancelado'), nullable=False, default='Pendiente')
     fecha_pago = Column(Date)
     comprobante = Column(String(30))
+    complemento_pago_pdf = Column(String(60))
+    complemento_pago_xml = Column(String(60))
     no_de_recibo = Column(String(30), default="1 / 1")
 
 

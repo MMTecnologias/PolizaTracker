@@ -2150,6 +2150,14 @@ $(function () {
                 Ver/Descargar
               </button>
             </td>
+            <td>
+              <button type="button" class="btn px-2 py-1" id="btnUploadComplemento_${recibo.id}">
+                Cargar
+              </button>
+              <button type="button" class="btn px-2 py-1" id="btnViewComplemento_${recibo.id}">
+                Ver/Descargar
+              </button>
+            </td>
          </tr>`,
       );
       if (recibo.pagado) $(`#check_pagado${recibo.id}`).prop('checked', true);
@@ -2172,6 +2180,14 @@ $(function () {
       $(`#btnViewComprobante_${recibo.id}`).on('click', (e) => {
         e.preventDefault();
         viewReceiptComprobante(recibo);
+      });
+      $(`#btnUploadComplemento_${recibo.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadReceiptComplemento(recibo.id, () => getRecibos(poliza_id));
+      });
+      $(`#btnViewComplemento_${recibo.id}`).on('click', (e) => {
+        e.preventDefault();
+        viewReceiptComplemento(recibo);
       });
     });
     if (!data.length) return $('#pagination-recibos').html('');
@@ -2482,8 +2498,7 @@ $(function () {
     });
   }
 
-  function uploadReceiptComprobante(reciboId, onSuccess) {
-    const fileInput = $('<input type="file" accept=".pdf" style="display:none;" />');
+  function uploadReceiptComprobante(reciboId, onSuccess) {    const fileInput = $('<input type="file" accept=".pdf" style="display:none;" />');
     $('body').append(fileInput);
 
     fileInput.on('change', function () {
@@ -2588,6 +2603,109 @@ $(function () {
       return;
     }
     window.open(`/polizas/download_receipt_comprobante/${recibo.id}`, '_blank');
+  }
+
+  function uploadReceiptComplemento(reciboId, onSuccess) {
+    const fileInput = $(
+      '<input type="file" accept=".pdf,.xml" multiple style="display:none;" />',
+    );
+    $('body').append(fileInput);
+
+    fileInput.on('change', function () {
+      const files = Array.from(this.files || []);
+      fileInput.remove();
+      if (!files.length) return;
+
+      const pdfFile = files.find((f) => f.name.toLowerCase().endsWith('.pdf'));
+      const xmlFile = files.find((f) => f.name.toLowerCase().endsWith('.xml'));
+      const invalido = files.find(
+        (f) => !f.name.toLowerCase().endsWith('.pdf') && !f.name.toLowerCase().endsWith('.xml'),
+      );
+      if (invalido || (!pdfFile && !xmlFile)) {
+        alert(
+          'Selecciona el PDF y/o el XML del complemento de pago',
+          'warning',
+          'Archivo inválido',
+        );
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('recibo_id', reciboId);
+      if (pdfFile) formData.append('complemento_pdf', pdfFile);
+      if (xmlFile) formData.append('complemento_xml', xmlFile);
+
+      Swal.fire({
+        title: 'Cargando complemento de pago...',
+        text: 'Guardando documento(s)',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      $.ajax({
+        type: 'POST',
+        url: '/polizas/upload_receipt_complemento',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (resp) {
+          Swal.close();
+          if (resp.error) {
+            alert(resp.msg, 'error', 'Error');
+          } else {
+            alert(resp.msg, 'success', 'Complemento cargado');
+            if (onSuccess) onSuccess();
+          }
+        },
+        error: function () {
+          Swal.close();
+          alert('Error al cargar el complemento de pago', 'error', 'Error');
+        },
+      });
+    });
+
+    fileInput.trigger('click');
+  }
+
+  function viewReceiptComplemento(recibo) {
+    if (!recibo.complemento_pago_pdf && !recibo.complemento_pago_xml) {
+      alert(
+        'No se ha cargado el complemento de pago aun',
+        'warning',
+        'Sin complemento de pago',
+      );
+      return;
+    }
+    Swal.fire({
+      title: 'Complemento de Pago',
+      html: `
+        <div class="d-flex flex-column" style="gap: 8px;">
+          <button type="button" class="btn" id="btnVerComplementoPdf" ${
+            recibo.complemento_pago_pdf ? '' : 'disabled'
+          }>Ver PDF</button>
+          <button type="button" class="btn" id="btnVerComplementoXml" ${
+            recibo.complemento_pago_xml ? '' : 'disabled'
+          }>Ver XML</button>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      didOpen: () => {
+        $('#btnVerComplementoPdf').on('click', () => {
+          window.open(
+            `/polizas/download_receipt_complemento/${recibo.id}/pdf`,
+            '_blank',
+          );
+        });
+        $('#btnVerComplementoXml').on('click', () => {
+          window.open(
+            `/polizas/download_receipt_complemento/${recibo.id}/xml`,
+            '_blank',
+          );
+        });
+      },
+    });
   }
 
   function getRecibos(poliza_id, endoso_id, pageNumber = 1, start = 0) {
