@@ -119,6 +119,10 @@ class Poliza(db.Model):
     # ADD COLUMN `Poliza_renovada` ENUM('Si', 'No') NOT NULL DEFAULT 'No' AFTER `conducta_pago`;
     Poliza_renovada = Column(Enum('Si', 'No'), nullable=False, default='No')
     pdf_path = Column(String(255), nullable=True)
+    factura_pdf = Column(String(60))
+    factura_xml = Column(String(60))
+    factura_pdf_original = Column(String(255))
+    factura_xml_original = Column(String(255))
 
 
 class Endoso(db.Model):

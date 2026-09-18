@@ -1960,13 +1960,31 @@ $(function () {
                 </a>
               </li>
               `
-                  : ''
-              }
+                  : `
               <li>
                 <a title="Cargar PDF de póliza" class="btn__icon_show pointer" id="btnUploadPolicyPdfFull_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
                 </a>
               </li>
+              `
+              }
+              ${
+                poliza.factura_pdf && poliza.factura_xml
+                  ? `
+              <li>
+                <a title="Ver/Descargar factura" class="btn__icon_show pointer" id="btnViewFacturaFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                </a>
+              </li>
+              `
+                  : `
+              <li>
+                <a title="Cargar factura de póliza" class="btn__icon_show pointer" id="btnUploadFacturaFull_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80Zm120-200h80v-160h120L480-920 320-760h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                </a>
+              </li>
+              `
+              }
               <li>
                 <a title="Cancelar poliza" class="btn__icon_delete pointer" id="btnDeleteFull_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
@@ -2010,12 +2028,22 @@ $(function () {
                   <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/></svg>
                   Ver PDF
                 </a>`
-                    : ''
-                }
-                <a title="Cargar PDF de póliza" class="dropdown-item pointer" id="btnUploadPolicyPdf_${poliza.id}">
+                    : `<a title="Cargar PDF de póliza" class="dropdown-item pointer" id="btnUploadPolicyPdf_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
                   Cargar PDF
-                </a>
+                </a>`
+                }
+                ${
+                  poliza.factura_pdf && poliza.factura_xml
+                    ? `<a title="Ver/Descargar factura" class="dropdown-item pointer" id="btnViewFactura_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                  Ver/Descargar factura
+                </a>`
+                    : `<a title="Cargar factura de póliza" class="dropdown-item pointer" id="btnUploadFactura_${poliza.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80Zm120-200h80v-160h120L480-920 320-760h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
+                  Cargar factura
+                </a>`
+                }
                 <div class="dropdown-divider"></div>
                 <a title="Cancelar poliza" class="dropdown-item pointer text-danger" id="btnDelete_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"/></svg>
@@ -2060,6 +2088,14 @@ $(function () {
         e.preventDefault();
         uploadExistingPolicyPdf(poliza.id);
       });
+      $(`#btnViewFactura_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
+        viewPolicyFactura(poliza);
+      });
+      $(`#btnUploadFactura_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadPolicyFactura(poliza.id, () => getPolizas());
+      });
       // Misma lógica que arriba, pero para la fila de íconos completos
       // (.acciones-full), que se muestra en vez del menú "3 puntos"
       // cuando sí caben todas las acciones en pantalla.
@@ -2088,6 +2124,14 @@ $(function () {
       $(`#btnUploadPolicyPdfFull_${poliza.id}`).on('click', (e) => {
         e.preventDefault();
         uploadExistingPolicyPdf(poliza.id);
+      });
+      $(`#btnViewFacturaFull_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
+        viewPolicyFactura(poliza);
+      });
+      $(`#btnUploadFacturaFull_${poliza.id}`).on('click', (e) => {
+        e.preventDefault();
+        uploadPolicyFactura(poliza.id, () => getPolizas());
       });
     });
     // Decide si caben todos los íconos de acción en fila o si hay que
@@ -2689,10 +2733,10 @@ $(function () {
         <div class="d-flex flex-column" style="gap: 8px;">
           <button type="button" class="btn" id="btnVerComplementoPdf" ${
             recibo.complemento_pago_pdf ? '' : 'disabled'
-          }>Ver PDF</button>
+          }>Ver/Descargar PDF</button>
           <button type="button" class="btn" id="btnVerComplementoXml" ${
             recibo.complemento_pago_xml ? '' : 'disabled'
-          }>Ver XML</button>
+          }>Descargar XML</button>
         </div>
       `,
       showConfirmButton: false,
@@ -2707,6 +2751,101 @@ $(function () {
         $('#btnVerComplementoXml').on('click', () => {
           window.open(
             `/polizas/download_receipt_complemento/${recibo.id}/xml`,
+            '_blank',
+          );
+        });
+      },
+    });
+  }
+
+  function uploadPolicyFactura(polizaId, onSuccess) {
+    const fileInput = $(
+      '<input type="file" accept=".pdf,.xml" multiple style="display:none;" />',
+    );
+    $('body').append(fileInput);
+
+    fileInput.on('change', function () {
+      const files = Array.from(this.files || []);
+      fileInput.remove();
+      if (!files.length) return;
+
+      const pdfFile = files.find((f) => f.name.toLowerCase().endsWith('.pdf'));
+      const xmlFile = files.find((f) => f.name.toLowerCase().endsWith('.xml'));
+      const invalido = files.find(
+        (f) => !f.name.toLowerCase().endsWith('.pdf') && !f.name.toLowerCase().endsWith('.xml'),
+      );
+      if (invalido || (!pdfFile && !xmlFile)) {
+        alert('Selecciona el PDF y/o el XML de la factura', 'warning', 'Archivo inválido');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('poliza_id', polizaId);
+      if (pdfFile) formData.append('factura_pdf', pdfFile);
+      if (xmlFile) formData.append('factura_xml', xmlFile);
+
+      Swal.fire({
+        title: 'Cargando factura...',
+        text: 'Guardando documento(s)',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      $.ajax({
+        type: 'POST',
+        url: '/polizas/upload_policy_factura',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (resp) {
+          Swal.close();
+          if (resp.error) {
+            alert(resp.msg, 'error', 'Error');
+          } else {
+            alert(resp.msg, 'success', 'Factura cargada');
+            if (onSuccess) onSuccess();
+          }
+        },
+        error: function () {
+          Swal.close();
+          alert('Error al cargar la factura', 'error', 'Error');
+        },
+      });
+    });
+
+    fileInput.trigger('click');
+  }
+
+  function viewPolicyFactura(poliza) {
+    if (!poliza.factura_pdf && !poliza.factura_xml) {
+      alert('No se ha cargado la factura aun', 'warning', 'Sin factura');
+      return;
+    }
+    Swal.fire({
+      title: 'Factura de la Póliza',
+      html: `
+        <div class="d-flex flex-column" style="gap: 8px;">
+          <button type="button" class="btn" id="btnVerFacturaPdf" ${
+            poliza.factura_pdf ? '' : 'disabled'
+          }>Ver/Descargar PDF</button>
+          <button type="button" class="btn" id="btnVerFacturaXml" ${
+            poliza.factura_xml ? '' : 'disabled'
+          }>Descargar XML</button>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      didOpen: () => {
+        $('#btnVerFacturaPdf').on('click', () => {
+          window.open(
+            `/polizas/download_policy_factura/${poliza.id}/pdf`,
+            '_blank',
+          );
+        });
+        $('#btnVerFacturaXml').on('click', () => {
+          window.open(
+            `/polizas/download_policy_factura/${poliza.id}/xml`,
             '_blank',
           );
         });

@@ -1575,6 +1575,8 @@
                     asegurado: p.titular || nombreClienteDefault,
                     titular: p.titular || null,
                     tienePdf: p.tienePdf,
+                    tieneFacturaPdf: !!p.tieneFacturaPdf,
+                    tieneFacturaXml: !!p.tieneFacturaXml,
                     moneda: p.moneda,
                     serie: p.serie || null,
                     notas: p.notas || null,
@@ -1894,6 +1896,16 @@
                                 Descargar póliza
                             </button>
                             ` : ''}
+                            ${(p.tieneFacturaPdf || p.tieneFacturaXml) ? `
+                            <button class="btn-action" onclick="event.stopPropagation(); verFacturaPoliza(${p.id}, ${p.tieneFacturaPdf}, ${p.tieneFacturaXml})">
+                                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Factura
+                            </button>
+                            ` : ''}
                         </div>
                         <!-- "Ver documentos" pendiente de desarrollar: todavía no existe
                              un sistema de documentos múltiples por póliza (solo el PDF
@@ -2134,7 +2146,7 @@
 
         function verComplementoPago(reciboId, tienePdf, tieneXml) {
             const opciones = [];
-            if (tienePdf) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_pdf', '_blank')">Ver PDF</button>`);
+            if (tienePdf) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_pdf', '_blank')">Ver/Descargar PDF</button>`);
             if (tieneXml) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_recibo_doc/${reciboId}/complemento_xml', '_blank')">Descargar XML</button>`);
 
             const contenedor = document.createElement('div');
@@ -2142,6 +2154,26 @@
             contenedor.innerHTML = `
                 <div style="background:#fff; border-radius:10px; padding:20px; min-width:260px; display:flex; flex-direction:column; gap:10px;">
                     <div style="font-weight:600; margin-bottom:4px;">Complemento de Pago</div>
+                    ${opciones.join('')}
+                    <button type="button" class="btn-action" style="width:100%; justify-content:center; opacity:0.7;" onclick="this.closest('div[style*=fixed]').remove()">Cerrar</button>
+                </div>
+            `;
+            contenedor.addEventListener('click', (e) => {
+                if (e.target === contenedor) contenedor.remove();
+            });
+            document.body.appendChild(contenedor);
+        }
+
+        function verFacturaPoliza(polizaId, tienePdf, tieneXml) {
+            const opciones = [];
+            if (tienePdf) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_poliza_doc/${polizaId}/factura_pdf', '_blank')">Ver/Descargar PDF</button>`);
+            if (tieneXml) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_poliza_doc/${polizaId}/factura_xml', '_blank')">Descargar XML</button>`);
+
+            const contenedor = document.createElement('div');
+            contenedor.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:9999;';
+            contenedor.innerHTML = `
+                <div style="background:#fff; border-radius:10px; padding:20px; min-width:260px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="font-weight:600; margin-bottom:4px;">Factura de la Póliza</div>
                     ${opciones.join('')}
                     <button type="button" class="btn-action" style="width:100%; justify-content:center; opacity:0.7;" onclick="this.closest('div[style*=fixed]').remove()">Cerrar</button>
                 </div>

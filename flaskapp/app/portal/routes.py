@@ -103,6 +103,8 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
             'frecuencia': (tipo_pago or '').lower(),
             'cuotasAlAño': cuotas or 1,
             'tienePdf': bool(poliza.pdf_path),
+            'tieneFacturaPdf': bool(poliza.factura_pdf),
+            'tieneFacturaXml': bool(poliza.factura_xml),
             'moneda': poliza.moneda,
             'serie': poliza.serie,
             'notas': poliza.notas,
@@ -232,6 +234,58 @@ def descargar_pdf(poliza_id):
         filename,
         as_attachment=True,
         download_name=f'poliza_{poliza.poliza}.pdf'
+    )
+
+
+@portal.route('/descargar_poliza_doc/<int:poliza_id>/<tipo>', methods=['GET'])
+@portal_login_required
+def descargar_poliza_doc(poliza_id, tipo):
+    """
+    Sirve la factura (PDF/XML) de una póliza, solo si le pertenece al
+    cliente en sesión o a algún compañero de su mismo grupo. Mismo
+    criterio de propiedad que descargar_pdf / descargar_recibo_doc.
+    """
+    if tipo not in ('factura_pdf', 'factura_xml'):
+        return jsonify({'error': 'Tipo de documento inválido'}), 400
+
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': 'Póliza no encontrada'}), 404
+
+    cliente_sesion = Cliente.query.get(session.get('portal_cliente_id'))
+    if not cliente_sesion:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    es_propia = poliza.cliente_id == cliente_sesion.id
+    es_del_grupo = False
+    if not es_propia:
+        dueño = Cliente.query.get(poliza.cliente_id)
+        es_del_grupo = (bool(dueño) and cliente_sesion.grupo_id is not None
+                         and dueño.grupo_id == cliente_sesion.grupo_id)
+
+    if not (es_propia or es_del_grupo):
+        return jsonify({'error': 'No autorizado'}), 403
+
+    stored_filename = poliza.factura_pdf if tipo == 'factura_pdf' else poliza.factura_xml
+    if not stored_filename:
+        return jsonify({'error': 'No se ha cargado el documento aun'}), 404
+
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(stored_filename)
+    original_filename = (poliza.factura_pdf_original if tipo == 'factura_pdf'
+                          else poliza.factura_xml_original) or filename
+    folder = os.path.join(current_app.root_path, 'static', 'polizas_facturas')
+    file_path = os.path.join(folder, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'El archivo no existe'}), 404
+
+    # El XML se descarga directo; el PDF se abre para verse en el navegador.
+    es_descarga_directa = (tipo == 'factura_xml')
+    return send_from_directory(
+        folder,
+        filename,
+        as_attachment=es_descarga_directa,
+        download_name=original_filename,
     )
 
 

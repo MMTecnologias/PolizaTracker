@@ -5969,3 +5969,124 @@ def download_pdf(poliza_id):
         as_attachment=False,
         download_name=f"poliza_{poliza.poliza}.pdf"
     )
+
+
+def get_policy_factura_folder():
+    folder = os.path.join(
+        current_app.root_path, 'static', 'polizas_facturas')
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+@polizas_route.route('/upload_policy_factura', methods=['POST'])
+@login_required
+def upload_policy_factura():
+    poliza_id = flask_request.form.get('poliza_id')
+    pdf_file = flask_request.files.get('factura_pdf')
+    xml_file = flask_request.files.get('factura_xml')
+
+    if not poliza_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó la póliza'})
+    if not pdf_file and not xml_file:
+        return jsonify({'error': True, 'msg': 'Selecciona al menos un archivo (PDF o XML)'})
+
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+
+    folder = get_policy_factura_folder()
+
+    if pdf_file and pdf_file.filename:
+        if not pdf_file.filename.lower().endswith('.pdf'):
+            return jsonify({'error': True, 'msg': 'La factura en PDF debe ser un archivo .pdf'})
+        pdf_content = pdf_file.read()
+        if not pdf_content.startswith(b'%PDF'):
+            return jsonify({'error': True, 'msg': 'El archivo PDF no es válido'})
+        if len(pdf_content) > 10 * 1024 * 1024:
+            return jsonify({'error': True, 'msg': 'El PDF es demasiado grande. Máximo 10MB.'})
+
+        old_filename = poliza.factura_pdf
+        if old_filename:
+            old_path = os.path.join(folder, secure_filename(old_filename))
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
+
+        pdf_filename = f"fp{poliza.id}_{uuid.uuid4().hex[:8]}.pdf"
+        with open(os.path.join(folder, pdf_filename), 'wb') as f:
+            f.write(pdf_content)
+        poliza.factura_pdf = pdf_filename
+        poliza.factura_pdf_original = secure_filename(pdf_file.filename)
+
+    if xml_file and xml_file.filename:
+        if not xml_file.filename.lower().endswith('.xml'):
+            return jsonify({'error': True, 'msg': 'La factura en XML debe ser un archivo .xml'})
+        xml_content = xml_file.read()
+        if not xml_content.lstrip().startswith(b'<'):
+            return jsonify({'error': True, 'msg': 'El archivo XML no es válido'})
+        if len(xml_content) > 10 * 1024 * 1024:
+            return jsonify({'error': True, 'msg': 'El XML es demasiado grande. Máximo 10MB.'})
+
+        old_filename = poliza.factura_xml
+        if old_filename:
+            old_path = os.path.join(folder, secure_filename(old_filename))
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
+
+        xml_filename = f"fp{poliza.id}_{uuid.uuid4().hex[:8]}.xml"
+        with open(os.path.join(folder, xml_filename), 'wb') as f:
+            f.write(xml_content)
+        poliza.factura_xml = xml_filename
+        poliza.factura_xml_original = secure_filename(xml_file.filename)
+
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Cargar factura de la póliza {poliza.poliza}",
+                            status="Aceptada",
+                            table_name='Poliza',
+                            row_id=poliza.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({
+        'error': False,
+        'msg': 'Factura cargada exitosamente',
+        'factura_pdf': poliza.factura_pdf,
+        'factura_xml': poliza.factura_xml,
+    })
+
+
+@polizas_route.route('/download_policy_factura/<int:poliza_id>/<tipo>', methods=['GET'])
+@login_required
+def download_policy_factura(poliza_id, tipo):
+    if tipo not in ('pdf', 'xml'):
+        return jsonify({'error': True, 'msg': 'Tipo de documento inválido'}), 400
+
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'}), 404
+
+    stored_filename = poliza.factura_pdf if tipo == 'pdf' else poliza.factura_xml
+    if not stored_filename:
+        return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
+
+    filename = secure_filename(stored_filename)
+    original_filename = (poliza.factura_pdf_original if tipo == 'pdf'
+                          else poliza.factura_xml_original)
+    folder = get_policy_factura_folder()
+    file_path = os.path.join(folder, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
+
+    # El XML se descarga directo; el PDF se abre para verse en el navegador.
+    es_descarga_directa = (tipo == 'xml')
+    return send_from_directory(
+        folder,
+        filename,
+        as_attachment=es_descarga_directa,
+        download_name=original_filename or filename,
+    )
