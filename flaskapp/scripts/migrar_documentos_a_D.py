@@ -30,6 +30,7 @@ USO (parado en la carpeta flaskapp/):
 """
 import sys
 import os
+import re
 import shutil
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -37,6 +38,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import app
 from app.models import Cliente, Poliza, Recibo
 from app.utils.document_storage import get_carpeta_documento
+
+# Nombres generados por el sistema al subir un archivo (ej.
+# r14403_3f098a09.pdf, cp99_a1b2c3d4.xml, fp3725_d4b49916.pdf,
+# dp10_9f8e7d6c.pdf). Cualquier otro valor guardado en estos campos
+# (como "TC", "tc") es dato viejo que no corresponde a un archivo
+# real -- probablemente una anotación manual de antes de que
+# existiera la función de subir documentos -- y se omite del reporte
+# de "no encontrado" para no generar ruido.
+_PATRON_NOMBRE_GENERADO = re.compile(r'^[a-z]{1,3}\d+_[0-9a-f]{8}\.(pdf|xml)$', re.IGNORECASE)
+
+
+def _parece_archivo_real(valor):
+    return bool(_PATRON_NOMBRE_GENERADO.match(valor or ''))
 
 
 def _ruta_vieja_recibo_comprobante(recibo):
@@ -66,7 +80,10 @@ def _es_pdf_path_esquema_nuevo(pdf_path):
             and '/' not in pdf_path and '\\' not in pdf_path)
 
 
-def _copiar(origen, destino_folder, filename, aplicar, reporte):
+def _copiar(origen, destino_folder, filename, aplicar, reporte, omitidos):
+    if not _parece_archivo_real(filename):
+        omitidos.append({'valor': filename, 'destino_folder': destino_folder})
+        return
     destino = os.path.join(destino_folder, filename)
     existe_origen = os.path.exists(origen)
     reporte.append({
@@ -81,6 +98,7 @@ def _copiar(origen, destino_folder, filename, aplicar, reporte):
 def migrar(aplicar=False):
     with app.app_context():
         reporte = []
+        omitidos = []
         clientes_cache = {}
 
         def cliente_de(poliza):
@@ -101,19 +119,20 @@ def migrar(aplicar=False):
                 origen = _ruta_vieja_poliza_pdf(poliza.pdf_path)
                 filename = os.path.basename(poliza.pdf_path)
                 destino_folder = get_carpeta_documento(cliente, poliza, 'documento_poliza')
-                _copiar(origen, destino_folder, filename, aplicar, reporte)
-                if aplicar:
+                antes = len(reporte)
+                _copiar(origen, destino_folder, filename, aplicar, reporte, omitidos)
+                if aplicar and len(reporte) > antes and reporte[-1]['existe_origen']:
                     poliza.pdf_path = filename
 
             if poliza.factura_pdf:
                 origen = _ruta_vieja_poliza_factura(poliza.factura_pdf)
                 destino_folder = get_carpeta_documento(cliente, poliza, 'factura')
-                _copiar(origen, destino_folder, poliza.factura_pdf, aplicar, reporte)
+                _copiar(origen, destino_folder, poliza.factura_pdf, aplicar, reporte, omitidos)
 
             if poliza.factura_xml:
                 origen = _ruta_vieja_poliza_factura(poliza.factura_xml)
                 destino_folder = get_carpeta_documento(cliente, poliza, 'factura')
-                _copiar(origen, destino_folder, poliza.factura_xml, aplicar, reporte)
+                _copiar(origen, destino_folder, poliza.factura_xml, aplicar, reporte, omitidos)
 
         # --- Recibos: aviso de cobro + complemento de pago ---
         recibos = Recibo.query.all()
@@ -127,23 +146,26 @@ def migrar(aplicar=False):
                 origen = _ruta_vieja_recibo_comprobante(recibo)
                 destino_folder = get_carpeta_documento(
                     cliente, poliza, 'aviso_cobro', recibo=recibo)
-                _copiar(origen, destino_folder, recibo.comprobante, aplicar, reporte)
+                _copiar(origen, destino_folder, recibo.comprobante, aplicar, reporte, omitidos)
 
             if recibo.complemento_pago_pdf:
                 origen = _ruta_vieja_recibo_complemento(recibo, 'complemento_pago_pdf')
                 destino_folder = get_carpeta_documento(
                     cliente, poliza, 'complemento_pago', recibo=recibo)
-                _copiar(origen, destino_folder, recibo.complemento_pago_pdf, aplicar, reporte)
+                _copiar(origen, destino_folder, recibo.complemento_pago_pdf, aplicar, reporte, omitidos)
 
             if recibo.complemento_pago_xml:
                 origen = _ruta_vieja_recibo_complemento(recibo, 'complemento_pago_xml')
                 destino_folder = get_carpeta_documento(
                     cliente, poliza, 'complemento_pago', recibo=recibo)
-                _copiar(origen, destino_folder, recibo.complemento_pago_xml, aplicar, reporte)
+                _copiar(origen, destino_folder, recibo.complemento_pago_xml, aplicar, reporte, omitidos)
 
         # --- Reporte ---
         print(f"\n{'='*90}")
-        print(f"Documentos encontrados: {len(reporte)}")
+        print(f"Documentos reales encontrados en el sistema (nombre generado): {len(reporte)}")
+        if omitidos:
+            print(f"Valores omitidos (no parecen ser archivos, sino texto viejo tipo 'TC'): "
+                  f"{len(omitidos)}")
         print(f"{'='*90}\n")
 
         faltantes = [r for r in reporte if not r['existe_origen']]
@@ -157,9 +179,22 @@ def migrar(aplicar=False):
 
         if faltantes:
             print(f"{'='*90}")
-            print(f"ADVERTENCIA: {len(faltantes)} archivo(s) no se encontraron en su ubicación "
-                  f"esperada -- revisa esos casos a mano antes de confiar en la migración.")
+            print(f"ADVERTENCIA: {len(faltantes)} archivo(s) SI parecen nombres de archivo real "
+                  f"(ej. r123_abcd1234.pdf) pero no se encontraron -- estos si vale la pena "
+                  f"revisarlos a mano.")
             print(f"{'='*90}\n")
+
+        if omitidos:
+            print(f"{'='*90}")
+            print("Valores omitidos por no parecer nombres de archivo real (se listan solo "
+                  "para que los veas, no requieren acción a menos que reconozcas alguno como "
+                  "un archivo real con un nombre distinto al esperado):")
+            print(f"{'='*90}")
+            valores_unicos = sorted(set(o['valor'] for o in omitidos))
+            for valor in valores_unicos:
+                cantidad = sum(1 for o in omitidos if o['valor'] == valor)
+                print(f"  '{valor}' -- aparece {cantidad} vez/veces")
+            print()
 
         if not aplicar:
             print("MODO DE PRUEBA -- no se copió ni se modificó nada todavía.")
