@@ -2137,7 +2137,7 @@
                 alert('Esta póliza aún no tiene un PDF cargado en el sistema.');
                 return;
             }
-            window.location.href = `/portal/descargar_pdf/${polizaId}`;
+            window.open(`/portal/descargar_pdf/${polizaId}`, '_blank');
         }
 
         function descargarAvisoCobro(reciboId) {
