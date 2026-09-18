@@ -82,3 +82,34 @@ def _redirigir_raiz_del_portal():
         return app.view_functions['portal.login_page']()
 
 
+# --- Respaldo automático diario de la base de datos (3:00 AM) ---
+# El guard de WERKZEUG_RUN_MAIN evita que el modo debug (que levanta
+# dos procesos: uno "vigilante" y otro el real) arranque el scheduler
+# por duplicado -- solo corre en el proceso que de verdad sirve
+# requests. En producción (debug=False) app.debug es False y el
+# scheduler arranca normal, sin necesitar esa variable de entorno.
+import os as _os
+if not app.debug or _os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from app.utils.db_backup import hacer_respaldo, RespaldoBDError
+
+        def _respaldo_automatico():
+            with app.app_context():
+                try:
+                    hacer_respaldo(app)
+                    app.logger.info('Respaldo automático de BD generado correctamente')
+                except RespaldoBDError as e:
+                    app.logger.error(f'Respaldo automático de BD falló: {e}')
+                except Exception:
+                    app.logger.exception('Error inesperado en el respaldo automático de BD')
+
+        _scheduler = BackgroundScheduler()
+        _scheduler.add_job(_respaldo_automatico, 'cron', hour=3, minute=0)
+        _scheduler.start()
+    except ImportError:
+        app.logger.warning(
+            "APScheduler no está instalado -- el respaldo automático de BD no arrancará. "
+            "Corre 'pip install -r requirements.txt' para instalarlo.")
+
+

@@ -13,6 +13,7 @@ from sqlalchemy import func, or_
 import os
 from app import db
 from app.models import Cliente, Poliza, Recibo, Aseguradora, Subramo, TipoPago, Grupo
+from app.utils.document_storage import get_carpeta_documento
 from . import portal
 from .auth_routes import portal_login_required
 
@@ -217,7 +218,17 @@ def descargar_pdf(poliza_id):
     if not poliza.pdf_path:
         return jsonify({'error': 'No hay PDF asociado a esta póliza'}), 404
 
-    if os.path.isabs(poliza.pdf_path):
+    es_esquema_nuevo = (
+        not os.path.isabs(poliza.pdf_path)
+        and '/' not in poliza.pdf_path
+        and '\\' not in poliza.pdf_path
+    )
+    if es_esquema_nuevo:
+        dueño_doc = Cliente.query.get(poliza.cliente_id)
+        directory = get_carpeta_documento(dueño_doc, poliza, 'documento_poliza')
+        filename = poliza.pdf_path
+        pdf_full_path = os.path.join(directory, filename)
+    elif os.path.isabs(poliza.pdf_path):
         directory = os.path.dirname(poliza.pdf_path)
         filename = os.path.basename(poliza.pdf_path)
         pdf_full_path = poliza.pdf_path
@@ -274,7 +285,8 @@ def descargar_poliza_doc(poliza_id, tipo):
     filename = secure_filename(stored_filename)
     original_filename = (poliza.factura_pdf_original if tipo == 'factura_pdf'
                           else poliza.factura_xml_original) or filename
-    folder = os.path.join(current_app.root_path, 'static', 'polizas_facturas')
+    dueño_doc = Cliente.query.get(poliza.cliente_id)
+    folder = get_carpeta_documento(dueño_doc, poliza, 'factura')
     file_path = os.path.join(folder, filename)
     if not os.path.exists(file_path):
         return jsonify({'error': 'El archivo no existe'}), 404
@@ -334,9 +346,9 @@ def descargar_recibo_doc(recibo_id, tipo):
         'complemento_xml': recibo.complemento_pago_xml_original,
     }
     carpeta_por_tipo = {
-        'aviso_cobro': 'recibos_comprobantes',
-        'complemento_pdf': 'recibos_complementos_pago',
-        'complemento_xml': 'recibos_complementos_pago',
+        'aviso_cobro': 'aviso_cobro',
+        'complemento_pdf': 'complemento_pago',
+        'complemento_xml': 'complemento_pago',
     }
 
     stored_filename = campo_por_tipo[tipo]
@@ -346,7 +358,8 @@ def descargar_recibo_doc(recibo_id, tipo):
     from werkzeug.utils import secure_filename
     filename = secure_filename(stored_filename)
     original_filename = original_por_tipo[tipo] or filename
-    folder = os.path.join(current_app.root_path, 'static', carpeta_por_tipo[tipo])
+    dueño_doc = Cliente.query.get(poliza.cliente_id)
+    folder = get_carpeta_documento(dueño_doc, poliza, carpeta_por_tipo[tipo], recibo=recibo)
     file_path = os.path.join(folder, filename)
     if not os.path.exists(file_path):
         return jsonify({'error': 'El archivo no existe'}), 404

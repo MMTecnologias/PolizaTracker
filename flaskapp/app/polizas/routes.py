@@ -22,6 +22,7 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 from app.models import export_to_csv, export_to_pdf
+from app.utils.document_storage import get_carpeta_documento
 
 
 @polizas_route.route('/get_receipts', methods=['POST'])
@@ -1660,11 +1661,13 @@ def process_receipt():
             })
 
 
-def get_receipt_comprobante_folder():
-    folder = os.path.join(
-        current_app.root_path, 'static', 'recibos_comprobantes')
-    os.makedirs(folder, exist_ok=True)
-    return folder
+def _cliente_de_poliza(poliza):
+    return Cliente.query.get(poliza.cliente_id) if poliza else None
+
+
+def _poliza_y_cliente_de_recibo(recibo):
+    poliza = Poliza.query.get(recibo.poliza_id)
+    return poliza, _cliente_de_poliza(poliza)
 
 
 @polizas_route.route('/upload_receipt_comprobante', methods=['POST'])
@@ -1690,7 +1693,8 @@ def upload_receipt_comprobante():
     if len(file_content) > 10 * 1024 * 1024:
         return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
 
-    folder = get_receipt_comprobante_folder()
+    poliza, cliente = _poliza_y_cliente_de_recibo(recibo)
+    folder = get_carpeta_documento(cliente, poliza, 'aviso_cobro', recibo=recibo)
     old_filename = recibo.comprobante
     if old_filename:
         old_path = os.path.join(folder, secure_filename(old_filename))
@@ -1731,8 +1735,9 @@ def download_receipt_comprobante(recibo_id):
     if not recibo.comprobante:
         return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
 
+    poliza, cliente = _poliza_y_cliente_de_recibo(recibo)
     filename = secure_filename(recibo.comprobante)
-    folder = get_receipt_comprobante_folder()
+    folder = get_carpeta_documento(cliente, poliza, 'aviso_cobro', recibo=recibo)
     file_path = os.path.join(folder, filename)
     if not os.path.exists(file_path):
         return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
@@ -1743,13 +1748,6 @@ def download_receipt_comprobante(recibo_id):
         as_attachment=False,
         download_name=recibo.comprobante_original or filename,
     )
-
-
-def get_receipt_complemento_folder():
-    folder = os.path.join(
-        current_app.root_path, 'static', 'recibos_complementos_pago')
-    os.makedirs(folder, exist_ok=True)
-    return folder
 
 
 @polizas_route.route('/upload_receipt_complemento', methods=['POST'])
@@ -1768,7 +1766,8 @@ def upload_receipt_complemento():
     if not recibo:
         return jsonify({'error': True, 'msg': 'Recibo no encontrado'})
 
-    folder = get_receipt_complemento_folder()
+    poliza, cliente = _poliza_y_cliente_de_recibo(recibo)
+    folder = get_carpeta_documento(cliente, poliza, 'complemento_pago', recibo=recibo)
 
     if pdf_file and pdf_file.filename:
         if not pdf_file.filename.lower().endswith('.pdf'):
@@ -1848,8 +1847,9 @@ def download_receipt_complemento(recibo_id, tipo):
     if not stored_filename:
         return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
 
+    poliza, cliente = _poliza_y_cliente_de_recibo(recibo)
     filename = secure_filename(stored_filename)
-    folder = get_receipt_complemento_folder()
+    folder = get_carpeta_documento(cliente, poliza, 'complemento_pago', recibo=recibo)
     file_path = os.path.join(folder, filename)
     if not os.path.exists(file_path):
         return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
@@ -5871,13 +5871,22 @@ def upload_existing_policy_pdf():
         return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
 
     old_pdf_path = poliza.pdf_path
-    pdf_path = save_pdf_content(file_content, file.filename, poliza.poliza)
+    cliente = _cliente_de_poliza(poliza)
+    folder = get_carpeta_documento(cliente, poliza, 'documento_poliza')
+    pdf_path = f"dp{poliza.id}_{uuid.uuid4().hex[:8]}.pdf"
+    with open(os.path.join(folder, pdf_path), 'wb') as f:
+        f.write(file_content)
 
     if old_pdf_path:
-        old_full_path = (
-            old_pdf_path if os.path.isabs(old_pdf_path)
-            else os.path.join(current_app.root_path, 'static', old_pdf_path)
-        )
+        if os.path.isabs(old_pdf_path) or '/' in old_pdf_path or '\\' in old_pdf_path:
+            # Esquema viejo (ruta absoluta o "polizas_pdf/archivo.pdf")
+            old_full_path = (
+                old_pdf_path if os.path.isabs(old_pdf_path)
+                else os.path.join(current_app.root_path, 'static', old_pdf_path)
+            )
+        else:
+            # Esquema nuevo (solo el nombre, carpeta calculada)
+            old_full_path = os.path.join(folder, secure_filename(old_pdf_path))
         if os.path.exists(old_full_path):
             try:
                 os.remove(old_full_path)
@@ -5935,8 +5944,21 @@ def download_pdf(poliza_id):
             "pdf_access", "póliza sin PDF asociado", poliza_id=poliza_id)
         return jsonify({'error': True, 'msg': 'No hay PDF asociado a esta póliza'})
 
-    # Soporta tanto ruta absoluta (PDF_UPLOAD_FOLDER) como relativa (static/polizas_pdf)
-    if os.path.isabs(poliza.pdf_path):
+    # Esquema nuevo: pdf_path es solo el nombre del archivo, sin
+    # separadores -- la carpeta se calcula por cliente/poliza.
+    # Esquema viejo: ruta absoluta (PDF_UPLOAD_FOLDER) o relativa
+    # tipo "polizas_pdf/archivo.pdf".
+    es_esquema_nuevo = (
+        not os.path.isabs(poliza.pdf_path)
+        and '/' not in poliza.pdf_path
+        and '\\' not in poliza.pdf_path
+    )
+    if es_esquema_nuevo:
+        cliente = _cliente_de_poliza(poliza)
+        directory = get_carpeta_documento(cliente, poliza, 'documento_poliza')
+        filename = poliza.pdf_path
+        pdf_full_path = os.path.join(directory, filename)
+    elif os.path.isabs(poliza.pdf_path):
         pdf_full_path = poliza.pdf_path
         directory = os.path.dirname(pdf_full_path)
         filename = os.path.basename(pdf_full_path)
@@ -5971,13 +5993,6 @@ def download_pdf(poliza_id):
     )
 
 
-def get_policy_factura_folder():
-    folder = os.path.join(
-        current_app.root_path, 'static', 'polizas_facturas')
-    os.makedirs(folder, exist_ok=True)
-    return folder
-
-
 @polizas_route.route('/upload_policy_factura', methods=['POST'])
 @login_required
 def upload_policy_factura():
@@ -5994,7 +6009,8 @@ def upload_policy_factura():
     if not poliza:
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
 
-    folder = get_policy_factura_folder()
+    cliente = _cliente_de_poliza(poliza)
+    folder = get_carpeta_documento(cliente, poliza, 'factura')
 
     if pdf_file and pdf_file.filename:
         if not pdf_file.filename.lower().endswith('.pdf'):
@@ -6077,7 +6093,8 @@ def download_policy_factura(poliza_id, tipo):
     filename = secure_filename(stored_filename)
     original_filename = (poliza.factura_pdf_original if tipo == 'pdf'
                           else poliza.factura_xml_original)
-    folder = get_policy_factura_folder()
+    cliente = _cliente_de_poliza(poliza)
+    folder = get_carpeta_documento(cliente, poliza, 'factura')
     file_path = os.path.join(folder, filename)
     if not os.path.exists(file_path):
         return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404

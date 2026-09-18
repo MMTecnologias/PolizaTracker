@@ -7,12 +7,14 @@ from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, new_class, new_class_edit
 from sqlalchemy import join, or_, desc, func, select
 import csv
+import os
 from io import StringIO
 from . import main
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+from app.utils.db_backup import hacer_respaldo, RespaldoBDError
 from app.vencimientos.routes import update_poliza_status
 
 
@@ -233,6 +235,23 @@ def index():
     if acceso.nombre == 'Gerente':
         return render_template('menuGerente.html', user=current_user, acceso=acceso.nombre)
     return render_template('menuP.html', user=current_user, acceso=acceso.nombre)
+
+
+@main.route('/respaldar_bd', methods=['POST'])
+@login_required
+def respaldar_bd():
+    try:
+        ruta = hacer_respaldo(app)
+        return jsonify({
+            'error': False,
+            'msg': 'Respaldo generado exitosamente',
+            'archivo': os.path.basename(ruta),
+        })
+    except RespaldoBDError as e:
+        return jsonify({'error': True, 'msg': str(e)})
+    except Exception:
+        current_app.logger.exception('Error inesperado al respaldar la base de datos')
+        return jsonify({'error': True, 'msg': 'Error inesperado al generar el respaldo'})
 
 # Solicitudes
 
