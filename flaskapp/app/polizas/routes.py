@@ -1750,6 +1750,41 @@ def download_receipt_comprobante(recibo_id):
     )
 
 
+@polizas_route.route('/delete_receipt_comprobante', methods=['POST'])
+@login_required
+def delete_receipt_comprobante():
+    recibo_id = flask_request.form.get('recibo_id')
+    if not recibo_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó el recibo'})
+
+    recibo = Recibo.query.get(recibo_id)
+    if not recibo:
+        return jsonify({'error': True, 'msg': 'Recibo no encontrado'})
+    if not recibo.comprobante:
+        return jsonify({'error': True, 'msg': 'Este recibo no tiene aviso de cobro cargado'})
+
+    poliza, cliente = _poliza_y_cliente_de_recibo(recibo)
+    folder = get_carpeta_documento(cliente, poliza, 'aviso_cobro', recibo=recibo)
+    file_path = os.path.join(folder, secure_filename(recibo.comprobante))
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+    recibo.comprobante = None
+    recibo.comprobante_original = None
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Eliminar aviso de cobro del recibo {recibo.no_de_recibo}",
+                            status="Aceptada",
+                            table_name='Recibo',
+                            row_id=recibo.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({'error': False, 'msg': 'Aviso de cobro eliminado exitosamente'})
+
+
 @polizas_route.route('/upload_receipt_complemento', methods=['POST'])
 @login_required
 def upload_receipt_complemento():
@@ -1867,7 +1902,45 @@ def download_receipt_complemento(recibo_id, tipo):
     )
 
 
-# @main.route('/get_data_multiple', methods=['GET'])
+@polizas_route.route('/delete_receipt_complemento/<int:recibo_id>/<tipo>', methods=['POST'])
+@login_required
+def delete_receipt_complemento(recibo_id, tipo):
+    if tipo not in ('pdf', 'xml'):
+        return jsonify({'error': True, 'msg': 'Tipo de documento inválido'}), 400
+
+    recibo = Recibo.query.get(recibo_id)
+    if not recibo:
+        return jsonify({'error': True, 'msg': 'Recibo no encontrado'})
+
+    stored_filename = recibo.complemento_pago_pdf if tipo == 'pdf' else recibo.complemento_pago_xml
+    if not stored_filename:
+        return jsonify({'error': True, 'msg': 'Este recibo no tiene ese documento cargado'})
+
+    poliza, cliente = _poliza_y_cliente_de_recibo(recibo)
+    folder = get_carpeta_documento(cliente, poliza, 'complemento_pago', recibo=recibo)
+    file_path = os.path.join(folder, secure_filename(stored_filename))
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+    if tipo == 'pdf':
+        recibo.complemento_pago_pdf = None
+        recibo.complemento_pago_pdf_original = None
+    else:
+        recibo.complemento_pago_xml = None
+        recibo.complemento_pago_xml_original = None
+
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Eliminar complemento de pago ({tipo}) del recibo {recibo.no_de_recibo}",
+                            status="Aceptada",
+                            table_name='Recibo',
+                            row_id=recibo.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({'error': False, 'msg': 'Documento eliminado exitosamente'})
 @polizas_route.route('/get_form_data', methods=['GET'])
 @login_required
 def get_form_data():
@@ -5993,6 +6066,52 @@ def download_pdf(poliza_id):
     )
 
 
+@polizas_route.route('/delete_policy_pdf', methods=['POST'])
+@login_required
+def delete_policy_pdf():
+    poliza_id = flask_request.form.get('poliza_id')
+    if not poliza_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó la póliza'})
+
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+    if not poliza.pdf_path:
+        return jsonify({'error': True, 'msg': 'Esta póliza no tiene un PDF cargado'})
+
+    es_esquema_nuevo = (
+        not os.path.isabs(poliza.pdf_path)
+        and '/' not in poliza.pdf_path
+        and '\\' not in poliza.pdf_path
+    )
+    if es_esquema_nuevo:
+        cliente = _cliente_de_poliza(poliza)
+        folder = get_carpeta_documento(cliente, poliza, 'documento_poliza')
+        file_path = os.path.join(folder, secure_filename(poliza.pdf_path))
+    elif os.path.isabs(poliza.pdf_path):
+        file_path = poliza.pdf_path
+    else:
+        file_path = os.path.join(current_app.root_path, 'static', poliza.pdf_path)
+
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+    poliza.pdf_path = ''
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Eliminar PDF de la póliza {poliza.poliza}",
+                            status="Aceptada",
+                            table_name='Poliza',
+                            row_id=poliza.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({'error': False, 'msg': 'PDF de póliza eliminado exitosamente'})
+
+
+
 @polizas_route.route('/upload_policy_factura', methods=['POST'])
 @login_required
 def upload_policy_factura():
@@ -6107,3 +6226,44 @@ def download_policy_factura(poliza_id, tipo):
         as_attachment=es_descarga_directa,
         download_name=original_filename or filename,
     )
+
+
+@polizas_route.route('/delete_policy_factura/<int:poliza_id>/<tipo>', methods=['POST'])
+@login_required
+def delete_policy_factura(poliza_id, tipo):
+    if tipo not in ('pdf', 'xml'):
+        return jsonify({'error': True, 'msg': 'Tipo de documento inválido'}), 400
+
+    poliza = Poliza.query.get(poliza_id)
+    if not poliza:
+        return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
+
+    stored_filename = poliza.factura_pdf if tipo == 'pdf' else poliza.factura_xml
+    if not stored_filename:
+        return jsonify({'error': True, 'msg': 'Esta póliza no tiene ese documento cargado'})
+
+    cliente = _cliente_de_poliza(poliza)
+    folder = get_carpeta_documento(cliente, poliza, 'factura')
+    file_path = os.path.join(folder, secure_filename(stored_filename))
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+    if tipo == 'pdf':
+        poliza.factura_pdf = None
+        poliza.factura_pdf_original = None
+    else:
+        poliza.factura_xml = None
+        poliza.factura_xml_original = None
+
+    request_entry = Request(usuario_id=current_user.id,
+                            description=f"Eliminar factura ({tipo}) de la póliza {poliza.poliza}",
+                            status="Aceptada",
+                            table_name='Poliza',
+                            row_id=poliza.id)
+    db.session.add(request_entry)
+    db.session.commit()
+
+    return jsonify({'error': False, 'msg': 'Documento eliminado exitosamente'})

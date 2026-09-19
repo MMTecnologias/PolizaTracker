@@ -32,6 +32,10 @@ $(function () {
   // ajuste automático de tamaño (arriba) recargue la MISMA página en
   // vez de regresar siempre a la página 1.
   let polizasCurrentPage = 1;
+  // Número de la póliza cuyo modal de Recibos está abierto -- se usa
+  // para mostrarlo en el encabezado de las ventanitas de Aviso de
+  // Cobro / Complemento de Pago.
+  let modalPolizaNumero = '';
 
   // Menú de acciones ("3 puntos") de la tabla de pólizas: al abrirse se
   // saca del flujo normal y se pega al <body> con position:fixed, para
@@ -2055,6 +2059,7 @@ $(function () {
         </tr>`,
       );
       $(`#td-clickable_${poliza.id}`).on('click', (e) => {
+        modalPolizaNumero = poliza.poliza;
         $('#recib').modal();
         getRecibos(poliza.id);
       });
@@ -2080,9 +2085,7 @@ $(function () {
       $(`#btnShow_${poliza.id}`).on('click', (e) => showPoliza(poliza.id));
       $(`#btnViewPdf_${poliza.id}`).on('click', (e) => {
         e.preventDefault();
-        if (poliza.pdf_path) {
-          window.open(`/polizas/download_pdf/${poliza.id}`, '_blank');
-        }
+        viewPolicyPdf(poliza);
       });
       $(`#btnUploadPolicyPdf_${poliza.id}`).on('click', (e) => {
         e.preventDefault();
@@ -2117,9 +2120,7 @@ $(function () {
       $(`#btnShowFull_${poliza.id}`).on('click', (e) => showPoliza(poliza.id));
       $(`#btnViewPdfFull_${poliza.id}`).on('click', (e) => {
         e.preventDefault();
-        if (poliza.pdf_path) {
-          window.open(`/polizas/download_pdf/${poliza.id}`, '_blank');
-        }
+        viewPolicyPdf(poliza);
       });
       $(`#btnUploadPolicyPdfFull_${poliza.id}`).on('click', (e) => {
         e.preventDefault();
@@ -2647,12 +2648,63 @@ $(function () {
     fileInput.trigger('click');
   }
 
+  function confirmarEliminarDocumento(mensaje, onConfirm) {
+    Swal.fire({
+      title: '¿Eliminar documento?',
+      text: mensaje,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+    }).then((result) => {
+      if (result.isConfirmed) onConfirm();
+    });
+  }
+
   function viewReceiptComprobante(recibo) {
     if (!recibo.comprobante) {
       alert('No se ha cargado el documento aun', 'warning', 'Sin comprobante');
       return;
     }
-    window.open(`/polizas/download_receipt_comprobante/${recibo.id}`, '_blank');
+    Swal.fire({
+      title: `Aviso de Cobro — Póliza ${modalPolizaNumero}`,
+      html: `
+        <div class="d-flex flex-column" style="gap: 8px;">
+          <button type="button" class="btn" id="btnVerComprobante">Ver/Descargar PDF</button>
+          <button type="button" class="btn" id="btnEliminarComprobante" style="background-color:#dc3545; color:#fff;">Eliminar</button>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      didOpen: () => {
+        $('#btnVerComprobante').on('click', () => {
+          window.open(`/polizas/download_receipt_comprobante/${recibo.id}`, '_blank');
+        });
+        $('#btnEliminarComprobante').on('click', () => {
+          confirmarEliminarDocumento(
+            'Se eliminará el Aviso de Cobro de este recibo. Esta acción no se puede deshacer.',
+            () => {
+              $.ajax({
+                type: 'POST',
+                url: '/polizas/delete_receipt_comprobante',
+                data: { recibo_id: recibo.id },
+                success: (resp) => {
+                  Swal.close();
+                  if (resp.error) {
+                    alert(resp.msg, 'error', 'Error');
+                  } else {
+                    alert(resp.msg, 'success', 'Eliminado');
+                    getRecibos(recibo.poliza_id);
+                  }
+                },
+                error: () => alert('Error al eliminar el documento', 'error', 'Error'),
+              });
+            },
+          );
+        });
+      },
+    });
   }
 
   function uploadReceiptComplemento(reciboId, onSuccess) {
@@ -2728,7 +2780,7 @@ $(function () {
       return;
     }
     Swal.fire({
-      title: 'Complemento de Pago',
+      title: `Complemento de Pago — Póliza ${modalPolizaNumero}`,
       html: `
         <div class="d-flex flex-column" style="gap: 8px;">
           <button type="button" class="btn" id="btnVerComplementoPdf" ${
@@ -2737,6 +2789,12 @@ $(function () {
           <button type="button" class="btn" id="btnVerComplementoXml" ${
             recibo.complemento_pago_xml ? '' : 'disabled'
           }>Descargar XML</button>
+          <button type="button" class="btn" id="btnEliminarComplementoPdf" style="background-color:#dc3545; color:#fff;" ${
+            recibo.complemento_pago_pdf ? '' : 'disabled'
+          }>Eliminar PDF</button>
+          <button type="button" class="btn" id="btnEliminarComplementoXml" style="background-color:#dc3545; color:#fff;" ${
+            recibo.complemento_pago_xml ? '' : 'disabled'
+          }>Eliminar XML</button>
         </div>
       `,
       showConfirmButton: false,
@@ -2752,6 +2810,48 @@ $(function () {
           window.open(
             `/polizas/download_receipt_complemento/${recibo.id}/xml`,
             '_blank',
+          );
+        });
+        $('#btnEliminarComplementoPdf').on('click', () => {
+          confirmarEliminarDocumento(
+            'Se eliminará el PDF del complemento de pago de este recibo. Esta acción no se puede deshacer.',
+            () => {
+              $.ajax({
+                type: 'POST',
+                url: `/polizas/delete_receipt_complemento/${recibo.id}/pdf`,
+                success: (resp) => {
+                  Swal.close();
+                  if (resp.error) {
+                    alert(resp.msg, 'error', 'Error');
+                  } else {
+                    alert(resp.msg, 'success', 'Eliminado');
+                    getRecibos(recibo.poliza_id);
+                  }
+                },
+                error: () => alert('Error al eliminar el documento', 'error', 'Error'),
+              });
+            },
+          );
+        });
+        $('#btnEliminarComplementoXml').on('click', () => {
+          confirmarEliminarDocumento(
+            'Se eliminará el XML del complemento de pago de este recibo. Esta acción no se puede deshacer.',
+            () => {
+              $.ajax({
+                type: 'POST',
+                url: `/polizas/delete_receipt_complemento/${recibo.id}/xml`,
+                success: (resp) => {
+                  Swal.close();
+                  if (resp.error) {
+                    alert(resp.msg, 'error', 'Error');
+                  } else {
+                    alert(resp.msg, 'success', 'Eliminado');
+                    getRecibos(recibo.poliza_id);
+                  }
+                },
+                error: () => alert('Error al eliminar el documento', 'error', 'Error'),
+              });
+            },
           );
         });
       },
@@ -2823,7 +2923,7 @@ $(function () {
       return;
     }
     Swal.fire({
-      title: 'Factura de la Póliza',
+      title: `Factura — Póliza ${poliza.poliza}`,
       html: `
         <div class="d-flex flex-column" style="gap: 8px;">
           <button type="button" class="btn" id="btnVerFacturaPdf" ${
@@ -2832,6 +2932,12 @@ $(function () {
           <button type="button" class="btn" id="btnVerFacturaXml" ${
             poliza.factura_xml ? '' : 'disabled'
           }>Descargar XML</button>
+          <button type="button" class="btn" id="btnEliminarFacturaPdf" style="background-color:#dc3545; color:#fff;" ${
+            poliza.factura_pdf ? '' : 'disabled'
+          }>Eliminar PDF</button>
+          <button type="button" class="btn" id="btnEliminarFacturaXml" style="background-color:#dc3545; color:#fff;" ${
+            poliza.factura_xml ? '' : 'disabled'
+          }>Eliminar XML</button>
         </div>
       `,
       showConfirmButton: false,
@@ -2847,6 +2953,93 @@ $(function () {
           window.open(
             `/polizas/download_policy_factura/${poliza.id}/xml`,
             '_blank',
+          );
+        });
+        $('#btnEliminarFacturaPdf').on('click', () => {
+          confirmarEliminarDocumento(
+            'Se eliminará el PDF de la factura de esta póliza. Esta acción no se puede deshacer.',
+            () => {
+              $.ajax({
+                type: 'POST',
+                url: `/polizas/delete_policy_factura/${poliza.id}/pdf`,
+                success: (resp) => {
+                  Swal.close();
+                  if (resp.error) {
+                    alert(resp.msg, 'error', 'Error');
+                  } else {
+                    alert(resp.msg, 'success', 'Eliminado');
+                    getPolizas();
+                  }
+                },
+                error: () => alert('Error al eliminar el documento', 'error', 'Error'),
+              });
+            },
+          );
+        });
+        $('#btnEliminarFacturaXml').on('click', () => {
+          confirmarEliminarDocumento(
+            'Se eliminará el XML de la factura de esta póliza. Esta acción no se puede deshacer.',
+            () => {
+              $.ajax({
+                type: 'POST',
+                url: `/polizas/delete_policy_factura/${poliza.id}/xml`,
+                success: (resp) => {
+                  Swal.close();
+                  if (resp.error) {
+                    alert(resp.msg, 'error', 'Error');
+                  } else {
+                    alert(resp.msg, 'success', 'Eliminado');
+                    getPolizas();
+                  }
+                },
+                error: () => alert('Error al eliminar el documento', 'error', 'Error'),
+              });
+            },
+          );
+        });
+      },
+    });
+  }
+
+  function viewPolicyPdf(poliza) {
+    if (!poliza.pdf_path) {
+      alert('Esta póliza aún no tiene un PDF cargado', 'warning', 'Sin PDF');
+      return;
+    }
+    Swal.fire({
+      title: `PDF de Póliza — Póliza ${poliza.poliza}`,
+      html: `
+        <div class="d-flex flex-column" style="gap: 8px;">
+          <button type="button" class="btn" id="btnVerPolizaPdf">Ver/Descargar PDF</button>
+          <button type="button" class="btn" id="btnEliminarPolizaPdf" style="background-color:#dc3545; color:#fff;">Eliminar</button>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      didOpen: () => {
+        $('#btnVerPolizaPdf').on('click', () => {
+          window.open(`/polizas/download_pdf/${poliza.id}`, '_blank');
+        });
+        $('#btnEliminarPolizaPdf').on('click', () => {
+          confirmarEliminarDocumento(
+            'Se eliminará el PDF de esta póliza. Esta acción no se puede deshacer.',
+            () => {
+              $.ajax({
+                type: 'POST',
+                url: '/polizas/delete_policy_pdf',
+                data: { poliza_id: poliza.id },
+                success: (resp) => {
+                  Swal.close();
+                  if (resp.error) {
+                    alert(resp.msg, 'error', 'Error');
+                  } else {
+                    alert(resp.msg, 'success', 'Eliminado');
+                    getPolizas();
+                  }
+                },
+                error: () => alert('Error al eliminar el documento', 'error', 'Error'),
+              });
+            },
           );
         });
       },
