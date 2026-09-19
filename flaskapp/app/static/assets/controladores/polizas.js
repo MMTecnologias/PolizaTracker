@@ -2806,7 +2806,7 @@ $(function () {
                      <button type="button" class="btn" id="btnVerComplementoPdf" style="flex:1;">Ver/Descargar PDF</button>
                      <button type="button" class="btn" id="btnEliminarComplementoPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
                    </div>`
-                : `<button type="button" class="btn" id="btnCargarComplementoPdf" style="width:100%;">Cargar PDF (falta)</button>`
+                : `<div style="display:flex; gap:8px;"><button type="button" class="btn" id="btnCargarComplementoPdf" style="flex:1;">Cargar PDF (falta)</button><div style="flex:0 0 44px;"></div></div>`
             }
           </div>
           <div>
@@ -2816,7 +2816,7 @@ $(function () {
                      <button type="button" class="btn" id="btnVerComplementoXml" style="flex:1;">Descargar XML</button>
                      <button type="button" class="btn" id="btnEliminarComplementoXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
                    </div>`
-                : `<button type="button" class="btn" id="btnCargarComplementoXml" style="width:100%;">Cargar XML (falta)</button>`
+                : `<div style="display:flex; gap:8px;"><button type="button" class="btn" id="btnCargarComplementoXml" style="flex:1;">Cargar XML (falta)</button><div style="flex:0 0 44px;"></div></div>`
             }
           </div>
         </div>
@@ -2973,7 +2973,7 @@ $(function () {
                      <button type="button" class="btn" id="btnVerFacturaPdf" style="flex:1;">Ver/Descargar PDF</button>
                      <button type="button" class="btn" id="btnEliminarFacturaPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
                    </div>`
-                : `<button type="button" class="btn" id="btnCargarFacturaPdf" style="width:100%;">Cargar PDF (falta)</button>`
+                : `<div style="display:flex; gap:8px;"><button type="button" class="btn" id="btnCargarFacturaPdf" style="flex:1;">Cargar PDF (falta)</button><div style="flex:0 0 44px;"></div></div>`
             }
           </div>
           <div>
@@ -2983,7 +2983,7 @@ $(function () {
                      <button type="button" class="btn" id="btnVerFacturaXml" style="flex:1;">Descargar XML</button>
                      <button type="button" class="btn" id="btnEliminarFacturaXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
                    </div>`
-                : `<button type="button" class="btn" id="btnCargarFacturaXml" style="width:100%;">Cargar XML (falta)</button>`
+                : `<div style="display:flex; gap:8px;"><button type="button" class="btn" id="btnCargarFacturaXml" style="flex:1;">Cargar XML (falta)</button><div style="flex:0 0 44px;"></div></div>`
             }
           </div>
         </div>
