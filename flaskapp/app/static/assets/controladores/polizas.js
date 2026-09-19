@@ -2680,6 +2680,7 @@ $(function () {
     }
     Swal.fire({
       title: `Aviso de Cobro — Póliza ${modalPolizaNumero}`,
+      width: 420,
       html: `
         <div style="display:flex; gap:8px;">
           <button type="button" class="btn" id="btnVerComprobante" style="flex:1;">Ver/Descargar PDF</button>
@@ -2795,6 +2796,7 @@ $(function () {
     }
     Swal.fire({
       title: `Complemento de Pago — Póliza ${modalPolizaNumero}`,
+      width: 420,
       html: `
         <div style="display:flex; flex-direction:column; gap:8px;">
           <div>
@@ -2961,6 +2963,7 @@ $(function () {
     }
     Swal.fire({
       title: `Factura — Póliza ${poliza.poliza}`,
+      width: 420,
       html: `
         <div style="display:flex; flex-direction:column; gap:8px;">
           <div>
@@ -3061,6 +3064,7 @@ $(function () {
     }
     Swal.fire({
       title: `PDF de Póliza — Póliza ${poliza.poliza}`,
+      width: 420,
       html: `
         <div style="display:flex; gap:8px;">
           <button type="button" class="btn" id="btnVerPolizaPdf" style="flex:1;">Ver/Descargar PDF</button>
