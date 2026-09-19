@@ -2549,7 +2549,8 @@ $(function () {
     });
   }
 
-  function uploadReceiptComprobante(reciboId, onSuccess) {    const fileInput = $('<input type="file" accept=".pdf" style="display:none;" />');
+  function uploadReceiptComprobante(reciboId, onSuccess) {
+    const fileInput = $('<input type="file" accept=".pdf" style="display:none;" />');
     $('body').append(fileInput);
 
     fileInput.on('change', function () {
@@ -2598,7 +2599,7 @@ $(function () {
     fileInput.trigger('click');
   }
 
-  function uploadExistingPolicyPdf(polizaId) {
+  function uploadExistingPolicyPdf(polizaId, onSuccess) {
     const fileInput = $('<input type="file" accept=".pdf" style="display:none;" />');
     $('body').append(fileInput);
 
@@ -2635,7 +2636,8 @@ $(function () {
             alert(resp.msg, 'error', 'Error');
           } else {
             alert(resp.msg, 'success', 'PDF cargado');
-            getPolizas();
+            if (onSuccess) onSuccess();
+            else getPolizas();
           }
         },
         error: function () {
@@ -2670,9 +2672,9 @@ $(function () {
     Swal.fire({
       title: `Aviso de Cobro — Póliza ${modalPolizaNumero}`,
       html: `
-        <div class="d-flex flex-column" style="gap: 8px;">
-          <button type="button" class="btn" id="btnVerComprobante">Ver/Descargar PDF</button>
-          <button type="button" class="btn" id="btnEliminarComprobante" style="background-color:#dc3545; color:#fff;">Eliminar</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn" id="btnVerComprobante" style="flex:1;">Ver/Descargar PDF</button>
+          <button type="button" class="btn" id="btnEliminarComprobante" style="flex:1; background-color:#dc3545; color:#fff;">Eliminar</button>
         </div>
       `,
       showConfirmButton: false,
@@ -2694,8 +2696,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
-                    alert(resp.msg, 'success', 'Eliminado');
-                    getRecibos(recibo.poliza_id);
+                    uploadReceiptComprobante(recibo.id, () => getRecibos(recibo.poliza_id));
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -2782,19 +2783,23 @@ $(function () {
     Swal.fire({
       title: `Complemento de Pago — Póliza ${modalPolizaNumero}`,
       html: `
-        <div class="d-flex flex-column" style="gap: 8px;">
-          <button type="button" class="btn" id="btnVerComplementoPdf" ${
-            recibo.complemento_pago_pdf ? '' : 'disabled'
-          }>Ver/Descargar PDF</button>
-          <button type="button" class="btn" id="btnVerComplementoXml" ${
-            recibo.complemento_pago_xml ? '' : 'disabled'
-          }>Descargar XML</button>
-          <button type="button" class="btn" id="btnEliminarComplementoPdf" style="background-color:#dc3545; color:#fff;" ${
-            recibo.complemento_pago_pdf ? '' : 'disabled'
-          }>Eliminar PDF</button>
-          <button type="button" class="btn" id="btnEliminarComplementoXml" style="background-color:#dc3545; color:#fff;" ${
-            recibo.complemento_pago_xml ? '' : 'disabled'
-          }>Eliminar XML</button>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn" id="btnVerComplementoPdf" style="flex:1;" ${
+              recibo.complemento_pago_pdf ? '' : 'disabled'
+            }>Ver/Descargar PDF</button>
+            <button type="button" class="btn" id="btnEliminarComplementoPdf" style="flex:1; background-color:#dc3545; color:#fff;" ${
+              recibo.complemento_pago_pdf ? '' : 'disabled'
+            }>Eliminar PDF</button>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn" id="btnVerComplementoXml" style="flex:1;" ${
+              recibo.complemento_pago_xml ? '' : 'disabled'
+            }>Descargar XML</button>
+            <button type="button" class="btn" id="btnEliminarComplementoXml" style="flex:1; background-color:#dc3545; color:#fff;" ${
+              recibo.complemento_pago_xml ? '' : 'disabled'
+            }>Eliminar XML</button>
+          </div>
         </div>
       `,
       showConfirmButton: false,
@@ -2824,8 +2829,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
-                    alert(resp.msg, 'success', 'Eliminado');
-                    getRecibos(recibo.poliza_id);
+                    uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id));
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -2845,8 +2849,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
-                    alert(resp.msg, 'success', 'Eliminado');
-                    getRecibos(recibo.poliza_id);
+                    uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id));
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -2925,19 +2928,23 @@ $(function () {
     Swal.fire({
       title: `Factura — Póliza ${poliza.poliza}`,
       html: `
-        <div class="d-flex flex-column" style="gap: 8px;">
-          <button type="button" class="btn" id="btnVerFacturaPdf" ${
-            poliza.factura_pdf ? '' : 'disabled'
-          }>Ver/Descargar PDF</button>
-          <button type="button" class="btn" id="btnVerFacturaXml" ${
-            poliza.factura_xml ? '' : 'disabled'
-          }>Descargar XML</button>
-          <button type="button" class="btn" id="btnEliminarFacturaPdf" style="background-color:#dc3545; color:#fff;" ${
-            poliza.factura_pdf ? '' : 'disabled'
-          }>Eliminar PDF</button>
-          <button type="button" class="btn" id="btnEliminarFacturaXml" style="background-color:#dc3545; color:#fff;" ${
-            poliza.factura_xml ? '' : 'disabled'
-          }>Eliminar XML</button>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn" id="btnVerFacturaPdf" style="flex:1;" ${
+              poliza.factura_pdf ? '' : 'disabled'
+            }>Ver/Descargar PDF</button>
+            <button type="button" class="btn" id="btnEliminarFacturaPdf" style="flex:1; background-color:#dc3545; color:#fff;" ${
+              poliza.factura_pdf ? '' : 'disabled'
+            }>Eliminar PDF</button>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn" id="btnVerFacturaXml" style="flex:1;" ${
+              poliza.factura_xml ? '' : 'disabled'
+            }>Descargar XML</button>
+            <button type="button" class="btn" id="btnEliminarFacturaXml" style="flex:1; background-color:#dc3545; color:#fff;" ${
+              poliza.factura_xml ? '' : 'disabled'
+            }>Eliminar XML</button>
+          </div>
         </div>
       `,
       showConfirmButton: false,
@@ -2967,8 +2974,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
-                    alert(resp.msg, 'success', 'Eliminado');
-                    getPolizas();
+                    uploadPolicyFactura(poliza.id, () => getPolizas());
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -2988,8 +2994,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
-                    alert(resp.msg, 'success', 'Eliminado');
-                    getPolizas();
+                    uploadPolicyFactura(poliza.id, () => getPolizas());
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -3009,9 +3014,9 @@ $(function () {
     Swal.fire({
       title: `PDF de Póliza — Póliza ${poliza.poliza}`,
       html: `
-        <div class="d-flex flex-column" style="gap: 8px;">
-          <button type="button" class="btn" id="btnVerPolizaPdf">Ver/Descargar PDF</button>
-          <button type="button" class="btn" id="btnEliminarPolizaPdf" style="background-color:#dc3545; color:#fff;">Eliminar</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn" id="btnVerPolizaPdf" style="flex:1;">Ver/Descargar PDF</button>
+          <button type="button" class="btn" id="btnEliminarPolizaPdf" style="flex:1; background-color:#dc3545; color:#fff;">Eliminar</button>
         </div>
       `,
       showConfirmButton: false,
@@ -3033,8 +3038,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
-                    alert(resp.msg, 'success', 'Eliminado');
-                    getPolizas();
+                    uploadExistingPolicyPdf(poliza.id, () => getPolizas());
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
