@@ -2696,6 +2696,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
+                    getRecibos(recibo.poliza_id);
                     uploadReceiptComprobante(recibo.id, () => getRecibos(recibo.poliza_id));
                   }
                 },
@@ -2829,6 +2830,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
+                    getRecibos(recibo.poliza_id);
                     uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id));
                   }
                 },
@@ -2849,6 +2851,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
+                    getRecibos(recibo.poliza_id);
                     uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id));
                   }
                 },
@@ -2974,6 +2977,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
+                    getPolizas();
                     uploadPolicyFactura(poliza.id, () => getPolizas());
                   }
                 },
@@ -2994,6 +2998,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
+                    getPolizas();
                     uploadPolicyFactura(poliza.id, () => getPolizas());
                   }
                 },
@@ -3038,6 +3043,7 @@ $(function () {
                   if (resp.error) {
                     alert(resp.msg, 'error', 'Error');
                   } else {
+                    getPolizas();
                     uploadExistingPolicyPdf(poliza.id, () => getPolizas());
                   }
                 },
