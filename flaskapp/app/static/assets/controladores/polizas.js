@@ -1973,10 +1973,10 @@ $(function () {
               `
               }
               ${
-                poliza.factura_pdf && poliza.factura_xml
+                poliza.factura_pdf || poliza.factura_xml
                   ? `
               <li>
-                <a title="Ver/Descargar factura" class="btn__icon_show pointer" id="btnViewFacturaFull_${poliza.id}">
+                <a title="Ver/Descargar factura${poliza.factura_pdf && !poliza.factura_xml ? ' (falta XML)' : !poliza.factura_pdf && poliza.factura_xml ? ' (falta PDF)' : ''}" class="btn__icon_show pointer" id="btnViewFacturaFull_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(poliza.status)}><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
                 </a>
               </li>
@@ -2038,10 +2038,10 @@ $(function () {
                 </a>`
                 }
                 ${
-                  poliza.factura_pdf && poliza.factura_xml
+                  poliza.factura_pdf || poliza.factura_xml
                     ? `<a title="Ver/Descargar factura" class="dropdown-item pointer" id="btnViewFactura_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
-                  Ver/Descargar factura
+                  Ver/Descargar factura${leyendaFaltante(poliza.factura_pdf, poliza.factura_xml)}
                 </a>`
                     : `<a title="Cargar factura de póliza" class="dropdown-item pointer" id="btnUploadFactura_${poliza.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80Zm120-200h80v-160h120L480-920 320-760h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
@@ -2198,8 +2198,8 @@ $(function () {
             </td>
             <td>
               ${
-                recibo.complemento_pago_pdf && recibo.complemento_pago_xml
-                  ? `<button type="button" class="btn px-2 py-1" id="btnViewComplemento_${recibo.id}">Ver/Descargar</button>`
+                recibo.complemento_pago_pdf || recibo.complemento_pago_xml
+                  ? `<button type="button" class="btn px-2 py-1" id="btnViewComplemento_${recibo.id}">Ver/Descargar</button>${leyendaFaltante(recibo.complemento_pago_pdf, recibo.complemento_pago_xml)}`
                   : `<button type="button" class="btn px-2 py-1" id="btnUploadComplemento_${recibo.id}">Cargar</button>`
               }
             </td>
@@ -2229,7 +2229,7 @@ $(function () {
           uploadReceiptComprobante(recibo.id, () => getRecibos(poliza_id));
         });
       }
-      if (recibo.complemento_pago_pdf && recibo.complemento_pago_xml) {
+      if (recibo.complemento_pago_pdf || recibo.complemento_pago_xml) {
         $(`#btnViewComplemento_${recibo.id}`).on('click', (e) => {
           e.preventDefault();
           viewReceiptComplemento(recibo);
@@ -2653,6 +2653,12 @@ $(function () {
   const TRASH_ICON_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>';
 
+  function leyendaFaltante(tienePdf, tieneXml) {
+    if (tienePdf && !tieneXml) return ' <span style="font-size:0.68em; color:#dc3545; font-weight:600;">(falta XML)</span>';
+    if (!tienePdf && tieneXml) return ' <span style="font-size:0.68em; color:#dc3545; font-weight:600;">(falta PDF)</span>';
+    return '';
+  }
+
   function confirmarEliminarDocumento(mensaje, onConfirm) {
     Swal.fire({
       title: '¿Eliminar documento?',
@@ -2712,9 +2718,10 @@ $(function () {
     });
   }
 
-  function uploadReceiptComplemento(reciboId, onSuccess) {
+  function uploadReceiptComplemento(reciboId, onSuccess, soloTipo) {
+    const accept = soloTipo === 'pdf' ? '.pdf' : soloTipo === 'xml' ? '.xml' : '.pdf,.xml';
     const fileInput = $(
-      '<input type="file" accept=".pdf,.xml" multiple style="display:none;" />',
+      `<input type="file" accept="${accept}" ${soloTipo ? '' : 'multiple'} style="display:none;" />`,
     );
     $('body').append(fileInput);
 
@@ -2730,7 +2737,9 @@ $(function () {
       );
       if (invalido || (!pdfFile && !xmlFile)) {
         alert(
-          'Selecciona el PDF y/o el XML del complemento de pago',
+          soloTipo
+            ? `Selecciona un archivo .${soloTipo}`
+            : 'Selecciona el PDF y/o el XML del complemento de pago',
           'warning',
           'Archivo inválido',
         );
@@ -2739,8 +2748,8 @@ $(function () {
 
       const formData = new FormData();
       formData.append('recibo_id', reciboId);
-      if (pdfFile) formData.append('complemento_pdf', pdfFile);
-      if (xmlFile) formData.append('complemento_xml', xmlFile);
+      if (pdfFile && soloTipo !== 'xml') formData.append('complemento_pdf', pdfFile);
+      if (xmlFile && soloTipo !== 'pdf') formData.append('complemento_xml', xmlFile);
 
       Swal.fire({
         title: 'Cargando complemento de pago...',
@@ -2788,21 +2797,25 @@ $(function () {
       title: `Complemento de Pago — Póliza ${modalPolizaNumero}`,
       html: `
         <div style="display:flex; flex-direction:column; gap:8px;">
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn" id="btnVerComplementoPdf" style="flex:1;" ${
-              recibo.complemento_pago_pdf ? '' : 'disabled'
-            }>Ver/Descargar PDF</button>
-            <button type="button" class="btn" id="btnEliminarComplementoPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
-              recibo.complemento_pago_pdf ? '' : 'disabled'
-            }>${TRASH_ICON_SVG}</button>
+          <div>
+            ${
+              recibo.complemento_pago_pdf
+                ? `<div style="display:flex; gap:8px;">
+                     <button type="button" class="btn" id="btnVerComplementoPdf" style="flex:1;">Ver/Descargar PDF</button>
+                     <button type="button" class="btn" id="btnEliminarComplementoPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
+                   </div>`
+                : `<button type="button" class="btn" id="btnCargarComplementoPdf" style="width:100%;">Cargar PDF (falta)</button>`
+            }
           </div>
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn" id="btnVerComplementoXml" style="flex:1;" ${
-              recibo.complemento_pago_xml ? '' : 'disabled'
-            }>Descargar XML</button>
-            <button type="button" class="btn" id="btnEliminarComplementoXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
-              recibo.complemento_pago_xml ? '' : 'disabled'
-            }>${TRASH_ICON_SVG}</button>
+          <div>
+            ${
+              recibo.complemento_pago_xml
+                ? `<div style="display:flex; gap:8px;">
+                     <button type="button" class="btn" id="btnVerComplementoXml" style="flex:1;">Descargar XML</button>
+                     <button type="button" class="btn" id="btnEliminarComplementoXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
+                   </div>`
+                : `<button type="button" class="btn" id="btnCargarComplementoXml" style="width:100%;">Cargar XML (falta)</button>`
+            }
           </div>
         </div>
       `,
@@ -2821,6 +2834,14 @@ $(function () {
             '_blank',
           );
         });
+        $('#btnCargarComplementoPdf').on('click', () => {
+          Swal.close();
+          uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id), 'pdf');
+        });
+        $('#btnCargarComplementoXml').on('click', () => {
+          Swal.close();
+          uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id), 'xml');
+        });
         $('#btnEliminarComplementoPdf').on('click', () => {
           confirmarEliminarDocumento(
             'Se eliminará el PDF del complemento de pago de este recibo. Esta acción no se puede deshacer.',
@@ -2834,7 +2855,7 @@ $(function () {
                     alert(resp.msg, 'error', 'Error');
                   } else {
                     getRecibos(recibo.poliza_id);
-                    uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id));
+                    uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id), 'pdf');
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -2855,7 +2876,7 @@ $(function () {
                     alert(resp.msg, 'error', 'Error');
                   } else {
                     getRecibos(recibo.poliza_id);
-                    uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id));
+                    uploadReceiptComplemento(recibo.id, () => getRecibos(recibo.poliza_id), 'xml');
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -2867,9 +2888,10 @@ $(function () {
     });
   }
 
-  function uploadPolicyFactura(polizaId, onSuccess) {
+  function uploadPolicyFactura(polizaId, onSuccess, soloTipo) {
+    const accept = soloTipo === 'pdf' ? '.pdf' : soloTipo === 'xml' ? '.xml' : '.pdf,.xml';
     const fileInput = $(
-      '<input type="file" accept=".pdf,.xml" multiple style="display:none;" />',
+      `<input type="file" accept="${accept}" ${soloTipo ? '' : 'multiple'} style="display:none;" />`,
     );
     $('body').append(fileInput);
 
@@ -2884,14 +2906,20 @@ $(function () {
         (f) => !f.name.toLowerCase().endsWith('.pdf') && !f.name.toLowerCase().endsWith('.xml'),
       );
       if (invalido || (!pdfFile && !xmlFile)) {
-        alert('Selecciona el PDF y/o el XML de la factura', 'warning', 'Archivo inválido');
+        alert(
+          soloTipo
+            ? `Selecciona un archivo .${soloTipo}`
+            : 'Selecciona el PDF y/o el XML de la factura',
+          'warning',
+          'Archivo inválido',
+        );
         return;
       }
 
       const formData = new FormData();
       formData.append('poliza_id', polizaId);
-      if (pdfFile) formData.append('factura_pdf', pdfFile);
-      if (xmlFile) formData.append('factura_xml', xmlFile);
+      if (pdfFile && soloTipo !== 'xml') formData.append('factura_pdf', pdfFile);
+      if (xmlFile && soloTipo !== 'pdf') formData.append('factura_xml', xmlFile);
 
       Swal.fire({
         title: 'Cargando factura...',
@@ -2935,21 +2963,25 @@ $(function () {
       title: `Factura — Póliza ${poliza.poliza}`,
       html: `
         <div style="display:flex; flex-direction:column; gap:8px;">
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn" id="btnVerFacturaPdf" style="flex:1;" ${
-              poliza.factura_pdf ? '' : 'disabled'
-            }>Ver/Descargar PDF</button>
-            <button type="button" class="btn" id="btnEliminarFacturaPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
-              poliza.factura_pdf ? '' : 'disabled'
-            }>${TRASH_ICON_SVG}</button>
+          <div>
+            ${
+              poliza.factura_pdf
+                ? `<div style="display:flex; gap:8px;">
+                     <button type="button" class="btn" id="btnVerFacturaPdf" style="flex:1;">Ver/Descargar PDF</button>
+                     <button type="button" class="btn" id="btnEliminarFacturaPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
+                   </div>`
+                : `<button type="button" class="btn" id="btnCargarFacturaPdf" style="width:100%;">Cargar PDF (falta)</button>`
+            }
           </div>
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn" id="btnVerFacturaXml" style="flex:1;" ${
-              poliza.factura_xml ? '' : 'disabled'
-            }>Descargar XML</button>
-            <button type="button" class="btn" id="btnEliminarFacturaXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
-              poliza.factura_xml ? '' : 'disabled'
-            }>${TRASH_ICON_SVG}</button>
+          <div>
+            ${
+              poliza.factura_xml
+                ? `<div style="display:flex; gap:8px;">
+                     <button type="button" class="btn" id="btnVerFacturaXml" style="flex:1;">Descargar XML</button>
+                     <button type="button" class="btn" id="btnEliminarFacturaXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
+                   </div>`
+                : `<button type="button" class="btn" id="btnCargarFacturaXml" style="width:100%;">Cargar XML (falta)</button>`
+            }
           </div>
         </div>
       `,
@@ -2968,6 +3000,14 @@ $(function () {
             '_blank',
           );
         });
+        $('#btnCargarFacturaPdf').on('click', () => {
+          Swal.close();
+          uploadPolicyFactura(poliza.id, () => getPolizas(), 'pdf');
+        });
+        $('#btnCargarFacturaXml').on('click', () => {
+          Swal.close();
+          uploadPolicyFactura(poliza.id, () => getPolizas(), 'xml');
+        });
         $('#btnEliminarFacturaPdf').on('click', () => {
           confirmarEliminarDocumento(
             'Se eliminará el PDF de la factura de esta póliza. Esta acción no se puede deshacer.',
@@ -2981,7 +3021,7 @@ $(function () {
                     alert(resp.msg, 'error', 'Error');
                   } else {
                     getPolizas();
-                    uploadPolicyFactura(poliza.id, () => getPolizas());
+                    uploadPolicyFactura(poliza.id, () => getPolizas(), 'pdf');
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
@@ -3002,7 +3042,7 @@ $(function () {
                     alert(resp.msg, 'error', 'Error');
                   } else {
                     getPolizas();
-                    uploadPolicyFactura(poliza.id, () => getPolizas());
+                    uploadPolicyFactura(poliza.id, () => getPolizas(), 'xml');
                   }
                 },
                 error: () => alert('Error al eliminar el documento', 'error', 'Error'),
