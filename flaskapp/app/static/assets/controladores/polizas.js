@@ -2650,6 +2650,9 @@ $(function () {
     fileInput.trigger('click');
   }
 
+  const TRASH_ICON_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>';
+
   function confirmarEliminarDocumento(mensaje, onConfirm) {
     Swal.fire({
       title: '¿Eliminar documento?',
@@ -2674,7 +2677,7 @@ $(function () {
       html: `
         <div style="display:flex; gap:8px;">
           <button type="button" class="btn" id="btnVerComprobante" style="flex:1;">Ver/Descargar PDF</button>
-          <button type="button" class="btn" id="btnEliminarComprobante" style="flex:1; background-color:#dc3545; color:#fff;">Eliminar</button>
+          <button type="button" class="btn" id="btnEliminarComprobante" title="Eliminar" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
         </div>
       `,
       showConfirmButton: false,
@@ -2789,17 +2792,17 @@ $(function () {
             <button type="button" class="btn" id="btnVerComplementoPdf" style="flex:1;" ${
               recibo.complemento_pago_pdf ? '' : 'disabled'
             }>Ver/Descargar PDF</button>
-            <button type="button" class="btn" id="btnEliminarComplementoPdf" style="flex:1; background-color:#dc3545; color:#fff;" ${
+            <button type="button" class="btn" id="btnEliminarComplementoPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
               recibo.complemento_pago_pdf ? '' : 'disabled'
-            }>Eliminar PDF</button>
+            }>${TRASH_ICON_SVG}</button>
           </div>
           <div style="display:flex; gap:8px;">
             <button type="button" class="btn" id="btnVerComplementoXml" style="flex:1;" ${
               recibo.complemento_pago_xml ? '' : 'disabled'
             }>Descargar XML</button>
-            <button type="button" class="btn" id="btnEliminarComplementoXml" style="flex:1; background-color:#dc3545; color:#fff;" ${
+            <button type="button" class="btn" id="btnEliminarComplementoXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
               recibo.complemento_pago_xml ? '' : 'disabled'
-            }>Eliminar XML</button>
+            }>${TRASH_ICON_SVG}</button>
           </div>
         </div>
       `,
@@ -2936,17 +2939,17 @@ $(function () {
             <button type="button" class="btn" id="btnVerFacturaPdf" style="flex:1;" ${
               poliza.factura_pdf ? '' : 'disabled'
             }>Ver/Descargar PDF</button>
-            <button type="button" class="btn" id="btnEliminarFacturaPdf" style="flex:1; background-color:#dc3545; color:#fff;" ${
+            <button type="button" class="btn" id="btnEliminarFacturaPdf" title="Eliminar PDF" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
               poliza.factura_pdf ? '' : 'disabled'
-            }>Eliminar PDF</button>
+            }>${TRASH_ICON_SVG}</button>
           </div>
           <div style="display:flex; gap:8px;">
             <button type="button" class="btn" id="btnVerFacturaXml" style="flex:1;" ${
               poliza.factura_xml ? '' : 'disabled'
             }>Descargar XML</button>
-            <button type="button" class="btn" id="btnEliminarFacturaXml" style="flex:1; background-color:#dc3545; color:#fff;" ${
+            <button type="button" class="btn" id="btnEliminarFacturaXml" title="Eliminar XML" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;" ${
               poliza.factura_xml ? '' : 'disabled'
-            }>Eliminar XML</button>
+            }>${TRASH_ICON_SVG}</button>
           </div>
         </div>
       `,
@@ -3021,7 +3024,7 @@ $(function () {
       html: `
         <div style="display:flex; gap:8px;">
           <button type="button" class="btn" id="btnVerPolizaPdf" style="flex:1;">Ver/Descargar PDF</button>
-          <button type="button" class="btn" id="btnEliminarPolizaPdf" style="flex:1; background-color:#dc3545; color:#fff;">Eliminar</button>
+          <button type="button" class="btn" id="btnEliminarPolizaPdf" title="Eliminar" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
         </div>
       `,
       showConfirmButton: false,
