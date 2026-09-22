@@ -3102,6 +3102,20 @@ def normalize_extracted_date(value: str) -> str:
     return None
 
 
+def _is_chronologically_valid_range(desde: str, hasta: str) -> bool:
+    """Rechaza pares desde/hasta donde 'desde' es posterior a 'hasta': eso
+    indica que el regex agarró fechas de filas/columnas equivocadas (p.ej.
+    tablas de vigencia por cobertura en pólizas de Vida con varias fechas)."""
+    if not desde or not hasta:
+        return True
+    try:
+        d = datetime.strptime(desde, "%d/%m/%Y")
+        h = datetime.strptime(hasta, "%d/%m/%Y")
+    except (ValueError, TypeError):
+        return True
+    return d <= h
+
+
 def extract_vigencia_values(text: str):
     month_keys = sorted(SPANISH_MONTH_ALIASES.keys(), key=len, reverse=True)
     month_pattern = "|".join(month_keys)
@@ -3123,7 +3137,7 @@ def extract_vigencia_values(text: str):
             continue
         desde = normalize_extracted_date(match.group(1))
         hasta = normalize_extracted_date(match.group(2))
-        if desde or hasta:
+        if (desde or hasta) and _is_chronologically_valid_range(desde, hasta):
             return desde, hasta
 
     table_match = re.search(
@@ -3134,7 +3148,8 @@ def extract_vigencia_values(text: str):
     if table_match:
         desde = f"{int(table_match.group(1)):02d}/{int(table_match.group(2)):02d}/{table_match.group(3)}"
         hasta = f"{int(table_match.group(4)):02d}/{int(table_match.group(5)):02d}/{table_match.group(6)}"
-        return desde, hasta
+        if _is_chronologically_valid_range(desde, hasta):
+            return desde, hasta
 
     compact_table_match = re.search(
         rf'Vigencia\s+de\s+la\s+P[oó]liza.{{0,220}}?Desde\s+Hasta.{{0,140}}?(\d{{1,2}}\s*[/-]?\s*(?:\d{{1,2}}|{month_pattern})\s*[/-]?\s*\d{{4}})\s+(\d{{1,2}}\s*[/-]?\s*(?:\d{{1,2}}|{month_pattern})\s*[/-]?\s*\d{{4}})',
@@ -3144,27 +3159,19 @@ def extract_vigencia_values(text: str):
     if compact_table_match:
         desde = normalize_extracted_date(compact_table_match.group(1))
         hasta = normalize_extracted_date(compact_table_match.group(2))
-        if desde or hasta:
+        if (desde or hasta) and _is_chronologically_valid_range(desde, hasta):
             return desde, hasta
 
-    vigencia_windows = re.finditer(
-        r'(?is)(Vigencia.{0,260}|vigencia.{0,260}|Desde.{0,180}Hasta.{0,180})',
-        text_window
-    )
-    raw_date_pattern = rf'(\d{{1,2}}\s*[/-]?\s*(?:\d{{1,2}}|{month_pattern})\s*[/-]?\s*\d{{4}})'
-    for match in vigencia_windows:
-        window = match.group(0)
-        dates = []
-        for raw_value in re.findall(raw_date_pattern, window, re.I):
-            normalized = normalize_extracted_date(raw_value)
-            if normalized and normalized not in dates:
-                dates.append(normalized)
-        if len(dates) >= 2:
-            return dates[0], dates[1]
-
+    # Los patrones con etiqueta explícita ("Fecha inicio de vigencia", etc.) son
+    # mucho más confiables que un escaneo genérico por proximidad, así que se
+    # intentan ANTES del fallback de ventana genérica: ese fallback simplemente
+    # toma las primeras 2 fechas que aparecen cerca de la palabra "Vigencia" sin
+    # saber a qué campo corresponde cada una, lo cual falla en documentos con
+    # varias fechas de vigencia por renglón/cobertura (p.ej. pólizas de Vida con
+    # una tabla de coberturas, cada una con su propia fecha de fin de vigencia).
     single_patterns = {
         "desde": [
-            rf'Fecha\s*de\s*inicio\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
+            rf'Fecha\s*(?:de\s*)?inicio\s*(?:de\s*)?vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern})',
             rf'Desde\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
@@ -3172,7 +3179,7 @@ def extract_vigencia_values(text: str):
             rf'Vigencia\s*inicia\s*[:|]?\s*({date_pattern})',
         ],
         "hasta": [
-            rf'Fecha\s*de\s*fin\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
+            rf'Fecha\s*(?:de\s*)?fin\s*(?:de\s*)?vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*hasta\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
             rf'Vencimiento\s*[:|]?\s*({date_pattern})',
             rf'Hasta\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
@@ -3191,6 +3198,29 @@ def extract_vigencia_values(text: str):
             values[field] = normalize_extracted_date(match.group(1))
             if values[field]:
                 break
+
+    if values["desde"] and values["hasta"] and _is_chronologically_valid_range(values["desde"], values["hasta"]):
+        return values["desde"], values["hasta"]
+
+    # Solo si las etiquetas explícitas no dieron un par válido, caemos al
+    # escaneo genérico por proximidad (menos confiable, pero mejor que nada).
+    vigencia_windows = re.finditer(
+        r'(?is)(Vigencia.{0,260}|vigencia.{0,260}|Desde.{0,180}Hasta.{0,180})',
+        text_window
+    )
+    raw_date_pattern = rf'(\d{{1,2}}\s*[/-]?\s*(?:\d{{1,2}}|{month_pattern})\s*[/-]?\s*\d{{4}})'
+    for match in vigencia_windows:
+        window = match.group(0)
+        dates = []
+        for raw_value in re.findall(raw_date_pattern, window, re.I):
+            normalized = normalize_extracted_date(raw_value)
+            if normalized and normalized not in dates:
+                dates.append(normalized)
+        if len(dates) >= 2 and _is_chronologically_valid_range(dates[0], dates[1]):
+            return dates[0], dates[1]
+
+    if not _is_chronologically_valid_range(values["desde"], values["hasta"]):
+        return None, None
 
     return values["desde"], values["hasta"]
 
@@ -3723,6 +3753,11 @@ def extract_endoso_value(text: str) -> str:
             return False
         if not re.search(r'\d', compact):
             return False
+        # Un candidato puramente numérico de 1-2 dígitos casi siempre es un
+        # fragmento suelto (p.ej. los centavos ".02" de un monto que quedó
+        # pegado en la misma línea), no un folio de endoso real.
+        if compact.isdigit() and len(compact) <= 2:
+            return False
         return True
 
     patterns = [
@@ -3750,6 +3785,13 @@ def extract_endoso_value(text: str) -> str:
         if not line or re.search(r'\bTipo\s+de\s+Endoso\b', line, re.I):
             continue
         line = re.split(r'\b(?:Aviso|Recibo)\s+de\s+cobro\b', line, maxsplit=1, flags=re.I)[0]
+        # Corta cualquier campo de prima/moneda/etc. que haya quedado unido a esta
+        # misma línea por el aplanado del PDF, para no confundir sus centavos con
+        # un folio de endoso.
+        line = re.split(
+            r'\b(?:Prima|Total|IVA|Recargo|Derecho|Moneda|Forma\s+de\s+pago|Impuesto|Gastos?\s+de\s+Expedici[oó]n)\b',
+            line, maxsplit=1, flags=re.I
+        )[0]
         candidates = re.findall(r'\b[A-Z0-9][A-Z0-9/-]{0,17}\b', line, re.I)
         for candidate in reversed(candidates):
             normalized = normalize_endoso_candidate(candidate)
@@ -3765,14 +3807,19 @@ def extract_customer_name_value(text: str) -> str:
         r'(?is)Datos del contratante.*?Contratante\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)Datos del contratante.*?Nombre\s*[:|]?\s*([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)Datos del asegurado y/o propietario.*?Asegurado\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
-        r'(?is)\bAsegurado\s*:\s*(?:\d{6,}\s+)?([^\n]+(?:\n[^\n]+){0,1})',
+        # Negative lookbehind evita que "...Grupo Asegurado:" (etiqueta de tipo
+        # de grupo, no de nombre) dispare este patrón como si fuera el campo
+        # "Asegurado:" real.
+        r'(?is)(?<!Grupo )\bAsegurado\s*:\s*(?:\d{6,}\s+)?([^\n]+(?:\n[^\n]+){0,1})',
         r'(?is)\bPropietario/?\s*:\s*([^\n]+(?:\n[^\n]+){0,1})',
         r'(?is)Raz[oó]n social\s*[:|]?\s*([^\n]+(?:\n[^\n]+){0,1})',
         r'(?is)\bContratante\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
-        r'(?is)\bAsegurado\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
+        r'(?is)(?<!Grupo )\bAsegurado\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
     ]
     stop_pattern = re.compile(
-        r'\b(?:R\.?F\.?C\.?|C\.?P\.?|Domicilio|Ciudad|Fecha|Moneda|Forma de pago|Paquete|Clave interna del agente|Inciso|Endoso|Tipo de endoso|Vigencia|Sucursal|Tel[eé]fono|No\.?\s*de\s*cliente|Propietario)\b',
+        r'\b(?:R\.?F\.?C\.?|C\.?P\.?|Domicilio|Ciudad|Fecha|Moneda|Forma de pago|Paquete|Clave interna del agente|Inciso|Endoso|Tipo de endoso|Vigencia|Sucursal|Tel[eé]fono|No\.?\s*de\s*cliente|Propietario'
+        r'|Total\s+a\s+pagar|Prima\s+Neta|Prima\s+Total|Recibo\s+Subsecuente|Recargo|Gastos?\s+de\s+Expedici[oó]n|Duraci[oó]n|Pagar\s+antes\s+de|IVA'
+        r'|Sumas?\s+Asegurad|Tipo\s+de\s+Grupo|Beneficios\s+Adicionales)\b',
         re.I
     )
 
@@ -3857,6 +3904,10 @@ def extract_agent_name_value(text: str) -> str:
             )[0]
             value = re.split(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', value, maxsplit=1, flags=re.I)[0]
             value = re.split(r'\b(?:CEL|TEL[EÉ]FONO|TEL)\b', value, maxsplit=1, flags=re.I)[0]
+            # Corta boilerplate de firma/compañía que a veces queda pegado en la misma
+            # línea que el nombre del agente (p.ej. "GARDUÑO GALI GUILLERMO Seguros Atlas, S.A.")
+            value = re.split(r'\bSeguros\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ]*', value, maxsplit=1, flags=re.I)[0]
+            value = re.split(r',?\s*S\.?\s*A\.?\s*(?:de\s*C\.?\s*V\.?)?\b', value, maxsplit=1, flags=re.I)[0]
             value = re.split(r'\b\d{7,}\b', value, maxsplit=1, flags=re.I)[0]
             value = re.sub(r'^\d{4,}\s+', '', value).strip()
             value = re.sub(r'\bOT\s*[:|-]?\s*\d+\b.*$', '', value, flags=re.I).strip()
@@ -4866,6 +4917,32 @@ def count_populated_fields(data: dict, fields) -> int:
     return sum(1 for field in fields if sanitize_text_value(data.get(field)))
 
 
+# Campos de texto "trusted" donde un regex mal anclado suele colar texto de
+# otro campo vecino (montos, boilerplate de la aseguradora, etc.). Antes de
+# dejar que un valor de regla PISE una respuesta del modelo en estos campos,
+# se corre una validación mínima de forma; si no la pasa, se descarta el
+# valor de regla y gana el del modelo (que sí leyó el documento completo).
+_CONTAMINATION_MARKERS = re.compile(
+    r'\b(?:Total\s+a\s+pagar|Prima\s+Neta|Prima\s+Total|Recibo\s+Subsecuente|Gastos?\s+de\s+Expedici[oó]n'
+    r'|Recargo\s+Pago|IVA|Pagar\s+antes\s+de)\b',
+    re.I
+)
+_MONEY_AMOUNT_PATTERN = re.compile(r'\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+\.\d{2}\b')
+_PLAUSIBILITY_CHECKED_FIELDS = {"nombre_cliente", "agente", "descripcion"}
+
+
+def _is_plausible_trusted_text_value(key: str, value: str) -> bool:
+    if key not in _PLAUSIBILITY_CHECKED_FIELDS or not value:
+        return True
+    if len(value) > 80:
+        return False
+    if _CONTAMINATION_MARKERS.search(value):
+        return False
+    if _MONEY_AMOUNT_PATTERN.search(value):
+        return False
+    return True
+
+
 def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
     merged = {}
     model_result = model_result or {}
@@ -4904,6 +4981,15 @@ def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
 
         model_value = sanitize_text_value(model_result.get(key))
         rule_value = sanitize_text_value(rule_hints.get(key))
+
+        if not _is_plausible_trusted_text_value(key, rule_value):
+            log_policy_event(
+                "merge_validation",
+                "valor de regla descartado por implausible, gana el modelo",
+                field=key,
+                rule_value=rule_value
+            )
+            rule_value = None
 
         if key == "forma_de_pago":
             model_value = normalize_forma_pago_value(model_value)
