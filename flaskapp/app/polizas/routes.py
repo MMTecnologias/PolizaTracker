@@ -2667,11 +2667,11 @@ def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = Fal
         if prefer_endoso:
             text = trim_billing_notice_from_endorsement_text(text)
 
-        max_chars = 30000
+        max_chars = 150000
         if len(text) > max_chars:
             log_policy_event(
                 "pdf_extract",
-                "texto del PDF truncado para procesamiento",
+                "texto del PDF truncado por límite de seguridad (no debería afectar campos normales)",
                 original_chars=len(text),
                 kept_chars=max_chars
             )
