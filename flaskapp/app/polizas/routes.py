@@ -3857,7 +3857,7 @@ def extract_customer_name_value(text: str) -> str:
     stop_pattern = re.compile(
         r'\b(?:R\.?F\.?C\.?|C\.?P\.?|Domicilio|Ciudad|Fecha|Moneda|Forma de pago|Paquete|Clave interna del agente|Inciso|Endoso|Tipo de endoso|Vigencia|Sucursal|Tel[eé]fono|No\.?\s*de\s*cliente|Propietario'
         r'|Total\s+a\s+pagar|Prima\s+Neta|Prima\s+Total|Recibo\s+Subsecuente|Recargo|Gastos?\s+de\s+Expedici[oó]n|Duraci[oó]n|Pagar\s+antes\s+de|IVA'
-        r'|Sumas?\s+Asegurad|Tipo\s+de\s+Grupo|Beneficios\s+Adicionales)\b',
+        r'|Sumas?\s+Asegurad|Tipo\s+de\s+Grupo|Beneficios\s+Adicionales|Agente|Producto|Clave\s+del\s+[Aa]gente)\b',
         re.I
     )
 
@@ -3872,7 +3872,15 @@ def extract_customer_name_value(text: str) -> str:
         for line in candidate_lines:
             if not line:
                 continue
-            if stop_pattern.search(line):
+            stop_match = stop_pattern.search(line)
+            if stop_match:
+                # Puede venir en la MISMA línea que el nombre (p.ej. "Contratante:
+                # ERNESTO ROCHA GONZALEZ Agente: GUILLERMO..."), así que en vez
+                # de descartar toda la línea, nos quedamos con lo que hay antes
+                # del stop-token y ahí cortamos la colección.
+                prefix = line[:stop_match.start()].strip(" :|-")
+                if prefix:
+                    collected.append(prefix)
                 break
             collected.append(line)
 
@@ -4252,6 +4260,17 @@ def extract_vehicle_value(text: str, labels) -> str:
 
 def extract_vehicle_serial_value(text: str) -> str:
     """Obtiene una serie válida, priorizando la carátula en español."""
+    # Algunos formatos (Banorte con pago en parcialidades) reusan la palabra
+    # "Serie" para el folio de pago -> "Serie:1/2 Folio:144534748" (serie de
+    # RECIBOS, no del vehículo). Sin quitar esto, el regex de más abajo la
+    # confunde con la serie/VIN del vehículo. La quitamos solo para esta
+    # búsqueda puntual.
+    text = re.sub(r'\bSerie\s*:\s*\d{1,2}\s*/\s*\d{1,2}\s*Folio\s*:\s*\d+', ' ', text, flags=re.I)
+    # Texto legal estándar de pago en parcialidades ("...recibo pertenece a
+    # una serie por lo que...") también usa la palabra "serie" sin ser una
+    # etiqueta de campo; si aparece antes que la etiqueta real del vehículo,
+    # gana por ser la primera coincidencia. La quitamos también.
+    text = re.sub(r'\bpertenece\s+a\s+una\s+serie\b', ' ', text, flags=re.I)
     return extract_vehicle_value(text, [
         r'No\.?\s*de\s*serie',
         r'N[uú]mero\s*de\s*serie',
@@ -4671,11 +4690,17 @@ def build_rule_based_hints(text: str) -> dict:
             hints["subramo"] = ramo
 
     if hints["ramo"] == "Autos" and not hints["subramo"]:
+        # "Tipo de movimiento: FLOTILLA" (Banorte y similares) es la señal más
+        # confiable y puede aparecer bastante después del encabezado, así que
+        # se busca en todo el documento antes de caer al resto de heurísticas.
+        tipo_movimiento_match = re.search(r'Tipo\s+de\s+movimiento\s*[:|]?\s*(FLOTILLA|INDIVIDUAL)', text, re.I)
         header = text[:3000].upper()
-        if re.search(r'\bFLOT(?:ILLA|A)\b', header):
-            hints["subramo"] = "FLOTILLA"
+        if (tipo_movimiento_match and tipo_movimiento_match.group(1).upper() == "FLOTILLA") or re.search(r'\bFLOT(?:ILLA|A)\b', header):
+            hints["subramo"] = "Flotilla"
+        elif re.search(r'\bCAMION(?:ES)?\b', header):
+            hints["subramo"] = "CAMION IND"
         else:
-            hints["subramo"] = "PARTICULAR"
+            hints["subramo"] = "Auto Ind"
     elif hints["ramo"] == "Transporte" and not hints["subramo"]:
         transport_header = text[:4000].upper()
         if re.search(r'INTEGRAL\s+TERRESTRE|MEDIO\s+DE\s+TRANSPORTE\s*:\s*TERRESTRE', transport_header):
@@ -4752,8 +4777,15 @@ def build_rule_based_hints(text: str) -> dict:
             text, [r'\bServicio\b'], stop_tokens=[r'\bUso\b', r'\bCarga\b']
         ))
         hints["no_ocupantes"] = sanitize_text_value(extract_value_after_label(
-            text, [r'No\.?\s*ocupantes', r'\bOcupantes\b'], stop_tokens=[r'\bCarga\b', r'\bUso\b']
+            text,
+            [r'No\.?\s*ocupantes', r'(?<!M[EÉ]DICOS\s)(?<!M[EÉ]DICOS\s)\bOcupantes\b'],
+            stop_tokens=[r'\bCarga\b', r'\bUso\b']
         ))
+        # "Gastos Médicos Ocupantes" es una cobertura de la tabla de primas, no
+        # el número de ocupantes del vehículo; si el valor capturado trae un
+        # monto en dinero, es señal de que se coló esa fila y se descarta.
+        if hints["no_ocupantes"] and re.search(r'\$|\d{1,3}(?:,\d{3})+', hints["no_ocupantes"]):
+            hints["no_ocupantes"] = None
         hints["carga"] = sanitize_text_value(extract_value_after_label(
             text, [r'\bCarga\b'], stop_tokens=[r'\bUso\b', r'\bServicio\b']
         ))
@@ -4924,7 +4956,7 @@ def query_ollama_json(model: str, prompt: str) -> dict:
         "stream": False,
         "temperature": 0,
         "seed": 42,
-        "num_predict": 1200
+        "num_predict": 900
     }
     log_policy_event(
         "ollama_request",
