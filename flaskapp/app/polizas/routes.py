@@ -4414,6 +4414,52 @@ def merge_vehicle_records(*record_groups) -> list:
     return merged
 
 
+def extract_life_coverage_summary(text: str) -> list:
+    """Extrae pares (cobertura, suma asegurada) de la tabla de coberturas de
+    pólizas de Vida/Gastos Médicos, para poder mostrarlas en observaciones
+    (hoy esa tabla se pierde por completo para estos ramos). Cubre dos
+    layouts observados: filas tipo MetLife (nombre + suma + fechas + prima) y
+    filas tipo "CANTIDAD UNIFORME" (Insignia Life y similares).
+    """
+    coverages = []
+    seen = set()
+
+    # Layout "MetLife": NOMBRE COBERTURA <suma o CUBIERTO> DD MM AAAA DD MM AAAA ...
+    for m in re.finditer(
+        r'(?m)^([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9./\s]{2,45}?)\s+(CUBIERTO|AMPARAD[AO]|\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s+\d{1,2}\s+\d{1,2}\s+\d{4}\s+\d{1,2}\s+\d{1,2}\s+\d{4}',
+        text
+    ):
+        nombre = sanitize_text_value(m.group(1))
+        suma = sanitize_text_value(m.group(2))
+        key = nombre.upper()
+        if nombre and len(nombre) >= 4 and key not in seen:
+            seen.add(key)
+            coverages.append((nombre, suma))
+
+    # Layout "Cantidad uniforme": NOMBRE COBERTURA CANTIDAD UNIFORME MONTO
+    for m in re.finditer(
+        r'(?m)^([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9./\s]{2,45}?)\s+CANTIDAD\s+UNIFORME\s+([\d,]+(?:\.\d{2})?)',
+        text
+    ):
+        nombre = sanitize_text_value(m.group(1))
+        suma = sanitize_text_value(m.group(2))
+        key = nombre.upper()
+        if nombre and len(nombre) >= 2 and key not in seen:
+            seen.add(key)
+            coverages.append((nombre, suma))
+
+    return coverages
+
+
+def format_life_coverage_observations(coverages: list) -> str:
+    if not coverages:
+        return ""
+    lines = ["Coberturas contratadas"]
+    for nombre, suma in coverages:
+        lines.append(f"{nombre}: {suma}")
+    return "\n".join(lines)
+
+
 def format_vehicle_observations(vehicle_records: list) -> str:
     if not vehicle_records:
         return ""
@@ -4716,7 +4762,20 @@ def build_rule_based_hints(text: str) -> dict:
         else:
             hints["subramo"] = "IND/FAMILIAR"
     elif hints["ramo"] == "Vida" and not hints["subramo"]:
-        hints["subramo"] = "INDIVIDUAL"
+        # Señales de póliza de vida GRUPO/COLECTIVA: el contratante es una
+        # empresa que asegura a varios empleados (tabla de "Registro de
+        # Asegurados", "Tipo de Grupo Asegurado", razón social como
+        # contratante, etc.) en vez de una persona física asegurándose a sí
+        # misma.
+        group_signals = re.search(
+            r'Tipo\s+de\s+Grupo\s+Asegurado|Registro\s+de\s+Asegurados|Grupo\s+Asegurado|'
+            r'V[ií]da\s+Grupo|Grupo\s+Experiencia|Colectiv[oa]|P[oó]liza\s+de\s+Grupo',
+            text, re.I
+        )
+        if group_signals:
+            hints["subramo"] = "Grupo y Col"
+        else:
+            hints["subramo"] = "Individual"
 
     hints["desde"], hints["hasta"] = extract_vigencia_values(text)
 
@@ -5041,7 +5100,8 @@ def merge_extraction_results(rule_hints: dict, model_result: dict) -> dict:
         "derecho_poliza",
         "gastos_expedicion",
         "descripcion",
-        "numero_serie"
+        "numero_serie",
+        "subramo"
     }
 
     for key in JSON_SCHEMA.keys():
@@ -5646,14 +5706,26 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             else:
                 subramo_nombre = "IND/FAMILIAR"
             subramo_id = find_existing_subramo(subramo_nombre)
-        elif generic_subramo and ramo_compact in {"AUTOMOVIL", "AUTO"}:
-            if "FLOTILLA" in normalize_ascii_upper(subramo_nombre or ""):
-                subramo_nombre = "FLOTILLA"
+        elif generic_subramo and ramo_compact in {"AUTOS", "AUTOMOVIL", "AUTO"}:
+            # Respeta lo que ya calculó build_rule_based_hints (CAMION IND /
+            # Auto Ind / Flotilla) si es alguno de esos 3 valores conocidos;
+            # solo cae al viejo binario genérico cuando de plano no hay nada.
+            subramo_compact_now = normalize_ascii_upper(subramo_nombre or "")
+            if subramo_compact_now in {"CAMIONIND", "AUTOIND", "FLOTILLA"}:
+                pass
+            elif "FLOTILLA" in subramo_compact_now:
+                subramo_nombre = "Flotilla"
+            elif "CAMION" in subramo_compact_now:
+                subramo_nombre = "CAMION IND"
             else:
-                subramo_nombre = "PARTICULAR"
+                subramo_nombre = "Auto Ind"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact == "VIDA":
-            subramo_nombre = "INDIVIDUAL"
+            # Respeta la detección Individual/Grupo y Col de build_rule_based_hints
+            # en vez de forzar siempre "INDIVIDUAL".
+            subramo_compact_now = normalize_ascii_upper(subramo_nombre or "")
+            if subramo_compact_now not in {"INDIVIDUAL", "GRUPOYCOL"}:
+                subramo_nombre = "Individual"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact == "TRANSPORTEDECARGA":
             subramo_nombre = "Transporte terrestre de carga"
@@ -5752,6 +5824,12 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
 
         normalized_serie = serie_value if ramo_normalized == "Autos" else ""
 
+        observaciones_value = format_vehicle_observations(vehicle_records)
+        if not observaciones_value and ramo_compact in {"VIDA", "GASTOSMEDICOS"}:
+            observaciones_value = format_life_coverage_observations(
+                extract_life_coverage_summary(text_content)
+            )
+
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
             "nombre_cliente": nombre_cliente,
@@ -5777,7 +5855,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             "endoso": merged_json.get("endoso"),
             "rfc": rfc_cliente,
             "serie": normalized_serie,
-            "observaciones": format_vehicle_observations(vehicle_records),
+            "observaciones": observaciones_value,
             "derecho_poliza": normalize_amount_value(
                 merged_json.get("derecho_poliza") or merged_json.get(
                     "gastos_expedicion")
