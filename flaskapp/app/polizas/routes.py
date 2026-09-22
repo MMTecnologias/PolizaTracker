@@ -2696,6 +2696,13 @@ def clean_extracted_text(text: str) -> str:
         return ""
 
     text = text.replace("\r", "\n").replace("\t", " ")
+    # Algunos formatos (p.ej. Banorte) traen líneas de "llenar a mano" como
+    # guiones bajos que el extractor de texto funde con las letras de encima
+    # (ej. "_5_T_D_Z_K_3_E_H_7_C_S_0_8_6_0_4_0_"), rompiendo cualquier serie,
+    # nombre o RFC que caiga sobre una de esas líneas. Quitarlos por completo
+    # reconstruye el texto real tanto en ese caso como en las líneas de
+    # relleno vacías (donde no dejan nada útil de todos modos).
+    text = text.replace("_", "")
     text = re.sub(r'[ \xa0]+', ' ', text)
     text = re.sub(r' *\| *', ' | ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
@@ -3319,6 +3326,23 @@ def sanitize_premium_fields(text: str, data: dict) -> dict:
     return cleaned
 
 
+def _looks_like_bare_year(value) -> bool:
+    """Un valor de 'monto' de exactamente 4 dígitos sin decimales, dentro del
+    rango de años calendario plausibles, casi siempre es un año (fecha de
+    vigencia, de emisión, etc.) que el regex de montos confundió con dinero
+    porque \\d{4,} sin comas ni punto decimal también matchea un año."""
+    if value is None:
+        return False
+    text = str(value)
+    if "." in text:
+        return False
+    digits = re.sub(r'[^\d]', '', text)
+    if len(digits) != 4:
+        return False
+    year = int(digits)
+    return 1900 <= year <= 2099
+
+
 def extract_prima_neta_value(text: str, prima_total: str = None, derecho_poliza: str = None) -> str:
     structured_values = extract_structured_premium_values(text)
     structured_prima_neta = structured_values.get("prima_neta")
@@ -3338,14 +3362,14 @@ def extract_prima_neta_value(text: str, prima_total: str = None, derecho_poliza:
         r'Prima'
     ]
     direct_value = extract_money_amount_near_label(text, direct_labels)
-    if direct_value and not is_suspicious_premium_amount(direct_value, text):
+    if direct_value and not _looks_like_bare_year(direct_value) and not is_suspicious_premium_amount(direct_value, text):
         return direct_value
 
     prima_section_match = re.search(r'(?:Prima|Recibo|Importe a pagar)(.{0,2200})', text, re.I | re.S)
     prima_section = prima_section_match.group(0) if prima_section_match else text
 
     section_value = extract_money_amount_near_label(prima_section, direct_labels)
-    if section_value and not is_suspicious_premium_amount(section_value, text):
+    if section_value and not _looks_like_bare_year(section_value) and not is_suspicious_premium_amount(section_value, text):
         return section_value
 
     prima_total_val = to_float_amount(prima_total) or to_float_amount(
@@ -3437,7 +3461,7 @@ def extract_prima_total_value(text: str, prima_neta: str = None, derecho_poliza:
         r'Importe a pagar'
     ]
     direct_value = extract_money_amount_near_label(text, direct_labels)
-    if direct_value:
+    if direct_value and not _looks_like_bare_year(direct_value):
         log_policy_event(
             "prima_total",
             "prima total encontrada por etiqueta directa",
@@ -3449,7 +3473,7 @@ def extract_prima_total_value(text: str, prima_neta: str = None, derecho_poliza:
     if prima_section_match:
         prima_section = prima_section_match.group(0)
         section_value = extract_money_amount_near_label(prima_section, direct_labels)
-        if section_value:
+        if section_value and not _looks_like_bare_year(section_value):
             log_policy_event(
                 "prima_total",
                 "prima total encontrada dentro de la sección Prima",
@@ -3581,6 +3605,20 @@ def extract_policy_number_value(text: str) -> str:
         if not normalized_candidates:
             return None
         return max(normalized_candidates, key=lambda value: len(re.sub(r'[^A-Z0-9]', '', value.upper())))
+
+    # Formato tabular Banorte: encabezado "Producto | No. de Póliza | Módulo |
+    # Oficina | Ramo | Subramo | Inciso" (con o sin la columna "Producto"),
+    # seguido de la fila de datos en la misma línea o la siguiente. Se ancla
+    # explícitamente a la columna "No. de Póliza" para no dejar que el
+    # heurístico genérico de "candidato más largo" (más abajo) concatene por
+    # error las columnas de Oficina/Ramo/Subramo en un número inventado.
+    banorte_table_match = re.search(
+        r'(?is)(?:Producto\s+)?No\.?\s*de\s*P[oó]liza\s+M[oó]dulo\s+Oficina\s+Ramo\s+Subramo\s+Inciso'
+        r'\s*\n?\s*(?:[A-Z]\d{3}\s+)?(\d{5,12})\s+\d',
+        text
+    )
+    if banorte_table_match:
+        return sanitize_text_value(banorte_table_match.group(1))
 
     direct_line_candidates = re.findall(
         r'(?im)\bP[oó]liza\s*:\s*([A-Z]{2,5}\d{6,12}(?:\s+\d{2,6})?[A-Z0-9/-]*)\b',
@@ -4602,6 +4640,11 @@ def build_rule_based_hints(text: str) -> dict:
         "HDI": "HDI",
         "METLIFE": "MetLife",
         "PREVEM": "PREVEN SEGUROS",
+        "SEGUROS ATLAS": "Atlas",
+        "ATLAS": "Atlas",
+        "SEGUROS BANORTE": "Banorte",
+        "BANORTE": "Banorte",
+        "INSIGNIA LIFE": "Insignia Life",
     }
     upper_text = text.upper()
     compact_text = normalize_ascii_upper(text)
