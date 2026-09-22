@@ -5294,6 +5294,8 @@ def find_existing_subramo(nombre: str):
         fallback_aliases = ["IND/FAMILIAR", "IND/FAM", "INDIVIDUAL"]
     elif normalized_name in {"INDIVIDUAL"}:
         fallback_aliases = ["INDIVIDUAL", "IND/FAMILIAR", "IND/FAM"]
+    elif normalized_name in {"GRUPOYCOL", "GRUPO", "COLECTIVO", "GRUPOYCOLECTIVO"}:
+        fallback_aliases = ["GRUPO Y COL", "GRUPO", "COLECTIVO"]
     elif normalized_name == "TRANSPORTEDECARGA":
         fallback_aliases = ["Transporte terrestre de carga"]
 
