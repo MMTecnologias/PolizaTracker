@@ -2550,6 +2550,54 @@ def open_pdfplumber_with_repair(file_content: bytes, trace_id: str = None):
             raise first_error
 
 
+def scan_additional_pages_for_forma_pago(file_content: bytes, already_processed_pages: int = 8, max_scan_pages: int = 100, trace_id: str = None) -> str:
+    """Segunda pasada, dirigida y barata: solo se usa cuando el documento
+    tiene más páginas de las que procesamos normalmente Y la forma de pago
+    sigue vacía después de la extracción principal. Algunos documentos
+    tipo "Multipóliza" de Zurich meten la Forma de Pago hasta 50-60 páginas
+    después (en un "Plan de Pago"), muy lejos de las 8 páginas que se
+    procesan por velocidad en el caso normal. En vez de subirle el límite a
+    todos los documentos (más lento para el 99% de los casos), aquí SOLO se
+    entra si de verdad falta el dato, y SOLO se corre regex sobre el texto
+    (nunca otra llamada a Ollama, que es lo que realmente cuesta tiempo)."""
+    try:
+        with open_pdfplumber_with_repair(file_content, trace_id=trace_id) as pdf:
+            total_pages = len(pdf.pages)
+            if total_pages <= already_processed_pages:
+                return None
+            last_page = min(total_pages, already_processed_pages + max_scan_pages)
+            log_policy_event(
+                "pdf_extract",
+                "forma_de_pago no encontrada en las primeras páginas, escaneando el resto del documento",
+                trace_id=trace_id,
+                total_pages=total_pages,
+                scanning_pages=f"{already_processed_pages}-{last_page}"
+            )
+            accumulated = ""
+            for page in pdf.pages[already_processed_pages:last_page]:
+                page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
+                if not page_text:
+                    continue
+                accumulated += page_text + "\n"
+                found = extract_forma_pago_value(clean_extracted_text(accumulated))
+                if found:
+                    log_policy_event(
+                        "pdf_extract",
+                        "forma_de_pago encontrada en páginas posteriores",
+                        trace_id=trace_id,
+                        forma_de_pago=found
+                    )
+                    return found
+    except Exception as e:
+        log_policy_event(
+            "pdf_extract",
+            "el escaneo de páginas posteriores para forma_de_pago falló",
+            trace_id=trace_id,
+            error=str(e)
+        )
+    return None
+
+
 def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = False, trace_id: str = None) -> str:
     try:
         # Validar que el archivo comience con el header de PDF
@@ -4848,6 +4896,8 @@ def build_rule_based_hints(text: str) -> dict:
         header = text[:3000].upper()
         if (tipo_movimiento_match and tipo_movimiento_match.group(1).upper() == "FLOTILLA") or re.search(r'\bFLOT(?:ILLA|A)\b', header):
             hints["subramo"] = "FLOTILLA"
+        elif re.search(r'\bMOTOCICLETAS?\b|\bMOTOS?\b', text[:8000], re.I):
+            hints["subramo"] = "MOTOCICLETA"
         elif re.search(r'\bCAMION(?:ES)?\b', header):
             hints["subramo"] = "CAMION IND"
         else:
@@ -5842,10 +5892,12 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             # Auto Ind / Flotilla) si es alguno de esos 3 valores conocidos;
             # solo cae al viejo binario genérico cuando de plano no hay nada.
             subramo_compact_now = normalize_ascii_upper(subramo_nombre or "")
-            if subramo_compact_now in {"CAMIONIND", "AUTOIND", "FLOTILLA"}:
+            if subramo_compact_now in {"CAMIONIND", "AUTOIND", "FLOTILLA", "MOTOCICLETA"}:
                 pass
             elif "FLOTILLA" in subramo_compact_now:
                 subramo_nombre = "FLOTILLA"
+            elif "MOTOCICLETA" in subramo_compact_now or "MOTO" in subramo_compact_now:
+                subramo_nombre = "MOTOCICLETA"
             elif "CAMION" in subramo_compact_now:
                 subramo_nombre = "CAMION IND"
             else:
@@ -6234,6 +6286,13 @@ def upload_pdf():
             extracted_chars=len(text)
         )
         extracted_data = call_ollama_model(text, JSON_SCHEMA)
+
+        if not sanitize_text_value(extracted_data.get("forma_de_pago")):
+            forma_pago_tardia = scan_additional_pages_for_forma_pago(
+                file_content, trace_id=upload_trace_id
+            )
+            if forma_pago_tardia:
+                extracted_data["forma_de_pago"] = forma_pago_tardia
 
         filename_policy = extract_policy_number_from_filename(file.filename)
         extracted_policy = sanitize_text_value(extracted_data.get("numero_de_poliza"))
