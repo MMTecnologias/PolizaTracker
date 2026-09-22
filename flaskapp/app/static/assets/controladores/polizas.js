@@ -581,9 +581,10 @@ $(function () {
       $('#serie').val('');
     }
 
-    // Observaciones del vehículo, priorizando el bloque completo generado para autos
-    if (shouldPopulateVehicleFields && data.observaciones) {
-      console.log('Observaciones del vehículo:', data.observaciones);
+    // Observaciones: coberturas de vehículo (Autos) o de póliza (Vida/GMM),
+    // lo que el backend haya calculado — ya no se restringe solo a Autos.
+    if (data.observaciones) {
+      console.log('Observaciones:', data.observaciones);
       const notasActuales = $('#notas').val();
       $('#notas').val(mergeVehicleObservations(notasActuales, data.observaciones));
     }
