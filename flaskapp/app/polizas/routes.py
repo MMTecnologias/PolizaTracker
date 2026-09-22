@@ -1,5 +1,6 @@
 import io
 import pdfplumber
+import pikepdf
 from pdfminer.high_level import extract_text as pdfminer_extract_text
 import json
 import re
@@ -2512,6 +2513,43 @@ def extract_text_with_ocr(file_content: bytes, maxpages: int = 8, trace_id: str 
 #         raise
 
 
+def open_pdfplumber_with_repair(file_content: bytes, trace_id: str = None):
+    """Abre el PDF con pdfplumber; si el archivo trae metadata corrupta
+    (p.ej. un escape octal inválido en el diccionario Info, algo que hemos
+    visto en documentos de Zurich) pdfminer truena ANTES de leer una sola
+    página. En ese caso, se repara el PDF con pikepdf (reescribe el archivo
+    limpiando xref/metadata corruptos) y se reintenta con esos bytes."""
+    try:
+        return pdfplumber.open(io.BytesIO(file_content))
+    except Exception as first_error:
+        log_policy_event(
+            "pdf_extract",
+            "pdfplumber falló al abrir el PDF, intentando reparar con pikepdf",
+            trace_id=trace_id,
+            error=str(first_error)
+        )
+        try:
+            repaired_buffer = io.BytesIO()
+            with pikepdf.open(io.BytesIO(file_content)) as repaired_pdf:
+                repaired_pdf.save(repaired_buffer)
+            repaired_buffer.seek(0)
+            pdf = pdfplumber.open(repaired_buffer)
+            log_policy_event(
+                "pdf_extract",
+                "PDF reparado con pikepdf y abierto correctamente",
+                trace_id=trace_id
+            )
+            return pdf
+        except Exception as repair_error:
+            log_policy_event(
+                "pdf_extract",
+                "la reparación con pikepdf también falló",
+                trace_id=trace_id,
+                error=str(repair_error)
+            )
+            raise first_error
+
+
 def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = False, trace_id: str = None) -> str:
     try:
         # Validar que el archivo comience con el header de PDF
@@ -2531,7 +2569,7 @@ def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = Fal
             prefer_endoso=prefer_endoso
         )
         try:
-            with pdfplumber.open(io.BytesIO(file_content)) as pdf:
+            with open_pdfplumber_with_repair(file_content, trace_id=trace_id) as pdf:
                 pages = pdf.pages
                 if not pages:
                     raise ValueError("El PDF no contiene páginas")
@@ -3126,8 +3164,23 @@ def _is_chronologically_valid_range(desde: str, hasta: str) -> bool:
 def extract_vigencia_values(text: str):
     month_keys = sorted(SPANISH_MONTH_ALIASES.keys(), key=len, reverse=True)
     month_pattern = "|".join(month_keys)
-    date_pattern = rf'(?:\d{{1,2}}\s*[/-]\s*\d{{1,2}}\s*[/-]\s*\d{{4}}|\d{{1,2}}\s*[/-]?\s*(?:{month_pattern})\s*[/-]?\s*\d{{4}})'
+    date_pattern = rf'(?:\d{{1,2}}\s*[/-]\s*\d{{1,2}}\s*[/-]\s*\d{{4}}|\d{{1,2}}\s*(?:de\s*)?[/-]?\s*(?:{month_pattern})\s*(?:de\s*)?[/-]?\s*\d{{4}})'
     text_window = text[:6000]
+
+    # Formato tabular Allianz: la fila de datos trae 3 fechas seguidas
+    # (Fecha de emisión, Vigencia desde, Vigencia hasta) bajo el encabezado
+    # "...Fecha de emisión...Desde las 12:00horas del / Hasta las
+    # 12:00horas del...". El fallback genérico de abajo agarraba las
+    # primeras 2 fechas (emisión + desde) en vez de las 2 correctas.
+    allianz_table_match = re.search(
+        rf'(?is)Fecha\s*de\s*emisi[oó]n.{{0,200}}?\n\s*\S+\s+\d+\s+\d+\s+{date_pattern}\s+({date_pattern})\s+({date_pattern})',
+        text
+    )
+    if allianz_table_match:
+        desde = normalize_extracted_date(allianz_table_match.group(1))
+        hasta = normalize_extracted_date(allianz_table_match.group(2))
+        if _is_chronologically_valid_range(desde, hasta):
+            return desde, hasta
 
     range_patterns = [
         rf'Vigencia\s*a\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})\s*(?:al|a)\s*[:|]?\s*({date_pattern})',
@@ -3135,7 +3188,7 @@ def extract_vigencia_values(text: str):
         rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern}).{{0,120}}?hasta\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern})',
         rf'Vigencia\s*del\s*[:|]?\s*({date_pattern})\s*(?:al|a)\s*[:|]?\s*({date_pattern})',
         rf'vigencia\s*de\s*({date_pattern})\s*a\s*({date_pattern})',
-        rf'Desde\s*[:|]?\s*({date_pattern}).{{0,80}}?Hasta\s*[:|]?\s*({date_pattern})',
+        rf'Desde\s*[:|]?\s*(?:el\s*)?({date_pattern}).{{0,80}}?Hasta\s*[:|]?\s*(?:el\s*)?({date_pattern})',
         rf'mismo\s+que\s+tendr[áa]\s+vigencia\s+de\s*({date_pattern})\s*a\s*({date_pattern})',
     ]
     for pattern in range_patterns:
@@ -3255,8 +3308,12 @@ def extract_money_amount_near_label(text: str, labels) -> str:
 
 def extract_structured_premium_values(text: str) -> dict:
     patterns = [
-        r'Prima\s*neta\s*:?.{0,180}?Gastos\s*de\s*expedici[oó]n\s*:?.{0,120}?I\.?V\.?A\.?.{0,80}?Prima\s*total\s*:?\s*\n([^\n]+)',
-        r'Prima\s*neta\s*:?.{0,180}?Prima\s*total\s*:?\s*\n([^\n]+)',
+        r'Prima\s*neta\s*:?.{0,180}?(?:Gastos\s*de\s*expedici[oó]n|Derechos\s*de\s*p[oó]liza)\s*:?.{0,120}?I\.?V\.?A\.?.{0,80}?Prima\s*total\b[^\n]*\n([^\n]+)',
+        r'Prima\s*neta\s*:?.{0,180}?Prima\s*total\b[^\n]*\n([^\n]+)',
+        # Variante donde el encabezado de la tabla termina en "Total" a secas
+        # (no "Prima total"), p.ej. Sura: "Prima neta Descuento Tasa de
+        # financiamiento Gastos de expedición IVA Total".
+        r'Prima\s*neta\s*:?.{0,180}?(?:Gastos\s*de\s*expedici[oó]n|Derechos\s*de\s*p[oó]liza)\s*:?.{0,120}?I\.?V\.?A\.?.{0,20}?\bTotal\b[^\n]*\n([^\n]+)',
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.I | re.S)
@@ -4133,6 +4190,22 @@ def extract_forma_pago_value(text: str) -> str:
         if total_payments in payment_map:
             return payment_map[total_payments]
 
+    # Último recurso: algunos formatos (p.ej. Zurich GMM Colectivo) traen la
+    # etiqueta "Forma de pago:" en una columna y el valor real ("Trimestral",
+    # etc.) mucho más abajo, en otra columna reconstruida sin relación de
+    # cercanía por el aplanado del PDF. Si confirmamos que la etiqueta SÍ
+    # existe en el documento, buscamos la primera palabra de frecuencia de
+    # pago suelta en el resto del texto en vez de exigir proximidad.
+    label_exists = re.search(
+        r'\bForma\s*de\s*pago\b|\bFrecuencia\s*de\s*pago\b|\bPeriodicidad(?:\s*de\s*pago)?\b',
+        text, re.I
+    )
+    if label_exists:
+        for value in common_values:
+            match = re.search(rf'(?is)^\s*{value}\s*$', text[:6000], re.M)
+            if match:
+                return normalize_forma_pago_value(value)
+
     return None
 
 
@@ -4224,16 +4297,20 @@ def clean_vehicle_attribute_value(value: str, field: str = None) -> str:
 
 def extract_vehicle_value(text: str, labels) -> str:
     stop_tokens = [
+        # Los patrones multi-palabra van ANTES que sus versiones sueltas
+        # (p.ej. "Número de motor" antes que "Motor" a secas): si "Motor"
+        # cortara primero, dejaría "Número de" pegado al valor anterior
+        # (como pasaba con "Marca: SEAT Número de Motor: ...").
+        r'\bNo\.?\s*de\s*motor\b',
+        r'\bN[uú]mero\s*de\s*motor\b',
+        r'\bNo\.?\s*de\s*serie\b',
+        r'\bN[uú]mero\s*de\s*serie\b',
         r'\bMarca\b',
         r'\bModelo\b',
         r'\bMotor\b',
-        r'\bNo\.?\s*de\s*motor\b',
-        r'\bN[uú]mero\s*de\s*motor\b',
         r'\bPlacas\b',
         r'\bSerie\b',
         r'\bVIN\b',
-        r'\bNo\.?\s*de\s*serie\b',
-        r'\bN[uú]mero\s*de\s*serie\b',
         r'\bColor\b',
         r'\bUso\b',
         r'\bServicio\b',
@@ -4260,6 +4337,18 @@ def extract_vehicle_value(text: str, labels) -> str:
 
 def extract_vehicle_serial_value(text: str) -> str:
     """Obtiene una serie válida, priorizando la carátula en español."""
+    # Formato tabular Sura: encabezado "Motor Serie Capacidad Uso" seguido de
+    # la fila de datos ("S/N JM1CW2BL1E0164802 5 PAS PARTICULAR"). Se ancla
+    # directo a esa columna para no depender del heurístico genérico de más
+    # abajo, que puede toparse antes con otra ocurrencia de "serie" en el
+    # texto legal del documento.
+    sura_table_match = re.search(
+        r'(?is)Motor\s+Serie\s+Capacidad\s+Uso\s*\n\s*\S+\s+([A-Z0-9]{8,25})\s',
+        text
+    )
+    if sura_table_match:
+        return sanitize_text_value(sura_table_match.group(1))
+
     # Algunos formatos (Banorte con pago en parcialidades) reusan la palabra
     # "Serie" para el folio de pago -> "Serie:1/2 Folio:144534748" (serie de
     # RECIBOS, no del vehículo). Sin quitar esto, el regex de más abajo la
@@ -4501,7 +4590,6 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'\bAUTOM[ÓO]VIL\b', 6),
                 (r'\bAUTOS?\b', 4),
                 (r'P[ÓO]LIZA\s+DE\s+AUTO', 6),
-                (r'COBERTURAS\s*AMPARADAS', 4),
                 (r'DA[ÑN]OS\s*MATERIALES', 6),
                 (r'ROBO\s+TOTAL', 6),
                 (r'RESPONSABILIDAD\s+CIVIL', 5),
@@ -4514,7 +4602,6 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'GASTOS\s*M[EÉ]DICOS\s+OCUPANTES', 6),
             ],
             "body": [
-                (r'COBERTURAS\s*AMPARADAS', 2),
                 (r'DA[ÑN]OS\s*MATERIALES', 3),
                 (r'ROBO\s+TOTAL', 3),
                 (r'RESPONSABILIDAD\s+CIVIL', 2),
@@ -4534,6 +4621,8 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'TIPO\s+DE\s+PLAN', 4),
                 (r'COASEGURO', 3),
                 (r'DEDUCIBLE', 3),
+                (r'SERVICIOS?\s+FUNERARIOS?', 7),
+                (r'PLAN\s+DE\s+SEGURO\s*:?\s*SERVICIOS\s+FUNERARIOS', 8),
             ],
             "body": [
                 (r'GASTOS\s*M[EÉ]DICOS\s+MAYORES', 4),
@@ -4544,6 +4633,7 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'TIPO\s+DE\s+PLAN', 2),
                 (r'COASEGURO', 1),
                 (r'DEDUCIBLE', 1),
+                (r'SERVICIOS?\s+FUNERARIOS?', 5),
             ],
         },
         "Transporte": {
@@ -4710,13 +4800,28 @@ def build_rule_based_hints(text: str) -> dict:
         "SEGUROS BANORTE": "Banorte",
         "BANORTE": "Banorte",
         "INSIGNIA LIFE": "Insignia Life",
+        "SEGUROS SURA": "Sura",
+        "SURA": "Sura",
+        "ALLIANZ": "Allianz",
     }
     upper_text = text.upper()
     compact_text = normalize_ascii_upper(text)
+    # Prioriza coincidencias en el encabezado del documento (donde siempre
+    # aparece la aseguradora real, emisora de la póliza) sobre menciones
+    # incidentales más adelante en el texto -- p.ej. una cobertura de
+    # asistencia en viaje subcontratada con otra aseguradora ("Chubb") no
+    # debe ganarle a "AXA", que es quien realmente emite la póliza.
+    header_upper = upper_text[:4000]
+    header_compact = compact_text[:4000]
     for token, insurer in insurer_map.items():
-        if token in upper_text or normalize_ascii_upper(token) in compact_text:
+        if token in header_upper or normalize_ascii_upper(token) in header_compact:
             hints["aseguradora"] = insurer
             break
+    if not hints.get("aseguradora"):
+        for token, insurer in insurer_map.items():
+            if token in upper_text or normalize_ascii_upper(token) in compact_text:
+                hints["aseguradora"] = insurer
+                break
 
     hints["numero_de_poliza"] = extract_policy_number_value(text)
     hints["endoso"] = extract_endoso_value(text)
@@ -4756,11 +4861,22 @@ def build_rule_based_hints(text: str) -> dict:
         elif re.search(r'A[ÉE]REO', transport_header):
             hints["subramo"] = "Transporte aéreo de carga"
     elif hints["ramo"] == "Gastos Médicos" and not hints["subramo"]:
-        medical_header = text[:4000].upper()
-        if re.search(r'\bINDIVIDUAL\b', medical_header) and not re.search(r'FAMILIAR', medical_header):
+        medical_header = text[:5000]
+        # Señales de que es una póliza GRUPO/COLECTIVA (empresa asegurando a
+        # varios empleados), igual que para Vida.
+        group_signals = re.search(
+            r'Subgrupo\s+Asegurado|Colectiv[oa]|Grupo\s+Asegurado|GMM\s+Colectivo|'
+            r'Asegurados\s+en\s+la\s+Categor[ií]a|Cliente\s+MAPFRE',
+            medical_header, re.I
+        )
+        if re.search(r'FUNERARI', medical_header, re.I):
+            hints["subramo"] = "GASTOS FUNERARIOS"
+        elif group_signals:
+            hints["subramo"] = "GRUPO Y COL"
+        elif re.search(r'\bINDIVIDUAL\b', medical_header.upper()) and not re.search(r'FAMILIAR', medical_header.upper()):
             hints["subramo"] = "INDIVIDUAL"
         else:
-            hints["subramo"] = "IND/FAMILIAR"
+            hints["subramo"] = "IND/FAM"
     elif hints["ramo"] == "Vida" and not hints["subramo"]:
         # Señales de póliza de vida GRUPO/COLECTIVA: el contratante es una
         # empresa que asegura a varios empleados (tabla de "Registro de
@@ -5296,6 +5412,8 @@ def find_existing_subramo(nombre: str):
         fallback_aliases = ["INDIVIDUAL", "IND/FAMILIAR", "IND/FAM"]
     elif normalized_name in {"GRUPOYCOL", "GRUPO", "COLECTIVO", "GRUPOYCOLECTIVO"}:
         fallback_aliases = ["GRUPO Y COL", "GRUPO", "COLECTIVO"]
+    elif normalized_name in {"GASTOSFUNERARIOS", "FUNERARIOS", "SERVICIOSFUNERARIOS"}:
+        fallback_aliases = ["GASTOS FUNERARIOS"]
     elif normalized_name == "TRANSPORTEDECARGA":
         fallback_aliases = ["Transporte terrestre de carga"]
 
@@ -5703,10 +5821,21 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         )
 
         if generic_subramo and ramo_compact == "GASTOSMEDICOS":
-            if "INDIVIDUAL" in normalize_ascii_upper(subramo_nombre):
+            # Respeta lo que ya calculó build_rule_based_hints (GASTOS
+            # FUNERARIOS / GRUPO Y COL / INDIVIDUAL / IND/FAM) si es alguno
+            # de esos 4 valores conocidos; solo cae al viejo binario cuando
+            # de plano no hay nada reconocible.
+            subramo_compact_now = normalize_ascii_upper(subramo_nombre or "")
+            if subramo_compact_now in {"GASTOSFUNERARIOS", "GRUPOYCOL", "INDIVIDUAL", "INDFAM"}:
+                pass
+            elif "FUNERARI" in subramo_compact_now:
+                subramo_nombre = "GASTOS FUNERARIOS"
+            elif subramo_compact_now in {"GRUPO", "COLECTIVO"} or "COLECTIV" in subramo_compact_now:
+                subramo_nombre = "GRUPO Y COL"
+            elif "INDIVIDUAL" in subramo_compact_now:
                 subramo_nombre = "INDIVIDUAL"
             else:
-                subramo_nombre = "IND/FAMILIAR"
+                subramo_nombre = "IND/FAM"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact in {"AUTOS", "AUTOMOVIL", "AUTO"}:
             # Respeta lo que ya calculó build_rule_based_hints (CAMION IND /
