@@ -305,6 +305,21 @@ def get():
     })
 
 
+def _renovacion_fue_cancelada(poliza):
+    """
+    Cuando una póliza ya fue renovada (Poliza_renovada='Si'), revisa si
+    la póliza CON LA QUE se renovó (poliza.renovacion, guardado como
+    número de póliza, no como id) terminó cancelada. Si es así, la
+    renovación "no cuenta" y se debe permitir renovar de nuevo con una
+    póliza distinta.
+    """
+    if not poliza.renovacion:
+        return False
+    poliza_nueva = Poliza.query.filter_by(
+        poliza=poliza.renovacion).order_by(Poliza.id.desc()).first()
+    return bool(poliza_nueva) and poliza_nueva.status == "Cancelada"
+
+
 @polizas_route.route('/check_renovada', methods=['POST'])
 @login_required
 def check_renovada():
@@ -324,7 +339,7 @@ def check_renovada():
     if not poliza:
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
 
-    if poliza.Poliza_renovada == "Si":
+    if poliza.Poliza_renovada == "Si" and not _renovacion_fue_cancelada(poliza):
         return jsonify({
             'error': False,
             'yaRenovada': True,
@@ -353,7 +368,7 @@ def create():
             id=poliza_id).with_for_update().first()
         if not poliza_old:
             return jsonify({'error': True, 'msg': 'No se encontró la póliza a renovar'})
-        if poliza_old.Poliza_renovada == "Si":
+        if poliza_old.Poliza_renovada == "Si" and not _renovacion_fue_cancelada(poliza_old):
             db.session.rollback()
             return jsonify({'error': True, 'msg': f'esta póliza ya ha sido renovada con el número de póliza {poliza_old.renovacion}'})
 
@@ -528,8 +543,21 @@ def create():
     db.session.flush()
 
     if poliza_old:
+        renovacion_previa_cancelada = (
+            poliza_old.Poliza_renovada == "Si" and poliza_old.renovacion
+            and _renovacion_fue_cancelada(poliza_old)
+        )
+        poliza_num_cancelada = poliza_old.renovacion if renovacion_previa_cancelada else None
         poliza_old.Poliza_renovada = "Si"
         poliza_old.renovacion = new_poliza.poliza
+        if renovacion_previa_cancelada:
+            nota_extra = (
+                f"Renovada nuevamente con póliza {new_poliza.poliza} porque la "
+                f"renovación anterior ({poliza_num_cancelada}) fue cancelada."
+            )
+            poliza_old.notas = (
+                f"{poliza_old.notas}\n{nota_extra}" if poliza_old.notas else nota_extra
+            )
         request_entry = Request(usuario_id=current_user.id,
                                 description=f"Renovar póliza {poliza_old.poliza} a {new_poliza.poliza}",
                                 status="Aceptada",
