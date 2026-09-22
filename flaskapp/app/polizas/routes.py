@@ -4742,11 +4742,11 @@ def build_rule_based_hints(text: str) -> dict:
         tipo_movimiento_match = re.search(r'Tipo\s+de\s+movimiento\s*[:|]?\s*(FLOTILLA|INDIVIDUAL)', text, re.I)
         header = text[:3000].upper()
         if (tipo_movimiento_match and tipo_movimiento_match.group(1).upper() == "FLOTILLA") or re.search(r'\bFLOT(?:ILLA|A)\b', header):
-            hints["subramo"] = "Flotilla"
+            hints["subramo"] = "FLOTILLA"
         elif re.search(r'\bCAMION(?:ES)?\b', header):
             hints["subramo"] = "CAMION IND"
         else:
-            hints["subramo"] = "Auto Ind"
+            hints["subramo"] = "AUTO IND"
     elif hints["ramo"] == "Transporte" and not hints["subramo"]:
         transport_header = text[:4000].upper()
         if re.search(r'INTEGRAL\s+TERRESTRE|MEDIO\s+DE\s+TRANSPORTE\s*:\s*TERRESTRE', transport_header):
@@ -4773,9 +4773,9 @@ def build_rule_based_hints(text: str) -> dict:
             text, re.I
         )
         if group_signals:
-            hints["subramo"] = "Grupo y Col"
+            hints["subramo"] = "GRUPO Y COL"
         else:
-            hints["subramo"] = "Individual"
+            hints["subramo"] = "INDIVIDUAL"
 
     hints["desde"], hints["hasta"] = extract_vigencia_values(text)
 
@@ -5714,18 +5714,18 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             if subramo_compact_now in {"CAMIONIND", "AUTOIND", "FLOTILLA"}:
                 pass
             elif "FLOTILLA" in subramo_compact_now:
-                subramo_nombre = "Flotilla"
+                subramo_nombre = "FLOTILLA"
             elif "CAMION" in subramo_compact_now:
                 subramo_nombre = "CAMION IND"
             else:
-                subramo_nombre = "Auto Ind"
+                subramo_nombre = "AUTO IND"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact == "VIDA":
             # Respeta la detección Individual/Grupo y Col de build_rule_based_hints
             # en vez de forzar siempre "INDIVIDUAL".
             subramo_compact_now = normalize_ascii_upper(subramo_nombre or "")
             if subramo_compact_now not in {"INDIVIDUAL", "GRUPOYCOL"}:
-                subramo_nombre = "Individual"
+                subramo_nombre = "INDIVIDUAL"
             subramo_id = find_existing_subramo(subramo_nombre)
         elif generic_subramo and ramo_compact == "TRANSPORTEDECARGA":
             subramo_nombre = "Transporte terrestre de carga"
