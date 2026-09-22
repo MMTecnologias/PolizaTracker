@@ -4431,7 +4431,7 @@ def score_policy_ramo_candidates(text: str) -> dict:
     # Priorizamos el contexto principal del documento y evitamos falsos positivos
     # por coberturas aisladas como "Gastos Medicos Ocupantes" en autos.
     ramo_patterns = {
-        "Automóvil": {
+        "Autos": {
             "header": [
                 (r'\bAUTOM[ÓO]VIL\b', 6),
                 (r'\bAUTOS?\b', 4),
@@ -4481,7 +4481,7 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'DEDUCIBLE', 1),
             ],
         },
-        "Transporte de carga": {
+        "Transporte": {
             "header": [
                 (r'TRANSPORTE\s+DE\s+CARGA', 8),
                 (r'SEGURO\s+TRANSPORTE\s+DE\s+CARGA', 8),
@@ -4564,11 +4564,11 @@ def detect_policy_ramo(text: str) -> str:
     if explicit_ramo:
         normalized_explicit = normalize_ascii_upper(explicit_ramo)
         if "AUTOMOVIL" in normalized_explicit or normalized_explicit == "AUTO":
-            return "Automóvil"
+            return "Autos"
         if "GASTOSMEDICOS" in normalized_explicit:
             return "Gastos Médicos"
         if "TRANSPORTE" in normalized_explicit and "CARGA" in normalized_explicit:
-            return "Transporte de carga"
+            return "Transporte"
         if "VIDA" in normalized_explicit:
             return "Vida"
         if "CASAHABITACION" in normalized_explicit or "HOGAR" in normalized_explicit:
@@ -4670,13 +4670,13 @@ def build_rule_based_hints(text: str) -> dict:
         if not hints["subramo"]:
             hints["subramo"] = ramo
 
-    if hints["ramo"] == "Automóvil" and not hints["subramo"]:
+    if hints["ramo"] == "Autos" and not hints["subramo"]:
         header = text[:3000].upper()
         if re.search(r'\bFLOT(?:ILLA|A)\b', header):
             hints["subramo"] = "FLOTILLA"
         else:
             hints["subramo"] = "PARTICULAR"
-    elif hints["ramo"] == "Transporte de carga" and not hints["subramo"]:
+    elif hints["ramo"] == "Transporte" and not hints["subramo"]:
         transport_header = text[:4000].upper()
         if re.search(r'INTEGRAL\s+TERRESTRE|MEDIO\s+DE\s+TRANSPORTE\s*:\s*TERRESTRE', transport_header):
             hints["subramo"] = "Transporte terrestre de carga"
@@ -4732,7 +4732,7 @@ def build_rule_based_hints(text: str) -> dict:
 
     hints["agente"] = extract_agent_name_value(text)
 
-    if hints.get("ramo") == "Automóvil":
+    if hints.get("ramo") == "Autos":
         hints["vehiculos"] = extract_vehicle_records_from_text(text)
         hints["marca"] = extract_vehicle_value(text, [r'\bMarca\b'])
         hints["modelo"] = extract_vehicle_value(text, [r'\bModelo\b'])
@@ -4852,7 +4852,7 @@ Prioridades:
 - Si aparece "Tipo de plan", normalmente corresponde a la descripción comercial o subramo.
 - Para "nombre_cliente", prioriza "Datos del contratante"; si no existe, usa el "Asegurado Titular".
 - Para "forma_de_pago", prioriza "Frecuencia de pago" o "Forma de pago".
-- Para "ramo", usa el tipo principal de póliza, no una cobertura aislada. Si aparece "Gastos Médicos Ocupantes" junto con "Daños Materiales", "Robo Total" o "Responsabilidad Civil", el ramo es "Automóvil".
+- Para "ramo", usa el tipo principal de póliza, no una cobertura aislada. Si aparece "Gastos Médicos Ocupantes" junto con "Daños Materiales", "Robo Total" o "Responsabilidad Civil", el ramo es "Autos".
 - Para pólizas de autos, flotillas o camiones, extrae todos los datos disponibles de cada unidad asegurada en "vehiculos": vehículo/descripción, marca, modelo/año, motor, placas, serie/VIN, uso, servicio, número de ocupantes y carga.
 
 Devuelve este JSON:
@@ -5693,7 +5693,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         )
 
         vehicle_records = []
-        if ramo_normalized == "Automóvil":
+        if ramo_normalized == "Autos":
             model_vehicle_records = normalize_vehicle_records(merged_json.get("vehiculos"))
             fallback_vehicle_record = {
                 "vehiculo": vehiculo_value,
@@ -5718,7 +5718,7 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
                     [fallback_vehicle_record] if fallback_vehicle_record else []
                 )
 
-        normalized_serie = serie_value if ramo_normalized == "Automóvil" else ""
+        normalized_serie = serie_value if ramo_normalized == "Autos" else ""
 
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
