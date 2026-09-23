@@ -193,7 +193,7 @@
             <div class="w-100 card__shadow p-3">
                <div class="table-polizas" id="table-polizas">
                   <h4 class="header-title">Tabla de Clientes</h4>
-                  <input class="form-control my-2" type="search" placeholder="Buscar Cliente" aria-label="Search"
+                  <input class="form-control my-2" type="search" placeholder="Buscar por nombre, apellido, grupo, RFC, correo o teléfono" aria-label="Search"
                      id="searchClient" />
                   <table class="table pb-5">
                      <thead class="tableHeader">
@@ -230,7 +230,7 @@
       </div>
    </div>
 
-   <script type="module" src="{{ url_for('static', filename='assets/controladores/clientes.js') }}"></script>
+   <script type="module" src="{{ url_for('static', filename='assets/controladores/clientes.js') }}?v=2"></script>
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>

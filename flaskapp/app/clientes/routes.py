@@ -4,7 +4,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app import app, db, login_manager
 from app.models import Usuario, Servicio, Acceso, NivelAcceso, Grupo, Poliza, Cliente, Grupo, TipoPago, Recibo, Ramo, Subramo, Aseguradora, Agente, Vendedor, Request, Log, new_class
-from sqlalchemy import join, or_, desc, func, select
+from sqlalchemy import join, or_, and_, desc, func, select
 import csv
 from io import StringIO
 from . import clientes_route
@@ -12,6 +12,46 @@ from datetime import datetime, date
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
+
+
+# --- Busqueda de clientes -------------------------------------------------
+# Solo los caracteres que aparecen en nombres en espanol. Se mantiene corto a
+# proposito: cada par es un REPLACE() anidado por columna en el SQL.
+_ACCENT_PAIRS = [
+    ('á', 'a'), ('é', 'e'), ('í', 'i'), ('ó', 'o'), ('ú', 'u'), ('ü', 'u'),
+    ('ñ', 'n'),
+]
+# Tambien las mayusculas acentuadas (muchos nombres vienen en MAYUSCULAS desde
+# los PDFs): asi no dependemos de que LOWER() de la BD las convierta bien.
+_SQL_ACCENT_PAIRS = _ACCENT_PAIRS + [(a.upper(), b) for a, b in _ACCENT_PAIRS]
+_ACCENT_MAP = str.maketrans(''.join(a for a, _ in _ACCENT_PAIRS),
+                            ''.join(b for _, b in _ACCENT_PAIRS))
+
+
+def _normalize_text(value):
+    """Minusculas y sin acentos (para el texto que escribe el usuario)."""
+    return (value or '').lower().translate(_ACCENT_MAP)
+
+
+def _split_search_words(search_value):
+    """Separa la busqueda en palabras normalizadas, sin vacios ni duplicados.
+    Se escapan los comodines de LIKE para que '%' o '_' se busquen literal."""
+    words = []
+    for raw in _normalize_text(search_value).split():
+        word = raw.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+        if word and word not in words:
+            words.append(word)
+    return words
+
+
+def _sql_normalize(column):
+    """Misma normalizacion que _normalize_text, pero del lado de MySQL, para
+    que no dependa de la collation de la columna. COALESCE evita que un
+    campo vacio (NULL) rompa la comparacion."""
+    expr = func.lower(func.coalesce(column, ''))
+    for accented, plain in _SQL_ACCENT_PAIRS:
+        expr = func.replace(expr, accented, plain)
+    return expr
 
 
 @clientes_route.route('/get', methods=['POST'])
@@ -26,23 +66,39 @@ def get():
     cliente_id = request.form.get('cliente_id')
 
     # Query to fetch clientes data from the database
+    # outerjoin: un cliente sin grupo (o con un grupo borrado) tambien debe
+    # aparecer en el listado, en la busqueda y al editarlo.
     clients_query = db.session.query(Cliente, Grupo.grupo.label(
-        'grupo_name')).join(Grupo).filter(Cliente.status == 'Activo')
+        'grupo_name')).outerjoin(Grupo, Cliente.grupo_id == Grupo.id) \
+        .filter(Cliente.status == 'Activo')
 
-    # Implement search functionality
-    if order:
-        clients_query = clients_query.order_by('nombre')
+    # Busqueda por palabras: cada palabra debe aparecer en al menos uno de
+    # los campos (nombre, apellido, grupo, RFC, correo, telefono), sin
+    # importar el orden ni los acentos. Ej. "perez juan", "juan perez" o
+    # "perez corporativo" (apellido + grupo) encuentran al mismo cliente.
+    search_words = _split_search_words(search_value)
+    if search_words:
+        searchable_columns = [
+            Cliente.nombre,
+            Cliente.apellido,
+            Grupo.grupo,
+            Cliente.rfc,
+            Cliente.correo,
+            Cliente.tel_movil,
+        ]
+        clients_query = clients_query.filter(and_(*[
+            or_(*[
+                _sql_normalize(column).like(f'%{word}%', escape='\\')
+                for column in searchable_columns
+            ])
+            for word in search_words
+        ]))
+
+    if order or search_words:
+        clients_query = clients_query.order_by(
+            Cliente.nombre, Cliente.apellido, Cliente.id)
     else:
         clients_query = clients_query.order_by(desc(Cliente.id))
-
-    if search_value:
-        clients_query = clients_query.filter(or_(
-            Cliente.nombre.ilike(f'%{search_value}%'),
-            Cliente.apellido.ilike(f'%{search_value}%'),
-            Cliente.correo.ilike(f'%{search_value}%'),
-            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
-                f'%{search_value}%'),
-        ))
 
     if cliente_id:
         clients_query = clients_query.filter(Cliente.id == int(cliente_id))

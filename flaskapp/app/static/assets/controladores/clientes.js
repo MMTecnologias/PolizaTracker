@@ -162,15 +162,29 @@ $(function () {
     });
   }
 
+  // Solo se pinta la respuesta de la ULTIMA peticion al listado. Si el
+  // usuario escribe rapido, una respuesta vieja (ej. la de "Ga" en lugar de
+  // "Garcia") podia llegar al final y reemplazar los resultados correctos.
+  let clientsRequest = null;
+  let clientsRequestSeq = 0;
+
   function getClients(pageNumber = 1, start = 0) {
     const length = 10;
-    const searchValue = $('#searchClient').val();
-    $.ajax({
+    const searchValue = $('#searchClient').val().trim();
+    const seq = ++clientsRequestSeq;
+    if (clientsRequest) clientsRequest.abort();
+    clientsRequest = $.ajax({
       ...ajaxConfig,
       url: '/clientes/get',
       data: $.param({ start, length, order: true, searchValue }),
-      success: (resp) => fillTable(resp, pageNumber, length),
-      error: (xhr, status, error) => console.error(error),
+      success: (resp) => {
+        if (seq !== clientsRequestSeq) return;
+        fillTable(resp, pageNumber, length);
+      },
+      error: (xhr, status, error) => {
+        if (status === 'abort') return;
+        console.error(error);
+      },
     });
   }
 
@@ -222,17 +236,13 @@ $(function () {
     }
   });
 
-  $('#searchClient').on('keyup', function (e) {
-    e.preventDefault();
-    const searchValue = e.target.value;
-    if (searchValue == '') return getClients();
-    $.ajax({
-      ...ajaxConfig,
-      url: '/clientes/get',
-      data: $.param({ start: 0, length: 10, searchValue }),
-      success: (resp) => fillTable(resp, 1, 10),
-      error: (xhr, status, error) => console.error(error),
-    });
+  // Busca por nombre, apellido, grupo, RFC, correo o telefono. Espera a que
+  // el usuario deje de escribir (300 ms) y siempre regresa a la pagina 1.
+  // 'input' tambien cubre pegar texto y la "x" de limpiar del campo search.
+  let searchClientDebounce = null;
+  $('#searchClient').on('input', function () {
+    clearTimeout(searchClientDebounce);
+    searchClientDebounce = setTimeout(() => getClients(1, 0), 300);
   });
 
   $('#Resetbtn').click(function () {
