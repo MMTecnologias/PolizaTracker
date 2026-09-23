@@ -2925,6 +2925,13 @@ def sanitize_name_candidate(value: str) -> str:
         if re.search(r'[A-Z]', suffix) and re.search(r'\d', suffix):
             value = value[:suffix_match.start()].strip(" :|-")
     value = sanitize_text_value(value)
+    if value:
+        # Ruido del OCR pegado al nombre (bordes de tabla leídos como "¡", "[",
+        # "|", etc.). Al inicio un nombre nunca lleva signos; al final solo se
+        # quitan signos de ruido, no el punto de "S.A. DE C.V.".
+        value = re.sub(r'^[\W_]+', '', value)
+        value = re.sub('[\\s¡!¿?\\[\\]{}()|"\'`«»*_,;:]+$', '', value)
+        value = sanitize_text_value(value)
     if value and not re.search(r'[A-ZÁÉÍÓÚÑ]', value, re.I):
         return None
     return value
@@ -4677,6 +4684,93 @@ def extract_life_coverage_summary(text: str) -> list:
     return coverages
 
 
+def _gmm_amount(match) -> str:
+    """Formatea "$96,500,000 M.N." a partir de un match (monto, moneda)."""
+    amount = match.group(1)
+    currency = (match.group(2) or '').upper().replace(' ', '')
+    if currency in ('MN', 'M.N', 'M.N.'):
+        currency = 'M.N.'
+    return f"${amount}" + (f" {currency}" if currency else "")
+
+
+def _gmm_section_lines(text: str, start_pattern: str, end_pattern: str) -> list:
+    start = re.search(start_pattern, text, re.I)
+    if not start:
+        return []
+    rest = text[start.end():]
+    # La primera línea es el resto del encabezado de la tabla.
+    rest = rest.split('\n', 1)[1] if '\n' in rest else ''
+    end = re.search(end_pattern, rest, re.I)
+    if end:
+        rest = rest[:end.start()]
+    return [line.strip() for line in rest.split('\n') if line.strip()]
+
+
+def _gmm_coverage_names(lines: list, stop_pattern: str) -> list:
+    names = []
+    for line in lines:
+        name = re.split(stop_pattern, line, maxsplit=1, flags=re.I)[0]
+        name = sanitize_text_value(name.strip(' |:-.'))
+        if not name or not re.match(r'^[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñü0-9 .]{3,}$', name):
+            continue
+        if sum(ch.isalpha() for ch in name) < 4:
+            continue
+        # Pedazos del encabezado de la tabla partidos en varias líneas.
+        if re.match(r'^(?:Suma|Asegurada|Suma\s+Asegurada|Deducible|Coaseguro|'
+                    r'Cobertura\s+B[áa]sica|Coberturas?(?:/Servicios)?)$', name, re.I):
+            continue
+        if name.upper() not in {n.upper() for n in names}:
+            names.append(name)
+    return names
+
+
+def extract_gmm_conditions_observations(text: str) -> str:
+    """Resumen de condiciones y coberturas de carátulas de Gastos Médicos tipo
+    AXA (tabla "Condiciones Contratadas", "Incluidos en Básica" y "Coberturas
+    adicionales con costo"). Regresa "" si no encuentra esas secciones."""
+    if not text:
+        return ""
+    lines = ["Coberturas contratadas"]
+
+    suma = re.search(r'Suma\s*Asegurada\s*\$\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
+    if suma:
+        lines.append(f"Suma asegurada: {_gmm_amount(suma)}")
+    deducible = re.search(r'(?<![A-Za-z])Deducible\s*\$\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
+    if deducible:
+        lines.append(f"Deducible: {_gmm_amount(deducible)}")
+    coaseguro = re.search(r'(?<!de\s)(?<!de)\bCoaseguro\s+(\d{1,3})\s*%', text, re.I)
+    tope = re.search(r'Tope\s*de\s*Coaseguro\s*\$\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
+    if coaseguro:
+        linea = f"Coaseguro: {coaseguro.group(1)}%"
+        if tope:
+            linea += f" (tope {_gmm_amount(tope)})"
+        lines.append(linea)
+    elif tope:
+        lines.append(f"Tope de coaseguro: {_gmm_amount(tope)}")
+
+    # Columna derecha de la carátula que el OCR/pdf mezcla en las mismas líneas.
+    right_column = (r'Gama\s+Hospitalaria|Tipo\s+de\s+Red|Tabulador|Tope\s+de|Coaseguro|'
+                    r'Deducible|Periodo|Suma\s*Asegurada|Condiciones')
+    incluidas = _gmm_coverage_names(
+        _gmm_section_lines(text, r'Incluidos\s+en\s+B[áa]sica',
+                           r'o?berturas\s+adicionales|Servicios?\s+con\s+costo'),
+        rf'(?:^|\s+)(?:N/A|\$|Costo\s+Preferencial|\||\d{{1,3}}(?:,\d{{3}})+|{right_column})'
+    )
+    if incluidas:
+        lines.append("Incluidas en básica: " + ", ".join(incluidas))
+    adicionales = _gmm_coverage_names(
+        [l for l in _gmm_section_lines(
+            text, r'o?berturas\s+adicionales\s+con\s+costo',
+            r'Servicios?\s+(?:con\s+costo|Costo\s+por)|Descuento|Prima\s+Neta')
+         if not re.search(r'Suma\s+asegurada', l, re.I)],
+        r'(?:^|\s+)(?:B[áa]sica|No\s+Aplica|De\s+acuerdo|\$|\||\d)'
+    )
+    if adicionales:
+        lines.append("Adicionales: " + ", ".join(adicionales))
+
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
 def format_life_coverage_observations(coverages: list) -> str:
     if not coverages:
         return ""
@@ -6112,6 +6206,8 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             observaciones_value = format_life_coverage_observations(
                 extract_life_coverage_summary(text_content)
             )
+        if not observaciones_value and ramo_compact == "GASTOSMEDICOS":
+            observaciones_value = extract_gmm_conditions_observations(text_content)
 
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
