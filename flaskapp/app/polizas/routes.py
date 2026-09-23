@@ -5707,6 +5707,27 @@ def find_existing_subramo(nombre: str):
     return subramo_id
 
 
+def resolve_annual_payment_by_term(forma_pago: str, desde: str, hasta: str) -> str:
+    """Regla del negocio para "pago anual" (el catálogo no tiene "Anual"):
+    - vigencia de 1 año con pago anual  -> "Contado"
+    - vigencia de varios años con pago anual -> "Multianual"
+    Si faltan o no se entienden las fechas, regresa la forma de pago tal cual
+    (y find_existing_tipo_pago aplica su respaldo de siempre)."""
+    if forma_pago != "Anual":
+        return forma_pago
+    try:
+        inicio = datetime.strptime(normalize_extracted_date(desde) or '', '%d/%m/%Y')
+        fin = datetime.strptime(normalize_extracted_date(hasta) or '', '%d/%m/%Y')
+    except (TypeError, ValueError):
+        return forma_pago
+    if fin <= inicio:
+        return forma_pago
+    # Margen de 15 días por pólizas que terminan unos días después del aniversario.
+    if fin <= inicio + relativedelta(years=1, days=15):
+        return "Contado"
+    return "Multianual"
+
+
 def find_existing_tipo_pago(nombre: str):
     """Busca una forma de pago existente. Retorna el ID o None."""
     normalized_name = normalize_forma_pago_value(nombre)
@@ -6079,6 +6100,19 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
         agente_record = Agente.query.get(agente_id) if agente_id else None
         forma_pago_normalizada = normalize_forma_pago_value(
             merged_json.get("forma_de_pago"))
+        forma_pago_por_vigencia = resolve_annual_payment_by_term(
+            forma_pago_normalizada, merged_json.get("desde"), merged_json.get("hasta"))
+        if forma_pago_por_vigencia != forma_pago_normalizada:
+            log_policy_event(
+                "forma_pago_resolution",
+                "pago anual resuelto por vigencia",
+                extraction_id=extraction_id,
+                forma_pago_extraida=forma_pago_normalizada,
+                forma_pago_asignada=forma_pago_por_vigencia,
+                desde=merged_json.get("desde"),
+                hasta=merged_json.get("hasta")
+            )
+            forma_pago_normalizada = forma_pago_por_vigencia
         tipo_pago_id = find_existing_tipo_pago(forma_pago_normalizada)
         vendedor_id = find_existing_vendedor(DEFAULT_POLICY_VENDEDOR)
         ramo_id = find_existing_ramo(merged_json.get("ramo"))
