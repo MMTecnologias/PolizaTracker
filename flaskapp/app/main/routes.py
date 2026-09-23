@@ -188,7 +188,10 @@ def recibos():
 @main.route('/endosos', methods=['GET'])
 @login_required
 def endosos():
-    return render_template('endosos.html')
+    # Catálogos para el panel de "Filtros" (igual que la página de pólizas).
+    aseguradoras = Aseguradora.query.order_by(Aseguradora.aseguradora).all()
+    grupos = Grupo.query.order_by(Grupo.grupo).all()
+    return render_template('endosos.html', aseguradoras=aseguradoras, grupos=grupos)
 
 
 # Clientes

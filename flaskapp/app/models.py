@@ -159,6 +159,12 @@ class Endoso(db.Model):
     vendedor_id = Column(Integer, ForeignKey('vendedores.id'), nullable=False)
     poliza = Column(String(30), nullable=False)
     pdf_path = Column(String(255), nullable=True)
+    # Factura del endoso (PDF + XML), igual que en pólizas. Requiere
+    # migracion_factura_endoso.sql -- correrla ANTES de reiniciar Flask.
+    factura_pdf = Column(String(60))
+    factura_xml = Column(String(60))
+    factura_pdf_original = Column(String(255))
+    factura_xml_original = Column(String(255))
 
 
 class Recibo(db.Model):

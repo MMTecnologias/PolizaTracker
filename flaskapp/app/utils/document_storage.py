@@ -21,6 +21,8 @@ Estructura resultante (bajo DOCUMENTOS_BASE_PATH):
                     aviso_cobro/
                     complemento_pago/
             endosos/
+                Endoso_{id}_{numero}/
+                    factura/
             siniestros/
 
 Si DOCUMENTOS_BASE_PATH no está definido en config.py (por ejemplo en
@@ -78,5 +80,38 @@ def get_carpeta_documento(cliente, poliza, categoria, recibo=None):
     else:
         ruta = os.path.join(ruta, categoria)
 
+    os.makedirs(ruta, exist_ok=True)
+    return ruta
+
+
+CATEGORIAS_POR_ENDOSO = ('factura',)
+
+
+def _carpeta_endoso(endoso):
+    return f"Endoso_{endoso.id}_{_slug(endoso.endoso)}"
+
+
+def get_carpeta_endoso(cliente, poliza, endoso, categoria):
+    """
+    Devuelve (y crea si no existe) la carpeta de un documento de un
+    endoso. Vive dentro de la carpeta de la póliza a la que pertenece el
+    endoso, en la subcarpeta "endosos/" ya reservada para eso -- mismo
+    patrón que recibos/Recibo_{id}/...:
+
+        Cliente_.../Poliza_.../endosos/Endoso_{id}_{numero}/{categoria}/
+
+    El cliente es el de la póliza (igual que para los recibos), para que
+    todo lo de una póliza quede junto aunque el endoso tenga otro cliente.
+    """
+    if categoria not in CATEGORIAS_POR_ENDOSO:
+        raise ValueError(f"Categoría de endoso inválida: '{categoria}'")
+    ruta = os.path.join(
+        get_documentos_base(),
+        _carpeta_cliente(cliente),
+        _carpeta_poliza(poliza),
+        'endosos',
+        _carpeta_endoso(endoso),
+        categoria,
+    )
     os.makedirs(ruta, exist_ok=True)
     return ruta

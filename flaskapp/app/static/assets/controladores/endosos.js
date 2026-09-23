@@ -758,6 +758,8 @@ $(function () {
     poliza: 'M120-220v-80h80v80h-80Zm0-140v-80h80v80h-80Zm0-140v-80h80v80h-80ZM260-80v-80h80v80h-80Zm100-160q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480Zm40 240v-80h80v80h-80Zm-200 0q-33 0-56.5-23.5T120-160h80v80Zm340 0v-80h80q0 33-23.5 56.5T540-80ZM120-640q0-33 23.5-56.5T200-720v80h-80Zm420 80Z',
     pdf: 'M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z',
     upload: 'M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z',
+    factura: 'M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z',
+    facturaUpload: 'M320-240h320v-80H320v80Zm0-160h320v-80H320v80Zm120-200h80v-160h120L480-920 320-760h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z',
     cancel: 'M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z',
     dots: 'M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z',
   };
@@ -775,6 +777,43 @@ $(function () {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function formatNumber(num) {
+    const [integerPart, decimalPart = ''] = num.toString().split('.');
+    let result = '';
+    for (let i = 0; i < integerPart.length; i++) {
+      if (i > 0 && (integerPart.length - i) % 3 === 0 && integerPart[i - 1] !== '-') result += ',';
+      result += integerPart[i];
+    }
+    return decimalPart ? `${result}.${decimalPart}` : result;
+  }
+
+  function parseCurrencyInputValue(value) {
+    if (value === null || value === undefined) return '';
+    const cleaned = String(value).replace(/[^0-9.-]/g, '');
+    if (!cleaned) return '';
+    const parsed = parseFloat(cleaned);
+    return Number.isNaN(parsed) ? '' : parsed.toFixed(2);
+  }
+
+  function displayCellValue(value) {
+    if (value === null || value === undefined) return '';
+    const stringValue = String(value).trim();
+    if (!stringValue || ['null', 'undefined'].includes(stringValue.toLowerCase())) return '';
+    return stringValue;
+  }
+
+  function formatCurrencyDisplay(value) {
+    const normalized = parseCurrencyInputValue(value);
+    if (!normalized) return '';
+    return normalized.startsWith('-') ? `-$${formatNumber(normalized.slice(1))}` : `$${formatNumber(normalized)}`;
+  }
+
+  function formatReceiptAmount(value) {
+    const normalized = parseCurrencyInputValue(value);
+    if (!normalized) return '0.00';
+    return normalized.startsWith('-') ? `-${formatNumber(normalized.slice(1))}` : formatNumber(normalized);
   }
 
   function fillTableEndosos(resp, currentPage, itemsOnPage) {
@@ -824,8 +863,8 @@ $(function () {
           ${td(endoso.subramo)}
           ${td(endoso.aseguradora)}
           ${td(endoso.tipoPago)}
-          ${td(endoso.prima_neta)}
-          ${td(endoso.prima_total)}
+          ${td(formatCurrencyDisplay(endoso.prima_neta), true)}
+          ${td(formatCurrencyDisplay(endoso.prima_total), true)}
           <td>
             <ul class="btn_table_options acciones-full">
               <li><a title="Ver detalle del endoso" class="btn__icon_show pointer js-show">${icono('show', 21, fill)}</a></li>
@@ -835,6 +874,11 @@ $(function () {
                 endoso.pdf_path
                   ? `<li><a title="Ver PDF" class="btn__icon_show pointer js-ver-pdf">${icono('pdf', 24, fill)}</a></li>`
                   : `<li><a title="Cargar PDF del endoso" class="btn__icon_show pointer js-cargar-pdf">${icono('upload', 24, fill)}</a></li>`
+              }
+              ${
+                endoso.factura_pdf || endoso.factura_xml
+                  ? `<li><a title="Ver/Descargar factura${endoso.factura_pdf && !endoso.factura_xml ? ' (falta XML)' : !endoso.factura_pdf && endoso.factura_xml ? ' (falta PDF)' : ''}" class="btn__icon_show pointer js-ver-factura">${icono('factura', 24, fill)}</a></li>`
+                  : `<li><a title="Cargar factura del endoso" class="btn__icon_show pointer js-cargar-factura">${icono('facturaUpload', 24, fill)}</a></li>`
               }
               <li><a title="Cancelar endoso" class="btn__icon_delete pointer js-cancelar">${icono('cancel', 24, fill)}</a></li>
             </ul>
@@ -851,6 +895,11 @@ $(function () {
                     ? `<a class="dropdown-item pointer js-ver-pdf">${icono('pdf', 18, 'currentColor')} Ver PDF</a>`
                     : `<a class="dropdown-item pointer js-cargar-pdf">${icono('upload', 18, 'currentColor')} Cargar PDF</a>`
                 }
+                ${
+                  endoso.factura_pdf || endoso.factura_xml
+                    ? `<a class="dropdown-item pointer js-ver-factura">${icono('factura', 18, 'currentColor')} Ver/Descargar factura${leyendaFaltante(endoso.factura_pdf, endoso.factura_xml)}</a>`
+                    : `<a class="dropdown-item pointer js-cargar-factura">${icono('facturaUpload', 18, 'currentColor')} Cargar factura</a>`
+                }
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item pointer text-danger js-cancelar">${icono('cancel', 18, 'currentColor')} Cancelar endoso</a>
               </div>
@@ -865,8 +914,23 @@ $(function () {
       // del menú "3 puntos" se enlazan aquí también: el menú se mueve a
       // <body> al abrirse, pero conserva sus handlers.
       $row.find('.js-ver-recibos').on('click', () => {
+        recibosContexto = {
+          endoso_id: endoso.id,
+          poliza_id: endoso.poliza_id,
+          titulo: `Endoso ${endoso.endoso} — Póliza ${endoso.poliza}`,
+        };
+        $('#titulo-recibos-endoso').text(`Recibos del ${recibosContexto.titulo}`);
+        $('#receiptsTable').html('');
         $('#recib').modal();
         getRecibos(endoso.id, endoso.poliza_id);
+      });
+      $row.find('.js-ver-factura').on('click', (e) => {
+        e.preventDefault();
+        viewEndosoFactura(endoso);
+      });
+      $row.find('.js-cargar-factura').on('click', (e) => {
+        e.preventDefault();
+        uploadEndosoFactura(endoso.id, () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA));
       });
       $row.find('.js-sin-pdf').on('click', (e) => {
         e.stopPropagation();
@@ -1007,45 +1071,96 @@ $(function () {
     });
   }
 
-  function fillTableRecibos(
-    resp,
-    currentPage,
-    itemsOnPage,
-    endoso_id,
-    poliza_id
-  ) {
+  // ---------------------------------------------------------------------
+  // Recibos del endoso — misma tabla y mismas acciones que en pólizas
+  // (pagar, editar fecha de pago, Aviso de Cobro y Complemento de Pago).
+  // Se usan las mismas rutas de /polizas/...: trabajan por recibo y
+  // guardan los documentos en la carpeta de la póliza a la que pertenece
+  // el endoso (Poliza_.../recibos/Recibo_{id}/...).
+  // ---------------------------------------------------------------------
+  let recibosContexto = { endoso_id: null, poliza_id: null, titulo: '' };
+  let reciboFechaPagoId = null;
+
+  function recargarRecibos() {
+    getRecibos(recibosContexto.endoso_id, recibosContexto.poliza_id);
+  }
+
+  function fillTableRecibos(resp, currentPage, itemsOnPage, endoso_id, poliza_id) {
+    if (resp.error) {
+      alert(resp.msg, 'error', 'Error');
+      return;
+    }
     const { data, recordsTotal } = resp;
-    console.log('Recibos de endosos =>', data);
     const table = $('#receiptsTable');
     table.html('');
-    $.each(data, function (idx, recibo) {
-      table.append(
-        `<tr class="tableOption-recibos">
-            <td>${recibo.numero}</td>
-            <td>${recibo.fecha_recibo}</td>
-            <td>${recibo.vencimiento}</td>
-            <td>${recibo.prima_neta}</td>
-            <td>${recibo.prima_total}</td>
-            <td>${recibo.moneda}</td>
-            <td>
-                <input type="checkbox" id="check_pagado${
-                  recibo.id
-                }" name="check_pagado${recibo.id}" />
-            </td>
-            <td>${recibo.fecha_pago}</td>
-            <td>${recibo.cancelado ? 'Cancelado' : ''}</td>
-         </tr>`
+    const hayCancelados = data.some((r) => r.cancelado);
+    $('#tablaRecibosCompacta').toggleClass('tiene-cancelados', hayCancelados);
+
+    if (!data.length) {
+      table.html(
+        '<tr><td colspan="11" class="text-center text-muted py-3">Este endoso no tiene recibos</td></tr>',
       );
-      if (recibo.pagado) $(`#check_pagado${recibo.id}`).prop('checked', true);
-      $(`#check_pagado${recibo.id}`).on('click', function () {
-        if ($(`#check_pagado${recibo.id}`).is(':checked') == true) {
-          changeReciboPagado(recibo.id, 'Pagar', poliza_id, endoso_id);
-        } else {
-          changeReciboPagado(recibo.id, 'Cancelar Pago', poliza_id, endoso_id);
-        }
+      $('#pagination-recibos').html('');
+      return;
+    }
+
+    $.each(data, function (idx, recibo) {
+      const fechaPago = displayCellValue(recibo.fecha_pago);
+      const $row = $(
+        `<tr class="tableOption-recibos">
+            <td>${esc(displayCellValue(recibo.numero))}</td>
+            <td>${esc(displayCellValue(recibo.fecha_recibo))}</td>
+            <td>${esc(displayCellValue(recibo.vencimiento))}</td>
+            <td>${formatReceiptAmount(recibo.prima_neta)}</td>
+            <td>${formatReceiptAmount(recibo.prima_total)}</td>
+            <td>${esc(displayCellValue(recibo.moneda))}</td>
+            <td><input type="checkbox" class="js-pagado" ${recibo.pagado ? 'checked' : ''} /></td>
+            <td>${esc(fechaPago)} ${
+              fechaPago
+                ? `<a class="btn__icon_edit pointer js-editar-fecha" title="Modificar fecha de pago">${icono('edit', 21, 'currentColor')}</a>`
+                : ''
+            }</td>
+            <td class="col-cancelado">${recibo.cancelado ? 'Cancelado' : ''}</td>
+            <td>${
+              recibo.comprobante
+                ? '<button type="button" class="btn px-2 py-1 js-ver-aviso">Ver/Descargar</button>'
+                : '<button type="button" class="btn px-2 py-1 js-cargar-aviso">Cargar</button>'
+            }</td>
+            <td>${
+              recibo.complemento_pago_pdf || recibo.complemento_pago_xml
+                ? `<button type="button" class="btn px-2 py-1 js-ver-complemento">Ver/Descargar</button>${leyendaFaltante(recibo.complemento_pago_pdf, recibo.complemento_pago_xml)}`
+                : '<button type="button" class="btn px-2 py-1 js-cargar-complemento">Cargar</button>'
+            }</td>
+         </tr>`,
+      );
+      $row.find('.js-pagado').on('click', function () {
+        changeReciboPagado(recibo.id, this.checked ? 'Pagar' : 'Cancelar Pago');
       });
+      $row.find('.js-editar-fecha').on('click', () => {
+        reciboFechaPagoId = recibo.id;
+        $('#fecha_pago').val(recibo.fecha_pago || '');
+        $('#form_date_recib').removeClass('was-validated');
+        $('#edit_recib_date').modal();
+      });
+      $row.find('.js-ver-aviso').on('click', (e) => {
+        e.preventDefault();
+        viewReceiptComprobante(recibo);
+      });
+      $row.find('.js-cargar-aviso').on('click', (e) => {
+        e.preventDefault();
+        uploadReceiptComprobante(recibo.id, recargarRecibos);
+      });
+      $row.find('.js-ver-complemento').on('click', (e) => {
+        e.preventDefault();
+        viewReceiptComplemento(recibo);
+      });
+      $row.find('.js-cargar-complemento').on('click', (e) => {
+        e.preventDefault();
+        uploadReceiptComplemento(recibo.id, recargarRecibos);
+      });
+      table.append($row);
     });
-    if (!data.length) return $('#pagination-recibos').html('');
+
     $('#pagination-recibos').pagination({
       itemsOnPage,
       currentPage,
@@ -1059,27 +1174,301 @@ $(function () {
     });
   }
 
-  function changeReciboPagado(recibo_id, accion, poliza_id, endoso_id) {
+  function changeReciboPagado(recibo_id, accion) {
     $.ajax({
       type: 'POST',
-      url: '/endosos/process_receipt',
+      url: '/polizas/process_receipt',
       data: $.param({ recibo_id, accion }),
       success: function (resp) {
         if (resp.error) {
-          alert(resp.msg, 'error');
+          alert(resp.msg, 'error', resp.title);
         } else {
           alert(resp.msg, 'success');
-          getRecibos(endoso_id, poliza_id);
         }
+        recargarRecibos();
       },
       error: function (xhr, status, error) {
         console.error(error);
-        alert(
-          'Lamentamos el inconveniente, porfavor vuelve a intentarlo',
-          'error'
-        );
+        alert('Lamentamos el inconveniente, porfavor vuelve a intentarlo', 'error');
+        recargarRecibos();
       },
     });
+  }
+
+  $('#form_date_recib').submit(function (e) {
+    e.preventDefault();
+    if (!this.checkValidity()) {
+      $(this).addClass('was-validated');
+      return;
+    }
+    $.ajax({
+      type: 'POST',
+      url: '/polizas/process_receipt',
+      data: $.param({
+        accion: 'Modificar Fecha de Pago',
+        recibo_id: reciboFechaPagoId,
+        fecha_pago: $('#fecha_pago').val(),
+      }),
+      success: function (resp) {
+        if (resp.error) {
+          alert(resp.msg, 'error', resp.title);
+        } else {
+          $('#edit_recib_date').modal('hide');
+          alert(resp.msg, 'success');
+          reciboFechaPagoId = null;
+          recargarRecibos();
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error('Error en process_receipt', error);
+        alert('Lamentamos el inconveniente, porfavor vuelve a intentarlo', 'error');
+      },
+    });
+  });
+
+  const TRASH_ICON_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>';
+
+  function leyendaFaltante(tienePdf, tieneXml) {
+    if (tienePdf && !tieneXml) return ' <span style="font-size:0.68em; color:#dc3545; font-weight:600;">(falta XML)</span>';
+    if (!tienePdf && tieneXml) return ' <span style="font-size:0.68em; color:#dc3545; font-weight:600;">(falta PDF)</span>';
+    return '';
+  }
+
+  function confirmarEliminarDocumento(mensaje, onConfirm) {
+    Swal.fire({
+      title: '¿Eliminar documento?',
+      text: mensaje,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+    }).then((result) => {
+      if (result.isConfirmed) onConfirm();
+    });
+  }
+
+  // Selector de archivos + subida por AJAX. `campos` son los datos extra
+  // del form (ej. recibo_id o endoso_id); `soloTipo` limita a pdf/xml.
+  function subirArchivos({ url, campos, accept, multiple, validar, armarFormData, titulo, okTitulo, errorMsg, onSuccess }) {
+    const fileInput = $(
+      `<input type="file" accept="${accept}" ${multiple ? 'multiple' : ''} style="display:none;" />`,
+    );
+    $('body').append(fileInput);
+    fileInput.on('change', function () {
+      const files = Array.from(this.files || []);
+      fileInput.remove();
+      if (!files.length) return;
+      const error = validar(files);
+      if (error) {
+        alert(error, 'warning', 'Archivo inválido');
+        return;
+      }
+      const formData = new FormData();
+      Object.entries(campos).forEach(([k, v]) => formData.append(k, v));
+      armarFormData(formData, files);
+      Swal.fire({
+        title: titulo,
+        text: 'Guardando documento(s)',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      $.ajax({
+        type: 'POST',
+        url,
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (resp) {
+          Swal.close();
+          if (resp.error) {
+            alert(resp.msg, 'error', 'Error');
+          } else {
+            alert(resp.msg, 'success', okTitulo);
+            if (onSuccess) onSuccess();
+          }
+        },
+        error: function () {
+          Swal.close();
+          alert(errorMsg, 'error', 'Error');
+        },
+      });
+    });
+    fileInput.trigger('click');
+  }
+
+  // PDF + XML (complemento de pago y factura comparten la misma mecánica).
+  function subirPdfXml({ url, campos, prefijoCampo, soloTipo, nombreDoc, titulo, okTitulo, errorMsg, onSuccess }) {
+    const esPdf = (f) => f.name.toLowerCase().endsWith('.pdf');
+    const esXml = (f) => f.name.toLowerCase().endsWith('.xml');
+    subirArchivos({
+      url,
+      campos,
+      accept: soloTipo === 'pdf' ? '.pdf' : soloTipo === 'xml' ? '.xml' : '.pdf,.xml',
+      multiple: !soloTipo,
+      validar: (files) => {
+        const invalido = files.find((f) => !esPdf(f) && !esXml(f));
+        if (invalido || (!files.find(esPdf) && !files.find(esXml))) {
+          return soloTipo ? `Selecciona un archivo .${soloTipo}` : `Selecciona el PDF y/o el XML ${nombreDoc}`;
+        }
+        return null;
+      },
+      armarFormData: (formData, files) => {
+        const pdf = files.find(esPdf);
+        const xml = files.find(esXml);
+        if (pdf && soloTipo !== 'xml') formData.append(`${prefijoCampo}_pdf`, pdf);
+        if (xml && soloTipo !== 'pdf') formData.append(`${prefijoCampo}_xml`, xml);
+      },
+      titulo,
+      okTitulo,
+      errorMsg,
+      onSuccess,
+    });
+  }
+
+  function uploadReceiptComprobante(reciboId, onSuccess) {
+    subirArchivos({
+      url: '/polizas/upload_receipt_comprobante',
+      campos: { recibo_id: reciboId },
+      accept: '.pdf',
+      multiple: false,
+      validar: (files) =>
+        files[0].name.toLowerCase().endsWith('.pdf') ? null : 'El comprobante debe ser un archivo PDF',
+      armarFormData: (formData, files) => formData.append('comprobante_pdf', files[0]),
+      titulo: 'Cargando comprobante...',
+      okTitulo: 'Comprobante cargado',
+      errorMsg: 'Error al cargar el comprobante',
+      onSuccess,
+    });
+  }
+
+  function uploadReceiptComplemento(reciboId, onSuccess, soloTipo) {
+    subirPdfXml({
+      url: '/polizas/upload_receipt_complemento',
+      campos: { recibo_id: reciboId },
+      prefijoCampo: 'complemento',
+      soloTipo,
+      nombreDoc: 'del complemento de pago',
+      titulo: 'Cargando complemento de pago...',
+      okTitulo: 'Complemento cargado',
+      errorMsg: 'Error al cargar el complemento de pago',
+      onSuccess,
+    });
+  }
+
+  // Ventanita "Ver/Descargar + Eliminar" para documentos PDF/XML.
+  // `docs` = [{ key, label, tiene, verUrl, borrarUrl, borrarData, recargar, subir }]
+  function mostrarDocumentos(titulo, docs) {
+    const fila = (d) =>
+      d.tiene
+        ? `<div style="display:flex; gap:8px;">
+             <button type="button" class="btn" id="btnVer_${d.key}" style="flex:1;">${d.labelVer}</button>
+             <button type="button" class="btn" id="btnEliminar_${d.key}" title="Eliminar" style="flex:0 0 44px; background-color:#dc3545; color:#fff; display:flex; align-items:center; justify-content:center;">${TRASH_ICON_SVG}</button>
+           </div>`
+        : `<div style="display:flex; gap:8px;"><button type="button" class="btn" id="btnCargar_${d.key}" style="flex:1;">${d.labelCargar}</button><div style="flex:0 0 44px;"></div></div>`;
+    Swal.fire({
+      title: titulo,
+      width: 420,
+      html: `<div style="display:flex; flex-direction:column; gap:8px;">${docs.map(fila).join('')}</div>`,
+      showConfirmButton: false,
+      showCloseButton: true,
+      didOpen: () => {
+        docs.forEach((d) => {
+          $(`#btnVer_${d.key}`).on('click', () => window.open(d.verUrl, '_blank'));
+          $(`#btnCargar_${d.key}`).on('click', () => {
+            Swal.close();
+            d.subir();
+          });
+          $(`#btnEliminar_${d.key}`).on('click', () => {
+            confirmarEliminarDocumento(d.mensajeEliminar, () => {
+              $.ajax({
+                type: 'POST',
+                url: d.borrarUrl,
+                data: d.borrarData || {},
+                success: (resp) => {
+                  Swal.close();
+                  if (resp.error) {
+                    alert(resp.msg, 'error', 'Error');
+                  } else {
+                    d.recargar();
+                    d.subir();
+                  }
+                },
+                error: () => alert('Error al eliminar el documento', 'error', 'Error'),
+              });
+            });
+          });
+        });
+      },
+    });
+  }
+
+  function viewReceiptComprobante(recibo) {
+    mostrarDocumentos(`Aviso de Cobro — ${recibosContexto.titulo}`, [
+      {
+        key: 'aviso',
+        tiene: !!recibo.comprobante,
+        labelVer: 'Ver/Descargar PDF',
+        labelCargar: 'Cargar PDF',
+        verUrl: `/polizas/download_receipt_comprobante/${recibo.id}`,
+        borrarUrl: '/polizas/delete_receipt_comprobante',
+        borrarData: { recibo_id: recibo.id },
+        mensajeEliminar: 'Se eliminará el Aviso de Cobro de este recibo. Esta acción no se puede deshacer.',
+        recargar: recargarRecibos,
+        subir: () => uploadReceiptComprobante(recibo.id, recargarRecibos),
+      },
+    ]);
+  }
+
+  function viewReceiptComplemento(recibo) {
+    const doc = (tipo) => ({
+      key: `complemento_${tipo}`,
+      tiene: !!recibo[`complemento_pago_${tipo}`],
+      labelVer: tipo === 'pdf' ? 'Ver/Descargar PDF' : 'Descargar XML',
+      labelCargar: `Cargar ${tipo.toUpperCase()} (falta)`,
+      verUrl: `/polizas/download_receipt_complemento/${recibo.id}/${tipo}`,
+      borrarUrl: `/polizas/delete_receipt_complemento/${recibo.id}/${tipo}`,
+      mensajeEliminar: `Se eliminará el ${tipo.toUpperCase()} del complemento de pago de este recibo. Esta acción no se puede deshacer.`,
+      recargar: recargarRecibos,
+      subir: () => uploadReceiptComplemento(recibo.id, recargarRecibos, tipo),
+    });
+    mostrarDocumentos(`Complemento de Pago — ${recibosContexto.titulo}`, [doc('pdf'), doc('xml')]);
+  }
+
+  // ---------------------------------------------------------------------
+  // Factura del endoso (PDF + XML) — igual que la factura de pólizas.
+  // Los archivos viven en Poliza_.../endosos/Endoso_{id}_{numero}/factura/
+  // ---------------------------------------------------------------------
+  function uploadEndosoFactura(endosoId, onSuccess, soloTipo) {
+    subirPdfXml({
+      url: '/endosos/upload_factura',
+      campos: { endoso_id: endosoId },
+      prefijoCampo: 'factura',
+      soloTipo,
+      nombreDoc: 'de la factura',
+      titulo: 'Cargando factura...',
+      okTitulo: 'Factura cargada',
+      errorMsg: 'Error al cargar la factura',
+      onSuccess,
+    });
+  }
+
+  function viewEndosoFactura(endoso) {
+    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA);
+    const doc = (tipo) => ({
+      key: `factura_${tipo}`,
+      tiene: !!endoso[`factura_${tipo}`],
+      labelVer: tipo === 'pdf' ? 'Ver/Descargar PDF' : 'Descargar XML',
+      labelCargar: `Cargar ${tipo.toUpperCase()} (falta)`,
+      verUrl: `/endosos/download_factura/${endoso.id}/${tipo}`,
+      borrarUrl: `/endosos/delete_factura/${endoso.id}/${tipo}`,
+      mensajeEliminar: `Se eliminará el ${tipo.toUpperCase()} de la factura de este endoso. Esta acción no se puede deshacer.`,
+      recargar,
+      subir: () => uploadEndosoFactura(endoso.id, recargar, tipo),
+    });
+    mostrarDocumentos(`Factura — Endoso ${endoso.endoso}`, [doc('pdf'), doc('xml')]);
   }
 
   function showPolizaInfo(poliza_id) {
@@ -1135,31 +1524,302 @@ $(function () {
     });
   }
 
+  // ---------------------------------------------------------------------
+  // Listado, búsqueda, filtros y exportación (igual que en pólizas)
+  // ---------------------------------------------------------------------
+  const ENDOSOS_POR_PAGINA = 10;
+  let endososPaginaActual = 1;
+  let totalEndosos = 0;
+  let endososRequest = null;
+  let endososRequestSeq = 0;
+
+  function getFiltrosEndosos() {
+    const filtros = {};
+    const put = (key, value) => {
+      if (value) filtros[key] = value;
+    };
+    put('filtro_aseguradora_id', $('#filtroAseguradora').val());
+    put('filtro_status', $('#filtroStatus').val());
+    put('filtro_tipo', $('#filtroTipo').val());
+    put('filtro_grupo_id', $('#filtroGrupo').val());
+    // Si se eligió un cliente del autocomplete se manda su id; si solo se
+    // escribió texto, se busca por nombre.
+    if ($('#filtroClienteId').val()) {
+      filtros.filtro_cliente_id = $('#filtroClienteId').val();
+    } else {
+      put('filtro_cliente', $('#filtroCliente').val().trim());
+    }
+    put('filtro_fecha_desde', $('#filtroFechaDesde').val());
+    put('filtro_fecha_hasta', $('#filtroFechaHasta').val());
+    if ($('#filtroSinPdf').is(':checked')) filtros.filtro_sin_pdf = 1;
+    return filtros;
+  }
+
+  // Solo se pinta la respuesta de la ÚLTIMA petición: si el usuario escribe
+  // rápido, una respuesta vieja ya no puede tapar los resultados correctos.
   function getEndosos(pageNumber = 1, start = 0) {
-    const length = 10;
-    const searchValue = $('#searchEndoso').val();
-    $.ajax({
+    endososPaginaActual = pageNumber;
+    const searchValue = $('#searchEndoso').val().trim();
+    const params = { start, length: ENDOSOS_POR_PAGINA, order: true, ...getFiltrosEndosos() };
+    if (searchValue) params.searchValue = searchValue;
+    const seq = ++endososRequestSeq;
+    if (endososRequest) endososRequest.abort();
+    endososRequest = $.ajax({
       ...ajaxConfig,
       url: '/endosos/get',
-      data: $.param({ start, length, order: true, searchValue }),
-      success: (resp) => fillTableEndosos(resp, pageNumber, length),
-      error: (xhr, status, error) => console.error(error),
+      data: $.param(params),
+      success: (resp) => {
+        if (seq !== endososRequestSeq) return;
+        totalEndosos = resp.recordsTotal || 0;
+        fillTableEndosos(resp, pageNumber, ENDOSOS_POR_PAGINA);
+      },
+      error: (xhr, status, error) => {
+        if (status !== 'abort') console.error(error);
+      },
     });
   }
 
   function getRecibos(endoso_id, poliza_id, pageNumber = 1, start = 0) {
     const length = 10;
-    let sendObj;
-    sendObj = { start, length, order: true, poliza_id, endoso_id };
     $.ajax({
       ...ajaxConfig,
-      url: '/endosos/get_receipts',
-      data: $.param(sendObj),
-      success: (resp) =>
-        fillTableRecibos(resp, pageNumber, length, endoso_id, poliza_id),
-      error: (xhr, status, error) => console.error(error),
+      url: '/polizas/get_receipts',
+      data: $.param({ start, length, endoso_id }),
+      success: (resp) => fillTableRecibos(resp, pageNumber, length, endoso_id, poliza_id),
+      error: (xhr, status, error) => {
+        console.error(error);
+        alert('No se pudieron cargar los recibos del endoso', 'error', 'Error');
+      },
     });
   }
+
+  const ENDOSOS_COLUMNAS_EXPORT = [
+    { key: 'endoso', label: 'Endoso' },
+    { key: 'poliza', label: 'Póliza' },
+    { key: 'tipo_endoso', label: 'Tipo' },
+    { key: 'cliente', label: 'Cliente' },
+    { key: 'fecha_inicio', label: 'Inicio Vigencia' },
+    { key: 'fecha_termino', label: 'Fin Vigencia' },
+    { key: 'subramo', label: 'Sub Ramo' },
+    { key: 'aseguradora', label: 'Aseguradora' },
+    { key: 'tipoPago', label: 'Forma de Pago' },
+    { key: 'prima_neta', label: 'Prima Neta', moneda: true },
+    { key: 'prima_total', label: 'Prima Total', moneda: true },
+    { key: 'status', label: 'Estado' },
+  ];
+
+  function valorExport(item, col) {
+    return col.moneda ? formatCurrencyDisplay(item[col.key]) : displayCellValue(item[col.key]);
+  }
+
+  // Trae TODOS los endosos que coinciden con la búsqueda/filtros actuales
+  // (no solo la página visible). Se envuelve en Promise.resolve porque la
+  // promesa de jQuery 2 no tiene .catch().
+  function fetchAllEndososFiltrados() {
+    const searchValue = $('#searchEndoso').val().trim();
+    const params = { start: 0, length: 0, order: true, ...getFiltrosEndosos() };
+    if (searchValue) params.searchValue = searchValue;
+    return Promise.resolve(
+      $.ajax({ ...ajaxConfig, url: '/endosos/get', data: $.param(params) }),
+    ).then((resp) => {
+      const items = resp.data || [];
+      if (!items.length) alert('No hay endosos para exportar con los filtros actuales', 'info');
+      return items;
+    });
+  }
+
+  // Logo para el PDF. Se reduce en un <canvas> a tamaño de impresión antes
+  // de incrustarlo: el PNG original es de ~1756x1915 px y, metido tal cual,
+  // hacía que el PDF pesara más de 13 MB. También se toma su proporción real
+  // (antes se asumía 615x1024 y el logo salía deformado).
+  let endososLogoCache = null;
+  function obtenerLogoParaPdf() {
+    if (endososLogoCache) return Promise.resolve(endososLogoCache);
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxLado = 160;
+        const escala = Math.min(1, maxLado / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * escala);
+        canvas.height = Math.round(img.naturalHeight * escala);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        endososLogoCache = {
+          dataUrl: canvas.toDataURL('image/png'),
+          proporcion: img.naturalHeight / img.naturalWidth,
+        };
+        resolve(endososLogoCache);
+      };
+      img.onerror = reject;
+      img.src = $('.logo-ggc').attr('src');
+    });
+  }
+
+  // Mismo diseño de PDF que pólizas: logo, título, fecha y tabla con el
+  // encabezado en el color de marca.
+  async function construirEndososPdfDoc(items) {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error('La librería jsPDF no cargó (revisa la consola/Network por si el CDN está bloqueado).');
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    if (typeof doc.autoTable !== 'function') {
+      throw new Error('El plugin jspdf-autotable no cargó (revisa la consola/Network por si el CDN está bloqueado).');
+    }
+    let inicioTextoX = 14;
+    try {
+      const logo = await obtenerLogoParaPdf();
+      const logoW = 12;
+      const logoH = logoW * logo.proporcion;
+      doc.addImage(logo.dataUrl, 'PNG', 14, 8, logoW, logoH, undefined, 'FAST');
+      inicioTextoX = 14 + logoW + 6;
+    } catch (e) {
+      // Sin logo si falla la descarga; no se bloquea la exportación.
+    }
+    doc.setFontSize(14);
+    doc.text('Tabla de Endosos', inicioTextoX, 18);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`Generado: ${new Date().toLocaleString('es-MX')}`, inicioTextoX, 24);
+    doc.setTextColor(0);
+    doc.autoTable({
+      startY: 34,
+      head: [ENDOSOS_COLUMNAS_EXPORT.map((c) => c.label)],
+      body: items.map((it) => ENDOSOS_COLUMNAS_EXPORT.map((c) => valorExport(it, c))),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [201, 74, 28] },
+    });
+    return doc;
+  }
+
+  $('#btnExportar').click((e) => {
+    e.preventDefault();
+    fetchAllEndososFiltrados()
+      .then((items) => {
+        if (!items.length) return;
+        if (typeof XLSX === 'undefined') throw new Error('La librería de Excel no cargó.');
+        const filas = items.map((it) => {
+          const fila = {};
+          ENDOSOS_COLUMNAS_EXPORT.forEach((c) => {
+            // En Excel las primas se exportan como número, para poder sumarlas.
+            fila[c.label] = c.moneda ? Number(it[c.key]) || 0 : displayCellValue(it[c.key]);
+          });
+          return fila;
+        });
+        const ws = XLSX.utils.json_to_sheet(filas);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Endosos');
+        XLSX.writeFile(wb, `endosos_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      })
+      .catch((err) => alert(`No se pudo exportar a Excel: ${err && err.message ? err.message : err}`, 'error', 'Error'));
+  });
+
+  $('#btnPdf').click((e) => {
+    e.preventDefault();
+    fetchAllEndososFiltrados()
+      .then(async (items) => {
+        if (!items.length) return;
+        const doc = await construirEndososPdfDoc(items);
+        doc.save(`endosos_${new Date().toISOString().slice(0, 10)}.pdf`);
+      })
+      .catch((err) => alert(`No se pudo generar el PDF: ${err && err.message ? err.message : err}`, 'error', 'Error'));
+  });
+
+  $('#btnImprimir').click((e) => {
+    e.preventDefault();
+    fetchAllEndososFiltrados()
+      .then(async (items) => {
+        if (!items.length) return;
+        const doc = await construirEndososPdfDoc(items);
+        doc.autoPrint();
+        const url = doc.output('bloburl');
+        const iframe = document.createElement('iframe');
+        Object.assign(iframe.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' });
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.focus();
+          } catch (err) {
+            window.open(url, '_blank');
+          }
+        };
+      })
+      .catch((err) => alert(`No se pudo generar el PDF para imprimir: ${err && err.message ? err.message : err}`, 'error', 'Error'));
+  });
+
+  $('#btnToggleFiltros').click((e) => {
+    e.preventDefault();
+    $('#panelFiltrosPolizas').slideToggle(150);
+  });
+
+  $('#btnAplicarFiltros').click((e) => {
+    e.preventDefault();
+    getEndosos(1, 0);
+  });
+
+  $('#btnLimpiarFiltros').click((e) => {
+    e.preventDefault();
+    $('#filtroAseguradora, #filtroStatus, #filtroTipo, #filtroGrupo, #filtroCliente, #filtroClienteId').val('');
+    $('#filtroClienteOptions').hide().empty();
+    $('#filtroFechaDesde, #filtroFechaHasta, #filtroMesRapido, #filtroMesRapidoAnio').val('');
+    $('#filtroSinPdf').prop('checked', false);
+    getEndosos(1, 0);
+  });
+
+  let filtroClienteDebounce = null;
+  $('#filtroCliente').on('input', function () {
+    $('#filtroClienteId').val('');
+    const inputValue = this.value;
+    clearTimeout(filtroClienteDebounce);
+    if (inputValue.length < 3) {
+      $('#filtroClienteOptions').hide().empty();
+      return;
+    }
+    filtroClienteDebounce = setTimeout(() => {
+      $.ajax({
+        url: '/polizas/search_clients',
+        method: 'POST',
+        dataType: 'json',
+        data: { query: inputValue },
+        success: function (response) {
+          const dropdownMenu = $('#filtroClienteOptions');
+          dropdownMenu.empty();
+          if (!response.options.length) {
+            dropdownMenu.append('<p class="dropdown-item no-results">No hay coincidencias</p>');
+          } else {
+            $.each(response.options, function (i, option) {
+              const $opt = $(`<a class="dropdown-item pointer">${esc(option.name)}</a>`);
+              $opt.on('click', () => {
+                $('#filtroCliente').val(option.name);
+                $('#filtroClienteId').val(option.id);
+                dropdownMenu.hide();
+              });
+              dropdownMenu.append($opt);
+            });
+          }
+          dropdownMenu.show();
+        },
+        error: (xhr, status, error) => console.error(error),
+      });
+    }, 250);
+  });
+  $(document).on('click', (e) => {
+    if (!$(e.target).closest('.polizas-filtros__campo').length) {
+      $('#filtroClienteOptions').hide();
+    }
+  });
+
+  function aplicarMesRapido() {
+    const mes = parseInt($('#filtroMesRapido').val(), 10);
+    if (!mes) return;
+    const anio = parseInt($('#filtroMesRapidoAnio').val(), 10) || new Date().getFullYear();
+    const iso = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    $('#filtroFechaDesde').val(iso(new Date(anio, mes - 1, 1)));
+    $('#filtroFechaHasta').val(iso(new Date(anio, mes, 0)));
+  }
+  $('#filtroMesRapido, #filtroMesRapidoAnio').on('change', aplicarMesRapido);
 
   function createReceipts(selectPoliza, endoso_id = '') {
     const netPremium = $('#prima-neta').val();
@@ -1522,17 +2182,10 @@ $(function () {
     });
   });
 
-  $('#searchEndoso').on('keyup', function (e) {
-    e.preventDefault();
-    const searchValue = e.target.value;
-    if (searchValue == '') return getEndosos();
-    $.ajax({
-      ...ajaxConfig,
-      url: '/endosos/get',
-      data: $.param({ start: 0, length: 10, searchValue }),
-      success: (resp) => fillTableEndosos(resp, 1, 10),
-      error: (xhr, status, error) => console.error(error),
-    });
+  let searchEndosoDebounce = null;
+  $('#searchEndoso').on('input', function () {
+    clearTimeout(searchEndosoDebounce);
+    searchEndosoDebounce = setTimeout(() => getEndosos(1, 0), 300);
   });
 
   $('#buscar-cliente').on('keyup', function (e) {

@@ -15,6 +15,8 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 import os
 import uuid
+from werkzeug.utils import secure_filename
+from app.utils.document_storage import get_carpeta_endoso
 
 
 @endosos_route.route('/get_receipts', methods=['POST'])
@@ -74,8 +76,8 @@ def get_receipts():
 @login_required
 def get():
     # Estos datos los recibe desde la función en JS
-    start = int(flask_request.form.get('start'))
-    length = int(flask_request.form.get('length'))
+    start = int(flask_request.form.get('start') or 0)
+    length = int(flask_request.form.get('length') or 0)
     search_value = flask_request.form.get('searchValue')
     order = bool(flask_request.form.get('order'))
     endoso_id = flask_request.form.get('endoso_id')
@@ -92,6 +94,7 @@ def get():
                                      Vendedor.nombre.label("vendedor")) \
         .select_from(Endoso) \
         .join(Cliente, Endoso.cliente_id == Cliente.id) \
+        .outerjoin(Grupo, Cliente.grupo_id == Grupo.id) \
         .join(Aseguradora, Endoso.aseguradora_id == Aseguradora.id) \
         .join(Ramo, Endoso.ramo_id == Ramo.id)  \
         .join(Subramo, Endoso.subramo_id == Subramo.id)  \
@@ -99,57 +102,100 @@ def get():
         .join(Agente, Endoso.agente_id == Agente.id) \
         .join(Vendedor, Endoso.vendedor_id == Vendedor.id)
 
-    if order:
-        endosos_query = endosos_query.order_by(desc(Endoso.fecha_inicio))
-    else:
-        endosos_query = endosos_query.order_by('endoso')
-        # endosos_query = endosos_query.order_by(desc(Endoso.id))
-
     if endoso_id:
         endosos_query = endosos_query.filter(Endoso.id == int(endoso_id))
-
-    # Implement search functionality
-    if search_value:
+    elif search_value:
+        # Misma búsqueda rápida que en pólizas (sin importar espacios ni
+        # mayúsculas), más el número de endoso y el de la póliza a la que
+        # pertenece.
+        needle = ''.join(search_value.strip().lower().split())
+        sin_espacios = lambda col: func.lower(func.replace(col, ' ', ''))
         endosos_query = endosos_query.filter(or_(
-            Cliente.nombre.ilike(f'%{search_value}%'),
-            Cliente.apellido.ilike(f'%{search_value}%'),
-            Endoso.endoso.ilike(f'%{search_value}%'),
-            func.concat(Cliente.nombre, ' ', Cliente.apellido).ilike(
-                f'%{search_value}%'),
-            # Add more fields for searching as needed
+            sin_espacios(Cliente.nombre).like(f'%{needle}%'),
+            sin_espacios(Cliente.apellido).like(f'%{needle}%'),
+            sin_espacios(func.concat(Cliente.nombre, ' ', Cliente.apellido)).like(f'%{needle}%'),
+            sin_espacios(Grupo.grupo).like(f'%{needle}%'),
+            sin_espacios(Endoso.endoso).like(f'%{needle}%'),
+            sin_espacios(Endoso.poliza).like(f'%{needle}%'),
+            sin_espacios(Endoso.serie).like(f'%{needle}%'),
         ))
 
-    # Get total count of records without filtering
+    # Filtros estructurados (panel "Filtros"), mismos que en pólizas: se
+    # combinan con AND y se pueden usar junto con la búsqueda rápida.
+    filtro_aseguradora_id = flask_request.form.get('filtro_aseguradora_id')
+    if filtro_aseguradora_id:
+        endosos_query = endosos_query.filter(
+            Endoso.aseguradora_id == int(filtro_aseguradora_id))
+
+    filtro_status = flask_request.form.get('filtro_status')
+    if filtro_status:
+        endosos_query = endosos_query.filter(Endoso.status == filtro_status)
+
+    filtro_tipo = flask_request.form.get('filtro_tipo')
+    if filtro_tipo in ('A', 'B', 'D'):
+        endosos_query = endosos_query.filter(Endoso.tipo_endoso == filtro_tipo)
+
+    filtro_grupo_id = flask_request.form.get('filtro_grupo_id')
+    if filtro_grupo_id:
+        endosos_query = endosos_query.filter(Grupo.id == int(filtro_grupo_id))
+
+    filtro_cliente_id = flask_request.form.get('filtro_cliente_id')
+    filtro_cliente = flask_request.form.get('filtro_cliente')
+    if filtro_cliente_id:
+        try:
+            endosos_query = endosos_query.filter(
+                Cliente.id == int(filtro_cliente_id))
+        except (TypeError, ValueError):
+            pass
+    elif filtro_cliente:
+        needle = ''.join(filtro_cliente.strip().lower().split())
+        endosos_query = endosos_query.filter(or_(
+            func.lower(func.replace(Cliente.nombre, ' ', '')).like(f'%{needle}%'),
+            func.lower(func.replace(Cliente.apellido, ' ', '')).like(f'%{needle}%'),
+            func.lower(func.replace(func.concat(Cliente.nombre, ' ', Cliente.apellido), ' ', '')).like(f'%{needle}%'),
+        ))
+
+    # Rango de fechas por inicio de vigencia del endoso (igual que pólizas).
+    for campo, operador in (('filtro_fecha_desde', '>='), ('filtro_fecha_hasta', '<=')):
+        valor = flask_request.form.get(campo)
+        if valor:
+            try:
+                fecha = datetime.strptime(valor, '%Y-%m-%d').date()
+            except ValueError:
+                continue
+            endosos_query = endosos_query.filter(
+                Endoso.fecha_inicio >= fecha if operador == '>=' else Endoso.fecha_inicio <= fecha)
+
+    if flask_request.form.get('filtro_sin_pdf'):
+        endosos_query = endosos_query.filter(
+            or_(Endoso.pdf_path.is_(None), Endoso.pdf_path == ''))
+
+    if order:
+        endosos_query = endosos_query.order_by(desc(Endoso.fecha_inicio), desc(Endoso.id))
+    else:
+        endosos_query = endosos_query.order_by(Endoso.endoso)
+
     total_records = endosos_query.count()
 
-    # Apply pagination
-    if not length and not start:
+    # length=0 (y start=0) significa "todos": lo usan ver/editar un endoso
+    # y exportar/imprimir lo filtrado.
+    if not length:
         endosos = endosos_query.all()
     else:
         endosos = endosos_query.offset(start).limit(length).all()
 
     data = []
-    # Iterate through the query results
     for endoso, nombre, apellido, aseguradora, ramo, subramo, tipo_pago, agente, vendedor in endosos:
-        # Extracting all columns from the Poliza object
-        poliza_data = {}
-        # Iterate through each column in the Poliza table
+        endoso_data = {}
         for column in Endoso.__table__.columns:
-            # Get the value of the column
             value = getattr(endoso, column.name)
-            # Convert date to string if it's a date type
             if isinstance(value, date):
                 value = value.strftime('%Y-%m-%d')
-            # Convert Decimal to float if it's a Decimal type
             elif isinstance(value, Decimal):
                 value = float(value)
-            # Add column name and corresponding value to poliza_data dictionary
-            poliza_data[column.name] = value
+            endoso_data[column.name] = value
 
-        # poliza_data = {column.name: getattr(poliza, column.name) for column in Poliza.__table__.columns}
-
-        # Append additional information
-        poliza_data.update({
+        endoso_data.update({
             'cliente': f"{nombre} {apellido}",
             'aseguradora': aseguradora,
             'vigencia': f"{endoso.fecha_inicio.strftime('%Y-%m-%d')} to {endoso.fecha_termino.strftime('%Y-%m-%d')}",
@@ -160,18 +206,12 @@ def get():
             'vendedor': f"{vendedor}",
             'fecha_termino': endoso.fecha_termino.strftime('%Y-%m-%d')
         })
+        data.append(endoso_data)
 
-        # Append to data list
-        data.append(poliza_data)
-
-    # Póliza Cliente	Sub Ramo	Fecha Inicio	Fecha Fin	Prima Neta	Prima Total	Aseguradora	Forma de Pago
-    # Prepare response
-    response = {
-        # 'draw': draw,
-        'recordsTotal': total_records,  # Total records without filtering
-        'data': data  # Data to display
-    }
-    return jsonify(response)
+    return jsonify({
+        'recordsTotal': total_records,
+        'data': data
+    })
 
 
 @endosos_route.route('/delete', methods=['POST'])
@@ -448,3 +488,159 @@ def download_pdf(endoso_id):
         as_attachment=True,
         download_name=f"endoso_{endoso.poliza}.pdf"
     )
+
+
+# ---------------------------------------------------------------------------
+# Factura del endoso (PDF + XML). Mismo comportamiento que la factura de
+# pólizas; los archivos viven en la carpeta del endoso, dentro de la de su
+# póliza: Cliente_.../Poliza_.../endosos/Endoso_{id}_{numero}/factura/
+# ---------------------------------------------------------------------------
+def _carpeta_factura_endoso(endoso):
+    poliza = Poliza.query.get(endoso.poliza_id)
+    cliente = Cliente.query.get(poliza.cliente_id) if poliza else None
+    return get_carpeta_endoso(cliente, poliza, endoso, 'factura')
+
+
+def _borrar_archivo(folder, filename):
+    if not filename:
+        return
+    path = os.path.join(folder, secure_filename(filename))
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+
+
+@endosos_route.route('/upload_factura', methods=['POST'])
+@login_required
+def upload_factura():
+    endoso_id = flask_request.form.get('endoso_id')
+    pdf_file = flask_request.files.get('factura_pdf')
+    xml_file = flask_request.files.get('factura_xml')
+
+    if not endoso_id:
+        return jsonify({'error': True, 'msg': 'No se proporcionó el endoso'})
+    if not pdf_file and not xml_file:
+        return jsonify({'error': True, 'msg': 'Selecciona al menos un archivo (PDF o XML)'})
+
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+    if not Poliza.query.get(endoso.poliza_id):
+        return jsonify({'error': True, 'msg': 'No se encontró la póliza del endoso'})
+
+    folder = _carpeta_factura_endoso(endoso)
+
+    # Se validan AMBOS archivos antes de escribir cualquiera, para no dejar
+    # guardado solo uno si el otro viene mal.
+    pdf_content = xml_content = None
+    if pdf_file and pdf_file.filename:
+        if not pdf_file.filename.lower().endswith('.pdf'):
+            return jsonify({'error': True, 'msg': 'La factura en PDF debe ser un archivo .pdf'})
+        pdf_content = pdf_file.read()
+        if not pdf_content.startswith(b'%PDF'):
+            return jsonify({'error': True, 'msg': 'El archivo PDF no es válido'})
+        if len(pdf_content) > 10 * 1024 * 1024:
+            return jsonify({'error': True, 'msg': 'El PDF es demasiado grande. Máximo 10MB.'})
+    if xml_file and xml_file.filename:
+        if not xml_file.filename.lower().endswith('.xml'):
+            return jsonify({'error': True, 'msg': 'La factura en XML debe ser un archivo .xml'})
+        xml_content = xml_file.read()
+        if not xml_content.lstrip().startswith(b'<'):
+            return jsonify({'error': True, 'msg': 'El archivo XML no es válido'})
+        if len(xml_content) > 10 * 1024 * 1024:
+            return jsonify({'error': True, 'msg': 'El XML es demasiado grande. Máximo 10MB.'})
+
+    if pdf_content is not None:
+        _borrar_archivo(folder, endoso.factura_pdf)
+        pdf_filename = f"fe{endoso.id}_{uuid.uuid4().hex[:8]}.pdf"
+        with open(os.path.join(folder, pdf_filename), 'wb') as f:
+            f.write(pdf_content)
+        endoso.factura_pdf = pdf_filename
+        endoso.factura_pdf_original = secure_filename(pdf_file.filename)
+
+    if xml_content is not None:
+        _borrar_archivo(folder, endoso.factura_xml)
+        xml_filename = f"fe{endoso.id}_{uuid.uuid4().hex[:8]}.xml"
+        with open(os.path.join(folder, xml_filename), 'wb') as f:
+            f.write(xml_content)
+        endoso.factura_xml = xml_filename
+        endoso.factura_xml_original = secure_filename(xml_file.filename)
+
+    db.session.add(Request(usuario_id=current_user.id,
+                           description=f"Cargar factura del endoso {endoso.endoso} de la póliza {endoso.poliza}",
+                           status="Aceptada",
+                           table_name='Endoso',
+                           row_id=endoso.id))
+    db.session.commit()
+
+    return jsonify({
+        'error': False,
+        'msg': 'Factura cargada exitosamente',
+        'factura_pdf': endoso.factura_pdf,
+        'factura_xml': endoso.factura_xml,
+    })
+
+
+@endosos_route.route('/download_factura/<int:endoso_id>/<tipo>', methods=['GET'])
+@login_required
+def download_factura(endoso_id, tipo):
+    if tipo not in ('pdf', 'xml'):
+        return jsonify({'error': True, 'msg': 'Tipo de documento inválido'}), 400
+
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': True, 'msg': 'Endoso no encontrado'}), 404
+
+    stored_filename = endoso.factura_pdf if tipo == 'pdf' else endoso.factura_xml
+    if not stored_filename:
+        return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
+
+    filename = secure_filename(stored_filename)
+    original_filename = (endoso.factura_pdf_original if tipo == 'pdf'
+                         else endoso.factura_xml_original)
+    folder = _carpeta_factura_endoso(endoso)
+    if not os.path.exists(os.path.join(folder, filename)):
+        return jsonify({'error': True, 'msg': 'No se ha cargado el documento aun'}), 404
+
+    # El XML se descarga directo; el PDF se abre para verse en el navegador.
+    return send_from_directory(
+        folder,
+        filename,
+        as_attachment=(tipo == 'xml'),
+        download_name=original_filename or filename,
+    )
+
+
+@endosos_route.route('/delete_factura/<int:endoso_id>/<tipo>', methods=['POST'])
+@login_required
+def delete_factura(endoso_id, tipo):
+    if tipo not in ('pdf', 'xml'):
+        return jsonify({'error': True, 'msg': 'Tipo de documento inválido'}), 400
+
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+
+    stored_filename = endoso.factura_pdf if tipo == 'pdf' else endoso.factura_xml
+    if not stored_filename:
+        return jsonify({'error': True, 'msg': 'Este endoso no tiene ese documento cargado'})
+
+    _borrar_archivo(_carpeta_factura_endoso(endoso), stored_filename)
+
+    if tipo == 'pdf':
+        endoso.factura_pdf = None
+        endoso.factura_pdf_original = None
+    else:
+        endoso.factura_xml = None
+        endoso.factura_xml_original = None
+
+    db.session.add(Request(usuario_id=current_user.id,
+                           description=f"Eliminar factura ({tipo}) del endoso {endoso.endoso} de la póliza {endoso.poliza}",
+                           status="Aceptada",
+                           table_name='Endoso',
+                           row_id=endoso.id))
+    db.session.commit()
+
+    return jsonify({'error': False, 'msg': 'Documento eliminado exitosamente'})

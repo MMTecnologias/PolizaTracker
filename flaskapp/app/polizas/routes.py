@@ -48,6 +48,7 @@ def get_receipts():
             return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
         poliza_id = endoso.poliza_id
     else:
+        endoso = None
         recibos_query = Recibo.query.filter_by(
             poliza_id=poliza_id, endoso_id=None)
 
@@ -58,7 +59,8 @@ def get_receipts():
     if not poliza:
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
 
-    moneda = poliza.moneda
+    # Los recibos de un endoso se muestran en la moneda del endoso.
+    moneda = endoso.moneda if endoso else poliza.moneda
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
@@ -79,7 +81,11 @@ def get_receipts():
             "comprobante": "" if recibo.comprobante is None else recibo.comprobante,
             "complemento_pago_pdf": "" if recibo.complemento_pago_pdf is None else recibo.complemento_pago_pdf,
             "complemento_pago_xml": "" if recibo.complemento_pago_xml is None else recibo.complemento_pago_xml,
-            "cancelado": True if poliza.status == 'Cancelada' else False,
+            # Cancelado si el propio recibo está cancelado, o si su póliza
+            # o su endoso lo están.
+            "cancelado": (recibo.status == 'Cancelado'
+                          or poliza.status == 'Cancelada'
+                          or bool(endoso and endoso.status == 'Cancelada')),
             'id': recibo.id,
             'moneda': moneda,
             'endoso_id': recibo.endoso_id,
