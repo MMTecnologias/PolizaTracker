@@ -4732,14 +4732,14 @@ def extract_gmm_conditions_observations(text: str) -> str:
         return ""
     lines = ["Coberturas contratadas"]
 
-    suma = re.search(r'Suma\s*Asegurada\s*\$\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
+    suma = re.search(r'Suma\s*Asegurada\s*\$\s*[-–—|]?\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
     if suma:
         lines.append(f"Suma asegurada: {_gmm_amount(suma)}")
-    deducible = re.search(r'(?<![A-Za-z])Deducible\s*\$\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
+    deducible = re.search(r'(?<![A-Za-z])Deducible\s*\$\s*[-–—|]?\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
     if deducible:
         lines.append(f"Deducible: {_gmm_amount(deducible)}")
     coaseguro = re.search(r'(?<!de\s)(?<!de)\bCoaseguro\s+(\d{1,3})\s*%', text, re.I)
-    tope = re.search(r'Tope\s*de\s*Coaseguro\s*\$\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
+    tope = re.search(r'Tope\s*de\s*Coaseguro\s*\$\s*[-–—|]?\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
     if coaseguro:
         linea = f"Coaseguro: {coaseguro.group(1)}%"
         if tope:
