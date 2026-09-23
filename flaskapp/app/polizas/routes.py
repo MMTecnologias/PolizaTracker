@@ -2392,6 +2392,31 @@ def pdf_log_preview(text: str, max_chars: int = 250) -> str:
     return re.sub(r'\s+', ' ', text).strip()[:max_chars]
 
 
+OCR_NO_DISPONIBLE_MSG = (
+    "Este PDF es una imagen y no contiene texto (suele pasar cuando se imprime "
+    "desde el navegador o se escanea), y en este equipo no está instalado el "
+    "lector de imágenes (OCR). Descarga el PDF original desde el portal de la "
+    "aseguradora e inténtalo de nuevo, o captura la póliza manualmente."
+)
+# Si con psm 4 una página saca menos de esto, se reintenta con psm 6.
+OCR_MIN_CHARS_PER_PAGE = 200
+
+
+def _ocr_image_to_text(pytesseract, image, psm: int):
+    """OCR de una imagen probando idiomas en orden. Regresa
+    (texto, idioma, psm, error)."""
+    last_error = None
+    for lang in ("spa+eng", "spa", "eng"):
+        try:
+            text = pytesseract.image_to_string(
+                image, lang=lang, config=f"--psm {psm}"
+            )
+            return text, lang, psm, None
+        except pytesseract.TesseractError as exc:
+            last_error = str(exc)
+    return "", None, psm, last_error
+
+
 def extract_text_with_ocr(file_content: bytes, maxpages: int = 8, trace_id: str = None) -> str:
     """Extrae texto de PDFs escaneados si Tesseract OCR está disponible."""
     log_policy_event(
@@ -2411,10 +2436,7 @@ def extract_text_with_ocr(file_content: bytes, maxpages: int = 8, trace_id: str 
             trace_id=trace_id,
             error=str(exc)
         )
-        raise RuntimeError(
-            "El PDF parece estar escaneado y requiere OCR, pero faltan dependencias "
-            "Python. Instala pypdfium2 y pytesseract."
-        ) from exc
+        raise RuntimeError(OCR_NO_DISPONIBLE_MSG) from exc
 
     tesseract_cmd = (
         current_app.config.get("TESSERACT_CMD")
@@ -2423,11 +2445,13 @@ def extract_text_with_ocr(file_content: bytes, maxpages: int = 8, trace_id: str 
     if tesseract_cmd:
         pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
     elif not shutil.which("tesseract"):
-        log_policy_event("pdf_ocr", "binario tesseract no disponible", trace_id=trace_id)
-        raise RuntimeError(
-            "El PDF parece estar escaneado y requiere OCR. Instala Tesseract OCR "
-            "(macOS: brew install tesseract tesseract-lang) o configura TESSERACT_CMD."
+        log_policy_event(
+            "pdf_ocr",
+            "binario tesseract no disponible: instalar Tesseract OCR (con idioma "
+            "español) y definir TESSERACT_CMD en config.py",
+            trace_id=trace_id
         )
+        raise RuntimeError(OCR_NO_DISPONIBLE_MSG)
 
     text_parts = []
     pdf = None
@@ -2445,19 +2469,18 @@ def extract_text_with_ocr(file_content: bytes, maxpages: int = 8, trace_id: str 
             page = pdf[page_index]
             try:
                 image = page.render(scale=2.5).to_pil()
-                page_text = ""
-                selected_lang = None
-                last_ocr_error = None
-                for lang in ("spa+eng", "spa", "eng"):
-                    try:
-                        page_text = pytesseract.image_to_string(
-                            image, lang=lang, config="--psm 6"
-                        )
-                        selected_lang = lang
-                        break
-                    except pytesseract.TesseractError as exc:
-                        last_ocr_error = str(exc)
-                        continue
+                # psm 4 (columnas) lee mucho mejor las carátulas en tablas
+                # (probado con AXA GMM impresa desde el navegador: psm 6 perdía
+                # forma de pago, prima neta, fin de vigencia y el nombre del
+                # contratante). psm 6 queda como respaldo si psm 4 saca poco.
+                page_text, selected_lang, selected_psm, last_ocr_error = \
+                    _ocr_image_to_text(pytesseract, image, psm=4)
+                if len((page_text or "").strip()) < OCR_MIN_CHARS_PER_PAGE:
+                    alt_text, alt_lang, alt_psm, alt_error = \
+                        _ocr_image_to_text(pytesseract, image, psm=6)
+                    if len((alt_text or "").strip()) > len((page_text or "").strip()):
+                        page_text, selected_lang, selected_psm = alt_text, alt_lang, alt_psm
+                    last_ocr_error = last_ocr_error or alt_error
 
                 page_chars = len(page_text.strip()) if page_text else 0
                 log_policy_event(
@@ -2467,6 +2490,7 @@ def extract_text_with_ocr(file_content: bytes, maxpages: int = 8, trace_id: str 
                     page=page_index + 1,
                     image_size=f"{image.width}x{image.height}",
                     lang=selected_lang,
+                    psm=selected_psm,
                     chars=page_chars,
                     preview=pdf_log_preview(page_text),
                     error=last_ocr_error if not selected_lang else None
@@ -3994,6 +4018,71 @@ def extract_customer_name_value(text: str) -> str:
             return candidate
 
     return None
+
+
+# --- Correcciones para texto que viene de OCR ------------------------------
+# El OCR confunde letras y números que se ven casi iguales. Para comparar dos
+# valores "a pesar del OCR" se normalizan esas letras a su dígito parecido.
+_OCR_CONFUSABLE = str.maketrans({'I': '1', 'L': '1', 'O': '0'})
+
+
+def _ocr_confusable_key(value) -> str:
+    compact = re.sub(r'[^A-Z0-9]', '', str(value or '').upper())
+    return compact.translate(_OCR_CONFUSABLE)
+
+
+def reconcile_policy_number_with_source(extracted_policy, filename=None, file_content=None):
+    """Si el nombre del archivo o el título interno del PDF traen un número que
+    es el mismo que el extraído salvo por confusiones típicas de OCR (I/1,
+    L/1, O/0), regresa el del archivo (que no pasó por OCR). Si no hay una
+    coincidencia exacta de ese tipo, regresa None y no se toca nada.
+    Ej.: OCR leyó "15679110", archivo "15679I10_POLIZA.pdf" -> "15679I10"."""
+    extracted_compact = re.sub(r'[^A-Z0-9]', '', str(extracted_policy or '').upper())
+    if len(extracted_compact) < 5:
+        return None
+    target_key = _ocr_confusable_key(extracted_compact)
+
+    sources = [filename or '']
+    if file_content:
+        try:
+            with pikepdf.open(io.BytesIO(file_content)) as pdf_doc:
+                sources.append(str(pdf_doc.docinfo.get('/Title', '') or ''))
+        except Exception:
+            pass
+
+    for source in sources:
+        source = re.sub(r'\.pdf$', '', source, flags=re.I)
+        for token in re.split(r'[^A-Za-z0-9]+', source):
+            token = token.upper()
+            if (len(token) == len(extracted_compact)
+                    and token != extracted_compact
+                    and re.search(r'\d', token)
+                    and _ocr_confusable_key(token) == target_key):
+                return token
+    return None
+
+
+def strip_policy_number_from_name(name, policy):
+    """Quita el número de póliza cuando quedó pegado al final del nombre del
+    cliente (pasa cuando el OCR junta la columna del nombre con la de la
+    póliza). Solo quita tokens finales que sean ese mismo número."""
+    name = sanitize_text_value(name)
+    policy_key = _ocr_confusable_key(policy)
+    if not name or len(policy_key) < 5:
+        return name
+    tokens = name.split()
+    while len(tokens) > 1 and _ocr_confusable_key(tokens[-1]) == policy_key:
+        tokens.pop()
+    return ' '.join(tokens).rstrip(' ,;:-')
+
+
+def discard_endoso_equal_to_policy(endoso, policy):
+    """Las hojas de endoso dicen "Endoso que forma parte integral de la Póliza
+    No. X"; de ahí el regex puede tomar el número de póliza como si fuera el
+    endoso. Un endoso igual a la póliza no es un endoso real."""
+    if endoso and policy and _ocr_confusable_key(endoso) == _ocr_confusable_key(policy):
+        return None
+    return endoso
 
 
 def extract_policy_number_from_filename(filename: str) -> str:
@@ -5935,6 +6024,17 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
             nombre_cliente_extraido)
         nombre_cliente_extraido = sanitize_name_candidate(
             nombre_cliente_extraido) or sanitize_text_value(nombre_cliente_extraido)
+        nombre_sin_poliza = strip_policy_number_from_name(
+            nombre_cliente_extraido, merged_json.get("numero_de_poliza"))
+        if nombre_sin_poliza and nombre_sin_poliza != nombre_cliente_extraido:
+            log_policy_event(
+                "pipeline_normalization",
+                "número de póliza quitado del final del nombre del cliente",
+                extraction_id=extraction_id,
+                nombre_original=nombre_cliente_extraido,
+                nombre_limpio=nombre_sin_poliza
+            )
+            nombre_cliente_extraido = nombre_sin_poliza
         if policy_from_name and not sanitize_text_value(merged_json.get("numero_de_poliza")):
             merged_json["numero_de_poliza"] = policy_from_name
             log_policy_event(
@@ -6314,6 +6414,32 @@ def upload_pdf():
                 numero_original=extracted_policy,
                 numero_ajustado=filename_policy
             )
+
+        # El OCR confunde I/1 y O/0 en números de póliza alfanuméricos; si el
+        # nombre del archivo o el título del PDF traen el mismo número sin esa
+        # confusión, se usa ese.
+        policy_from_source = reconcile_policy_number_with_source(
+            extracted_data.get("numero_de_poliza"), file.filename, file_content)
+        if policy_from_source:
+            log_policy_event(
+                "pipeline_normalization",
+                "número de póliza corregido con el nombre del archivo / título del PDF",
+                trace_id=upload_trace_id,
+                numero_original=extracted_data.get("numero_de_poliza"),
+                numero_ajustado=policy_from_source
+            )
+            extracted_data["numero_de_poliza"] = policy_from_source
+
+        endoso_limpio = discard_endoso_equal_to_policy(
+            extracted_data.get("endoso"), extracted_data.get("numero_de_poliza"))
+        if extracted_data.get("endoso") and not endoso_limpio:
+            log_policy_event(
+                "pipeline_normalization",
+                "endoso descartado: era el mismo número de póliza",
+                trace_id=upload_trace_id,
+                endoso_original=extracted_data.get("endoso")
+            )
+            extracted_data["endoso"] = None
 
         log_policy_event(
             "upload_pdf",
