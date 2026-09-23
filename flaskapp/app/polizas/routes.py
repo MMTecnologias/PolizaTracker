@@ -4771,6 +4771,48 @@ def extract_gmm_conditions_observations(text: str) -> str:
     return "\n".join(lines) if len(lines) > 1 else ""
 
 
+def extract_metlife_gmm_observations(text: str) -> str:
+    """Resumen de la tabla "COBERTURAS" de carátulas de Gastos Médicos tipo
+    MetLife Medicalife: fila principal con suma (UMAM o M.N.), deducible y
+    coaseguro, su equivalencia en pesos y coberturas marcadas como INCLUIDA.
+    Regresa "" si no encuentra la tabla."""
+    if not text:
+        return ""
+    section = re.search(r'(?m)^COBERTURAS\s*$(.*?)(?=^PLAN\s*:|Endosos\s+que\s+se\s+anexan|\Z)',
+                        text, re.S)
+    if not section:
+        return ""
+    body = section.group(1)
+    lines = ["Coberturas contratadas"]
+
+    main = re.search(
+        r'(?m)^[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ .]+?\s+([\d,]+(?:\.\d+)?\s*(?:UMAM|UMA|M\.\s?N\.|USD|DLS))'
+        r'\s+([\d,]+(?:\.\d{2})?)\s*(M\.\s?N\.|USD|DLS)?\s+(\d{1,3})\s*%',
+        body
+    )
+    if main:
+        suma = re.sub(r'\s+', ' ', main.group(1)).replace('M. N.', 'M.N.')
+        if suma.endswith('M.N.'):
+            suma = '$' + suma
+        equivalencia = re.search(r'EQUIVALENCIA\s+M\.\s?N\.\s+([\d,]+(?:\.\d{2})?)', body)
+        if equivalencia and 'UMA' in suma:
+            suma += f" (equivalencia ${equivalencia.group(1)} M.N.)"
+        lines.append(f"Suma asegurada: {suma}")
+        moneda = (main.group(3) or 'M.N.').replace('M. N.', 'M.N.')
+        lines.append(f"Deducible: ${main.group(2)} {moneda}")
+        lines.append(f"Coaseguro: {main.group(4)}%")
+
+    incluidas = []
+    for m in re.finditer(r'(?m)^\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9 .]{2,60}?)\s+INCLUIDA\b', body):
+        nombre = sanitize_text_value(m.group(1))
+        if nombre and nombre.upper() not in {n.upper() for n in incluidas}:
+            incluidas.append(nombre)
+    if incluidas:
+        lines.append("Incluidas: " + ", ".join(incluidas))
+
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
 def format_life_coverage_observations(coverages: list) -> str:
     if not coverages:
         return ""
@@ -6207,7 +6249,10 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
                 extract_life_coverage_summary(text_content)
             )
         if not observaciones_value and ramo_compact == "GASTOSMEDICOS":
-            observaciones_value = extract_gmm_conditions_observations(text_content)
+            observaciones_value = (
+                extract_gmm_conditions_observations(text_content)
+                or extract_metlife_gmm_observations(text_content)
+            )
 
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
