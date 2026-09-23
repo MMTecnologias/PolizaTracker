@@ -2,6 +2,119 @@ $(function () {
   let razonInput = '';
   let receiptSaveInProgress = false;
 
+  // ---------------------------------------------------------------------
+  // Menú de acciones ("3 puntos") de la tabla — misma lógica que en
+  // polizas.js: al abrirse se pega al <body> con position:fixed para que
+  // el contenedor con scroll de la tabla nunca lo recorte, y al cerrarse
+  // regresa a su fila. Delegado sobre document porque las filas se
+  // reconstruyen en cada render.
+  // ---------------------------------------------------------------------
+  $(document).on(
+    'show.bs.dropdown',
+    '#polizas-table .acciones-menu-wrapper',
+    function () {
+      const $wrapper = $(this);
+      const $menu = $wrapper.find('.acciones-menu');
+      const $toggle = $wrapper.find('.acciones-toggle');
+      if (!$menu.length || !$toggle.length) return;
+
+      $menu.data('acciones-original-parent', $wrapper);
+      $('body').append($menu);
+
+      const toggleRect = $toggle[0].getBoundingClientRect();
+      $menu.css({ display: 'block', visibility: 'hidden', position: 'fixed', top: 0, left: 0 });
+      const menuWidth = $menu.outerWidth();
+      const menuHeight = $menu.outerHeight();
+
+      let left = toggleRect.right - menuWidth;
+      if (left < 8) left = 8;
+      if (left + menuWidth > window.innerWidth - 8) {
+        left = window.innerWidth - 8 - menuWidth;
+      }
+
+      let top = toggleRect.bottom + 4;
+      if (top + menuHeight > window.innerHeight - 8) {
+        top = toggleRect.top - menuHeight - 4;
+      }
+
+      $menu.css({ top: `${top}px`, left: `${left}px`, visibility: 'visible', zIndex: 2000 });
+    },
+  );
+
+  $(document).on(
+    'hide.bs.dropdown',
+    '#polizas-table .acciones-menu-wrapper',
+    function () {
+      const $wrapper = $(this);
+      $('body')
+        .children('.acciones-menu')
+        .each(function () {
+          const $m = $(this);
+          const $original = $m.data('acciones-original-parent');
+          if ($original && $original.length && $original.is($wrapper)) {
+            $original.append($m);
+            $m.css({ position: '', top: '', left: '', display: '', visibility: '', zIndex: '' });
+          }
+        });
+    },
+  );
+
+  $(document).on('scroll', '.table-polizas__scroll', function () {
+    $('#polizas-table .acciones-toggle[aria-expanded="true"]').dropdown('hide');
+  });
+
+  // Decide si caben todos los íconos de "Acciones" en fila o si hay que
+  // colapsarlos al menú "3 puntos" (misma técnica que polizas.js: se
+  // compara el ancho disponible del contenedor con scroll contra el ancho
+  // natural de la tabla completa).
+  let accionesResizeObserver = null;
+
+  function setupAccionesResponsive() {
+    const $tabla = $('#table-polizas');
+    const $scrollWrap = $tabla.find('.table-polizas__scroll');
+    const $table = $scrollWrap.find('> table');
+    if (!$scrollWrap.length || !$table.length || typeof ResizeObserver === 'undefined') return;
+
+    if (accionesResizeObserver) accionesResizeObserver.disconnect();
+
+    const wasCollapsed = $tabla.hasClass('table-polizas--collapsed');
+    $tabla.removeClass('table-polizas--collapsed');
+    const naturalTableWidth = $table[0].scrollWidth;
+    if (wasCollapsed) $tabla.addClass('table-polizas--collapsed');
+
+    accionesResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const collapsed = entry.contentRect.width < naturalTableWidth - 20;
+        requestAnimationFrame(() => {
+          if ($tabla.hasClass('table-polizas--collapsed') !== collapsed) {
+            $tabla.toggleClass('table-polizas--collapsed', collapsed);
+          }
+        });
+      }
+    });
+    accionesResizeObserver.observe($scrollWrap[0]);
+  }
+
+  // Bootstrap 4 no maneja bien dos modales abiertos a la vez: antes de
+  // abrir otro (p. ej. el de generar recibos) se espera a que el modal
+  // del formulario termine de cerrarse.
+  function hideModalEndosoThenShow(nextModalSelector, options = 'show') {
+    const $modal = $('#modal-poliza');
+    if (!$modal.hasClass('show')) {
+      $(nextModalSelector).modal(options);
+      return;
+    }
+    $modal.one('hidden.bs.modal', function () {
+      $(nextModalSelector).modal(options);
+    });
+    $modal.modal('hide');
+  }
+
+  function abrirModalEndoso(titulo) {
+    $('#titulo-modal-endoso').text(titulo);
+    $('#modal-poliza').modal('show');
+  }
+
   const ajaxConfig = {
     url: '',
     type: 'POST',
@@ -421,7 +534,7 @@ $(function () {
         $('#prima-total').val(resp.totalPremium);
         $('#nopagos').val(resp.numReceipts);
         $('#iva').val(16);
-        $('#create-recib').modal({ backdrop: 'static', keyboard: false });
+        hideModalEndosoThenShow('#create-recib', { backdrop: 'static', keyboard: false });
         $('#receipts_created').val('no');
       },
       error: function (xhr, textStatus, error) {
@@ -551,6 +664,7 @@ $(function () {
   async function showEndoso(endoso_id) {
     const data = await resetForm();
     $('#btnGuardar').hide();
+    abrirModalEndoso('Detalle del endoso');
     $('#endoso_id').val(endoso_id);
     $.ajax({
       ...ajaxConfig,
@@ -638,116 +752,149 @@ $(function () {
     });
   }
 
+  const ICONOS = {
+    show: 'M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z',
+    edit: 'M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z',
+    poliza: 'M120-220v-80h80v80h-80Zm0-140v-80h80v80h-80Zm0-140v-80h80v80h-80ZM260-80v-80h80v80h-80Zm100-160q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480Zm40 240v-80h80v80h-80Zm-200 0q-33 0-56.5-23.5T120-160h80v80Zm340 0v-80h80q0 33-23.5 56.5T540-80ZM120-640q0-33 23.5-56.5T200-720v80h-80Zm420 80Z',
+    pdf: 'M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z',
+    upload: 'M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z',
+    cancel: 'M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z',
+    dots: 'M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z',
+  };
+
+  function icono(nombre, size, fill) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" height="${size}" viewBox="0 -960 960 960" width="${size}" fill="${fill}"><path d="${ICONOS[nombre]}"/></svg>`;
+  }
+
+  // Escapa texto antes de meterlo en el HTML de la tabla (nombres de
+  // clientes, notas, etc. vienen de captura libre).
+  function esc(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function fillTableEndosos(resp, currentPage, itemsOnPage) {
     const { data, recordsTotal } = resp;
+    const total = recordsTotal || 0;
+    $('#endososTotalLabel').text(
+      `${total} endoso${total === 1 ? '' : 's'} encontrado${total === 1 ? '' : 's'}`,
+    );
     const table = $('#polizas-table');
-    console.log('Endosos =>', data);
+    // Si un menú de acciones seguía abierto "flotando" sobre <body> al
+    // repintar la tabla, se elimina para no dejarlo huérfano.
+    $('body').children('.acciones-menu').remove();
     table.html('');
+
+    if (!data || !data.length) {
+      table.html(
+        '<tr><td colspan="13" class="text-center text-muted py-4">No se encontraron endosos</td></tr>',
+      );
+      $('#pagination').html('');
+      return;
+    }
+
     $.each(data, function (idx, endoso) {
-      table.append(
-        `<tr class="tableOption" style="background-color: ${getBackColor(
-          endoso.status
-        )}">
+      const color = getTextColor(endoso.status);
+      const fill = color || 'currentColor';
+      const td = (value, nowrap = false) =>
+        `<td style="color: ${color};${nowrap ? ' white-space: nowrap;' : ''}">${esc(value)}</td>`;
+      const sinPdf = endoso.pdf_path
+        ? ''
+        : `<span title="Falta cargar el PDF de este endoso — clic para subirlo" class="pointer js-sin-pdf" style="display:inline-block; margin-left:6px; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:600; background-color:#fdecea; color:#c0392b; border:1px solid #f1b0a8; vertical-align:middle;">Sin PDF</span>`;
+      const $row = $(
+        `<tr class="tableOption" style="background-color: ${getBackColor(endoso.status)}">
           <td>
-            <p class="td-clickable" id="td-clickable_${
-              endoso.id
-            }" style="color: ${getTextColor(endoso.status)}">
-                ${endoso.endoso}
+            <p class="td-clickable js-ver-recibos" title="Ver recibos del endoso" style="color: ${color}">
+              ${esc(endoso.endoso)}${sinPdf}
             </p>
           </td>
-          <td style="color: ${getTextColor(endoso.status)}">
-            <a href="javascript:void(0)" class="poliza-link" id="btnPolizaInfo_${
-          endoso.poliza_id
-        }" data-poliza-id="${endoso.poliza_id}" style="color: ${
-          getTextColor(endoso.status)
-        }; text-decoration: underline;">
-              ${endoso.poliza}
-            </a>
-          </td>
-          <td style="color: ${getTextColor(endoso.status)}">${
-          endoso.tipo_endoso
-        }</td>
-          <td style="color: ${getTextColor(endoso.status)}">${
-          endoso.cliente
-        }</td>
-          <td style="color: ${getTextColor(endoso.status)}">${
-          endoso.subramo
-        }</td>
-          <td style="color: ${getTextColor(endoso.status)}">${
-          endoso.aseguradora
-        }</td>
-          <td style="color: ${getTextColor(endoso.status)}">${
-          endoso.tipoPago
-        }</td>
           <td>
-            <ul class="btn_table_options">
-              <li>
-                <a class="btn__icon_delete pointer" id="btnDelete_${endoso.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(
-                    endoso.status
-                  )}><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"/></svg>
-                </a>
-              </li>
-              <li>
-                <a class="btn__icon_show pointer" id="btnShow_${endoso.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
-                    endoso.status
-                  )}><path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/></svg>
-                </a>
-              </li>
+            <a href="javascript:void(0)" class="poliza-link js-ver-poliza" title="Ver información de la póliza"
+              style="color: ${color}; text-decoration: underline;">${esc(endoso.poliza)}</a>
+          </td>
+          ${td(endoso.tipo_endoso)}
+          ${td(endoso.cliente)}
+          ${td(endoso.serie || '')}
+          ${td(endoso.fecha_inicio, true)}
+          ${td(endoso.fecha_termino, true)}
+          ${td(endoso.subramo)}
+          ${td(endoso.aseguradora)}
+          ${td(endoso.tipoPago)}
+          ${td(endoso.prima_neta)}
+          ${td(endoso.prima_total)}
+          <td>
+            <ul class="btn_table_options acciones-full">
+              <li><a title="Ver detalle del endoso" class="btn__icon_show pointer js-show">${icono('show', 21, fill)}</a></li>
+              <li><a title="Editar endoso" class="btn__icon_edit pointer js-edit">${icono('edit', 21, fill)}</a></li>
+              <li><a title="Ver información de la póliza" class="btn__icon_show pointer js-ver-poliza">${icono('poliza', 24, fill)}</a></li>
               ${
                 endoso.pdf_path
-                  ? `
-              <li>
-                <a title="Ver pdf" class="btn__icon_show pointer" id="btnViewPdf_${endoso.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(endoso.status)}><path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v120h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/></svg>
-                </a>
-              </li>
-              `
-                  : ''
+                  ? `<li><a title="Ver PDF" class="btn__icon_show pointer js-ver-pdf">${icono('pdf', 24, fill)}</a></li>`
+                  : `<li><a title="Cargar PDF del endoso" class="btn__icon_show pointer js-cargar-pdf">${icono('upload', 24, fill)}</a></li>`
               }
-              <li>
-                <a title="Cargar PDF" class="btn__icon_show pointer" id="btnUploadPdf_${endoso.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill=${getTextColor(endoso.status)}><path d="M440-320h80v-160h120L480-640 320-480h120v160ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>
-                </a>
-              </li>
-              <li>
-                <a class="btn__icon_edit pointer" id="btnEdit_${endoso.id}">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="21" viewBox="0 -960 960 960" width="21" fill=${getTextColor(
-                    endoso.status
-                  )}><path d="M200-200h50.461l409.463-409.463-50.461-50.461L200-250.461V-200Zm-59.999 59.999v-135.383l527.616-527.384q9.073-8.241 20.036-12.736 10.963-4.495 22.993-4.495 12.029 0 23.307 4.27 11.277 4.269 19.969 13.576l48.846 49.461q9.308 8.692 13.269 20.004 3.962 11.311 3.962 22.622 0 12.065-4.121 23.028-4.12 10.964-13.11 20.037l-527.384 527H140.001Zm620.384-570.153-50.231-50.231 50.231 50.231Zm-126.134 75.903-24.788-25.673 50.461 50.461-25.673-24.788Z"/></svg>
-                </a>
-              </li>
+              <li><a title="Cancelar endoso" class="btn__icon_delete pointer js-cancelar">${icono('cancel', 24, fill)}</a></li>
             </ul>
+            <div class="dropdown acciones-menu-wrapper">
+              <button type="button" class="acciones-toggle pointer" data-toggle="dropdown" data-display="static"
+                aria-haspopup="true" aria-expanded="false" title="Acciones">${icono('dots', 20, fill)}</button>
+              <div class="dropdown-menu dropdown-menu-right acciones-menu">
+                <a class="dropdown-item pointer js-show">${icono('show', 18, 'currentColor')} Ver detalle</a>
+                <a class="dropdown-item pointer js-edit">${icono('edit', 18, 'currentColor')} Editar</a>
+                <a class="dropdown-item pointer js-ver-poliza">${icono('poliza', 18, 'currentColor')} Ver póliza</a>
+                <div class="dropdown-divider"></div>
+                ${
+                  endoso.pdf_path
+                    ? `<a class="dropdown-item pointer js-ver-pdf">${icono('pdf', 18, 'currentColor')} Ver PDF</a>`
+                    : `<a class="dropdown-item pointer js-cargar-pdf">${icono('upload', 18, 'currentColor')} Cargar PDF</a>`
+                }
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item pointer text-danger js-cancelar">${icono('cancel', 18, 'currentColor')} Cancelar endoso</a>
+              </div>
+            </div>
           </td>
-        </tr>`
+        </tr>`,
       );
-      $(`#td-clickable_${endoso.id}`).on('click', (e) => {
+
+      // Los eventos se enlazan sobre los elementos de ESTA fila (no por id):
+      // antes varios endosos de la misma póliza repetían el id del link de
+      // póliza y solo el primero respondía (y lo hacía varias veces). Los
+      // del menú "3 puntos" se enlazan aquí también: el menú se mueve a
+      // <body> al abrirse, pero conserva sus handlers.
+      $row.find('.js-ver-recibos').on('click', () => {
         $('#recib').modal();
         getRecibos(endoso.id, endoso.poliza_id);
       });
-      $(`#btnEdit_${endoso.id}`).on('click', (e) =>
-        editEndoso(endoso.id, endoso.poliza_id)
-      );
-      $(`#btnShow_${endoso.id}`).on('click', (e) => showEndoso(endoso.id));
-      $(`#btnDelete_${endoso.id}`).on('click', (e) => cancelEndoso(endoso.id));
-      $(`#btnViewPdf_${endoso.id}`).on('click', (e) => {
-        if (endoso.pdf_path) {
-          window.open(`/static/${endoso.pdf_path}`, '_blank');
-        }
-      });
-      $(`#btnUploadPdf_${endoso.id}`).on('click', (e) => {
-        e.preventDefault();
+      $row.find('.js-sin-pdf').on('click', (e) => {
+        e.stopPropagation();
         uploadEndosoPdf(endoso.id);
       });
-      $(`#btnPolizaInfo_${endoso.poliza_id}`).on('click', (e) => {
+      $row.find('.js-show').on('click', () => showEndoso(endoso.id));
+      $row.find('.js-edit').on('click', () => editEndoso(endoso.id, endoso.poliza_id));
+      $row.find('.js-ver-poliza').on('click', (e) => {
         e.preventDefault();
         showPolizaInfo(endoso.poliza_id);
       });
+      $row.find('.js-ver-pdf').on('click', (e) => {
+        e.preventDefault();
+        if (endoso.pdf_path) window.open(`/static/${endoso.pdf_path}`, '_blank');
+      });
+      $row.find('.js-cargar-pdf').on('click', (e) => {
+        e.preventDefault();
+        uploadEndosoPdf(endoso.id);
+      });
+      $row.find('.js-cancelar').on('click', () => cancelEndoso(endoso.id));
+
+      table.append($row);
     });
-    if (!data.length) return;
+
+    setupAccionesResponsive();
+
     $('#pagination').pagination({
-      items: recordsTotal,
+      items: total,
       itemsOnPage: itemsOnPage,
       prevText: 'Anterior',
       nextText: 'Siguiente',
@@ -761,6 +908,8 @@ $(function () {
 
   async function editEndoso(endoso_id, poliza_id) {
     const data = await resetForm();
+    $('#btnGuardar').html('Actualizar endoso');
+    abrirModalEndoso('Editar endoso');
     $('#endoso_id').val(endoso_id);
     $('#poliza_id').val(poliza_id);
     $.ajax({
@@ -1150,6 +1299,7 @@ $(function () {
             return;
           }
           alert(resp.msg, 'success');
+          $('#modal-poliza').modal('hide');
           getEndosos();
           resetForm();
         },
@@ -1194,7 +1344,7 @@ $(function () {
                   $('#prima-total').val(resp.totalPremium);
                   $('#nopagos').val(resp.numReceipts);
                   $('#iva').val(16);
-                  $('#create-recib').modal({
+                  hideModalEndosoThenShow('#create-recib', {
                     backdrop: 'static',
                     keyboard: false,
                   });
@@ -1233,6 +1383,7 @@ $(function () {
             alert(resp.msg, 'error', resp.title);
           } else {
             alert(resp.msg, 'success');
+            $('#modal-poliza').modal('hide');
             getEndosos();
             resetForm();
           }
@@ -1393,6 +1544,34 @@ $(function () {
       $('#client-options').hide();
       $('#buscar-cliente')[0].setCustomValidity('');
     }
+  });
+
+  $('#btnCrearEndoso').click(async (e) => {
+    e.preventDefault();
+    await resetForm();
+    abrirModalEndoso('Crear endoso');
+  });
+
+  $('#reset-btn').click(async (e) => {
+    e.preventDefault();
+    await resetForm();
+    $('#modal-poliza').modal('hide');
+  });
+
+  // Al elegir "Nuevo ..." en un catálogo se muestra el campo para
+  // escribir el nombre (igual que en pólizas). Antes esos campos no
+  // existían en el formulario de endosos.
+  $('#ramo, #subramo').on('change', function () {
+    if (this.value === 'New') $('#nuevo_ramo_subramo_div').show();
+  });
+  $('#aseguradora').on('change', function () {
+    if (this.value === 'New') $('#nuevo_aseguradora_div').show();
+  });
+  $('#vendedor').on('change', function () {
+    if (this.value === 'New') $('#nuevo_vendedor_div').show();
+  });
+  $('#agente').on('change', function () {
+    if (this.value === 'New') $('#nuevo_agente_div').show();
   });
 
   getEndosos();
