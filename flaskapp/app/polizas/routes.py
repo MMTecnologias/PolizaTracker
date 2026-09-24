@@ -4861,6 +4861,43 @@ def extract_gmm_conditions_observations(text: str) -> str:
     return "\n".join(lines)
 
 
+def extract_rc_general_observations(text: str) -> str:
+    """Coberturas de una póliza de Responsabilidad Civil General tipo
+    Zurich: tabla "Coberturas Amparadas / Suma Asegurada / Prima Neta".
+    Regresa "" si no encuentra esa tabla."""
+    if not text:
+        return ""
+    section = re.search(
+        r'(?is)Coberturas\s+Amparadas\s*\n\s*Asegurada\s+Neta\s*\n(.*?)'
+        r'(?=\n\s*Prima\s+neta\b|\Z)',
+        text
+    )
+    if not section:
+        return ""
+    lines = ["Coberturas contratadas"]
+    for raw_line in section.group(1).splitlines():
+        line = sanitize_text_value(raw_line)
+        if not line:
+            continue
+        # Con monto propio: "Actividades e Inmuebles 4,500,000 25,281.35"
+        con_monto = re.match(
+            r'^(.+?)\s+([\d,]+(?:\.\d{2})?)\s+([\d,]+\.\d{2})$', line)
+        if con_monto:
+            nombre = sanitize_text_value(con_monto.group(1))
+            lines.append(f"{nombre}: suma asegurada ${con_monto.group(2)}, prima ${con_monto.group(3)}")
+            continue
+        # Amparada sin monto propio (incluida en la principal):
+        # "Responsabilidad Civil Cruzada Amparada"
+        amparada = re.match(r'^(.+?)\s+Amparada$', line, re.I)
+        if amparada:
+            nombre = sanitize_text_value(amparada.group(1))
+            if nombre:
+                lines.append(f"{nombre}: Amparada")
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
+def extract_rc_general_observations_end_marker():
+    pass
 def extract_metlife_gmm_observations(text: str) -> str:
     """Resumen de la tabla "COBERTURAS" de carátulas de Gastos Médicos tipo
     MetLife Medicalife: fila principal con suma (UMAM o M.N.), deducible y
@@ -5036,6 +5073,21 @@ def score_policy_ramo_candidates(text: str) -> dict:
                 (r'BENEFICIARIOS', 2),
             ],
         },
+        "RESP CIVIL": {
+            "header": [
+                (r'RC\s*GENERAL', 8),
+                (r'RESPONSABILIDAD\s+CIVIL\s+CRUZADA', 6),
+                (r'MATERIA\s+ASEGURADA', 5),
+                (r'\bGIRO\s*:', 5),
+                (r'ACTIVIDADES?\s+E\s+INMUEBLES', 5),
+                (r'OBJETO\s+DEL\s+SEGURO', 4),
+            ],
+            "body": [
+                (r'RESPONSABILIDAD\s+CIVIL\s+CRUZADA', 3),
+                (r'ESTACIONAMIENTOS?\s+AMPARAD', 3),
+                (r'MANIOBRA\s+DE\s+CARGA\s+Y\s+DESCARGA', 3),
+            ],
+        },
         "Casa Habitación": {
             "header": [
                 (r'CASA\s*HABITACI[ÓO]N', 8),
@@ -5091,6 +5143,13 @@ def detect_policy_ramo(text: str) -> str:
             return "Vida"
         if "CASAHABITACION" in normalized_explicit or "HOGAR" in normalized_explicit:
             return "Casa Habitación"
+        # Zurich RC: "Producto : RC GENERAL" -> ramo Responsabilidad Civil.
+        # Se compara contra el nombre EXACTO del catálogo ("RESP CIVIL"): el
+        # nombre completo "Responsabilidad Civil" no es lo bastante parecido
+        # a "RESP CIVIL" para el match aproximado (64% < 85% del umbral) y
+        # terminaba sin asignarse pese a estar bien detectado.
+        if normalized_explicit.startswith("RC") or "RESPONSABILIDADCIVIL" in normalized_explicit:
+            return "RESP CIVIL"
 
     scores = score_policy_ramo_candidates(text)
     best_ramo = max(scores, key=scores.get)
@@ -5244,6 +5303,12 @@ def build_rule_based_hints(text: str) -> dict:
             hints["subramo"] = "INDIVIDUAL"
         else:
             hints["subramo"] = "IND/FAM"
+    elif hints["ramo"] == "RESP CIVIL" and not hints["subramo"]:
+        producto_match = re.search(r'Producto\s*[:|]?\s*RC\s+([A-ZÁÉÍÓÚÑ ]+)', text, re.I)
+        hints["subramo"] = (
+            sanitize_text_value(producto_match.group(1)).upper()
+            if producto_match else "GENERAL"
+        )
     elif hints["ramo"] == "Vida" and not hints["subramo"]:
         # Señales de póliza de vida GRUPO/COLECTIVA: el contratante es una
         # empresa que asegura a varios empleados (tabla de "Registro de
@@ -6401,6 +6466,8 @@ def call_ollama_model(text_content: str, schema: dict) -> dict:
                 extract_gmm_conditions_observations(text_content)
                 or extract_metlife_gmm_observations(text_content)
             )
+        if not observaciones_value and ramo_compact == "RESPCIVIL":
+            observaciones_value = extract_rc_general_observations(text_content)
 
         normalized = {
             "numero_de_poliza": merged_json.get("numero_de_poliza") or merged_json.get("numero_poliza") or merged_json.get("poliza"),
