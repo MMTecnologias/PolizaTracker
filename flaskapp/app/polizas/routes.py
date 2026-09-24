@@ -821,6 +821,16 @@ def delete():
         for recibo in recibos_a_cancelar:
             recibo.status = 'Cancelado'
 
+        # Los endosos de esta póliza tampoco tienen razón de seguir
+        # vigentes/pendientes. Sus recibos ya quedaron cancelados arriba
+        # (comparten poliza_id con la póliza).
+        endosos_a_cancelar = Endoso.query.filter(
+            Endoso.poliza_id == poliza.id,
+            Endoso.status.in_(['Vigente', 'Pendiente']),
+        ).all()
+        for endoso_hijo in endosos_a_cancelar:
+            endoso_hijo.status = 'Cancelada'
+
         db.session.commit()
         return jsonify({'error': False, 'title': 'Póliza cancelada', 'msg': 'La póliza ha sido cancelada con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:
@@ -1227,6 +1237,8 @@ def create_endoso():
     poliza = Poliza.query.get(poliza_id)
     if not poliza:
         return jsonify({"error": True, "msg": "No se encuentra la póliza"})
+    if poliza.status in ("Cancelada", "Finalizada"):
+        return jsonify({"error": True, "msg": f"No se puede crear un endoso: la póliza está {poliza.status}."})
 
     def check_new_form():
         argdict = {}
@@ -1270,7 +1282,8 @@ def create_endoso():
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
         'endoso': 'Poliza',
-        'pdf_path': 'pdf_path'
+        'pdf_path': 'pdf_path',
+        'conducto_pago': 'conducto_pago',
     }
     form_value_mapping = {
         'selected-client-id': flask_request.form.get('selected-client-id'),
@@ -1285,7 +1298,8 @@ def create_endoso():
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
         'Poliza': flask_request.form.get('Poliza') or flask_request.form.get('endoso'),
-        'pdf_path': flask_request.form.get('pdf_path')
+        'pdf_path': flask_request.form.get('pdf_path'),
+        'conducto_pago': flask_request.form.get('conducto_pago'),
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
@@ -1483,7 +1497,8 @@ def edit_endoso():
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
         'endoso': 'Poliza',
-        'pdf_path': 'pdf_path'
+        'pdf_path': 'pdf_path',
+        'conducto_pago': 'conducto_pago',
     }
 
     # Mapear valores del formulario a atributos del Endoso
@@ -1500,7 +1515,8 @@ def edit_endoso():
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
         'Poliza': flask_request.form.get('Poliza'),
-        'pdf_path': flask_request.form.get('pdf_path')
+        'pdf_path': flask_request.form.get('pdf_path'),
+        'conducto_pago': flask_request.form.get('conducto_pago'),
     }
 
     # Actualizar atributos del Endoso

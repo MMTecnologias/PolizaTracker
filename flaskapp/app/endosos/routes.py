@@ -236,6 +236,14 @@ def delete():
 
         db.session.add(log_entry)
         endoso.status = "Cancelada"
+
+        recibos_a_cancelar = Recibo.query.filter(
+            Recibo.endoso_id == endoso.id,
+            Recibo.status.in_(['Pendiente', 'Vencido']),
+        ).all()
+        for recibo in recibos_a_cancelar:
+            recibo.status = 'Cancelado'
+
         db.session.commit()
         return jsonify({'error': False, 'title': 'Endoso cancelado', 'msg': 'El endoso ha sido cancelado con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:

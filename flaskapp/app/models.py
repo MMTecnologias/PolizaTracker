@@ -144,6 +144,7 @@ class Endoso(db.Model):
     aseguradora_id = Column(Integer, ForeignKey(
         'aseguradoras.id'), nullable=False)
     serie = Column(String(30), nullable=False)
+    conducto_pago = Column(String(45))
     notas = Column(String(400))
     poliza_anterior = Column(String(30))
     renovacion = Column(String(30))

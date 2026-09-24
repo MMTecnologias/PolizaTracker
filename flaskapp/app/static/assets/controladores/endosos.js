@@ -403,6 +403,16 @@ $(function () {
       .replace(/[^A-Z0-9]/g, '');
   }
 
+  // La BD guarda la moneda como 'MXN'/'USD'/'UDIS' (enum), pero el <option>
+  // del select usa "Udis" (minúsculas). El select nunca coincidía por el
+  // "Udis" en un endoso ya guardado no se seleccionaba al editar/ver.
+  function normalizeMonedaValue(value) {
+    const token = normalizeToken(value);
+    if (token.includes('USD') || token.includes('DOLAR')) return 'USD';
+    if (token.includes('UDI')) return 'Udis';
+    return 'MXN';
+  }
+
   function setSelectValueByIdOrText(selector, idValue, textValue) {
     const select = $(selector);
     if (!select.length) return;
@@ -683,7 +693,8 @@ $(function () {
         $('#prima_total').prop('disabled', false);
         $('#serie').val(resp.data[0].serie);
         $('#notas').val(resp.data[0].notas);
-        $('#Moneda').val(resp.data[0].moneda);
+        $('#Moneda').val(normalizeMonedaValue(resp.data[0].moneda));
+        $('#conducto_pago').val(resp.data[0].conducto_pago || '');
         $('#prima_neta').val(resp.data[0].prima_neta);
         $('#prima_total').val(resp.data[0].prima_total);
         $('#prima_neta').prop('disabled', true);
@@ -710,10 +721,6 @@ $(function () {
         `);
         $('#agente').html(`<option value='${resp.data[0].agente_id}'>
             ${resp.data[0].agente}
-            </option>
-        `);
-        $('#conducto_pago').html(`<option value='${resp.data[0].rec_pago}'>
-            ${resp.data[0].rec_pago}
             </option>
         `);
         console.log(resp.data[0]);
@@ -868,7 +875,11 @@ $(function () {
           <td>
             <ul class="btn_table_options acciones-full">
               <li><a title="Ver detalle del endoso" class="btn__icon_show pointer js-show">${icono('show', 21, fill)}</a></li>
-              <li><a title="Editar endoso" class="btn__icon_edit pointer js-edit">${icono('edit', 21, fill)}</a></li>
+              ${
+                endoso.status !== 'Cancelada'
+                  ? `<li><a title="Editar endoso" class="btn__icon_edit pointer js-edit">${icono('edit', 21, fill)}</a></li>`
+                  : ''
+              }
               <li><a title="Ver información de la póliza" class="btn__icon_show pointer js-ver-poliza">${icono('poliza', 24, fill)}</a></li>
               ${
                 endoso.pdf_path
@@ -880,14 +891,22 @@ $(function () {
                   ? `<li><a title="Ver/Descargar factura${endoso.factura_pdf && !endoso.factura_xml ? ' (falta XML)' : !endoso.factura_pdf && endoso.factura_xml ? ' (falta PDF)' : ''}" class="btn__icon_show pointer js-ver-factura">${icono('factura', 24, fill)}</a></li>`
                   : `<li><a title="Cargar factura del endoso" class="btn__icon_show pointer js-cargar-factura">${icono('facturaUpload', 24, fill)}</a></li>`
               }
-              <li><a title="Cancelar endoso" class="btn__icon_delete pointer js-cancelar">${icono('cancel', 24, fill)}</a></li>
+              ${
+                endoso.status !== 'Cancelada'
+                  ? `<li><a title="Cancelar endoso" class="btn__icon_delete pointer js-cancelar">${icono('cancel', 24, fill)}</a></li>`
+                  : ''
+              }
             </ul>
             <div class="dropdown acciones-menu-wrapper">
               <button type="button" class="acciones-toggle pointer" data-toggle="dropdown" data-display="static"
                 aria-haspopup="true" aria-expanded="false" title="Acciones">${icono('dots', 20, fill)}</button>
               <div class="dropdown-menu dropdown-menu-right acciones-menu">
                 <a class="dropdown-item pointer js-show">${icono('show', 18, 'currentColor')} Ver detalle</a>
-                <a class="dropdown-item pointer js-edit">${icono('edit', 18, 'currentColor')} Editar</a>
+                ${
+                  endoso.status !== 'Cancelada'
+                    ? `<a class="dropdown-item pointer js-edit">${icono('edit', 18, 'currentColor')} Editar</a>`
+                    : ''
+                }
                 <a class="dropdown-item pointer js-ver-poliza">${icono('poliza', 18, 'currentColor')} Ver póliza</a>
                 <div class="dropdown-divider"></div>
                 ${
@@ -900,8 +919,12 @@ $(function () {
                     ? `<a class="dropdown-item pointer js-ver-factura">${icono('factura', 18, 'currentColor')} Ver/Descargar factura${leyendaFaltante(endoso.factura_pdf, endoso.factura_xml)}</a>`
                     : `<a class="dropdown-item pointer js-cargar-factura">${icono('facturaUpload', 18, 'currentColor')} Cargar factura</a>`
                 }
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item pointer text-danger js-cancelar">${icono('cancel', 18, 'currentColor')} Cancelar endoso</a>
+                ${
+                  endoso.status !== 'Cancelada'
+                    ? `<div class="dropdown-divider"></div>
+                <a class="dropdown-item pointer text-danger js-cancelar">${icono('cancel', 18, 'currentColor')} Cancelar endoso</a>`
+                    : ''
+                }
               </div>
             </div>
           </td>
@@ -992,7 +1015,8 @@ $(function () {
         $('#prima_total').prop('disabled', false);
         $('#serie').val(resp.data[0].serie);
         $('#notas').val(resp.data[0].notas);
-        $('#Moneda').val(resp.data[0].moneda);
+        $('#Moneda').val(normalizeMonedaValue(resp.data[0].moneda));
+        $('#conducto_pago').val(resp.data[0].conducto_pago || '');
         $('#prima_neta').val(resp.data[0].prima_neta);
         $('#prima_total').val(resp.data[0].prima_total);
         $('#old_prima_neta').val(resp.data[0].prima_neta);
@@ -1542,13 +1566,6 @@ $(function () {
     put('filtro_status', $('#filtroStatus').val());
     put('filtro_tipo', $('#filtroTipo').val());
     put('filtro_grupo_id', $('#filtroGrupo').val());
-    // Si se eligió un cliente del autocomplete se manda su id; si solo se
-    // escribió texto, se busca por nombre.
-    if ($('#filtroClienteId').val()) {
-      filtros.filtro_cliente_id = $('#filtroClienteId').val();
-    } else {
-      put('filtro_cliente', $('#filtroCliente').val().trim());
-    }
     put('filtro_fecha_desde', $('#filtroFechaDesde').val());
     put('filtro_fecha_hasta', $('#filtroFechaHasta').val());
     if ($('#filtroSinPdf').is(':checked')) filtros.filtro_sin_pdf = 1;
@@ -1760,54 +1777,10 @@ $(function () {
 
   $('#btnLimpiarFiltros').click((e) => {
     e.preventDefault();
-    $('#filtroAseguradora, #filtroStatus, #filtroTipo, #filtroGrupo, #filtroCliente, #filtroClienteId').val('');
-    $('#filtroClienteOptions').hide().empty();
+    $('#filtroAseguradora, #filtroStatus, #filtroTipo, #filtroGrupo').val('');
     $('#filtroFechaDesde, #filtroFechaHasta, #filtroMesRapido, #filtroMesRapidoAnio').val('');
     $('#filtroSinPdf').prop('checked', false);
     getEndosos(1, 0);
-  });
-
-  let filtroClienteDebounce = null;
-  $('#filtroCliente').on('input', function () {
-    $('#filtroClienteId').val('');
-    const inputValue = this.value;
-    clearTimeout(filtroClienteDebounce);
-    if (inputValue.length < 3) {
-      $('#filtroClienteOptions').hide().empty();
-      return;
-    }
-    filtroClienteDebounce = setTimeout(() => {
-      $.ajax({
-        url: '/polizas/search_clients',
-        method: 'POST',
-        dataType: 'json',
-        data: { query: inputValue },
-        success: function (response) {
-          const dropdownMenu = $('#filtroClienteOptions');
-          dropdownMenu.empty();
-          if (!response.options.length) {
-            dropdownMenu.append('<p class="dropdown-item no-results">No hay coincidencias</p>');
-          } else {
-            $.each(response.options, function (i, option) {
-              const $opt = $(`<a class="dropdown-item pointer">${esc(option.name)}</a>`);
-              $opt.on('click', () => {
-                $('#filtroCliente').val(option.name);
-                $('#filtroClienteId').val(option.id);
-                dropdownMenu.hide();
-              });
-              dropdownMenu.append($opt);
-            });
-          }
-          dropdownMenu.show();
-        },
-        error: (xhr, status, error) => console.error(error),
-      });
-    }, 250);
-  });
-  $(document).on('click', (e) => {
-    if (!$(e.target).closest('.polizas-filtros__campo').length) {
-      $('#filtroClienteOptions').hide();
-    }
   });
 
   function aplicarMesRapido() {
