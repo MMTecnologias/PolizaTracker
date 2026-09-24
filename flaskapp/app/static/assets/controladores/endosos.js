@@ -557,7 +557,11 @@ $(function () {
     });
   }
 
-  function openReceiptsModalForEndoso(params, polizaId) {
+  // Derecho de póliza y % comisión del endoso que se está editando, para
+  // precargarlos al regenerar sus recibos (antes quedaban vacíos).
+  let endosoEnEdicion = { derecho_poliza: null, comision: null };
+
+    function openReceiptsModalForEndoso(params, polizaId) {
     const newParams = `${params}&poliza_id=${polizaId}&is_endoso=true`;
     $.ajax({
       url: '/polizas/get_policy_values',
@@ -577,6 +581,14 @@ $(function () {
         $('#prima-total').val(resp.totalPremium);
         $('#nopagos').val(resp.numReceipts);
         $('#iva').val(16);
+        $('#derecho_poliza').val(
+          endosoEnEdicion.derecho_poliza != null ? parseFloat(endosoEnEdicion.derecho_poliza).toFixed(2) : '0.00',
+        );
+        $('#comision').val(
+          endosoEnEdicion.comision != null && Number(endosoEnEdicion.comision) > 0
+            ? parseFloat(endosoEnEdicion.comision).toFixed(2)
+            : '10',
+        );
         hideModalEndosoThenShow('#create-recib', { backdrop: 'static', keyboard: false });
         $('#receipts_created').val('no');
       },
@@ -1097,6 +1109,10 @@ $(function () {
         $('#old_prima_neta').val(resp.data[0].prima_neta);
         $('#old_prima_total').val(resp.data[0].prima_total);
         $('#old_tipo_pago_id').val(resp.data[0].tipo_pago_id);
+        endosoEnEdicion = {
+          derecho_poliza: resp.data[0].derecho_poliza,
+          comision: resp.data[0].comision,
+        };
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -2055,40 +2071,10 @@ $(function () {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
-            const new_params = `${params}&poliza_id=${poliza_id}&is_endoso=true`;
-            $.ajax({
-              url: 'polizas/get_policy_values',
-              method: 'POST',
-              dataType: 'json',
-              data: new_params,
-              success: function (resp) {
-                if (resp.error) {
-                  alert(resp.msg, 'error', resp.title);
-                  $('#create-recib').modal('hide');
-                } else {
-                  if (resp.msg && resp.msg.includes('no coincidiran')) {
-                    $('#alert_Modal').show();
-                    $('#alert_Modal').text(resp.msg);
-                  }
-                  $('#prima-neta').val(resp.netPremium);
-                  $('#prima-total').val(resp.totalPremium);
-                  $('#nopagos').val(resp.numReceipts);
-                  $('#iva').val(16);
-                  hideModalEndosoThenShow('#create-recib', {
-                    backdrop: 'static',
-                    keyboard: false,
-                  });
-                  $('#receipts_created').val('no');
-                }
-              },
-              error: function (xhr, textStatus, error) {
-                console.error(error);
-                alert(
-                  'Lamentamos el inconveniente, por favor vuelve a intentarlo',
-                  'error'
-                );
-              },
-            });
+            // Misma función que arma el modal para un endoso NUEVO A/D --
+            // así derecho_poliza y % comisión también quedan precargados
+            // (antes esta rama, duplicada, los dejaba vacíos).
+            openReceiptsModalForEndoso(params, poliza_id);
           }
         },
         error: function (xhr, textStatus, error) {
@@ -2172,7 +2158,7 @@ $(function () {
       return;
     }
 
-    newParams = `${newParams}&endoso_id=${endoso_id}`;
+    newParams = `${newParams}&endoso_id=${endoso_id}&regenerar_recibos=1`;
     try {
       const resp = await $.ajax({
         url: '/polizas/edit_endoso',

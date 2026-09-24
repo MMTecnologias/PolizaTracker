@@ -1568,6 +1568,20 @@ def edit_endoso():
     for key, value in related_entities.items():
         setattr(endoso, key, value)
 
+    # Igual que en la edición de pólizas: si el modal de "Generar Recibos"
+    # va a mandar netPremium, significa que hay que regenerar los recibos
+    # del endoso (cambió prima y/o forma de pago). Se borran los viejos AQUÍ,
+    # en la misma transacción, para que endoso.recibos quede en "Por generar"
+    # antes de que /polizas/save_receipts intente crear los nuevos -- si no,
+    # ese endpoint siempre rechazaba con "ya tiene recibos generados".
+    if flask_request.form.get('regenerar_recibos') and endoso.tipo_endoso != 'B':
+        ok, msg, endoso_or_poliza, receipts = _validar_puede_borrar_recibos(
+            endoso.poliza_id, endoso_id=endoso.id)
+        if not ok:
+            db.session.rollback()
+            return jsonify({'error': True, 'msg': msg})
+        _eliminar_recibos_existentes(endoso_or_poliza, receipts)
+
     # Guardar cambios en la base de datos
     try:
         db.session.commit()
