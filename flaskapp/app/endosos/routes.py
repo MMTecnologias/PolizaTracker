@@ -17,6 +17,7 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from app.utils.document_storage import get_carpeta_endoso
+from app.utils.pdf_extract import extract_real_pdf
 
 
 @endosos_route.route('/get_receipts', methods=['POST'])
@@ -577,7 +578,8 @@ def upload_factura():
         if not pdf_file.filename.lower().endswith('.pdf'):
             return jsonify({'error': True, 'msg': 'La factura en PDF debe ser un archivo .pdf'})
         pdf_content = pdf_file.read()
-        if not pdf_content.startswith(b'%PDF'):
+        pdf_content = extract_real_pdf(pdf_content)
+        if pdf_content is None:
             return jsonify({'error': True, 'msg': 'El archivo PDF no es válido'})
         if len(pdf_content) > 10 * 1024 * 1024:
             return jsonify({'error': True, 'msg': 'El PDF es demasiado grande. Máximo 10MB.'})

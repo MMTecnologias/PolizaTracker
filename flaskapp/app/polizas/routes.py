@@ -24,6 +24,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 from app.models import export_to_csv, export_to_pdf
 from app.utils.document_storage import get_carpeta_documento
+from app.utils.pdf_extract import extract_real_pdf
 
 
 @polizas_route.route('/get_receipts', methods=['POST'])
@@ -1760,7 +1761,8 @@ def upload_receipt_comprobante():
         return jsonify({'error': True, 'msg': 'Recibo no encontrado'})
 
     file_content = file.read()
-    if not file_content.startswith(b'%PDF'):
+    file_content = extract_real_pdf(file_content)
+    if file_content is None:
         return jsonify({'error': True, 'msg': 'El archivo no es un PDF válido'})
     if len(file_content) > 10 * 1024 * 1024:
         return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
@@ -1880,7 +1882,8 @@ def upload_receipt_complemento():
         if not pdf_file.filename.lower().endswith('.pdf'):
             return jsonify({'error': True, 'msg': 'El complemento en PDF debe ser un archivo .pdf'})
         pdf_content = pdf_file.read()
-        if not pdf_content.startswith(b'%PDF'):
+        pdf_content = extract_real_pdf(pdf_content)
+        if pdf_content is None:
             return jsonify({'error': True, 'msg': 'El archivo PDF no es válido'})
         if len(pdf_content) > 10 * 1024 * 1024:
             return jsonify({'error': True, 'msg': 'El PDF es demasiado grande. Máximo 10MB.'})
@@ -2674,8 +2677,11 @@ def scan_additional_pages_for_forma_pago(file_content: bytes, already_processed_
 
 def extract_text_from_pdf_content(file_content: bytes, prefer_endoso: bool = False, trace_id: str = None) -> str:
     try:
-        # Validar que el archivo comience con el header de PDF
-        if not file_content.startswith(b'%PDF'):
+        # Validar que el archivo sea un PDF (o extraerlo si viene envuelto
+        # en la respuesta multipart cruda que descargan algunas
+        # aseguradoras, p. ej. Mapfre)
+        file_content = extract_real_pdf(file_content)
+        if file_content is None:
             raise ValueError("El archivo no es un PDF válido")
 
         text = ""
@@ -6920,7 +6926,8 @@ def upload_existing_policy_pdf():
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
 
     file_content = file.read()
-    if not file_content.startswith(b'%PDF'):
+    file_content = extract_real_pdf(file_content)
+    if file_content is None:
         return jsonify({'error': True, 'msg': 'El archivo no es un PDF válido'})
     if len(file_content) > 10 * 1024 * 1024:
         return jsonify({'error': True, 'msg': 'El archivo es demasiado grande. Máximo 10MB.'})
@@ -7117,7 +7124,8 @@ def upload_policy_factura():
         if not pdf_file.filename.lower().endswith('.pdf'):
             return jsonify({'error': True, 'msg': 'La factura en PDF debe ser un archivo .pdf'})
         pdf_content = pdf_file.read()
-        if not pdf_content.startswith(b'%PDF'):
+        pdf_content = extract_real_pdf(pdf_content)
+        if pdf_content is None:
             return jsonify({'error': True, 'msg': 'El archivo PDF no es válido'})
         if len(pdf_content) > 10 * 1024 * 1024:
             return jsonify({'error': True, 'msg': 'El PDF es demasiado grande. Máximo 10MB.'})
