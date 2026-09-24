@@ -826,7 +826,7 @@ def delete():
         # (comparten poliza_id con la póliza).
         endosos_a_cancelar = Endoso.query.filter(
             Endoso.poliza_id == poliza.id,
-            Endoso.status.in_(['Vigente', 'Pendiente']),
+            Endoso.status != 'Cancelada',
         ).all()
         for endoso_hijo in endosos_a_cancelar:
             endoso_hijo.status = 'Cancelada'

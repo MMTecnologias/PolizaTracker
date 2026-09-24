@@ -490,14 +490,14 @@ $(function () {
 
   // Al crear un endoso nuevo (no al editar uno existente), en cuanto se
   // captura/pierde el foco de "Póliza a la que pertenece" se busca esa
-  // póliza y se precarga su fin de vigencia -- por defecto un endoso dura
-  // lo mismo que la póliza. Solo si el usuario no había puesto ya una
-  // fecha (para no pisarle algo que ya escribió).
+  // póliza: se avisa de inmediato si está Cancelada/Finalizada (antes el
+  // usuario se enteraba hasta el final, ya con todo el formulario lleno),
+  // y se precarga su fin de vigencia si el usuario no había puesto ya una.
   $('#id_poliza').on('blur', function () {
     const endosoId = $('#endoso_id').val();
     if (endosoId && endosoId !== 'New') return;
     const policyNumber = $(this).val().trim();
-    if (!policyNumber || $('#VigenciaF').val()) return;
+    if (!policyNumber) return;
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get',
@@ -507,7 +507,14 @@ $(function () {
         const compactNeedle = policyNumber.replace(/[^A-Z0-9]/gi, '').toUpperCase();
         const exact = policies.find((p) => String(p.poliza || '').replace(/[^A-Z0-9]/gi, '').toUpperCase() === compactNeedle);
         const selected = exact || (policies.length === 1 ? policies[0] : null);
-        if (selected && selected.fecha_termino && !$('#VigenciaF').val()) {
+        if (!selected) return;
+        if (selected.status === 'Cancelada' || selected.status === 'Finalizada') {
+          alert(`No se puede crear un endoso: la póliza está ${selected.status}.`, 'error', 'Póliza no disponible');
+          $('#id_poliza').val('');
+          $('#poliza_id').val('New');
+          return;
+        }
+        if (selected.fecha_termino && !$('#VigenciaF').val()) {
           $('#VigenciaF').val(selected.fecha_termino);
         }
       },
@@ -899,7 +906,7 @@ $(function () {
 
     if (!data || !data.length) {
       table.html(
-        '<tr><td colspan="13" class="text-center text-muted py-4">No se encontraron endosos</td></tr>',
+        '<tr><td colspan="14" class="text-center text-muted py-4">No se encontraron endosos</td></tr>',
       );
       $('#pagination').html('');
       return;
@@ -931,6 +938,7 @@ $(function () {
           ${td(endoso.fecha_termino, true)}
           ${td(endoso.subramo)}
           ${td(endoso.aseguradora)}
+          ${td(endoso.moneda)}
           ${td(endoso.tipoPago)}
           ${td(formatCurrencyDisplay(endoso.prima_neta), true)}
           ${td(formatCurrencyDisplay(endoso.prima_total), true)}
@@ -1029,7 +1037,7 @@ $(function () {
       });
       $row.find('.js-ver-pdf').on('click', (e) => {
         e.preventDefault();
-        if (endoso.pdf_path) window.open(`/static/${endoso.pdf_path}`, '_blank');
+        viewEndosoPdf(endoso);
       });
       $row.find('.js-cargar-pdf').on('click', (e) => {
         e.preventDefault();
@@ -1088,6 +1096,7 @@ $(function () {
         $('#prima_total').prop('disabled', resp.data[0].tipo_endoso === 'B');
         $('#old_prima_neta').val(resp.data[0].prima_neta);
         $('#old_prima_total').val(resp.data[0].prima_total);
+        $('#old_tipo_pago_id').val(resp.data[0].tipo_pago_id);
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
             ${resp.data[0].ramo}
             </option>
@@ -1546,6 +1555,23 @@ $(function () {
     });
   }
 
+  // El PDF propio del endoso (no la factura): una vez cargado solo se podía
+  // ver, sin forma de quitarlo ni reemplazarlo desde la interfaz.
+  function viewEndosoPdf(endoso) {
+    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA);
+    mostrarDocumentos(`PDF — Endoso ${endoso.endoso}`, [{
+      key: 'pdf',
+      tiene: !!endoso.pdf_path,
+      labelVer: 'Ver/Descargar PDF',
+      labelCargar: 'Cargar PDF',
+      verUrl: `/static/${endoso.pdf_path}`,
+      borrarUrl: `/endosos/delete_pdf/${endoso.id}`,
+      mensajeEliminar: 'Se eliminará el PDF de este endoso. Esta acción no se puede deshacer.',
+      recargar,
+      subir: () => uploadEndosoPdf(endoso.id),
+    }]);
+  }
+
   function viewEndosoFactura(endoso) {
     const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA);
     const doc = (tipo) => ({
@@ -1686,6 +1712,7 @@ $(function () {
     { key: 'fecha_termino', label: 'Fin Vigencia' },
     { key: 'subramo', label: 'Sub Ramo' },
     { key: 'aseguradora', label: 'Aseguradora' },
+    { key: 'moneda', label: 'Moneda' },
     { key: 'tipoPago', label: 'Forma de Pago' },
     { key: 'prima_neta', label: 'Prima Neta', moneda: true },
     { key: 'prima_total', label: 'Prima Total', moneda: true },
@@ -2011,7 +2038,10 @@ $(function () {
       return;
     }
 
-    if ($('#tipo').val() !== 'B' && (prima_neta !== old_prima_neta || prima_total !== old_prima_total)) {
+    const old_tipo_pago_id = $('#old_tipo_pago_id').val();
+    if ($('#tipo').val() !== 'B'
+        && (prima_neta !== old_prima_neta || prima_total !== old_prima_total
+            || (old_tipo_pago_id && tipo_pago_id !== old_tipo_pago_id))) {
       const resp = await alertConfirm(
         '¿vamos a eliminar los recibos para generarlos nuevamente, estás seguro de continuar?'
       );

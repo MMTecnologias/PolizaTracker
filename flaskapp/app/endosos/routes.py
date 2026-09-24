@@ -498,6 +498,36 @@ def download_pdf(endoso_id):
     )
 
 
+@endosos_route.route('/delete_pdf/<int:endoso_id>', methods=['POST'])
+@login_required
+def delete_pdf(endoso_id):
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
+    if not endoso.pdf_path:
+        return jsonify({'error': True, 'msg': 'Este endoso no tiene un PDF cargado'})
+
+    old_full_path = (
+        endoso.pdf_path if os.path.isabs(endoso.pdf_path)
+        else os.path.join(current_app.root_path, 'static', endoso.pdf_path)
+    )
+    if os.path.exists(old_full_path):
+        try:
+            os.remove(old_full_path)
+        except Exception:
+            pass
+
+    endoso.pdf_path = None
+    db.session.add(Request(usuario_id=current_user.id,
+                           description=f"Eliminar PDF del endoso {endoso.endoso} de la póliza {endoso.poliza}",
+                           status="Aceptada",
+                           table_name='Endoso',
+                           row_id=endoso.id))
+    db.session.commit()
+
+    return jsonify({'error': False, 'msg': 'PDF eliminado exitosamente'})
+
+
 # ---------------------------------------------------------------------------
 # Factura del endoso (PDF + XML). Mismo comportamiento que la factura de
 # pólizas; los archivos viven en la carpeta del endoso, dentro de la de su
