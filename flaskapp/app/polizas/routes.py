@@ -1981,10 +1981,17 @@ def get_form_data():
         "Subramo": Subramo,
         "TipoPago": TipoPago
     }
+    # Orden de cada catálogo en el select: aseguradora alfabética (más
+    # fácil de ubicar entre ~20 opciones); forma de pago por número de
+    # recibos que genera (de menos a más pagos al año); el resto se
+    # mantiene como estaba (más reciente primero).
+    ordenes = {
+        "Aseguradora": Aseguradora.aseguradora.asc(),
+        "TipoPago": TipoPago.pagos_anuales.asc(),
+    }
     response = {}
     for key, tabla in clases.items():
-        # Order by id in descending order
-        query = tabla.query.order_by(tabla.id.desc())
+        query = tabla.query.order_by(ordenes.get(key, tabla.id.desc()))
         records = query.all()
         # Format data
         data = []
@@ -3251,6 +3258,21 @@ def extract_vigencia_values(text: str):
     # "...Fecha de emisión...Desde las 12:00horas del / Hasta las
     # 12:00horas del...". El fallback genérico de abajo agarraba las
     # primeras 2 fechas (emisión + desde) en vez de las 2 correctas.
+    # Formato compacto ANA Seguros: "D23 M09 A2026 D23 M09 A2026 D23 M09 A2027"
+    # (Fecha de Expedición, Desde, Hasta). Se toman la 2a y 3a fecha.
+    ana_compact_match = re.search(
+        r'D\s*(\d{1,2})\s*M\s*(\d{1,2})\s*A\s*(\d{4})\s+'
+        r'D\s*(\d{1,2})\s*M\s*(\d{1,2})\s*A\s*(\d{4})\s+'
+        r'D\s*(\d{1,2})\s*M\s*(\d{1,2})\s*A\s*(\d{4})',
+        text_window
+    )
+    if ana_compact_match:
+        g = ana_compact_match.groups()
+        desde = f"{int(g[3]):02d}/{int(g[4]):02d}/{g[5]}"
+        hasta = f"{int(g[6]):02d}/{int(g[7]):02d}/{g[8]}"
+        if _is_chronologically_valid_range(desde, hasta):
+            return desde, hasta
+
     allianz_table_match = re.search(
         rf'(?is)Fecha\s*de\s*emisi[oó]n.{{0,200}}?\n\s*\S+\s+\d+\s+\d+\s+{date_pattern}\s+({date_pattern})\s+({date_pattern})',
         text
@@ -3262,6 +3284,11 @@ def extract_vigencia_values(text: str):
             return desde, hasta
 
     range_patterns = [
+        # Encabezado "DESDE 12 HRS. HASTA 12 HRS." y las dos fechas JUNTAS en
+        # un mismo renglón. En Banorte GMM la fecha de emisión queda entre el
+        # encabezado y las fechas reales, y el escaneo genérico tomaba
+        # emisión + inicio en lugar de inicio + fin.
+        rf'Desde\s*(?:las\s*)?12(?::?00)?\s*(?:hrs?\.?|horas)\s*Hasta\s*(?:las\s*)?12(?::?00)?\s*(?:hrs?\.?|horas).{{0,200}}?({date_pattern})[ \t]+({date_pattern})',
         rf'Vigencia\s*a\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})\s*(?:al|a)\s*[:|]?\s*({date_pattern})',
         rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern}).{{0,80}}?Vigencia\s*hasta\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
         rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern}).{{0,120}}?hasta\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern})',
@@ -3977,9 +4004,16 @@ def extract_endoso_value(text: str) -> str:
 
 def extract_customer_name_value(text: str) -> str:
     multiline_patterns = [
+        # ANA Seguros: el encabezado "Nombre y Dirección del Contratante
+        # y/o Asegurado" no lleva el nombre en la misma línea, va en la
+        # siguiente.
+        r'(?is)Nombre\s+y\s+Direcci[oó]n\s+del\s+Contratante\s+y/o\s+Asegurado[^\n]*\n([^\n]+)',
         r'(?is)Datos del contratante\s*:\s*(?:[A-Z0-9]{10,13}\s*[-:]\s*)?([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)Datos del contratante.*?Contratante\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
-        r'(?is)Datos del contratante.*?Nombre\s*[:|]?\s*([^\n]+(?:\n[^\n]+){0,2})',
+        # "Nombre" debe estar cerca del encabezado y NO ser el encabezado de
+        # otra tabla ("NOMBRE DEL ASEGURADO", "Nombre y Clave del Agente"):
+        # en Banorte GMM eso daba el nombre "DEL".
+        r'(?is)Datos del contratante.{0,400}?\bNombre(?!\s+(?:del\s+(?:asegurado|beneficiario|agente)|y\s+clave))\s*[:|]?\s*([^\n]+(?:\n[^\n]+){0,2})',
         r'(?is)Datos del asegurado y/o propietario.*?Asegurado\s*:\s*([^\n]+(?:\n[^\n]+){0,2})',
         # Negative lookbehind evita que "...Grupo Asegurado:" (etiqueta de tipo
         # de grupo, no de nombre) dispare este patrón como si fuera el campo
@@ -4021,10 +4055,47 @@ def extract_customer_name_value(text: str) -> str:
             collected.append(line)
 
         candidate = sanitize_name_candidate(" ".join(collected))
-        if candidate:
+        if candidate and not _es_nombre_vacio(candidate):
             return candidate
 
+    # Último recurso (solo si ninguna etiqueta anterior dio un nombre):
+    # formato tabular tipo Banorte GMM, donde el encabezado "DATOS DEL
+    # CONTRATANTE RAMO SUB-RAMO NO. DE PÓLIZA" va en una línea y en la
+    # siguiente viene el nombre seguido de los valores de esas columnas
+    # ("JUAN ANTONIO FLORES GALVAN 11 02 2333216").
+    match = re.search(r'(?im)^\s*Datos del contratante\b[^\n]*\n([^\n]+)', text)
+    if match:
+        line = sanitize_text_value(match.group(1)) or ''
+        stop_match = stop_pattern.search(line)
+        if stop_match:
+            line = line[:stop_match.start()]
+        if ':' not in line:
+            tokens = line.split()
+            while tokens and re.fullmatch(r'[\d./-]+', tokens[-1]):
+                tokens.pop()
+            candidate = sanitize_name_candidate(' '.join(tokens))
+            if candidate and not _es_nombre_vacio(candidate) and len(candidate.split()) >= 2:
+                return candidate
+
     return None
+
+
+# Palabras sueltas que nunca son un nombre por sí solas (restos de
+# encabezados como "Nombre DEL asegurado").
+_CONECTORES_NOMBRE = {'DE', 'DEL', 'LA', 'LAS', 'LOS', 'EL', 'Y', 'E'}
+
+
+def _palabras_nombre(value) -> list:
+    """Palabras de un nombre en mayúsculas y sin acentos, CONSERVANDO la
+    separación entre palabras (normalize_ascii_upper las junta todas)."""
+    texto = unicodedata.normalize('NFKD', str(value or ''))
+    texto = ''.join(ch for ch in texto if not unicodedata.combining(ch)).upper()
+    return re.findall(r'[A-Z0-9]+', texto)
+
+
+def _es_nombre_vacio(candidate) -> bool:
+    tokens = _palabras_nombre(candidate)
+    return not tokens or all(token in _CONECTORES_NOMBRE for token in tokens)
 
 
 # --- Correcciones para texto que viene de OCR ------------------------------
@@ -4172,12 +4243,17 @@ def normalize_forma_pago_value(value: str) -> str:
         return None
 
     normalized = normalize_ascii_upper(value)
+    # Ojo: el orden importa. "TRIMESTRAL" es substring de "CUATRIMESTRAL" y
+    # "SEMESTRAL" lo es de "BIMESTRAL"/"CUATRIMESTRAL" no pero por seguridad
+    # los compuestos van primero para que no los capture el más corto.
     alias_map = {
         "CONTADO": "Contado",
         "UNICO": "Contado",
         "PAGOUNICO": "Contado",
         "ANUAL": "Anual",
         "MULTIANUAL": "Multianual",
+        "CUATRIMESTRAL": "Cuatrimestral",
+        "BIMESTRAL": "Bimestral",
         "SEMESTRAL": "Semestral",
         "TRIMESTRAL": "Trimestral",
         "MENSUAL": "Mensual",
@@ -4215,9 +4291,13 @@ def normalize_forma_pago_value(value: str) -> str:
 
 
 def extract_forma_pago_value(text: str) -> str:
+    # Los compuestos van antes que sus substrings (CUATRIMESTRAL contiene
+    # TRIMESTRAL), para que el regex no se detenga en el más corto.
     common_values = [
-        r'ANUAL',
         r'MULTIANUAL',
+        r'ANUAL',
+        r'CUATRIMESTRAL',
+        r'BIMESTRAL',
         r'SEMESTRAL',
         r'TRIMESTRAL',
         r'MENSUAL',
@@ -4730,6 +4810,12 @@ def extract_gmm_conditions_observations(text: str) -> str:
     adicionales con costo"). Regresa "" si no encuentra esas secciones."""
     if not text:
         return ""
+    # Solo aplica a carátulas con estas secciones. Sin esto, un "Deducible
+    # $280" de otra página (p.ej. asistencias de visión en Banorte) se
+    # tomaba como condición de la póliza.
+    if not re.search(r'Condiciones\s+Contratadas|Incluidos\s+en\s+B[áa]sica|'
+                     r'o?berturas\s+adicionales\s+con\s+costo', text, re.I):
+        return ""
     lines = ["Coberturas contratadas"]
 
     suma = re.search(r'Suma\s*Asegurada\s*\$\s*[-–—|]?\s*([\d,]+(?:\.\d{2})?)\s*(M\.?\s?N\.?|USD|DLS)?', text, re.I)
@@ -4768,7 +4854,11 @@ def extract_gmm_conditions_observations(text: str) -> str:
     if adicionales:
         lines.append("Adicionales: " + ", ".join(adicionales))
 
-    return "\n".join(lines) if len(lines) > 1 else ""
+    # Un deducible o coaseguro suelto no basta: tiene que haber suma
+    # asegurada o al menos una lista de coberturas.
+    if not (suma or incluidas or adicionales):
+        return ""
+    return "\n".join(lines)
 
 
 def extract_metlife_gmm_observations(text: str) -> str:
@@ -5076,6 +5166,8 @@ def build_rule_based_hints(text: str) -> dict:
         "SEGUROS SURA": "Sura",
         "SURA": "Sura",
         "ALLIANZ": "Allianz",
+        "A.N.A.": "ANA Seguros",
+        "ANA SEGUROS": "ANA Seguros",
     }
     upper_text = text.upper()
     compact_text = normalize_ascii_upper(text)
@@ -5171,7 +5263,10 @@ def build_rule_based_hints(text: str) -> dict:
     hints["desde"], hints["hasta"] = extract_vigencia_values(text)
 
     hints["rfc"] = normalize_rfc_value(extract_value_after_label(
-        text, [r'R\.?F\.?C\.?'], stop_tokens=[r'Tel[eé]fono']
+        text, [r'R\.?F\.?C\.?'], stop_tokens=[
+            r'Tel[eé]fono', r'No\.?\s*(?:de\s*)?Cliente', r'Pague\s*antes\s*de',
+            r'Domicilio', r'Nombre', r'Plazo\s*de\s*[Pp]ago',
+        ]
     ))
     hints["nombre_cliente"] = extract_customer_name_value(text)
 
@@ -5562,6 +5657,22 @@ def find_existing_cliente(nombre_completo: str, rfc: str = None):
             )
             return cliente.id
 
+    # Buscar por nombre con una sola palabra (o puros conectores) asignaba la
+    # póliza a cualquier cliente que la contuviera: "DEL" coincidía con
+    # "ABEL MEDEL LEDEZMA". Sin un nombre de al menos 2 palabras reales no
+    # se busca; el usuario elige el cliente a mano.
+    palabras_nombre = [
+        token for token in _palabras_nombre(nombre_completo)
+        if len(token) >= 2 and token not in _CONECTORES_NOMBRE
+    ]
+    if len(palabras_nombre) < 2:
+        log_policy_event(
+            "entity_lookup",
+            "nombre insuficiente para buscar cliente",
+            nombre=nombre_completo
+        )
+        return None
+
     clientes = Cliente.query.all()
 
     class _ClienteProxy:
@@ -5573,11 +5684,14 @@ def find_existing_cliente(nombre_completo: str, rfc: str = None):
     if not cliente_id:
         cliente_id = find_agent_match_by_tokens(nombre_completo, proxies)
     if not cliente_id:
-        normalized_query = normalize_ascii_upper(nombre_completo)
+        normalized_query = ' '.join(_palabras_nombre(nombre_completo))
         for proxy in proxies:
-            normalized_record = normalize_ascii_upper(proxy.nombre)
+            normalized_record = ' '.join(_palabras_nombre(proxy.nombre))
+            # Contención por palabras completas: "JUAN PEREZ" sí está en
+            # "JUAN PEREZ LOPEZ", pero "DEL" ya no está en "MEDEL".
             if normalized_query and normalized_record and (
-                normalized_query in normalized_record or normalized_record in normalized_query
+                f' {normalized_query} ' in f' {normalized_record} '
+                or f' {normalized_record} ' in f' {normalized_query} '
             ):
                 cliente_id = proxy.id
                 break

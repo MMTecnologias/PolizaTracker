@@ -717,13 +717,17 @@ $(function () {
         if (aseguradoraNombre && optionByName.length) {
           console.log('Aseguradora por nombre:', data.aseguradora);
           aseguradoraSelect.val(optionByName.val());
-        } else if (!aseguradoraNombre && data.aseguradora_id) {
+        } else if (data.aseguradora_id) {
+          // Sin coincidencia EXACTA de nombre (p.ej. "ANA Seguros" extraído
+          // vs "ANA" en el catálogo): el backend ya buscó por coincidencia
+          // aproximada y trae el id correcto, así que se usa antes de
+          // ofrecer "Nueva Aseguradora" y duplicar el registro.
           const aseguradoraId = String(data.aseguradora_id);
           const optionById = aseguradoraSelect.find(
             `option[value="${aseguradoraId}"]`,
           );
           if (optionById.length) {
-            console.log('Aseguradora por ID:', data.aseguradora_id);
+            console.log('Aseguradora por ID (backend):', data.aseguradora_id);
             aseguradoraSelect.val(aseguradoraId);
           }
         }
