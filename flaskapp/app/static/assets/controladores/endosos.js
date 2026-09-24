@@ -1980,9 +1980,9 @@ $(function () {
       $(this).addClass('was-validated');
       return;
     }
-    const prima_neta = $('#prima_neta').val();
+    const prima_neta = getCurrencyFieldValue('#prima_neta');
     const old_prima_neta = $('#old_prima_neta').val();
-    const prima_total = $('#prima_total').val();
+    const prima_total = getCurrencyFieldValue('#prima_total');
     const old_prima_total = $('#old_prima_total').val();
     const fecha_inicio = $('#VigenciaI').val();
     const fecha_termino = $('#VigenciaF').val();
