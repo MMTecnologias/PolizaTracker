@@ -48,6 +48,7 @@ def get_receipts():
             return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
         poliza_id = endoso.poliza_id
     else:
+        endoso = None
         recibos_query = Recibo.query.filter_by(
             poliza_id=poliza_id, endoso_id=None)
 
@@ -58,7 +59,8 @@ def get_receipts():
     if not poliza:
         return jsonify({'error': True, 'msg': 'Póliza no encontrada'})
 
-    moneda = poliza.moneda
+    # Los recibos de un endoso se muestran en la moneda del endoso.
+    moneda = endoso.moneda if endoso else poliza.moneda
     # Get total count of records without filtering
     total_records = recibos_query.count()
     # Apply pagination
@@ -79,7 +81,11 @@ def get_receipts():
             "comprobante": "" if recibo.comprobante is None else recibo.comprobante,
             "complemento_pago_pdf": "" if recibo.complemento_pago_pdf is None else recibo.complemento_pago_pdf,
             "complemento_pago_xml": "" if recibo.complemento_pago_xml is None else recibo.complemento_pago_xml,
-            "cancelado": True if poliza.status == 'Cancelada' else False,
+            # Cancelado si el propio recibo está cancelado, o si su póliza
+            # o su endoso lo están.
+            "cancelado": (recibo.status == 'Cancelado'
+                          or poliza.status == 'Cancelada'
+                          or bool(endoso and endoso.status == 'Cancelada')),
             'id': recibo.id,
             'moneda': moneda,
             'endoso_id': recibo.endoso_id,
@@ -815,6 +821,16 @@ def delete():
         for recibo in recibos_a_cancelar:
             recibo.status = 'Cancelado'
 
+        # Los endosos de esta póliza tampoco tienen razón de seguir
+        # vigentes/pendientes. Sus recibos ya quedaron cancelados arriba
+        # (comparten poliza_id con la póliza).
+        endosos_a_cancelar = Endoso.query.filter(
+            Endoso.poliza_id == poliza.id,
+            Endoso.status != 'Cancelada',
+        ).all()
+        for endoso_hijo in endosos_a_cancelar:
+            endoso_hijo.status = 'Cancelada'
+
         db.session.commit()
         return jsonify({'error': False, 'title': 'Póliza cancelada', 'msg': 'La póliza ha sido cancelada con éxito, esta acción está sujeta a revisión y puede ser revertida por el administrador.'})
     else:
@@ -1204,6 +1220,13 @@ def check_delete_receipts():
     poliza_id = flask_request.form.get('poliza_id')
     endoso_id = flask_request.form.get('endoso_id')
 
+    # Un endoso B nunca tiene ni genera recibos -- no hay nada que
+    # regenerar, sin importar lo que haya mandado el frontend.
+    if endoso_id:
+        endoso = Endoso.query.get(endoso_id)
+        if endoso and endoso.tipo_endoso == 'B':
+            return jsonify({'error': True, 'msg': 'Un endoso tipo B no modifica primas ni genera recibos.'})
+
     ok, msg, _, _ = _validar_puede_borrar_recibos(poliza_id, endoso_id)
     if not ok:
         return jsonify({'error': True, 'msg': msg})
@@ -1221,6 +1244,8 @@ def create_endoso():
     poliza = Poliza.query.get(poliza_id)
     if not poliza:
         return jsonify({"error": True, "msg": "No se encuentra la póliza"})
+    if poliza.status in ("Cancelada", "Finalizada"):
+        return jsonify({"error": True, "msg": f"No se puede crear un endoso: la póliza está {poliza.status}."})
 
     def check_new_form():
         argdict = {}
@@ -1264,7 +1289,8 @@ def create_endoso():
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
         'endoso': 'Poliza',
-        'pdf_path': 'pdf_path'
+        'pdf_path': 'pdf_path',
+        'conducto_pago': 'conducto_pago',
     }
     form_value_mapping = {
         'selected-client-id': flask_request.form.get('selected-client-id'),
@@ -1279,7 +1305,8 @@ def create_endoso():
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
         'Poliza': flask_request.form.get('Poliza') or flask_request.form.get('endoso'),
-        'pdf_path': flask_request.form.get('pdf_path')
+        'pdf_path': flask_request.form.get('pdf_path'),
+        'conducto_pago': flask_request.form.get('conducto_pago'),
     }
     arg_values = {col: form_value_mapping[map] for col, map in column_name_mapping.items(
     ) if form_value_mapping[map]}
@@ -1477,7 +1504,8 @@ def edit_endoso():
         'prima_neta': 'prima_neta',
         'prima_total': 'prima_total',
         'endoso': 'Poliza',
-        'pdf_path': 'pdf_path'
+        'pdf_path': 'pdf_path',
+        'conducto_pago': 'conducto_pago',
     }
 
     # Mapear valores del formulario a atributos del Endoso
@@ -1494,7 +1522,8 @@ def edit_endoso():
         'prima_neta': flask_request.form.get('prima_neta'),
         'prima_total': flask_request.form.get('prima_total'),
         'Poliza': flask_request.form.get('Poliza'),
-        'pdf_path': flask_request.form.get('pdf_path')
+        'pdf_path': flask_request.form.get('pdf_path'),
+        'conducto_pago': flask_request.form.get('conducto_pago'),
     }
 
     # Actualizar atributos del Endoso
@@ -1538,6 +1567,20 @@ def edit_endoso():
     related_entities = check_new_form()
     for key, value in related_entities.items():
         setattr(endoso, key, value)
+
+    # Igual que en la edición de pólizas: si el modal de "Generar Recibos"
+    # va a mandar netPremium, significa que hay que regenerar los recibos
+    # del endoso (cambió prima y/o forma de pago). Se borran los viejos AQUÍ,
+    # en la misma transacción, para que endoso.recibos quede en "Por generar"
+    # antes de que /polizas/save_receipts intente crear los nuevos -- si no,
+    # ese endpoint siempre rechazaba con "ya tiene recibos generados".
+    if flask_request.form.get('regenerar_recibos') and endoso.tipo_endoso != 'B':
+        ok, msg, endoso_or_poliza, receipts = _validar_puede_borrar_recibos(
+            endoso.poliza_id, endoso_id=endoso.id)
+        if not ok:
+            db.session.rollback()
+            return jsonify({'error': True, 'msg': msg})
+        _eliminar_recibos_existentes(endoso_or_poliza, receipts)
 
     # Guardar cambios en la base de datos
     try:

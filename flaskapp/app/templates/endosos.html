@@ -15,7 +15,82 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=29" />
+  <style>
+    /* Mismos estilos del área "Arrastra tu PDF" que usa polizas.html */
+    .pdf-upload-area {
+      border: 2px dashed #cbd5e0;
+      border-radius: 8px;
+      padding: 6px 12px;
+      text-align: center;
+      background-color: #f7fafc;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .pdf-upload-area:hover {
+      border-color: #4299e1;
+      background-color: #ebf8ff;
+    }
+    .pdf-upload-area.drag-over {
+      border-color: #4299e1;
+      background-color: #ebf8ff;
+      transform: scale(1.02);
+    }
+    .upload-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .upload-content svg {
+      color: #4299e1;
+      margin-bottom: 0;
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+    }
+    .upload-text {
+      font-size: 12px;
+      color: #4a5568;
+      margin: 0;
+    }
+    .upload-link {
+      color: #4299e1;
+      font-weight: 600;
+    }
+    .upload-hint {
+      display: none;
+    }
+    .upload-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Tabla de Recibos (modal) compacta, igual que en pólizas. */
+    #tablaRecibosCompacta th,
+    #tablaRecibosCompacta td {
+      padding: 0.3rem 0.4rem;
+      font-size: 0.75rem;
+      vertical-align: middle;
+      white-space: normal;
+    }
+    #tablaRecibosCompacta th {
+      white-space: normal;
+      line-height: 1.15;
+    }
+    #tablaRecibosCompacta .btn {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      margin: 0;
+    }
+    #tablaRecibosCompacta .col-cancelado {
+      display: none;
+    }
+    #tablaRecibosCompacta.tiene-cancelados .col-cancelado {
+      display: table-cell;
+    }
+  </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
 </head>
 
@@ -37,239 +112,371 @@
   </nav>
 
   <div class="container-fluid">
-    <div class="row mt-3">
-      <div class="col-4 p-3">
-        <div class="w-100 card__shadow p-3">
-          <h4 class="header-title">Endosos</h4>
-          <form id="form-polizas" class="needs-validation form-data" novalidate>
-            <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
-            <input type="hidden" id="endoso_id" name="endoso_id" value="New" />
-            <input type="hidden" id="pdf_path" name="pdf_path" value="" />
-            <input type="hidden" id="old_prima_neta" name="old_prima_neta" value="" />
-            <input type="hidden" id="old_prima_total" name="old_prima_total" value="" />
-            <input type="text" id="tipo" name="tipo" hidden />
-            <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
-            <div class="form__input-data">
-              <label class="label-input-data">Cargar PDF de Endoso</label>
-              <div class="pdf-upload-area" id="pdf_drop_zone">
-                <input type="file" id="pdf_file" accept=".pdf" style="display: none;" />
-                <div class="upload-content">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
-                  <p class="upload-text">Arrastra tu PDF aquí o <span class="upload-link">haz clic para seleccionar</span></p>
-                  <p class="upload-hint">Solo archivos PDF</p>
+    <!-- Modal de creación/edición/detalle de endoso. Mismo diseño que el
+         de pólizas: el formulario ya no vive fijo a la izquierda, solo
+         aparece al presionar "Crear endoso" o al ver/editar uno existente.
+         Se reutilizan los ids #modal-poliza, #table-polizas y
+         #polizas-table para heredar exactamente los mismos estilos de
+         brc-styles.css (esta página es independiente de la de pólizas,
+         así que no hay choque de ids). -->
+    <div class="modal fade" id="modal-poliza" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="header-title mb-0" id="titulo-modal-endoso">Endosos</h4>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar" id="btnCerrarModalEndoso">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form id="form-polizas" class="needs-validation form-data" novalidate>
+              <input type="hidden" id="poliza_id" name="poliza_id" value="New" />
+              <input type="hidden" id="endoso_id" name="endoso_id" value="New" />
+              <input type="hidden" id="pdf_path" name="pdf_path" value="" />
+              <input type="hidden" id="old_prima_neta" name="old_prima_neta" value="" />
+              <input type="hidden" id="old_prima_total" name="old_prima_total" value="" />
+              <input type="hidden" id="old_tipo_pago_id" name="old_tipo_pago_id" value="" />
+              <input type="text" id="tipo" name="tipo" hidden />
+              <input type="hidden" id="selected-client-id" name="selected-client-id" value="None" required />
+              <div class="form__input-data" id="div_pdf_upload">
+                <label class="label-input-data">Cargar PDF de Endoso</label>
+                <div class="pdf-upload-area" id="pdf_drop_zone">
+                  <input type="file" id="pdf_file" accept=".pdf" style="display: none;" />
+                  <div class="upload-content">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="upload-text">Arrastra tu PDF aquí o <span class="upload-link">haz clic para seleccionar</span></p>
+                    <p class="upload-hint">Solo archivos PDF</p>
+                  </div>
+                  <div class="upload-loading" style="display: none;">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Procesando PDF...</p>
+                  </div>
                 </div>
-                <div class="upload-loading" style="display: none;">
-                  <div class="spinner-border text-primary" role="status"></div>
-                  <p class="mt-2">Procesando PDF...</p>
+              </div>
+              <div class="form__input-data" id="div_search_client">
+                <div class="label-option">
+                  <label class="label-input-data">Buscar cliente</label>
+                  <a href="{{ url_for('main.cliente') }}" class="search-icon">
+                    <img src="{{ url_for('static',filename='assets/images/icon/mas.png') }}" class="search-icon" width="15" />
+                  </a>
                 </div>
-              </div>
-            </div>
-            <div class="form__input-data" id="div_search_client">
-              <div class="input-group" style="background-color: aliceblue;">
-                <label class="label-input-data">Cliente</label>
-                <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
-                  aria-label="Search" aria-describedby="search-addon" autocomplete="off" />
-                <div class="dropdown-menu" id="client-options"></div>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-            </div>
-            <div class="form__input-data" id="div_poliza_id">
-              <label class="label-input-data">Póliza</label>
-              <div class="input-group">
-                <input type="text" class="form-control" id="id_poliza" name="id_poliza" />
-              </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child" id="div_poliza">
-                <label class="label-input-data" id="title_poliza">Endoso</label>
-                <div class="input-group">
-                  <input type="text" class="form-control" id="Poliza" name="Poliza" required />
+                <div class="input-group" style="background-color: aliceblue;">
+                  <input type="text" class="form-control rounded" id="buscar-cliente" name="buscar-cliente"
+                    aria-label="Search" aria-describedby="search-addon" autocomplete="off" />
+                  <div class="dropdown-menu" id="client-options"></div>
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">No. Serie</label>
+              <div class="form__input-data" id="div_poliza_id">
+                <label class="label-input-data">Póliza a la que pertenece</label>
                 <div class="input-group">
-                  <input type="text" class="form-control" id="serie" name="serie" required />
+                  <input type="text" class="form-control" id="id_poliza" name="id_poliza" />
+                </div>
+              </div>
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child" id="div_poliza">
+                  <label class="label-input-data" id="title_poliza">Endoso</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="Poliza" name="Poliza" required />
+                    <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+                </div>
+                <div class="form__input-data input-sibling-child" id="div_serie">
+                  <label class="label-input-data">No. Serie</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="serie" name="serie" />
+                    <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+                </div>
+              </div>
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Inicio de Vigencia</label>
+                  <div class="input-group">
+                    <input type="date" class="form-control" id="VigenciaI" name="VigenciaI" required />
+                  </div>
+                </div>
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Fin de Vigencia</label>
+                  <div class="input-group">
+                    <input type="date" class="form-control" id="VigenciaF" name="VigenciaF" required />
+                  </div>
+                </div>
+              </div>
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Ramo</label>
+                  <select class="custom-select" id="ramo" name="ramo" required>
+                    <option value="">Selecciona...</option>
+                    <option value="New">Nuevo Ramo</option>
+                  </select>
+                </div>
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Subramo</label>
+                  <select class="custom-select" id="subramo" name="subramo" required>
+                    <option value="">Selecciona...</option>
+                    <option value="New">Nuevo Subramo</option>
+                  </select>
+                </div>
+              </div>
+              <div class="input-sibling" id="nuevo_ramo_subramo_div">
+                <div class="form__input-data input-sibling-child" id="nuevo_ramo_div">
+                  <label class="label-input-data">Nuevo Ramo</label>
+                  <input type="text" class="form-control" id="nuevo_ramo" name="nuevo_ramo" />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+                <div class="form__input-data input-sibling-child" id="nuevo_subramo_div">
+                  <label class="label-input-data">Nuevo Subramo</label>
+                  <input type="text" class="form-control" id="nuevo_subramo" name="nuevo_subramo" />
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Inicio de Vigencia</label>
-                <div class="input-group">
-                  <input type="date" class="form-control" id="VigenciaI" name="VigenciaI" required />
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Moneda</label>
+                  <select class="custom-select" id="Moneda" name="Moneda" required>
+                    <option value="">Selecciona...</option>
+                    <option value="MXN">Nacional</option>
+                    <option value="USD">Dolares</option>
+                    <option value="Udis">Udis</option>
+                  </select>
                 </div>
-              </div>
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Fin de Vigencia</label>
-                <div class="input-group">
-                  <input type="date" class="form-control" id="VigenciaF" name="VigenciaF" required />
-                </div>
-              </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Ramo</label>
-                <select class="custom-select" id="ramo" name="ramo" required>
-                  <option value="">Selecciona...</option>
-                  {% for ramo in ramos %}
-                  <option value="{{ ramo.id }}">{{ ramo.ramo }}</option>
-                  {% endfor %}
-                  <option value="New">Nuevo Ramo</option>
-                </select>
-              </div>
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Subramo</label>
-                <select class="custom-select" id="subramo" name="subramo" required>
-                  <option value="">Selecciona...</option>
-                  {% for subramo in subramos %}
-                  <option value="{{ subramo.id }}">
-                    {{ subramo.subramo }}
-                  </option>
-                  {% endfor %}
-                  <option value="New">Nuevo Subramo</option>
-                </select>
-              </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Moneda</label>
-                <select class="custom-select" id="Moneda" name="Moneda" required>
-                  <option value="">Selecciona...</option>
-                  <option value="MXN">Nacional</option>
-                  <option value="USD">Dolares</option>
-                  <option value="Udis">Udis</option>
-                </select>
-              </div>
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Forma de Pago</label>
-                <select class="custom-select" id="Pago" name="Pago" required>
-                  <option value="">Selecciona...</option>
-                  {% for pago in pagos %}
-                  <option value="{{ pago.id }}">
-                    {{ pago.tipo_pago}}
-                  </option>
-                  {% endfor %}
-                </select>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-            </div>
-            <div class="form__input-data">
-              <label class="label-input-data" for="conducto_pago">Conducto de pago</label>
-              <div class="">
-                <input type="text" class="form-control" id="conducto_pago" name="conducto_pago" />
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Aseguradora</label>
-                <select class="custom-select" id="aseguradora" name="aseguradora" required>
-                  <option value="">Selecciona...</option>
-                  {% for aseguradora in aseguradoras %}
-                  <option value="{{ aseguradora.id }}">
-                    {{ aseguradora.aseguradora }}
-                  </option>
-                  {% endfor %}
-                </select>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Vendedor</label>
-                <select class="custom-select" id="vendedor" name="vendedor" required>
-                  <option value="">Selecciona...</option>
-                  {% for vendedor in vendedores %}
-                  <option value="{{ vendedor.id }}">
-                    {{ vendedor.nombre }}
-                  </option>
-                  {% endfor %}
-                </select>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data">Agente</label>
-                <select class="custom-select" id="agente" name="agente">
-                  <option value="">Selecciona...</option>
-                  {% for agente in agentes %}
-                  <option value="{{ agente.id }}">
-                    {{ agente.nombre }}
-                  </option>
-                  {% endfor %}
-                </select>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
-              </div>
-            </div>
-            <div class="input-sibling">
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data" for="prima_neta">Prima Neta</label>
-                <div class="input-group">
-                  <input type="number" class="form-control" id="prima_neta" name="prima_neta" step=".01" required />
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Forma de Pago</label>
+                  <select class="custom-select" id="Pago" name="Pago" required>
+                    <option value="">Selecciona...</option>
+                  </select>
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
-              <div class="form__input-data input-sibling-child">
-                <label class="label-input-data" for="prima_total">Prima Total</label>
-                <div class="input-group">
-                  <input type="number" class="form-control" id="prima_total" name="prima_total" step=".01" required />
+              <div class="form__input-data">
+                <label class="label-input-data" for="conducto_pago">Conducto de pago</label>
+                <div class="">
+                  <input type="text" class="form-control" id="conducto_pago" name="conducto_pago" />
                   <p class="invalid-feedback">Ingresa un dato valido</p>
                 </div>
               </div>
-            </div>
-            <div class="form__input-data">
-              <label class="label-input-data" for="notas">Notas</label>
-              <div class="">
-                <textarea class="form-control" id="notas" name="notas" placeholder="Insertar notas" rows="3"></textarea>
-                <p class="invalid-feedback">Ingresa un dato valido</p>
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Aseguradora</label>
+                  <select class="custom-select" id="aseguradora" name="aseguradora" required>
+                    <option value="">Selecciona...</option>
+                    <option value="New">Nueva Aseguradora</option>
+                  </select>
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+                <div class="form__input-data input-sibling-child" id="nuevo_aseguradora_div">
+                  <label class="label-input-data">Nueva Aseguradora</label>
+                  <input type="text" class="form-control" id="nuevo_aseguradora" name="nuevo_aseguradora" />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
               </div>
-            </div>
-            <div class="button-container">
-              <button class="btn" type="submit" id="btnGuardar">
-                Guardar
-              </button>
-              <button class="btn" type="reset" value="Cancelar" id="reset-btn">
-                Cancelar
-              </button>
-            </div>
-          </form>
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Vendedor</label>
+                  <select class="custom-select" id="vendedor" name="vendedor" required>
+                    <option value="">Selecciona...</option>
+                    <option value="New">Nuevo Vendedor</option>
+                  </select>
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+                <div class="form__input-data input-sibling-child" id="nuevo_vendedor_div">
+                  <label class="label-input-data">Nuevo Vendedor</label>
+                  <input type="text" class="form-control" id="nuevo_vendedor" name="nuevo_vendedor" />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+              </div>
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data">Agente</label>
+                  <select class="custom-select" id="agente" name="agente">
+                    <option value="">Selecciona...</option>
+                    <option value="New">Nuevo Agente</option>
+                  </select>
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+                <div class="form__input-data input-sibling-child" id="nuevo_agente_div">
+                  <label class="label-input-data">Nuevo Agente</label>
+                  <input type="text" class="form-control" id="nuevo_agente" name="nuevo_agente" />
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+              </div>
+              <div class="input-sibling">
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data" for="prima_neta">Prima Neta</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="prima_neta" name="prima_neta" inputmode="decimal" required />
+                    <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+                </div>
+                <div class="form__input-data input-sibling-child">
+                  <label class="label-input-data" for="prima_total">Prima Total</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="prima_total" name="prima_total" inputmode="decimal" required />
+                    <p class="invalid-feedback">Ingresa un dato valido</p>
+                  </div>
+                </div>
+              </div>
+              <div class="form__input-data" id="div_notas">
+                <label class="label-input-data" for="notas">Observaciones</label>
+                <div class="">
+                  <textarea class="form-control" id="notas" name="notas" placeholder="Insertar observaciones"
+                    rows="5" style="resize: none; overflow-y: auto; min-height: 80px; max-height: 400px;"></textarea>
+                  <p class="invalid-feedback">Ingresa un dato valido</p>
+                </div>
+              </div>
+              <div class="button-container">
+                <button class="btn" type="submit" id="btnGuardar">
+                  Guardar
+                </button>
+                <button class="btn" type="reset" value="Cancelar" id="reset-btn">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-      <div class="col-8 p-3">
-        <div class="w-100 card__shadow p-3"
-          style="height: 703.59px;max-height: 703.59px;position: relative;padding-bottom: 20px;overflow: hidden;">
-          <div class="table-polizas" id="table-polizas">
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-12 p-3 col-tabla-flex">
+        <div class="w-100 card__shadow p-3 card-tabla-polizas">
+          <div class="table-polizas table-polizas--flex" id="table-polizas">
             <h4 class="header-title">Tabla de Endosos</h4>
-            <input class="form-control my-2" type="search" placeholder="Buscar Endoso" aria-label="Search"
-              id="searchEndoso" />
-            <table class="table" style="overflow-y: scroll;">
-              <thead class="tableHeader">
-                <tr>
-                  <th class="table-name siblingContainerRow" scope="col">
-                    Endoso
-                  </th>
-                  <th scope="col">Póliza</th>
-                  <th scope="col">Tipo Endoso</th>
-                  <th scope="col">Cliente</th>
-                  <th scope="col">Sub Ramo</th>
-                  <th scope="col">Aseguradora</th>
-                  <th scope="col">Forma de Pago</th>
-                  <th scope="col">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="polizas-table">
-              </tbody>
-            </table>
+            <div class="polizas-toolbar">
+              <input class="form-control my-2 polizas-toolbar__search" type="search"
+                placeholder="Buscar endoso, póliza, cliente, grupo o serie" aria-label="Search" id="searchEndoso" />
+              <button class="btn px-4 py-2 btn-primary" type="button" id="btnCrearEndoso">
+                + Crear endoso
+              </button>
+              <button class="btn px-4 py-2" type="button" id="btnToggleFiltros">
+                Filtros
+              </button>
+              <button class="btn px-4 py-2" type="button" id="btnExportar">
+                Exportar a Excel
+              </button>
+              <button class="btn px-4 py-2" type="button" id="btnPdf">
+                Exportar PDF
+              </button>
+              <button class="btn px-4 py-2" type="button" id="btnImprimir">
+                Imprimir
+              </button>
+            </div>
+            <div class="polizas-total" id="endososTotalLabel"></div>
+            <div class="polizas-filtros" id="panelFiltrosPolizas" style="display: none;">
+              <div class="polizas-filtros__campo">
+                <label>Aseguradora</label>
+                <select class="custom-select" id="filtroAseguradora">
+                  <option value="">Todas</option>
+                  {% for aseguradora in aseguradoras %}
+                  <option value="{{ aseguradora.id }}">{{ aseguradora.aseguradora }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="polizas-filtros__campo">
+                <label>Estado</label>
+                <select class="custom-select" id="filtroStatus">
+                  <option value="">Todos</option>
+                  <option value="Vigente">Vigente</option>
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="Cancelada">Cancelada</option>
+                  <option value="Finalizada">Finalizada</option>
+                </select>
+              </div>
+              <div class="polizas-filtros__campo">
+                <label>Tipo de endoso</label>
+                <select class="custom-select" id="filtroTipo">
+                  <option value="">Todos</option>
+                  <option value="A">A - Con recibos</option>
+                  <option value="B">B - Sin movimiento de prima</option>
+                  <option value="D">D - Devolución</option>
+                </select>
+              </div>
+              <div class="polizas-filtros__campo">
+                <label>Grupo</label>
+                <select class="custom-select" id="filtroGrupo">
+                  <option value="">Todos</option>
+                  {% for grupo in grupos %}
+                  <option value="{{ grupo.id }}">{{ grupo.grupo }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="polizas-filtros__campo polizas-filtros__campo--fecha">
+                <label>Mes rápido</label>
+                <select class="custom-select" id="filtroMesRapido">
+                  <option value="">-- Elegir --</option>
+                  <option value="1">Enero</option>
+                  <option value="2">Febrero</option>
+                  <option value="3">Marzo</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Mayo</option>
+                  <option value="6">Junio</option>
+                  <option value="7">Julio</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+              </div>
+              <div class="polizas-filtros__campo" style="flex-basis: 80px;">
+                <label>Año</label>
+                <input class="form-control" type="number" id="filtroMesRapidoAnio" placeholder="Año" />
+              </div>
+              <div class="polizas-filtros__campo polizas-filtros__campo--fecha">
+                <label>Vigencia desde</label>
+                <input class="form-control" type="date" id="filtroFechaDesde" />
+              </div>
+              <div class="polizas-filtros__campo polizas-filtros__campo--fecha">
+                <label>Vigencia hasta</label>
+                <input class="form-control" type="date" id="filtroFechaHasta" />
+              </div>
+              <div class="polizas-filtros__campo" style="display:flex; flex-direction:column; justify-content:flex-end;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-bottom:0; color:#000; font-weight:600;">
+                  <input type="checkbox" id="filtroSinPdf" style="width:16px; height:16px; margin:0; accent-color:#000;" />
+                  Solo endosos sin PDF
+                </label>
+              </div>
+              <div class="polizas-filtros__acciones">
+                <button class="btn px-3 py-2" type="button" id="btnAplicarFiltros" title="Aplicar filtros">
+                  Aplicar
+                </button>
+                <button class="btn" type="button" id="btnLimpiarFiltros">
+                  Limpiar
+                </button>
+              </div>
+            </div>
+            <div class="table-polizas__scroll">
+              <table class="table">
+                <thead class="tableHeader">
+                  <tr>
+                    <th class="table-name siblingContainerRow" scope="col">Endoso</th>
+                    <th scope="col">Póliza</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">No. de Serie</th>
+                    <th scope="col">Inicio Vigencia</th>
+                    <th scope="col">Fin Vigencia</th>
+                    <th scope="col">Sub Ramo</th>
+                    <th scope="col">Aseguradora</th>
+                    <th scope="col">Moneda</th>
+                    <th scope="col">Forma de Pago</th>
+                    <th scope="col">Prima Neta</th>
+                    <th scope="col">Prima Total</th>
+                    <th scope="col">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="polizas-table">
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div class="w-100 d-flex justify-content-center" style="position: absolute; bottom:5px">
+          <div class="w-100 d-flex justify-content-center table-polizas__pagination">
             <div id="pagination"></div>
           </div>
         </div>
@@ -330,6 +537,53 @@
 
   <!-- Modal listado recibos -->
   <div class="modal fade bd-example-modal-lg" id="recib" tabindex="-1" role="dialog" aria-labelledby="recib">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document" style="max-width: 1150px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body pt-1">
+          <div class="row pb-4">
+            <div class="col-12">
+              <h4 class="header-title" id="titulo-recibos-endoso">Lista de Recibos</h4>
+              <div class="table-responsive">
+                <table class="table table-sm" id="tablaRecibosCompacta">
+                  <thead class="tableHeader">
+                    <tr>
+                      <th scope="col">Número</th>
+                      <th scope="col">Fecha de Recibo</th>
+                      <th scope="col">Vencimiento</th>
+                      <th scope="col">Prima Neta</th>
+                      <th scope="col">Prima Total</th>
+                      <th scope="col">Moneda</th>
+                      <th scope="col">Pagado</th>
+                      <th scope="col">Fecha de Pago</th>
+                      <th scope="col" class="col-cancelado">Cancelado</th>
+                      <th scope="col">Aviso de Cobro</th>
+                      <th scope="col">Complemento</th>
+                    </tr>
+                  </thead>
+                  <tbody id="receiptsTable">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="w-100 d-flex justify-content-center">
+            <div id="pagination-recibos"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal editar fecha de pago de un recibo (igual que en pólizas) -->
+  <div class="modal fade bd-example-modal-lg" id="edit_recib_date" tabindex="-1" role="dialog" aria-labelledby="recib">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -340,32 +594,23 @@
         <div class="modal-body pt-1">
           <div class="row pb-4">
             <div class="col-12">
-              <h4 class="header-title">Lista de Recibos</h4>
-              <table class="table">
-                <thead class="tableHeader">
-                  <tr>
-                    <th scope="col">Número</th>
-                    <th scope="col">Fecha de Recibo</th>
-                    <th scope="col">Vencimiento</th>
-                    <th scope="col">Prima Neta</th>
-                    <th scope="col">Prima Total</th>
-                    <th scope="col">Moneda</th>
-                    <th scope="col">Pagado</th>
-                    <th scope="col">Fecha de Pago</th>
-                    <th scope="col">Cancelado</th>
-                  </tr>
-                </thead>
-                <tbody id="receiptsTable">
-                </tbody>
-              </table>
+              <form id="form_date_recib" class="needs-validation form-data" novalidate>
+                <div class="input-sibling">
+                  <div class="form__input-data input-sibling-child">
+                    <label class="label-input-data">Fecha de pago</label>
+                    <div class="input-group">
+                      <input type="date" class="form-control" id="fecha_pago" name="fecha_pago" required />
+                    </div>
+                  </div>
+                </div>
+                <div class="button-container">
+                  <button class="btn" type="submit" id="btnGuardarFechaPago">
+                    Guardar
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-          <div class="w-100 d-flex justify-content-center">
-            <div id="pagination-recibos" style="position: absolute;bottom: 10px;"></div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">cerrar</button>
         </div>
       </div>
     </div>
@@ -522,7 +767,7 @@
   </div>
 
   <!-- main content area end -->
-  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}?v=3"></script>
   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
@@ -535,6 +780,10 @@
   <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
+  <!-- Librerías para exportar Excel (.xlsx) y PDF, mismas que en pólizas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </body>
 
 </html>
