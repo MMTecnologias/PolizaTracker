@@ -1220,6 +1220,13 @@ def check_delete_receipts():
     poliza_id = flask_request.form.get('poliza_id')
     endoso_id = flask_request.form.get('endoso_id')
 
+    # Un endoso B nunca tiene ni genera recibos -- no hay nada que
+    # regenerar, sin importar lo que haya mandado el frontend.
+    if endoso_id:
+        endoso = Endoso.query.get(endoso_id)
+        if endoso and endoso.tipo_endoso == 'B':
+            return jsonify({'error': True, 'msg': 'Un endoso tipo B no modifica primas ni genera recibos.'})
+
     ok, msg, _, _ = _validar_puede_borrar_recibos(poliza_id, endoso_id)
     if not ok:
         return jsonify({'error': True, 'msg': msg})

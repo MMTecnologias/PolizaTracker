@@ -488,6 +488,32 @@ $(function () {
     });
   }
 
+  // Al crear un endoso nuevo (no al editar uno existente), en cuanto se
+  // captura/pierde el foco de "Póliza a la que pertenece" se busca esa
+  // póliza y se precarga su fin de vigencia -- por defecto un endoso dura
+  // lo mismo que la póliza. Solo si el usuario no había puesto ya una
+  // fecha (para no pisarle algo que ya escribió).
+  $('#id_poliza').on('blur', function () {
+    const endosoId = $('#endoso_id').val();
+    if (endosoId && endosoId !== 'New') return;
+    const policyNumber = $(this).val().trim();
+    if (!policyNumber || $('#VigenciaF').val()) return;
+    $.ajax({
+      ...ajaxConfig,
+      url: '/polizas/get',
+      data: $.param({ start: 0, length: 10, searchValue: policyNumber }),
+      success: function (resp) {
+        const policies = resp.data || [];
+        const compactNeedle = policyNumber.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        const exact = policies.find((p) => String(p.poliza || '').replace(/[^A-Z0-9]/gi, '').toUpperCase() === compactNeedle);
+        const selected = exact || (policies.length === 1 ? policies[0] : null);
+        if (selected && selected.fecha_termino && !$('#VigenciaF').val()) {
+          $('#VigenciaF').val(selected.fecha_termino);
+        }
+      },
+    });
+  });
+
   function resolveParentPolicyId() {
     const currentPolizaId = $('#poliza_id').val();
     if (currentPolizaId && currentPolizaId !== 'New') {
@@ -576,6 +602,7 @@ $(function () {
       $('#title_poliza').text('Endoso');
       $('#prima_neta').prop('disabled', false);
       $('#prima_total').prop('disabled', false);
+      $('#conducto_pago').val('Agente');
       $('#ramo').html('');
       $('#subramo').html('');
       $('#aseguradora').html('');
@@ -695,8 +722,8 @@ $(function () {
         $('#notas').val(resp.data[0].notas);
         $('#Moneda').val(normalizeMonedaValue(resp.data[0].moneda));
         $('#conducto_pago').val(resp.data[0].conducto_pago || '');
-        $('#prima_neta').val(resp.data[0].prima_neta);
-        $('#prima_total').val(resp.data[0].prima_total);
+        $('#prima_neta').val(formatCurrencyDisplay(resp.data[0].prima_neta));
+        $('#prima_total').val(formatCurrencyDisplay(resp.data[0].prima_total));
         $('#prima_neta').prop('disabled', true);
         $('#prima_total').prop('disabled', true);
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
@@ -802,6 +829,41 @@ $(function () {
     if (!cleaned) return '';
     const parsed = parseFloat(cleaned);
     return Number.isNaN(parsed) ? '' : parsed.toFixed(2);
+  }
+
+  function getCurrencyFieldValue(selector) {
+    return parseCurrencyInputValue($(selector).val());
+  }
+
+  function bindCurrencyFormatting(selector) {
+    const input = $(selector);
+    input.on('focus', function () {
+      $(this).val(parseCurrencyInputValue($(this).val()));
+    });
+    input.on('blur', function () {
+      $(this).val(formatCurrencyDisplay($(this).val()));
+    });
+  }
+
+  // El form guarda "$9,756.11" para que se vea bien, pero el backend
+  // necesita el número crudo ("9756.11"). Se cambia el valor justo antes
+  // de serializar y se restaura después, para no alterar lo que ve el
+  // usuario en pantalla.
+  function serializeEndosoFormWithRawCurrencyValues() {
+    const primaNetaField = $('#prima_neta');
+    const primaTotalField = $('#prima_total');
+    const originalPrimaNeta = primaNetaField.val();
+    const originalPrimaTotal = primaTotalField.val();
+
+    primaNetaField.val(getCurrencyFieldValue('#prima_neta'));
+    primaTotalField.val(getCurrencyFieldValue('#prima_total'));
+
+    const serialized = $('#form-polizas').serialize();
+
+    primaNetaField.val(originalPrimaNeta);
+    primaTotalField.val(originalPrimaTotal);
+
+    return serialized;
   }
 
   function displayCellValue(value) {
@@ -1017,8 +1079,13 @@ $(function () {
         $('#notas').val(resp.data[0].notas);
         $('#Moneda').val(normalizeMonedaValue(resp.data[0].moneda));
         $('#conducto_pago').val(resp.data[0].conducto_pago || '');
-        $('#prima_neta').val(resp.data[0].prima_neta);
-        $('#prima_total').val(resp.data[0].prima_total);
+        $('#tipo').val(resp.data[0].tipo_endoso);
+        $('#prima_neta').val(formatCurrencyDisplay(resp.data[0].prima_neta));
+        $('#prima_total').val(formatCurrencyDisplay(resp.data[0].prima_total));
+        // Un endoso B solo modifica datos de la póliza (ramo, vigencia,
+        // aseguradora, etc.), nunca primas ni recibos.
+        $('#prima_neta').prop('disabled', resp.data[0].tipo_endoso === 'B');
+        $('#prima_total').prop('disabled', resp.data[0].tipo_endoso === 'B');
         $('#old_prima_neta').val(resp.data[0].prima_neta);
         $('#old_prima_total').val(resp.data[0].prima_total);
         $('#ramo').html(`<option value='${resp.data[0].ramo_id}'>
@@ -1919,7 +1986,7 @@ $(function () {
         return;
       }
 
-      let newParams = $('#form-polizas').serialize();
+      let newParams = serializeEndosoFormWithRawCurrencyValues();
       newParams = `${newParams}&poliza_id=${poliza_id}`;
       $.ajax({
         url: '/polizas/create_endoso',
@@ -1944,7 +2011,7 @@ $(function () {
       return;
     }
 
-    if (prima_neta !== old_prima_neta || prima_total !== old_prima_total) {
+    if ($('#tipo').val() !== 'B' && (prima_neta !== old_prima_neta || prima_total !== old_prima_total)) {
       const resp = await alertConfirm(
         '¿vamos a eliminar los recibos para generarlos nuevamente, estás seguro de continuar?'
       );
@@ -2003,7 +2070,7 @@ $(function () {
         },
       });
     } else {
-      let newParams = $('#form-polizas').serialize();
+      let newParams = serializeEndosoFormWithRawCurrencyValues();
       newParams = `${newParams}&endoso_id=${endoso_id}`;
       $.ajax({
         url: '/polizas/edit_endoso',
@@ -2043,7 +2110,7 @@ $(function () {
     $('#btnGuardar-recibos').prop('disabled', true);
     const endoso_id = $('#endoso_id').val();
     const poliza_id = $('#poliza_id').val();
-    let newParams = $('#form-polizas').serialize();
+    let newParams = serializeEndosoFormWithRawCurrencyValues();
     if ($('#tipo').val() && (!endoso_id || endoso_id === 'New')) {
       try {
         const resp = await $.ajax({
@@ -2199,6 +2266,9 @@ $(function () {
   $('#agente').on('change', function () {
     if (this.value === 'New') $('#nuevo_agente_div').show();
   });
+
+  bindCurrencyFormatting('#prima_neta');
+  bindCurrencyFormatting('#prima_total');
 
   getEndosos();
   resetForm();

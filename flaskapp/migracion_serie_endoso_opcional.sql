@@ -1,0 +1,2 @@
+ALTER TABLE endosos
+    MODIFY COLUMN serie VARCHAR(30) NULL;
