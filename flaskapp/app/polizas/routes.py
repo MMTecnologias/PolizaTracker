@@ -23,7 +23,7 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import aliased
 from app.models import export_to_csv, export_to_pdf
-from app.utils.document_storage import get_carpeta_documento
+from app.utils.document_storage import get_carpeta_documento, get_carpeta_endoso
 from app.utils.pdf_extract import extract_real_pdf
 
 
@@ -610,6 +610,18 @@ def create():
         current_app.logger.exception(
             "[CREATE] Error al guardar la póliza")
         return jsonify({'error': True, 'msg': f'Error al guardar la póliza: {error}'})
+
+    # El PDF (si se subió) quedó en la carpeta temporal vieja porque la
+    # póliza no existía todavía -- ahora que ya tiene id, se mueve a su
+    # carpeta protegida definitiva.
+    if new_poliza.pdf_path:
+        cliente_pdf = _cliente_de_poliza(new_poliza)
+        folder = get_carpeta_documento(cliente_pdf, new_poliza, 'documento_poliza')
+        nuevo_nombre = _finalizar_pdf_temporal(
+            new_poliza.pdf_path, folder, f"p{new_poliza.id}")
+        if nuevo_nombre != new_poliza.pdf_path:
+            new_poliza.pdf_path = nuevo_nombre
+            db.session.commit()
 
     return jsonify({
         'error': False,
@@ -1395,6 +1407,17 @@ def create_endoso():
         db.session.rollback()
         current_app.logger.exception("[CREATE_ENDOSO] Error al guardar el endoso")
         return jsonify({'error': True, 'msg': f'Error al guardar el endoso: {error}'})
+
+    # Igual que con la póliza: el PDF del endoso (si se subió) quedó en la
+    # carpeta temporal vieja porque el endoso no existía todavía.
+    if endoso.pdf_path:
+        cliente_pdf = _cliente_de_poliza(poliza)
+        folder = get_carpeta_endoso(cliente_pdf, poliza, endoso, 'documento_endoso')
+        nuevo_nombre = _finalizar_pdf_temporal(
+            endoso.pdf_path, folder, f"e{endoso.id}")
+        if nuevo_nombre != endoso.pdf_path:
+            endoso.pdf_path = nuevo_nombre
+            db.session.commit()
 
     return jsonify({
         'error': False,
@@ -6627,6 +6650,44 @@ def normalize_filename(filename: str, poliza_num: str = None) -> str:
     ext = base_name.rsplit('.', 1)[1] if '.' in base_name else 'pdf'
 
     return f"{name_without_ext}_{unique_id}.{ext}"
+
+
+def _finalizar_pdf_temporal(temp_pdf_path, folder, prefix):
+    """Al crear una póliza/endoso desde un PDF, ese PDF se sube y se lee
+    ANTES de que la entidad exista (para la extracción con IA), así que se
+    guarda temporalmente en la carpeta pública vieja (static/...) porque
+    todavía no hay un id con el que armar la carpeta protegida.
+
+    Esta función se llama justo después de que la entidad ya se guardó y
+    tiene id: mueve ese archivo temporal a su carpeta protegida definitiva
+    (Cliente_.../Poliza_.../...) y regresa el nombre final (solo el
+    nombre, esquema nuevo) para guardarlo en la BD. Si el PDF ya viene en
+    esquema nuevo, o no hay PDF, lo regresa tal cual sin tocar nada.
+    """
+    if not temp_pdf_path:
+        return temp_pdf_path
+    if not (os.path.isabs(temp_pdf_path) or '/' in temp_pdf_path or '\\' in temp_pdf_path):
+        return temp_pdf_path
+
+    old_full_path = (
+        temp_pdf_path if os.path.isabs(temp_pdf_path)
+        else os.path.join(current_app.root_path, 'static', temp_pdf_path)
+    )
+    if not os.path.exists(old_full_path):
+        current_app.logger.warning(
+            "[FINALIZAR_PDF] archivo temporal no encontrado: %s", old_full_path)
+        return None
+
+    new_filename = f"{prefix}_{uuid.uuid4().hex[:8]}.pdf"
+    with open(old_full_path, 'rb') as f:
+        content = f.read()
+    with open(os.path.join(folder, new_filename), 'wb') as f:
+        f.write(content)
+    try:
+        os.remove(old_full_path)
+    except Exception:
+        pass
+    return new_filename
 
 
 def save_pdf_content(file_content: bytes, filename: str, poliza_num: str = None, trace_id: str = None,

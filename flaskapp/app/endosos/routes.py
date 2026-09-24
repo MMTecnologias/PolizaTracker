@@ -434,18 +434,27 @@ def upload_pdf():
     if not endoso:
         return jsonify({'error': True, 'msg': 'Endoso no encontrado'})
 
+    poliza_del_endoso = Poliza.query.get(endoso.poliza_id)
+    if not poliza_del_endoso:
+        return jsonify({'error': True, 'msg': 'No se encontró la póliza del endoso'})
+    cliente_del_endoso = Cliente.query.get(poliza_del_endoso.cliente_id)
+    folder = get_carpeta_endoso(cliente_del_endoso, poliza_del_endoso, endoso, 'documento_endoso')
+
     old_pdf_path = endoso.pdf_path
-    pdf_path = save_pdf_content(
-        file_content, file.filename, endoso.poliza,
-        trace_id=upload_trace_id,
-        folder_config_key='ENDOSO_PDF_UPLOAD_FOLDER'
-    )
+    pdf_path = f"e{endoso.id}_{uuid.uuid4().hex[:8]}.pdf"
+    with open(os.path.join(folder, pdf_path), 'wb') as f:
+        f.write(file_content)
 
     if old_pdf_path:
-        old_full_path = (
-            old_pdf_path if os.path.isabs(old_pdf_path)
-            else os.path.join(current_app.root_path, 'static', old_pdf_path)
-        )
+        # Esquema viejo (con '/', ruta relativa a static) o nuevo (solo
+        # el nombre, dentro de `folder`).
+        if os.path.isabs(old_pdf_path) or '/' in old_pdf_path or '\\' in old_pdf_path:
+            old_full_path = (
+                old_pdf_path if os.path.isabs(old_pdf_path)
+                else os.path.join(current_app.root_path, 'static', old_pdf_path)
+            )
+        else:
+            old_full_path = os.path.join(folder, secure_filename(old_pdf_path))
         if os.path.exists(old_full_path):
             try:
                 os.remove(old_full_path)
@@ -478,7 +487,18 @@ def download_pdf(endoso_id):
     if not endoso.pdf_path:
         return jsonify({'error': True, 'msg': 'No hay PDF asociado a este endoso'})
 
-    if os.path.isabs(endoso.pdf_path):
+    es_esquema_nuevo = (
+        not os.path.isabs(endoso.pdf_path)
+        and '/' not in endoso.pdf_path
+        and '\\' not in endoso.pdf_path
+    )
+    if es_esquema_nuevo:
+        poliza_del_endoso = Poliza.query.get(endoso.poliza_id)
+        cliente_del_endoso = Cliente.query.get(poliza_del_endoso.cliente_id) if poliza_del_endoso else None
+        directory = get_carpeta_endoso(cliente_del_endoso, poliza_del_endoso, endoso, 'documento_endoso')
+        filename = endoso.pdf_path
+        pdf_full_path = os.path.join(directory, filename)
+    elif os.path.isabs(endoso.pdf_path):
         pdf_full_path = endoso.pdf_path
         directory = os.path.dirname(pdf_full_path)
         filename = os.path.basename(pdf_full_path)
@@ -508,10 +528,21 @@ def delete_pdf(endoso_id):
     if not endoso.pdf_path:
         return jsonify({'error': True, 'msg': 'Este endoso no tiene un PDF cargado'})
 
-    old_full_path = (
-        endoso.pdf_path if os.path.isabs(endoso.pdf_path)
-        else os.path.join(current_app.root_path, 'static', endoso.pdf_path)
+    es_esquema_nuevo = (
+        not os.path.isabs(endoso.pdf_path)
+        and '/' not in endoso.pdf_path
+        and '\\' not in endoso.pdf_path
     )
+    if es_esquema_nuevo:
+        poliza_del_endoso = Poliza.query.get(endoso.poliza_id)
+        cliente_del_endoso = Cliente.query.get(poliza_del_endoso.cliente_id) if poliza_del_endoso else None
+        folder = get_carpeta_endoso(cliente_del_endoso, poliza_del_endoso, endoso, 'documento_endoso')
+        old_full_path = os.path.join(folder, secure_filename(endoso.pdf_path))
+    else:
+        old_full_path = (
+            endoso.pdf_path if os.path.isabs(endoso.pdf_path)
+            else os.path.join(current_app.root_path, 'static', endoso.pdf_path)
+        )
     if os.path.exists(old_full_path):
         try:
             os.remove(old_full_path)

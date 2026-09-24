@@ -84,7 +84,7 @@ def get_carpeta_documento(cliente, poliza, categoria, recibo=None):
     return ruta
 
 
-CATEGORIAS_POR_ENDOSO = ('factura',)
+CATEGORIAS_POR_ENDOSO = ('factura', 'documento_endoso')
 
 
 def _carpeta_endoso(endoso):
