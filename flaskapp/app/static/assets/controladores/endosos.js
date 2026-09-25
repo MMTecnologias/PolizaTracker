@@ -1651,7 +1651,12 @@ $(function () {
         $('#pi-prima_neta').text(p.prima_neta || '-');
         $('#pi-prima_total').text(p.prima_total || '-');
         $('#pi-status').text(p.status || '-');
-        $('#pi-notas').text(p.Notas && p.Notas.trim() ? p.Notas : 'Sin notas');
+        // Se normalizan espacios/saltos de línea del texto guardado (a veces
+        // viene con saltos duros pegados desde Excel/Word cada ~18
+        // caracteres) para que el navegador ajuste el texto por palabra
+        // completa en vez de respetar esos cortes a la mitad de una palabra.
+        var notasTexto = p.Notas && p.Notas.trim() ? p.Notas.replace(/\s+/g, ' ').trim() : 'Sin notas';
+        $('#pi-notas').text(notasTexto);
         $('#poliza-info-content').show();
       },
       error: function (xhr, status, error) {

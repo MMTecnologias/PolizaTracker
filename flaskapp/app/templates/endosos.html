@@ -116,7 +116,8 @@
     }
     .poliza-info-notas {
       font-weight: 400;
-      white-space: pre-wrap;
+      white-space: normal;
+      word-wrap: break-word;
       background: #f7fafc;
       padding: 10px 12px;
       border-radius: 6px;
@@ -835,7 +836,7 @@
   </div>
 
   <!-- main content area end -->
-  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}?v=3"></script>
+  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}?v=4"></script>
   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
