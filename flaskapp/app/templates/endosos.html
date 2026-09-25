@@ -90,39 +90,6 @@
     #tablaRecibosCompacta.tiene-cancelados .col-cancelado {
       display: table-cell;
     }
-    /* Modal "Información de la Póliza": grilla de etiqueta/valor, mismo
-       tono que el resto de la app en vez del listado de <p> plano. */
-    .poliza-info-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px 24px;
-    }
-    .poliza-info-item--full {
-      grid-column: 1 / -1;
-    }
-    .poliza-info-label {
-      display: block;
-      font-size: 12px;
-      color: #8a94a6;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-      margin-bottom: 2px;
-    }
-    .poliza-info-value {
-      display: block;
-      font-size: 15px;
-      font-weight: 600;
-      color: #1a1a1a;
-    }
-    .poliza-info-notas {
-      font-weight: 400;
-      white-space: pre-wrap;
-      background: #f7fafc;
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin: 0;
-      min-height: 20px;
-    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
 </head>
@@ -522,8 +489,8 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h4 class="header-title mb-0" id="polizaInfoTitle">Información de la Póliza</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+          <h5 class="modal-title" id="polizaInfoTitle">Información de la Póliza</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -532,68 +499,36 @@
             <div class="spinner-border text-primary" role="status"></div>
             <p class="mt-2">Cargando información...</p>
           </div>
-          <div id="poliza-info-content" class="poliza-info-grid" style="display: none;">
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Póliza</span>
-              <span class="poliza-info-value" id="pi-poliza"></span>
+          <div id="poliza-info-content" style="display: none;">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Póliza:</strong> <span id="pi-poliza"></span></p>
+                <p><strong>Cliente:</strong> <span id="pi-cliente"></span></p>
+                <p><strong>Aseguradora:</strong> <span id="pi-aseguradora"></span></p>
+                <p><strong>Ramo:</strong> <span id="pi-ramo"></span></p>
+                <p><strong>Subramo:</strong> <span id="pi-subramo"></span></p>
+                <p><strong>Moneda:</strong> <span id="pi-moneda"></span></p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Vigencia:</strong> <span id="pi-vigencia"></span></p>
+                <p><strong>Forma de Pago:</strong> <span id="pi-tipoPago"></span></p>
+                <p><strong>Vendedor:</strong> <span id="pi-vendedor"></span></p>
+                <p><strong>Agente:</strong> <span id="pi-agente"></span></p>
+                <p><strong>Prima Neta:</strong> <span id="pi-prima_neta"></span></p>
+                <p><strong>Prima Total:</strong> <span id="pi-prima_total"></span></p>
+                <p><strong>Estado:</strong> <span id="pi-status"></span></p>
+              </div>
             </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Cliente</span>
-              <span class="poliza-info-value" id="pi-cliente"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Estado</span>
-              <span class="poliza-info-value" id="pi-status"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Aseguradora</span>
-              <span class="poliza-info-value" id="pi-aseguradora"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Ramo</span>
-              <span class="poliza-info-value" id="pi-ramo"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Subramo</span>
-              <span class="poliza-info-value" id="pi-subramo"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Vigencia</span>
-              <span class="poliza-info-value" id="pi-vigencia"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Moneda</span>
-              <span class="poliza-info-value" id="pi-moneda"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Forma de Pago</span>
-              <span class="poliza-info-value" id="pi-tipoPago"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Vendedor</span>
-              <span class="poliza-info-value" id="pi-vendedor"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Agente</span>
-              <span class="poliza-info-value" id="pi-agente"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Prima Neta</span>
-              <span class="poliza-info-value" id="pi-prima_neta"></span>
-            </div>
-            <div class="poliza-info-item">
-              <span class="poliza-info-label">Prima Total</span>
-              <span class="poliza-info-value" id="pi-prima_total"></span>
-            </div>
-            <div class="poliza-info-item poliza-info-item--full">
-              <span class="poliza-info-label">Notas</span>
-              <pre class="poliza-info-value poliza-info-notas" id="pi-notas"></pre>
+            <div class="row">
+              <div class="col-12">
+                <p><strong>Notas:</strong></p>
+                <div id="pi-notas" style="white-space: normal; word-wrap: break-word; background: #f5f5f5; padding: 8px; border-radius: 4px;"></div>
+              </div>
             </div>
           </div>
           <div id="poliza-info-error" class="alert alert-danger" style="display: none;"></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn" id="btnEditarPolizaDesdeEndoso">Editar póliza</button>
           <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
         </div>
       </div>
@@ -691,9 +626,6 @@
           </button>
         </div>
         <div id="alert_Modal" class="alert alert-warning" role="alert" style="display: none;"></div>
-        <div id="alert_devolucion" class="alert alert-info" role="alert" style="display: none;">
-          Endoso de <strong>devolución</strong>: los montos deben capturarse en negativo.
-        </div>
         <div class="modal-body pt-1">
           <div class="row pb-4">
             <div class="col-12">
@@ -835,7 +767,7 @@
   </div>
 
   <!-- main content area end -->
-  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}?v=3"></script>
+  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}?v=4"></script>
   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>

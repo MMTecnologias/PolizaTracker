@@ -589,7 +589,6 @@ $(function () {
             ? parseFloat(endosoEnEdicion.comision).toFixed(2)
             : '10',
         );
-        $('#alert_devolucion').toggle($('#tipo').val() === 'D');
         hideModalEndosoThenShow('#create-recib', { backdrop: 'static', keyboard: false });
         $('#receipts_created').val('no');
       },
@@ -620,7 +619,8 @@ $(function () {
       $('#div_poliza_id').show();
       $('#div_search_client').show();
       $('#title_poliza').text('Endoso');
-      $('#form-polizas input, #form-polizas select, #form-polizas textarea').prop('disabled', false);
+      $('#prima_neta').prop('disabled', false);
+      $('#prima_total').prop('disabled', false);
       $('#conducto_pago').val('Agente');
       $('#ramo').html('');
       $('#subramo').html('');
@@ -769,10 +769,6 @@ $(function () {
             ${resp.data[0].agente}
             </option>
         `);
-        // "Ver detalle" es solo lectura: se bloquea TODO el formulario
-        // (antes solo primas -- cliente, serie, vigencia, moneda, notas,
-        // etc. se podían escribir aunque no hubiera botón para guardar).
-        $('#form-polizas input, #form-polizas select, #form-polizas textarea').prop('disabled', true);
         console.log(resp.data[0]);
       },
       error: (xhr, status, error) => console.error(error),
@@ -1039,7 +1035,7 @@ $(function () {
       });
       $row.find('.js-cargar-factura').on('click', (e) => {
         e.preventDefault();
-        uploadEndosoFactura(endoso.id, () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * endososItemsOnPage));
+        uploadEndosoFactura(endoso.id, () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA));
       });
       $row.find('.js-sin-pdf').on('click', (e) => {
         e.stopPropagation();
@@ -1578,7 +1574,7 @@ $(function () {
   // El PDF propio del endoso (no la factura): una vez cargado solo se podía
   // ver, sin forma de quitarlo ni reemplazarlo desde la interfaz.
   function viewEndosoPdf(endoso) {
-    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * endososItemsOnPage);
+    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA);
     mostrarDocumentos(`PDF — Endoso ${endoso.endoso}`, [{
       key: 'pdf',
       tiene: !!endoso.pdf_path,
@@ -1593,7 +1589,7 @@ $(function () {
   }
 
   function viewEndosoFactura(endoso) {
-    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * endososItemsOnPage);
+    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA);
     const doc = (tipo) => ({
       key: `factura_${tipo}`,
       tiene: !!endoso[`factura_${tipo}`],
@@ -1613,9 +1609,6 @@ $(function () {
       alert('No se encontró el ID de la póliza', 'error', 'Error');
       return;
     }
-    $('#btnEditarPolizaDesdeEndoso').off('click').on('click', () => {
-      window.open(`/polizas?editar_id=${poliza_id}`, '_blank');
-    });
     $('#poliza-info-loading').show();
     $('#poliza-info-content').hide();
     $('#poliza-info-error').hide();
@@ -1651,7 +1644,12 @@ $(function () {
         $('#pi-prima_neta').text(p.prima_neta || '-');
         $('#pi-prima_total').text(p.prima_total || '-');
         $('#pi-status').text(p.status || '-');
-        $('#pi-notas').text(p.Notas && p.Notas.trim() ? p.Notas : 'Sin notas');
+        // Se normalizan espacios/saltos de línea del texto guardado (a veces
+        // viene con saltos duros pegados desde Excel/Word cada ~18
+        // caracteres) para que el navegador ajuste el texto por palabra
+        // completa en vez de respetar esos cortes a la mitad de una palabra.
+        var notasTexto = p.Notas && p.Notas.trim() ? p.Notas.replace(/\s+/g, ' ').trim() : 'Sin notas';
+        $('#pi-notas').text(notasTexto);
         $('#poliza-info-content').show();
       },
       error: function (xhr, status, error) {
@@ -1667,14 +1665,7 @@ $(function () {
   // ---------------------------------------------------------------------
   // Listado, búsqueda, filtros y exportación (igual que en pólizas)
   // ---------------------------------------------------------------------
-  // Filas por página: NO es un número fijo (a diferencia de la versión
-  // anterior, ENDOSOS_POR_PAGINA=10) -- se recalcula según cuántas filas
-  // caben de verdad en la pantalla, igual que en pólizas, para que la
-  // tabla llene el espacio disponible en vez de dejar hueco gris abajo
-  // cuando la ventana es grande.
-  let endososItemsOnPage = 10;
-  let endososAutoAdjustAttempts = 0;
-  const ENDOSOS_MAX_AUTO_ADJUST_ATTEMPTS = 5;
+  const ENDOSOS_POR_PAGINA = 10;
   let endososPaginaActual = 1;
   let totalEndosos = 0;
   let endososRequest = null;
@@ -1697,11 +1688,10 @@ $(function () {
 
   // Solo se pinta la respuesta de la ÚLTIMA petición: si el usuario escribe
   // rápido, una respuesta vieja ya no puede tapar los resultados correctos.
-  function getEndosos(pageNumber = 1, start = 0, isAutoAdjust = false) {
-    if (!isAutoAdjust) endososAutoAdjustAttempts = 0;
+  function getEndosos(pageNumber = 1, start = 0) {
     endososPaginaActual = pageNumber;
     const searchValue = $('#searchEndoso').val().trim();
-    const params = { start, length: endososItemsOnPage, order: true, ...getFiltrosEndosos() };
+    const params = { start, length: ENDOSOS_POR_PAGINA, order: true, ...getFiltrosEndosos() };
     if (searchValue) params.searchValue = searchValue;
     const seq = ++endososRequestSeq;
     if (endososRequest) endososRequest.abort();
@@ -1712,67 +1702,11 @@ $(function () {
       success: (resp) => {
         if (seq !== endososRequestSeq) return;
         totalEndosos = resp.recordsTotal || 0;
-        fillTableEndosos(resp, pageNumber, endososItemsOnPage);
-        if (!isAutoAdjust) adjustEndososItemsOnPageAndReload();
+        fillTableEndosos(resp, pageNumber, ENDOSOS_POR_PAGINA);
       },
       error: (xhr, status, error) => {
         if (status !== 'abort') console.error(error);
       },
-    });
-  }
-
-  // Mide el alto real ya renderizado (fila + encabezado + paginador) contra
-  // el espacio disponible en la ventana y pide exactamente las filas que
-  // caben. Misma lógica ya probada en polizas.js, con los nombres de esta
-  // página. Reintenta (con tope) porque la primera medición puede salir
-  // corta si las fuentes web (@font-face) aún no habían cargado.
-  function adjustEndososItemsOnPageAndReload() {
-    if (endososAutoAdjustAttempts >= ENDOSOS_MAX_AUTO_ADJUST_ATTEMPTS) {
-  return;
-    }
-
-    const $scrollWrap = $('#table-polizas .table-polizas__scroll');
-    const $thead = $scrollWrap.find('thead');
-    const $firstRow = $('#polizas-table tr').first();
-    const $pagination = $('.table-polizas__pagination');
-if (!$scrollWrap.length || !$firstRow.length) return;
-
-    const top = $scrollWrap[0].getBoundingClientRect().top;
-    const theadHeight = $thead.length ? $thead[0].getBoundingClientRect().height : 0;
-    const rowHeight = $firstRow[0].getBoundingClientRect().height;
-    const paginacionHeight = $pagination.length ? $pagination.outerHeight(true) : 60;
-    const margenInferior = 16;
-    if (!rowHeight) return;
-
-    const disponible = window.innerHeight - top - theadHeight - paginacionHeight - margenInferior;
-    const idealCount = Math.max(5, Math.floor(disponible / rowHeight));
-if (idealCount === endososItemsOnPage) return;
-
-    endososAutoAdjustAttempts += 1;
-    endososItemsOnPage = idealCount;
-    const start = (endososPaginaActual - 1) * idealCount;
-    getEndosos(endososPaginaActual, start, true);
-  }
-
-  let endososResizeDebounce = null;
-  $(window).on('resize', () => {
-    clearTimeout(endososResizeDebounce);
-    endososResizeDebounce = setTimeout(() => {
-      endososAutoAdjustAttempts = 0;
-      adjustEndososItemsOnPageAndReload();
-    }, 200);
-  });
-
-  // La señal principal de "ya hay filas para medir" es el propio éxito de
-  // getEndosos() (arriba, en su 'success'). document.fonts.ready se deja
-  // como respaldo, por si una fuente web (@font-face) termina de cargar
-  // DESPUÉS y cambia el alto real de fila. 'window.load' NO se usa: ese
-  // evento espera recursos (imágenes, CSS, scripts) pero NO peticiones
-  // AJAX -- puede disparar con la tabla todavía vacía.
-  if (window.document && document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      endososAutoAdjustAttempts = 0;
-      adjustEndososItemsOnPageAndReload();
     });
   }
 
@@ -2096,14 +2030,6 @@ if (idealCount === endososItemsOnPage) return;
       $('#tipo').val(tipoResp.value);
 
       if (tipoResp.value === 'A' || tipoResp.value === 'D') {
-        if (tipoResp.value === 'D' && (prima_neta > 0 || prima_total > 0)) {
-          alert(
-            'Este es un endoso de devolución: la prima neta y la prima total deben ser negativas (o cero).',
-            'error',
-            'Revisa los montos',
-          );
-          return;
-        }
         openReceiptsModalForEndoso(params, poliza_id);
         return;
       }
@@ -2200,23 +2126,6 @@ if (idealCount === endososItemsOnPage) return;
     if (!this.checkValidity()) {
       $(this).addClass('was-validated');
       return;
-    }
-    // Un endoso D es una devolución: si algún monto viene en positivo,
-    // el usuario seguramente olvidó el signo -- se bloquea el guardado en
-    // vez de crear un cobro donde debía ir un reembolso.
-    if ($('#tipo').val() === 'D') {
-      const montos = [
-        parseFloat($('#prima-neta').val()) || 0,
-        parseFloat($('#prima-total').val()) || 0,
-      ];
-      if (montos.some((m) => m > 0)) {
-        alert(
-          'Este es un endoso de devolución: la prima neta y la prima total deben ser negativas (o cero).',
-          'error',
-          'Revisa los montos',
-        );
-        return;
-      }
     }
     receiptSaveInProgress = true;
     $('#btnGuardar-recibos').prop('disabled', true);
