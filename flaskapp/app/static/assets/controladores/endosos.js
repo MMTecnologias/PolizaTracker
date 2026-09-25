@@ -1039,7 +1039,7 @@ $(function () {
       });
       $row.find('.js-cargar-factura').on('click', (e) => {
         e.preventDefault();
-        uploadEndosoFactura(endoso.id, () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA));
+        uploadEndosoFactura(endoso.id, () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * endososItemsOnPage));
       });
       $row.find('.js-sin-pdf').on('click', (e) => {
         e.stopPropagation();
@@ -1578,7 +1578,7 @@ $(function () {
   // El PDF propio del endoso (no la factura): una vez cargado solo se podía
   // ver, sin forma de quitarlo ni reemplazarlo desde la interfaz.
   function viewEndosoPdf(endoso) {
-    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA);
+    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * endososItemsOnPage);
     mostrarDocumentos(`PDF — Endoso ${endoso.endoso}`, [{
       key: 'pdf',
       tiene: !!endoso.pdf_path,
@@ -1593,7 +1593,7 @@ $(function () {
   }
 
   function viewEndosoFactura(endoso) {
-    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * ENDOSOS_POR_PAGINA);
+    const recargar = () => getEndosos(endososPaginaActual, (endososPaginaActual - 1) * endososItemsOnPage);
     const doc = (tipo) => ({
       key: `factura_${tipo}`,
       tiene: !!endoso[`factura_${tipo}`],
@@ -1667,7 +1667,14 @@ $(function () {
   // ---------------------------------------------------------------------
   // Listado, búsqueda, filtros y exportación (igual que en pólizas)
   // ---------------------------------------------------------------------
-  const ENDOSOS_POR_PAGINA = 10;
+  // Filas por página: NO es un número fijo (a diferencia de la versión
+  // anterior, ENDOSOS_POR_PAGINA=10) -- se recalcula según cuántas filas
+  // caben de verdad en la pantalla, igual que en pólizas, para que la
+  // tabla llene el espacio disponible en vez de dejar hueco gris abajo
+  // cuando la ventana es grande.
+  let endososItemsOnPage = 10;
+  let endososAutoAdjustAttempts = 0;
+  const ENDOSOS_MAX_AUTO_ADJUST_ATTEMPTS = 5;
   let endososPaginaActual = 1;
   let totalEndosos = 0;
   let endososRequest = null;
@@ -1690,10 +1697,11 @@ $(function () {
 
   // Solo se pinta la respuesta de la ÚLTIMA petición: si el usuario escribe
   // rápido, una respuesta vieja ya no puede tapar los resultados correctos.
-  function getEndosos(pageNumber = 1, start = 0) {
+  function getEndosos(pageNumber = 1, start = 0, isAutoAdjust = false) {
+    if (!isAutoAdjust) endososAutoAdjustAttempts = 0;
     endososPaginaActual = pageNumber;
     const searchValue = $('#searchEndoso').val().trim();
-    const params = { start, length: ENDOSOS_POR_PAGINA, order: true, ...getFiltrosEndosos() };
+    const params = { start, length: endososItemsOnPage, order: true, ...getFiltrosEndosos() };
     if (searchValue) params.searchValue = searchValue;
     const seq = ++endososRequestSeq;
     if (endososRequest) endososRequest.abort();
@@ -1704,13 +1712,79 @@ $(function () {
       success: (resp) => {
         if (seq !== endososRequestSeq) return;
         totalEndosos = resp.recordsTotal || 0;
-        fillTableEndosos(resp, pageNumber, ENDOSOS_POR_PAGINA);
+        fillTableEndosos(resp, pageNumber, endososItemsOnPage);
+        if (!isAutoAdjust) adjustEndososItemsOnPageAndReload();
       },
       error: (xhr, status, error) => {
         if (status !== 'abort') console.error(error);
       },
     });
   }
+
+  // Mide el alto real ya renderizado (fila + encabezado + paginador) contra
+  // el espacio disponible en la ventana y pide exactamente las filas que
+  // caben. Misma lógica ya probada en polizas.js, con los nombres de esta
+  // página. Reintenta (con tope) porque la primera medición puede salir
+  // corta si las fuentes web (@font-face) aún no habían cargado.
+  function adjustEndososItemsOnPageAndReload() {
+    if (endososAutoAdjustAttempts >= ENDOSOS_MAX_AUTO_ADJUST_ATTEMPTS) {
+  return;
+    }
+
+    const $scrollWrap = $('#table-polizas .table-polizas__scroll');
+    const $thead = $scrollWrap.find('thead');
+    const $firstRow = $('#polizas-table tr').first();
+    const $pagination = $('.table-polizas__pagination');
+if (!$scrollWrap.length || !$firstRow.length) return;
+
+    const top = $scrollWrap[0].getBoundingClientRect().top;
+    const theadHeight = $thead.length ? $thead[0].getBoundingClientRect().height : 0;
+    const rowHeight = $firstRow[0].getBoundingClientRect().height;
+    const paginacionHeight = $pagination.length ? $pagination.outerHeight(true) : 60;
+    const margenInferior = 16;
+    if (!rowHeight) return;
+
+    const disponible = window.innerHeight - top - theadHeight - paginacionHeight - margenInferior;
+    const idealCount = Math.max(5, Math.floor(disponible / rowHeight));
+if (idealCount === endososItemsOnPage) return;
+
+    endososAutoAdjustAttempts += 1;
+    endososItemsOnPage = idealCount;
+    const start = (endososPaginaActual - 1) * idealCount;
+    getEndosos(endososPaginaActual, start, true);
+  }
+
+  let endososResizeDebounce = null;
+  $(window).on('resize', () => {
+    clearTimeout(endososResizeDebounce);
+    endososResizeDebounce = setTimeout(() => {
+      endososAutoAdjustAttempts = 0;
+      adjustEndososItemsOnPageAndReload();
+    }, 200);
+  });
+
+  if (window.document && document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      endososAutoAdjustAttempts = 0;
+      adjustEndososItemsOnPageAndReload();
+    });
+  }
+
+  // El evento 'load' de la ventana solo se dispara UNA vez -- si la página
+  // ya terminó de cargar (readyState 'complete') antes de que este script
+  // llegara a registrarse (puede pasar con conexiones rápidas/todo en
+  // caché), esperar a 'load' nunca dispara nada. Si ya está completo, se
+  // ajusta de inmediato; si no, se espera al evento como siempre.
+  // 'window.load' NO sirve como señal de "ya hay filas": ese evento espera
+  // recursos (imágenes, CSS, scripts) pero NO peticiones AJAX -- puede
+  // disparar con la tabla todavía vacía. La señal correcta de "ya hay
+  // filas para medir" es el propio éxito de getEndosos() (más abajo, en su
+  // 'success'). document.fonts.ready se deja como respaldo, por si una
+  // fuente web termina de cargar DESPUÉS y cambia el alto real de fila.
+  document.fonts && document.fonts.ready && document.fonts.ready.then(() => {
+    endososAutoAdjustAttempts = 0;
+    adjustEndososItemsOnPageAndReload();
+  });
 
   function getRecibos(endoso_id, poliza_id, pageNumber = 1, start = 0) {
     const length = 10;
