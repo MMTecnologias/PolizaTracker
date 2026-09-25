@@ -1763,28 +1763,18 @@ if (idealCount === endososItemsOnPage) return;
     }, 200);
   });
 
+  // La señal principal de "ya hay filas para medir" es el propio éxito de
+  // getEndosos() (arriba, en su 'success'). document.fonts.ready se deja
+  // como respaldo, por si una fuente web (@font-face) termina de cargar
+  // DESPUÉS y cambia el alto real de fila. 'window.load' NO se usa: ese
+  // evento espera recursos (imágenes, CSS, scripts) pero NO peticiones
+  // AJAX -- puede disparar con la tabla todavía vacía.
   if (window.document && document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => {
       endososAutoAdjustAttempts = 0;
       adjustEndososItemsOnPageAndReload();
     });
   }
-
-  // El evento 'load' de la ventana solo se dispara UNA vez -- si la página
-  // ya terminó de cargar (readyState 'complete') antes de que este script
-  // llegara a registrarse (puede pasar con conexiones rápidas/todo en
-  // caché), esperar a 'load' nunca dispara nada. Si ya está completo, se
-  // ajusta de inmediato; si no, se espera al evento como siempre.
-  // 'window.load' NO sirve como señal de "ya hay filas": ese evento espera
-  // recursos (imágenes, CSS, scripts) pero NO peticiones AJAX -- puede
-  // disparar con la tabla todavía vacía. La señal correcta de "ya hay
-  // filas para medir" es el propio éxito de getEndosos() (más abajo, en su
-  // 'success'). document.fonts.ready se deja como respaldo, por si una
-  // fuente web termina de cargar DESPUÉS y cambia el alto real de fila.
-  document.fonts && document.fonts.ready && document.fonts.ready.then(() => {
-    endososAutoAdjustAttempts = 0;
-    adjustEndososItemsOnPageAndReload();
-  });
 
   function getRecibos(endoso_id, poliza_id, pageNumber = 1, start = 0) {
     const length = 10;
