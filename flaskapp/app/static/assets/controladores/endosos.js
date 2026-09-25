@@ -589,6 +589,7 @@ $(function () {
             ? parseFloat(endosoEnEdicion.comision).toFixed(2)
             : '10',
         );
+        $('#alert_devolucion').toggle($('#tipo').val() === 'D');
         hideModalEndosoThenShow('#create-recib', { backdrop: 'static', keyboard: false });
         $('#receipts_created').val('no');
       },
@@ -619,8 +620,7 @@ $(function () {
       $('#div_poliza_id').show();
       $('#div_search_client').show();
       $('#title_poliza').text('Endoso');
-      $('#prima_neta').prop('disabled', false);
-      $('#prima_total').prop('disabled', false);
+      $('#form-polizas input, #form-polizas select, #form-polizas textarea').prop('disabled', false);
       $('#conducto_pago').val('Agente');
       $('#ramo').html('');
       $('#subramo').html('');
@@ -769,6 +769,10 @@ $(function () {
             ${resp.data[0].agente}
             </option>
         `);
+        // "Ver detalle" es solo lectura: se bloquea TODO el formulario
+        // (antes solo primas -- cliente, serie, vigencia, moneda, notas,
+        // etc. se podían escribir aunque no hubiera botón para guardar).
+        $('#form-polizas input, #form-polizas select, #form-polizas textarea').prop('disabled', true);
         console.log(resp.data[0]);
       },
       error: (xhr, status, error) => console.error(error),
@@ -1609,6 +1613,9 @@ $(function () {
       alert('No se encontró el ID de la póliza', 'error', 'Error');
       return;
     }
+    $('#btnEditarPolizaDesdeEndoso').off('click').on('click', () => {
+      window.open(`/polizas?editar_id=${poliza_id}`, '_blank');
+    });
     $('#poliza-info-loading').show();
     $('#poliza-info-content').hide();
     $('#poliza-info-error').hide();
@@ -2025,6 +2032,14 @@ $(function () {
       $('#tipo').val(tipoResp.value);
 
       if (tipoResp.value === 'A' || tipoResp.value === 'D') {
+        if (tipoResp.value === 'D' && (prima_neta > 0 || prima_total > 0)) {
+          alert(
+            'Este es un endoso de devolución: la prima neta y la prima total deben ser negativas (o cero).',
+            'error',
+            'Revisa los montos',
+          );
+          return;
+        }
         openReceiptsModalForEndoso(params, poliza_id);
         return;
       }
@@ -2121,6 +2136,23 @@ $(function () {
     if (!this.checkValidity()) {
       $(this).addClass('was-validated');
       return;
+    }
+    // Un endoso D es una devolución: si algún monto viene en positivo,
+    // el usuario seguramente olvidó el signo -- se bloquea el guardado en
+    // vez de crear un cobro donde debía ir un reembolso.
+    if ($('#tipo').val() === 'D') {
+      const montos = [
+        parseFloat($('#prima-neta').val()) || 0,
+        parseFloat($('#prima-total').val()) || 0,
+      ];
+      if (montos.some((m) => m > 0)) {
+        alert(
+          'Este es un endoso de devolución: la prima neta y la prima total deben ser negativas (o cero).',
+          'error',
+          'Revisa los montos',
+        );
+        return;
+      }
     }
     receiptSaveInProgress = true;
     $('#btnGuardar-recibos').prop('disabled', true);

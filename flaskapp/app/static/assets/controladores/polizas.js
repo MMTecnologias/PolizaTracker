@@ -3984,4 +3984,13 @@ $(function () {
   if (renovarIdDesdeUrl) {
     renewPoliza(renovarIdDesdeUrl);
   }
+
+  // Igual que "?renovar_id=" pero para editar directo: se usa desde el
+  // botón "Editar póliza" del módulo de Endosos ("Ver póliza" -> editar),
+  // así no hay que reimplementar la edición completa (con regeneración de
+  // recibos) ahí; se reutiliza esta, ya probada.
+  const editarIdDesdeUrl = parametrosUrl.get('editar_id');
+  if (editarIdDesdeUrl) {
+    editPoliza(editarIdDesdeUrl);
+  }
 });
