@@ -148,6 +148,7 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
             'tipoEndoso': endoso.tipo_endoso,
             'polizaId': endoso.poliza_id,
             'poliza': endoso.poliza,
+            'serie': endoso.serie,
             'tipo': subramo,
             'compania': aseguradora,
             'inicioVigencia': endoso.fecha_inicio.strftime('%d/%m/%Y'),

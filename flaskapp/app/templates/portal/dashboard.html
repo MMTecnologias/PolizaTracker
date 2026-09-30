@@ -1338,7 +1338,7 @@
                     <!-- SEARCH & FILTER BAR for ENDOSOS -->
                     <div class="section-toolbar">
                         <div class="search-section">
-                            <input type="text" class="search-input" id="searchEndosos" placeholder="Buscar endoso por número, póliza o aseguradora...">
+                            <input type="text" class="search-input" id="searchEndosos" placeholder="Buscar endoso por número, póliza, serie o aseguradora...">
                         </div>
                         <button class="filter-toggle" id="filterToggleEndosos">
                             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
@@ -1481,6 +1481,14 @@
                                 <label>Póliza</label>
                                 <select id="polizaFilterRecibos">
                                     <option value="">Todas las pólizas</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Tipo</label>
+                                <select id="tipoFilterRecibos">
+                                    <option value="">Pólizas y endosos</option>
+                                    <option value="poliza">Solo pólizas</option>
+                                    <option value="endoso">Solo endosos</option>
                                 </select>
                             </div>
                             <div class="filter-group">
@@ -1681,6 +1689,7 @@
                     tieneFacturaXml: !!e.tieneFacturaXml,
                     moneda: e.moneda,
                     notas: e.notas || null,
+                    serie: e.serie || null,
                 }));
 
                 const recibos = bloque.recibos.map(r => {
@@ -2034,7 +2043,7 @@
             const fechaHastaVal = document.getElementById('fechaHastaFilterEndosos').value;
 
             let filtrado = data.endosos.filter(e => {
-                if (searchVal && !`${e.numero} ${e.poliza} ${e.compania}`.toLowerCase().includes(searchVal)) return false;
+                if (searchVal && !`${e.numero} ${e.poliza} ${e.compania} ${e.serie || ''}`.toLowerCase().includes(searchVal)) return false;
                 if (polizaVal && String(e.polizaId) !== polizaVal) return false;
                 if (aseguradoraVal && e.compania !== aseguradoraVal) return false;
                 if (estadoVal && e.estado !== estadoVal) return false;
@@ -2070,7 +2079,7 @@
                 <div class="item-card">
                     <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
-                            <div class="item-title">Endoso ${e.numero} <span style="font-size:0.95em; font-weight:600; opacity:0.85;">· Póliza ${e.poliza}</span></div>
+                            <div class="item-title">Endoso ${e.numero} <span style="font-size:0.95em; font-weight:600; opacity:0.85;">· Póliza ${e.poliza}${e.serie ? ` · Serie: ${e.serie}` : ''}</span></div>
                             <div class="item-subtitle">${e.titular ? e.titular + ' • ' : ''}${nombreTipoEndoso[e.tipoEndoso] || e.tipoEndoso} • ${e.tipo} • ${e.compania}</div>
                             <div class="item-status status-${estadoClase(e.estado)}">
                                 <svg class="icon" style="width: 14px; height: 14px; margin-right: 0.3rem;" viewBox="0 0 24 24" fill="currentColor">
@@ -2190,7 +2199,7 @@
                 `Mostrando ${sorted.length} de ${data.siniestros.length} siniestros`;
 
             if (data.siniestros.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No hay siniestros registrados</div></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚧</div><div class="empty-state-text">Este módulo está en construcción — próximamente podrás ver tus siniestros aquí</div></div>';
                 return;
             }
 
@@ -2272,6 +2281,7 @@
             const container = document.getElementById('recibosContainer');
             const searchVal = document.getElementById('searchRecibos').value.trim().toLowerCase();
             const polizaVal = document.getElementById('polizaFilterRecibos').value;
+            const tipoVal = document.getElementById('tipoFilterRecibos').value;
             const aseguradoraVal = document.getElementById('aseguradoraFilterRecibos').value;
             const estadoVal = document.getElementById('estadoFilterRecibos').value;
             const fechaDesdeVal = document.getElementById('fechaDesdeFilterRecibos').value;
@@ -2281,6 +2291,8 @@
             let filtrado = data.recibos.filter(r => {
                 if (searchVal && !`${r.numero} ${r.poliza} ${r.concepto} ${r.endosoNumero || ''}`.toLowerCase().includes(searchVal)) return false;
                 if (polizaVal && String(r.polizaId) !== polizaVal) return false;
+                if (tipoVal === 'poliza' && r.esEndoso) return false;
+                if (tipoVal === 'endoso' && !r.esEndoso) return false;
                 if (aseguradoraVal && r.aseguradora !== aseguradoraVal) return false;
 
                 const fechaRecibo = parseFechaMX(r.fecha);
@@ -2311,7 +2323,7 @@
             container.innerHTML = sorted.map(r => {
                 const real = estadoRealRecibo(r);
                 const yaPagado = real === 'Liquidado';
-                const etiquetaTipo = r.esEndoso ? `Endoso ${r.endosoNumero}` : 'Póliza';
+                const etiquetaTipo = r.esEndoso ? 'Endoso' : 'Póliza';
                 const etiquetaTipoEstilo = r.esEndoso
                     ? 'background:#fef3c7; color:#92400e;'
                     : 'background:#e0f2fe; color:#075985;';
@@ -2617,7 +2629,7 @@
             renderSiniestros
         );
         conectarControles(
-            ['searchRecibos', 'polizaFilterRecibos', 'aseguradoraFilterRecibos', 'estadoFilterRecibos',
+            ['searchRecibos', 'polizaFilterRecibos', 'tipoFilterRecibos', 'aseguradoraFilterRecibos', 'estadoFilterRecibos',
              'fechaDesdeFilterRecibos', 'fechaHastaFilterRecibos', 'sortRecibos'],
             renderRecibos
         );
