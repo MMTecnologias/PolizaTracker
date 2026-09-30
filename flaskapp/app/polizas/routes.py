@@ -3502,6 +3502,23 @@ def extract_structured_premium_values(text: str) -> dict:
         if not row:
             continue
 
+        # Antes de aceptar esta fila como la fila real de montos, se valida
+        # que en verdad "se vea como" una fila de dinero: al menos 4
+        # cifras con formato de dinero de verdad (separador de miles o
+        # punto decimal). Esto evita que el regex caiga en una línea que
+        # no tiene nada que ver -- p.ej. pólizas de ANA donde "Prima Neta"
+        # y "Prima Total" van en la MISMA línea que sus propios montos
+        # (sin fila aparte debajo), así que la "siguiente línea" que
+        # captura el regex termina siendo la descripción del vehículo
+        # ("9-150 E 4X2..."), y esos números sueltos (9, 150, 4, 2) se
+        # colaban como si fueran prima_neta/prima_total.
+        montos_con_formato_dinero = re.findall(
+            r'\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+\.\d{2}',
+            row
+        )
+        if len(montos_con_formato_dinero) < 4:
+            continue
+
         amounts = [
             normalize_amount_value(value)
             for value in re.findall(r'(?:\$\s*)?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)', row)
