@@ -82,21 +82,25 @@ $(function () {
       }
     }
 
-    // Avance continuo tipo ease-out: en cada tick sube una fracción de lo
-    // que le falta para llegar al tope simulado, así que va rápido al
-    // inicio y se hace más lento según se acerca — nunca "brinca" y nunca
-    // se estanca del todo.
+    // Avance continuo tipo ease-out, mucho más lento que antes: en cada
+    // tick sube una fracción chica de lo que le falta para llegar al tope
+    // simulado, así que va rápido al inicio y se hace más lento según se
+    // acerca — nunca "brinca" y nunca se estanca del todo.
     const tickId = setInterval(() => {
-      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.006);
-    }, 100);
+      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.0015);
 
-    // Solo cambia el texto del título en el DOM (nunca Swal.update, para
-    // no re-renderizar el html y no reiniciar el anillo).
-    const mensajeId = setInterval(() => {
-      idxMensaje = Math.min(idxMensaje + 1, mensajes.length - 1);
-      const tituloEl = Swal.getTitle();
-      if (tituloEl) tituloEl.textContent = mensajes[idxMensaje];
-    }, 2200);
+      // El mensaje ya no cambia por tiempo fijo: cambia cada vez que el
+      // anillo cruza un nuevo escalón de 20% (0-20, 20-40, 40-60...), así
+      // que va exactamente al mismo ritmo (lento) que el anillo. Solo se
+      // toca el texto del título en el DOM (nunca Swal.update, para no
+      // re-renderizar el html y no reiniciar el anillo).
+      const nuevoIdxMensaje = Math.min(Math.floor(pct / 20), mensajes.length - 1);
+      if (nuevoIdxMensaje !== idxMensaje) {
+        idxMensaje = nuevoIdxMensaje;
+        const tituloEl = Swal.getTitle();
+        if (tituloEl) tituloEl.textContent = mensajes[idxMensaje];
+      }
+    }, 100);
 
     // finalizar(true): detiene la simulación y completa el anillo a 100%
     // (usar un pequeño margen antes de cerrar el modal para que se
@@ -104,7 +108,6 @@ $(function () {
     // completar (caso de error).
     return function finalizar(exito) {
       clearInterval(tickId);
-      clearInterval(mensajeId);
       if (exito) {
         actualizarAnillo(100);
         return new Promise((resolve) => setTimeout(resolve, 350));

@@ -56,18 +56,21 @@ $(function () {
     }
 
     const tickId = setInterval(() => {
-      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.006);
-    }, 100);
+      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.0015);
 
-    const mensajeId = setInterval(() => {
-      idxMensaje = Math.min(idxMensaje + 1, mensajes.length - 1);
-      const tituloEl = Swal.getTitle();
-      if (tituloEl) tituloEl.textContent = mensajes[idxMensaje];
-    }, 2200);
+      // El mensaje cambia cada vez que el anillo cruza un nuevo escalón
+      // de 20% (no por tiempo fijo), tocando solo el texto del título en
+      // el DOM (nunca Swal.update, para no reiniciar el anillo).
+      const nuevoIdxMensaje = Math.min(Math.floor(pct / 20), mensajes.length - 1);
+      if (nuevoIdxMensaje !== idxMensaje) {
+        idxMensaje = nuevoIdxMensaje;
+        const tituloEl = Swal.getTitle();
+        if (tituloEl) tituloEl.textContent = mensajes[idxMensaje];
+      }
+    }, 100);
 
     return function finalizar(exito) {
       clearInterval(tickId);
-      clearInterval(mensajeId);
       if (exito) {
         actualizarAnillo(100);
         return new Promise((resolve) => setTimeout(resolve, 350));
