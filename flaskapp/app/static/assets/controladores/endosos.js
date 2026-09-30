@@ -2,11 +2,13 @@ $(function () {
   let razonInput = '';
   let receiptSaveInProgress = false;
 
-  // Mensajes de avance mientras se procesa un PDF de endoso con IA (mismo
-  // patrón que polizas.js). Solo aplica al flujo de "Cargar PDF de
-  // Endoso" para crear un endoso nuevo, que sí corre extracción con IA en
-  // el backend; adjuntar/reemplazar el PDF de un endoso ya existente no
-  // usa IA y mantiene su mensaje simple.
+  // Mensajes de avance + anillo de progreso mientras se procesa un PDF de
+  // endoso con IA (mismo patrón que polizas.js). Solo aplica al flujo de
+  // "Cargar PDF de Endoso" para crear un endoso nuevo, que sí corre
+  // extracción con IA en el backend; adjuntar/reemplazar el PDF de un
+  // endoso ya existente no usa IA y mantiene su mensaje simple. El anillo
+  // avanza de forma continua (ease-out) y el mensaje solo cambia el texto
+  // del título en el DOM (nunca Swal.update(), que reiniciaba el anillo).
   function iniciarProgresoExtraccionPDF() {
     const mensajes = [
       'Cargando el PDF...',
@@ -14,21 +16,64 @@ $(function () {
       'Leyendo el contenido con Inteligencia Artificial...',
       'Extrayendo los datos del endoso...',
     ];
-    let idx = 0;
+    const TOPE_SIMULADO = 95;
+    const radio = 40;
+    const circunferencia = 2 * Math.PI * radio;
+    let idxMensaje = 0;
+    let pct = 0;
+
     Swal.fire({
       title: mensajes[0],
-      text: 'Esto puede tardar unos segundos',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px;">
+          <svg width="90" height="90" viewBox="0 0 90 90" style="transform:rotate(-90deg);">
+            <circle cx="45" cy="45" r="${radio}" fill="none" stroke="#e2e8f0" stroke-width="8"></circle>
+            <circle id="pdf-progress-circle" cx="45" cy="45" r="${radio}" fill="none"
+              stroke="#4299e1" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="${circunferencia}" stroke-dashoffset="${circunferencia}"
+              style="transition: stroke-dashoffset 0.15s linear;"></circle>
+          </svg>
+          <div id="pdf-progress-percent" style="font-size:14px;font-weight:600;color:#4a5568;">0%</div>
+          <p style="font-size:13px;color:#718096;margin:0;">Esto puede tardar unos segundos</p>
+        </div>
+      `,
       allowOutsideClick: false,
       allowEscapeKey: false,
       allowEnterKey: false,
       showConfirmButton: false,
-      didOpen: () => Swal.showLoading(),
     });
-    const intervalId = setInterval(() => {
-      idx = (idx + 1) % mensajes.length;
-      Swal.update({ title: mensajes[idx] });
+
+    function actualizarAnillo(nuevoPct) {
+      pct = nuevoPct;
+      const circle = document.getElementById('pdf-progress-circle');
+      const label = document.getElementById('pdf-progress-percent');
+      if (circle) {
+        circle.setAttribute('stroke-dashoffset', String(circunferencia * (1 - pct / 100)));
+      }
+      if (label) {
+        label.textContent = Math.round(pct) + '%';
+      }
+    }
+
+    const tickId = setInterval(() => {
+      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.02);
+    }, 100);
+
+    const mensajeId = setInterval(() => {
+      idxMensaje = Math.min(idxMensaje + 1, mensajes.length - 1);
+      const tituloEl = Swal.getTitle();
+      if (tituloEl) tituloEl.textContent = mensajes[idxMensaje];
     }, 2200);
-    return () => clearInterval(intervalId);
+
+    return function finalizar(exito) {
+      clearInterval(tickId);
+      clearInterval(mensajeId);
+      if (exito) {
+        actualizarAnillo(100);
+        return new Promise((resolve) => setTimeout(resolve, 350));
+      }
+      return Promise.resolve();
+    };
   }
 
   // ---------------------------------------------------------------------
@@ -289,31 +334,33 @@ $(function () {
       processData: false,
       contentType: false,
       success: function (response) {
-        if (detenerProgreso) detenerProgreso();
-        Swal.close();
-        uploadLoading.hide();
-        uploadContent.show();
-        fileInput.val('');
-        if (response.error) {
-          alert(response.msg, 'error', 'Error');
-        } else {
-          if (response.pdf_path) {
-            $('#pdf_path').val(response.pdf_path);
+        Promise.resolve(detenerProgreso ? detenerProgreso(!response.error) : null).then(function () {
+          Swal.close();
+          uploadLoading.hide();
+          uploadContent.show();
+          fileInput.val('');
+          if (response.error) {
+            alert(response.msg, 'error', 'Error');
+          } else {
+            if (response.pdf_path) {
+              $('#pdf_path').val(response.pdf_path);
+            }
+            if (response.data) {
+              fillFormWithEndosoPdfData(response.data);
+            }
+            alert('PDF cargado exitosamente', 'success', 'Éxito');
+            getEndosos();
           }
-          if (response.data) {
-            fillFormWithEndosoPdfData(response.data);
-          }
-          alert('PDF cargado exitosamente', 'success', 'Éxito');
-          getEndosos();
-        }
+        });
       },
       error: function () {
-        if (detenerProgreso) detenerProgreso();
-        Swal.close();
-        uploadLoading.hide();
-        uploadContent.show();
-        fileInput.val('');
-        alert('Error al procesar el PDF', 'error', 'Error');
+        Promise.resolve(detenerProgreso ? detenerProgreso(false) : null).then(function () {
+          Swal.close();
+          uploadLoading.hide();
+          uploadContent.show();
+          fileInput.val('');
+          alert('Error al procesar el PDF', 'error', 'Error');
+        });
       },
     });
   }

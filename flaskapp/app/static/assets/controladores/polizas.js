@@ -29,10 +29,13 @@ $(function () {
   let polizasAutoAdjustAttempts = 0;
   const POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS = 5;
 
-  // Mensajes de avance mientras se procesa un PDF de póliza/endoso con IA.
-  // Es una simulación por tiempo en el front (el backend no reporta
-  // progreso real), solo para que el usuario vea que algo está pasando
-  // durante los segundos que tarda el pipeline OCR + Ollama.
+  // Mensajes de avance + anillo de progreso mientras se procesa un PDF de
+  // póliza/endoso con IA. Es una simulación por tiempo en el front (el
+  // backend no reporta progreso real): el anillo avanza de forma continua
+  // (ease-out, más lento entre más se acerca a 95%) y nunca llega a 100%
+  // hasta que el proceso realmente termina. El mensaje rota por su lado,
+  // sobre el mismo texto del título vía DOM directo — nunca con
+  // Swal.update(), que re-renderiza todo el html y reiniciaba el anillo.
   function iniciarProgresoExtraccionPDF() {
     const mensajes = [
       'Cargando el PDF...',
@@ -40,24 +43,74 @@ $(function () {
       'Leyendo el contenido con Inteligencia Artificial...',
       'Extrayendo los datos de la póliza...',
     ];
-    let idx = 0;
+    const TOPE_SIMULADO = 95; // nunca llega solo a 100%; eso lo marca el éxito real
+    const radio = 40;
+    const circunferencia = 2 * Math.PI * radio;
+    let idxMensaje = 0;
+    let pct = 0;
+
     Swal.fire({
       title: mensajes[0],
-      text: 'Esto puede tardar unos segundos',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px;">
+          <svg width="90" height="90" viewBox="0 0 90 90" style="transform:rotate(-90deg);">
+            <circle cx="45" cy="45" r="${radio}" fill="none" stroke="#e2e8f0" stroke-width="8"></circle>
+            <circle id="pdf-progress-circle" cx="45" cy="45" r="${radio}" fill="none"
+              stroke="#4299e1" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="${circunferencia}" stroke-dashoffset="${circunferencia}"
+              style="transition: stroke-dashoffset 0.15s linear;"></circle>
+          </svg>
+          <div id="pdf-progress-percent" style="font-size:14px;font-weight:600;color:#4a5568;">0%</div>
+          <p style="font-size:13px;color:#718096;margin:0;">Esto puede tardar unos segundos</p>
+        </div>
+      `,
       allowOutsideClick: false,
       allowEscapeKey: false,
       allowEnterKey: false,
       showConfirmButton: false,
-      didOpen: () => Swal.showLoading(),
     });
-    const intervalId = setInterval(() => {
-      idx = (idx + 1) % mensajes.length;
-      Swal.update({ title: mensajes[idx] });
+
+    function actualizarAnillo(nuevoPct) {
+      pct = nuevoPct;
+      const circle = document.getElementById('pdf-progress-circle');
+      const label = document.getElementById('pdf-progress-percent');
+      if (circle) {
+        circle.setAttribute('stroke-dashoffset', String(circunferencia * (1 - pct / 100)));
+      }
+      if (label) {
+        label.textContent = Math.round(pct) + '%';
+      }
+    }
+
+    // Avance continuo tipo ease-out: en cada tick sube una fracción de lo
+    // que le falta para llegar al tope simulado, así que va rápido al
+    // inicio y se hace más lento según se acerca — nunca "brinca" y nunca
+    // se estanca del todo.
+    const tickId = setInterval(() => {
+      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.02);
+    }, 100);
+
+    // Solo cambia el texto del título en el DOM (nunca Swal.update, para
+    // no re-renderizar el html y no reiniciar el anillo).
+    const mensajeId = setInterval(() => {
+      idxMensaje = Math.min(idxMensaje + 1, mensajes.length - 1);
+      const tituloEl = Swal.getTitle();
+      if (tituloEl) tituloEl.textContent = mensajes[idxMensaje];
     }, 2200);
-    // Devuelve una función para detener la rotación de mensajes; quien la
-    // use sigue siendo responsable de cerrar el Swal (Swal.close()) o de
-    // mostrar el de éxito/error, como ya se hacía antes.
-    return () => clearInterval(intervalId);
+
+    // finalizar(true): detiene la simulación y completa el anillo a 100%
+    // (usar un pequeño margen antes de cerrar el modal para que se
+    // alcance a ver). finalizar(false) o sin args: solo detiene, sin
+    // completar (caso de error).
+    return function finalizar(exito) {
+      clearInterval(tickId);
+      clearInterval(mensajeId);
+      if (exito) {
+        actualizarAnillo(100);
+        return new Promise((resolve) => setTimeout(resolve, 350));
+      }
+      return Promise.resolve();
+    };
   }
   // Página que el usuario está viendo actualmente. Se usa para que el
   // ajuste automático de tamaño (arriba) recargue la MISMA página en
@@ -232,41 +285,43 @@ $(function () {
       processData: false,
       contentType: false,
       success: function (response) {
-        detenerProgreso();
-        Swal.close();
-        uploadLoading.hide();
-        uploadContent.show();
-        fileInput.val('');
+        detenerProgreso(!response.error).then(function () {
+          Swal.close();
+          uploadLoading.hide();
+          uploadContent.show();
+          fileInput.val('');
 
-        console.log('Respuesta completa:', response);
+          console.log('Respuesta completa:', response);
 
-        if (response.error) {
-          alert(response.msg, 'error', 'Error');
-        } else {
-          if (response.pdf_path) {
-            $('#pdf_path').val(response.pdf_path);
-            console.log('PDF path guardado (drag&drop):', response.pdf_path);
-          }
-          if (response.data) {
-            fillFormWithPdfData(response.data);
-            alert('Datos extraídos correctamente', 'success', 'Éxito');
+          if (response.error) {
+            alert(response.msg, 'error', 'Error');
           } else {
-            console.error('No se encontró poliza_data en la respuesta');
-            alert(
-              'Error: datos no encontrados en la respuesta',
-              'error',
-              'Error',
-            );
+            if (response.pdf_path) {
+              $('#pdf_path').val(response.pdf_path);
+              console.log('PDF path guardado (drag&drop):', response.pdf_path);
+            }
+            if (response.data) {
+              fillFormWithPdfData(response.data);
+              alert('Datos extraídos correctamente', 'success', 'Éxito');
+            } else {
+              console.error('No se encontró poliza_data en la respuesta');
+              alert(
+                'Error: datos no encontrados en la respuesta',
+                'error',
+                'Error',
+              );
+            }
           }
-        }
+        });
       },
       error: function () {
-        detenerProgreso();
-        Swal.close();
-        uploadLoading.hide();
-        uploadContent.show();
-        fileInput.val('');
-        alert('Error al procesar el PDF', 'error', 'Error');
+        detenerProgreso(false).then(function () {
+          Swal.close();
+          uploadLoading.hide();
+          uploadContent.show();
+          fileInput.val('');
+          alert('Error al procesar el PDF', 'error', 'Error');
+        });
       },
     });
   }
@@ -301,31 +356,33 @@ $(function () {
       processData: false,
       contentType: false,
       success: function (response) {
-        detenerProgreso();
-        Swal.close();
-        if (response.error) {
-          alert(response.msg, 'error', 'Error');
-          pdfMode = null;
-        } else {
-          console.log(response);
-          // Guardar pdf_path en campo oculto
-          if (response.pdf_path) {
-            $('#pdf_path').val(response.pdf_path);
-            console.log('PDF path guardado:', response.pdf_path);
+        detenerProgreso(!response.error).then(function () {
+          Swal.close();
+          if (response.error) {
+            alert(response.msg, 'error', 'Error');
+            pdfMode = null;
+          } else {
+            console.log(response);
+            // Guardar pdf_path en campo oculto
+            if (response.pdf_path) {
+              $('#pdf_path').val(response.pdf_path);
+              console.log('PDF path guardado:', response.pdf_path);
+            }
+
+            fillFormWithPdfData(response.data);
+            alert('Datos extraídos correctamente', 'success', 'Éxito');
+
+            // Resetear modo después de usar
+            pdfMode = null;
           }
-
-          fillFormWithPdfData(response.data);
-          alert('Datos extraídos correctamente', 'success', 'Éxito');
-
-          // Resetear modo después de usar
-          pdfMode = null;
-        }
+        });
       },
       error: function () {
-        detenerProgreso();
-        Swal.close();
-        alert('Error al procesar el PDF', 'error', 'Error');
-        pdfMode = null;
+        detenerProgreso(false).then(function () {
+          Swal.close();
+          alert('Error al procesar el PDF', 'error', 'Error');
+          pdfMode = null;
+        });
       },
     });
   });
