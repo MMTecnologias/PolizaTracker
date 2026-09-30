@@ -56,7 +56,7 @@ $(function () {
     }
 
     const tickId = setInterval(() => {
-      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.02);
+      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.006);
     }, 100);
 
     const mensajeId = setInterval(() => {

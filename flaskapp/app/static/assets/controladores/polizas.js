@@ -87,7 +87,7 @@ $(function () {
     // inicio y se hace más lento según se acerca — nunca "brinca" y nunca
     // se estanca del todo.
     const tickId = setInterval(() => {
-      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.02);
+      actualizarAnillo(pct + (TOPE_SIMULADO - pct) * 0.006);
     }, 100);
 
     // Solo cambia el texto del título en el DOM (nunca Swal.update, para

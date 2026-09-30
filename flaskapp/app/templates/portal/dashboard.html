@@ -1242,6 +1242,15 @@
                     </svg>
                     Pólizas
                 </button>
+                <button class="tab" data-tab="endosos">
+                    <svg class="icon" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="9" y1="13" x2="15" y2="13"></line>
+                        <line x1="9" y1="17" x2="13" y2="17"></line>
+                    </svg>
+                    Endosos
+                </button>
                 <button class="tab" data-tab="siniestros">
                     <svg class="icon" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="9"></circle>
@@ -1322,6 +1331,75 @@
                         </div>
                     </div>
                     <div id="polizasContainer"></div>
+                </div>
+
+                <!-- TAB: ENDOSOS -->
+                <div class="content-section" id="endosos">
+                    <!-- SEARCH & FILTER BAR for ENDOSOS -->
+                    <div class="section-toolbar">
+                        <div class="search-section">
+                            <input type="text" class="search-input" id="searchEndosos" placeholder="Buscar endoso por número, póliza o aseguradora...">
+                        </div>
+                        <button class="filter-toggle" id="filterToggleEndosos">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                                <line x1="4" y1="6" x2="20" y2="6"></line>
+                                <line x1="4" y1="12" x2="20" y2="12"></line>
+                                <line x1="4" y1="18" x2="20" y2="18"></line>
+                            </svg>
+                            Filtros
+                        </button>
+                    </div>
+
+                    <!-- FILTER PANEL for ENDOSOS -->
+                    <div class="filter-panel-inline" id="filterPanelEndosos">
+                        <div class="filter-panel-content">
+                            <div class="filter-group">
+                                <label>Póliza</label>
+                                <select id="polizaFilterEndosos">
+                                    <option value="">Todas las pólizas</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Aseguradora</label>
+                                <select id="aseguradoraFilterEndosos">
+                                    <option value="">Todas las aseguradoras</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Estado</label>
+                                <select id="estadoFilterEndosos">
+                                    <option value="">Todos los estados</option>
+                                    <option value="Vigente">Vigente</option>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Cancelada">Cancelada</option>
+                                    <option value="Finalizada">Finalizada</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Vigencia desde</label>
+                                <input type="date" id="fechaDesdeFilterEndosos">
+                            </div>
+                            <div class="filter-group">
+                                <label>Vigencia hasta</label>
+                                <input type="date" id="fechaHastaFilterEndosos">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-controls">
+                        <span class="content-info" id="infoEndosos">Mostrando 0 endosos</span>
+                        <div class="sort-control">
+                            <label>Ordenar por:</label>
+                            <select class="sort-select" id="sortEndosos">
+                                <option value="fecha-desc">Vigencia (Reciente)</option>
+                                <option value="fecha-asc">Vigencia (Antiguo)</option>
+                                <option value="prima-desc">Prima (Mayor)</option>
+                                <option value="prima-asc">Prima (Menor)</option>
+                                <option value="estado">Estado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="endososContainer"></div>
                 </div>
 
                 <!-- TAB: SINIESTROS -->
@@ -1480,8 +1558,8 @@
         // para que todas las funciones de render/filtrado (que ya existían
         // y solo leen de `data`) sigan funcionando igual sin duplicarlas.
         // ============================================================
-        let dataPersonal = { polizas: [], siniestros: [], recibos: [] };
-        let dataGrupo = { polizas: [], siniestros: [], recibos: [], nombre: null, empresas: [] };
+        let dataPersonal = { polizas: [], siniestros: [], recibos: [], endosos: [] };
+        let dataGrupo = { polizas: [], siniestros: [], recibos: [], endosos: [], nombre: null, empresas: [] };
         let scopeActivo = 'personal';
         let data = dataPersonal;
 
@@ -1495,6 +1573,7 @@
             actualizarMetricas();
             poblarFiltros();
             renderPolizas();
+            renderEndosos();
             renderSiniestros();
             renderRecibos();
             calcularVencimientosDelMes();
@@ -1582,6 +1661,28 @@
                     notas: p.notas || null,
                 }));
 
+                const endosos = (bloque.endosos || []).map(e => ({
+                    id: e.id,
+                    numero: e.numero,
+                    tipoEndoso: e.tipoEndoso,
+                    polizaId: e.polizaId,
+                    poliza: e.poliza,
+                    tipo: e.tipo,
+                    compania: e.compania,
+                    primaNeta: e.primaNeta,
+                    primaTotal: e.primaTotal,
+                    inicioVigencia: e.inicioVigencia,
+                    finVigencia: e.finVigencia,
+                    estado: e.status,
+                    asegurado: e.titular || nombreClienteDefault,
+                    titular: e.titular || null,
+                    tienePdf: e.tienePdf,
+                    tieneFacturaPdf: !!e.tieneFacturaPdf,
+                    tieneFacturaXml: !!e.tieneFacturaXml,
+                    moneda: e.moneda,
+                    notas: e.notas || null,
+                }));
+
                 const recibos = bloque.recibos.map(r => {
                     const poliza = polizasPorId[r.polizaId];
                     return {
@@ -1602,10 +1703,13 @@
                         tieneAvisoCobro: !!r.tieneAvisoCobro,
                         tieneComplementoPdf: !!r.tieneComplementoPdf,
                         tieneComplementoXml: !!r.tieneComplementoXml,
+                        esEndoso: !!r.endosoId,
+                        endosoId: r.endosoId || null,
+                        endosoNumero: r.endosoNumero || null,
                     };
                 });
 
-                return { polizas, recibos, siniestros: bloque.siniestros || [] };
+                return { polizas, recibos, endosos, siniestros: bloque.siniestros || [] };
             }
 
             dataPersonal = transformarBloque(json.personal, json.cliente);
@@ -1689,6 +1793,7 @@
             document.getElementById('sortRecibos').value = 'fecha-asc';
 
             renderPolizas();
+            renderEndosos();
             renderSiniestros();
             renderRecibos();
             calcularVencimientosDelMes();
@@ -1734,6 +1839,7 @@
         conectarFilterToggle('filterTogglePolizas', 'filterPanelPolizas');
         conectarFilterToggle('filterToggleSiniestros', 'filterPanelSiniestros');
         conectarFilterToggle('filterToggleRecibos', 'filterPanelRecibos');
+        conectarFilterToggle('filterToggleEndosos', 'filterPanelEndosos');
 
         // Convierte "DD/MM/YYYY" a Date de forma correcta (new Date() nativo
         // interpreta mal ese formato en varios navegadores)
@@ -1752,6 +1858,7 @@
                 aseguradoras.map(a => `<option value="${a}">${a}</option>`).join('');
             document.getElementById('aseguradoraFilterPolizas').innerHTML = opcionesAseguradora;
             document.getElementById('aseguradoraFilterRecibos').innerHTML = opcionesAseguradora;
+            document.getElementById('aseguradoraFilterEndosos').innerHTML = opcionesAseguradora;
 
             // Se usa el ID único de cada póliza como valor (no el folio):
             // dos pólizas pueden compartir folio (una cancelada y su
@@ -1764,6 +1871,7 @@
                     .join('');
             document.getElementById('polizaFilterSiniestros').innerHTML = opcionesPoliza;
             document.getElementById('polizaFilterRecibos').innerHTML = opcionesPoliza;
+            document.getElementById('polizaFilterEndosos').innerHTML = opcionesPoliza;
         }
 
         // Conecta búsqueda/filtros/orden de una pestaña a su función de render
@@ -1915,6 +2023,149 @@
             `).join('');
         }
 
+        function renderEndosos() {
+            const container = document.getElementById('endososContainer');
+            const sortVal = document.getElementById('sortEndosos').value;
+            const searchVal = document.getElementById('searchEndosos').value.trim().toLowerCase();
+            const polizaVal = document.getElementById('polizaFilterEndosos').value;
+            const aseguradoraVal = document.getElementById('aseguradoraFilterEndosos').value;
+            const estadoVal = document.getElementById('estadoFilterEndosos').value;
+            const fechaDesdeVal = document.getElementById('fechaDesdeFilterEndosos').value;
+            const fechaHastaVal = document.getElementById('fechaHastaFilterEndosos').value;
+
+            let filtrado = data.endosos.filter(e => {
+                if (searchVal && !`${e.numero} ${e.poliza} ${e.compania}`.toLowerCase().includes(searchVal)) return false;
+                if (polizaVal && String(e.polizaId) !== polizaVal) return false;
+                if (aseguradoraVal && e.compania !== aseguradoraVal) return false;
+                if (estadoVal && e.estado !== estadoVal) return false;
+
+                const inicio = parseFechaMX(e.inicioVigencia);
+                if (fechaDesdeVal && inicio < new Date(fechaDesdeVal)) return false;
+                if (fechaHastaVal && inicio > new Date(fechaHastaVal)) return false;
+
+                return true;
+            });
+
+            let sorted = [...filtrado];
+            if (sortVal === 'fecha-desc') sorted.sort((a, b) => parseFechaMX(b.inicioVigencia) - parseFechaMX(a.inicioVigencia));
+            if (sortVal === 'fecha-asc') sorted.sort((a, b) => parseFechaMX(a.inicioVigencia) - parseFechaMX(b.inicioVigencia));
+            if (sortVal === 'prima-desc') sorted.sort((a, b) => b.primaTotal - a.primaTotal);
+            if (sortVal === 'prima-asc') sorted.sort((a, b) => a.primaTotal - b.primaTotal);
+            if (sortVal === 'estado') {
+                const prioridadEstado = { 'Vigente': 1, 'Pendiente': 2, 'Finalizada': 3, 'Cancelada': 4 };
+                sorted.sort((a, b) => (prioridadEstado[a.estado] || 99) - (prioridadEstado[b.estado] || 99));
+            }
+
+            document.getElementById('infoEndosos').textContent =
+                `Mostrando ${sorted.length} de ${data.endosos.length} endosos`;
+
+            if (sorted.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">No se encontraron endosos con esos filtros</div></div>';
+                return;
+            }
+
+            const nombreTipoEndoso = { A: 'Aumento', B: 'Baja', D: 'Datos' };
+
+            container.innerHTML = sorted.map(e => `
+                <div class="item-card">
+                    <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
+                        <div class="item-header-info">
+                            <div class="item-title">Endoso ${e.numero} <span style="font-size:0.95em; font-weight:600; opacity:0.85;">· Póliza ${e.poliza}</span></div>
+                            <div class="item-subtitle">${e.titular ? e.titular + ' • ' : ''}${nombreTipoEndoso[e.tipoEndoso] || e.tipoEndoso} • ${e.tipo} • ${e.compania}</div>
+                            <div class="item-status status-${estadoClase(e.estado)}">
+                                <svg class="icon" style="width: 14px; height: 14px; margin-right: 0.3rem;" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="16 12 12 8 8 12" style="fill: none; stroke: currentColor; stroke-width: 2;"></polyline>
+                                </svg>
+                                ${e.estado.toUpperCase()}
+                            </div>
+                        </div>
+                        <div class="expand-icon">
+                            <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="item-content">
+                        <div class="detail-grid">
+                            <div class="detail-group">
+                                <div class="detail-label">Número de Endoso</div>
+                                <div class="detail-value">${e.numero}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Póliza</div>
+                                <div class="detail-value">${e.poliza}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Tipo de Endoso</div>
+                                <div class="detail-value">${nombreTipoEndoso[e.tipoEndoso] || e.tipoEndoso}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Ramo</div>
+                                <div class="detail-value">${e.tipo}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Prima Neta</div>
+                                <div class="detail-value">${formatMoneda(e.primaNeta, e.moneda)}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Prima Total</div>
+                                <div class="detail-value">${formatMoneda(e.primaTotal, e.moneda)}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Vigencia Inicio</div>
+                                <div class="detail-value">${e.inicioVigencia}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Vigencia Fin</div>
+                                <div class="detail-value">${e.finVigencia}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Asegurado</div>
+                                <div class="detail-value">${e.asegurado || '—'}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Compañía Aseguradora</div>
+                                <div class="detail-value">${e.compania}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Estado</div>
+                                <div class="detail-value">${e.estado.toUpperCase()}</div>
+                            </div>
+                            ${e.notas ? `
+                            <div class="detail-group" style="grid-column: 1 / -1;">
+                                <div class="detail-label">Observaciones</div>
+                                <div class="detail-value" style="white-space: pre-line;">${e.notas}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="item-actions">
+                            ${e.tienePdf ? `
+                            <button class="btn-action" onclick="event.stopPropagation(); descargarEndoso(${e.id}, true)">
+                                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Ver/Descargar endoso
+                            </button>
+                            ` : ''}
+                            ${(e.tieneFacturaPdf || e.tieneFacturaXml) ? `
+                            <button class="btn-action" onclick="event.stopPropagation(); verFacturaEndoso(${e.id}, ${e.tieneFacturaPdf}, ${e.tieneFacturaXml})">
+                                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Factura
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         function renderSiniestros() {
             const container = document.getElementById('siniestrosContainer');
             const searchVal = document.getElementById('searchSiniestros').value.trim().toLowerCase();
@@ -2028,7 +2279,7 @@
             const sortVal = document.getElementById('sortRecibos').value;
 
             let filtrado = data.recibos.filter(r => {
-                if (searchVal && !`${r.numero} ${r.poliza} ${r.concepto}`.toLowerCase().includes(searchVal)) return false;
+                if (searchVal && !`${r.numero} ${r.poliza} ${r.concepto} ${r.endosoNumero || ''}`.toLowerCase().includes(searchVal)) return false;
                 if (polizaVal && String(r.polizaId) !== polizaVal) return false;
                 if (aseguradoraVal && r.aseguradora !== aseguradoraVal) return false;
 
@@ -2060,12 +2311,22 @@
             container.innerHTML = sorted.map(r => {
                 const real = estadoRealRecibo(r);
                 const yaPagado = real === 'Liquidado';
+                const etiquetaTipo = r.esEndoso ? `Endoso ${r.endosoNumero}` : 'Póliza';
+                const etiquetaTipoEstilo = r.esEndoso
+                    ? 'background:#fef3c7; color:#92400e;'
+                    : 'background:#e0f2fe; color:#075985;';
+                const referenciaSubtitulo = r.esEndoso
+                    ? `Endoso ${r.endosoNumero} · Póliza ${r.poliza}`
+                    : `Póliza ${r.poliza}`;
                 return `
                 <div class="item-card">
                     <div class="item-header" onclick="this.closest('.item-card').classList.toggle('expanded'); this.closest('.item-card').querySelector('.item-content').classList.toggle('active');">
                         <div class="item-header-info">
-                            <div class="item-title">${r.numero}</div>
-                            <div class="item-subtitle">${r.concepto} • ${r.fecha}</div>
+                            <div class="item-title">
+                                ${r.numero}
+                                <span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:10px; font-size:0.7em; font-weight:700; letter-spacing:0.02em; text-transform:uppercase; ${etiquetaTipoEstilo}">${etiquetaTipo}</span>
+                            </div>
+                            <div class="item-subtitle">${referenciaSubtitulo} • ${r.concepto} • ${r.fecha}</div>
                             <div class="item-status status-${estadoClase(real)}">
                                 <svg class="icon" style="width: 14px; height: 14px; margin-right: 0.3rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="20 6 9 17 4 12"></polyline>
@@ -2085,6 +2346,10 @@
                             <div class="detail-group">
                                 <div class="detail-label">Número de Recibo</div>
                                 <div class="detail-value">${r.numero}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Tipo de Recibo</div>
+                                <div class="detail-value">${r.esEndoso ? `Recibo de Endoso ${r.endosoNumero}` : 'Recibo de Póliza'}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Póliza</div>
@@ -2138,6 +2403,34 @@
                 return;
             }
             window.open(`/portal/descargar_pdf/${polizaId}`, '_blank');
+        }
+
+        function descargarEndoso(endosoId, tienePdf) {
+            if (!tienePdf) {
+                alert('Este endoso aún no tiene un PDF cargado en el sistema.');
+                return;
+            }
+            window.open(`/portal/descargar_endoso_pdf/${endosoId}`, '_blank');
+        }
+
+        function verFacturaEndoso(endosoId, tienePdf, tieneXml) {
+            const opciones = [];
+            if (tienePdf) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_endoso_doc/${endosoId}/factura_pdf', '_blank')">Ver/Descargar PDF</button>`);
+            if (tieneXml) opciones.push(`<button type="button" class="btn-action" style="width:100%; justify-content:center;" onclick="window.open('/portal/descargar_endoso_doc/${endosoId}/factura_xml', '_blank')">Descargar XML</button>`);
+
+            const contenedor = document.createElement('div');
+            contenedor.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:9999;';
+            contenedor.innerHTML = `
+                <div style="background:#fff; border-radius:10px; padding:20px; min-width:260px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="font-weight:600; margin-bottom:4px;">Factura del Endoso</div>
+                    ${opciones.join('')}
+                    <button type="button" class="btn-action" style="width:100%; justify-content:center; opacity:0.7;" onclick="this.closest('div[style*=fixed]').remove()">Cerrar</button>
+                </div>
+            `;
+            contenedor.addEventListener('click', (e) => {
+                if (e.target === contenedor) contenedor.remove();
+            });
+            document.body.appendChild(contenedor);
         }
 
         function descargarAvisoCobro(reciboId) {
@@ -2327,6 +2620,11 @@
             ['searchRecibos', 'polizaFilterRecibos', 'aseguradoraFilterRecibos', 'estadoFilterRecibos',
              'fechaDesdeFilterRecibos', 'fechaHastaFilterRecibos', 'sortRecibos'],
             renderRecibos
+        );
+        conectarControles(
+            ['searchEndosos', 'polizaFilterEndosos', 'aseguradoraFilterEndosos', 'estadoFilterEndosos',
+             'fechaDesdeFilterEndosos', 'fechaHastaFilterEndosos', 'sortEndosos'],
+            renderEndosos
         );
 
         // El render inicial ya no ocurre aquí: se dispara desde mostrarPanel()

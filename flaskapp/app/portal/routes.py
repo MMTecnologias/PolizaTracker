@@ -12,8 +12,8 @@ from flask import render_template, request, jsonify, current_app, send_from_dire
 from sqlalchemy import func, or_
 import os
 from app import db
-from app.models import Cliente, Poliza, Recibo, Aseguradora, Subramo, TipoPago, Grupo
-from app.utils.document_storage import get_carpeta_documento
+from app.models import Cliente, Poliza, Recibo, Aseguradora, Subramo, TipoPago, Grupo, Endoso
+from app.utils.document_storage import get_carpeta_documento, get_carpeta_endoso
 from . import portal
 from .auth_routes import portal_login_required
 
@@ -53,14 +53,20 @@ def buscar_cliente():
 
 def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
     """
-    Trae pólizas + recibos para uno o varios cliente_id a la vez.
-    Cuando incluir_titular=True (para el bloque 'grupo', que puede
-    mezclar varias empresas), cada póliza trae también el nombre del
-    Cliente dueño, para que el asegurado pueda distinguir de quién es
-    cada una en pantalla.
+    Trae pólizas + recibos + endosos para uno o varios cliente_id a la
+    vez. Cuando incluir_titular=True (para el bloque 'grupo', que puede
+    mezclar varias empresas), cada póliza/endoso trae también el nombre
+    del Cliente dueño, para que el asegurado pueda distinguir de quién es
+    cada uno en pantalla.
+
+    Los recibos ligados a un endoso (Recibo.endoso_id) ya venían
+    incluidos aquí desde antes -- el filtro es solo por poliza_id, así
+    que comparten la misma pestaña de Recibos con los de póliza. Lo que
+    se agrega es la info para distinguirlos en pantalla: 'endosoId' y
+    'endosoNumero' en cada recibo.
     """
     if not cliente_ids:
-        return [], []
+        return [], [], []
 
     query = (db.session.query(Poliza,
                                Aseguradora.aseguradora.label('aseguradora'),
@@ -114,6 +120,53 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
             item['titular'] = titular
         polizas_json.append(item)
 
+    # --- Endosos ---
+    endosos_json = []
+    equery = (db.session.query(Endoso,
+                                Aseguradora.aseguradora.label('aseguradora'),
+                                Subramo.subramo.label('subramo'))
+              .select_from(Endoso)
+              .join(Aseguradora, Endoso.aseguradora_id == Aseguradora.id)
+              .join(Subramo, Endoso.subramo_id == Subramo.id)
+              .filter(Endoso.cliente_id.in_(cliente_ids)))
+    if incluir_titular:
+        equery = equery.add_columns(Cliente.nombre, Cliente.apellido).join(
+            Cliente, Endoso.cliente_id == Cliente.id)
+    erows = equery.order_by(Endoso.fecha_inicio.desc()).all()
+
+    for erow in erows:
+        if incluir_titular:
+            endoso, aseguradora, subramo, titular_nombre, titular_apellido = erow
+            titular = f'{titular_nombre} {titular_apellido}'
+        else:
+            endoso, aseguradora, subramo = erow
+            titular = None
+
+        eitem = {
+            'id': endoso.id,
+            'numero': endoso.endoso,
+            'tipoEndoso': endoso.tipo_endoso,
+            'polizaId': endoso.poliza_id,
+            'poliza': endoso.poliza,
+            'tipo': subramo,
+            'compania': aseguradora,
+            'inicioVigencia': endoso.fecha_inicio.strftime('%d/%m/%Y'),
+            'finVigencia': endoso.fecha_termino.strftime('%d/%m/%Y'),
+            'primaNeta': float(endoso.prima_neta),
+            'primaTotal': float(endoso.prima_total),
+            'status': endoso.status,
+            'moneda': endoso.moneda,
+            'tienePdf': bool(endoso.pdf_path),
+            'tieneFacturaPdf': bool(endoso.factura_pdf),
+            'tieneFacturaXml': bool(endoso.factura_xml),
+            'notas': endoso.notas,
+        }
+        if incluir_titular:
+            eitem['titular'] = titular
+        endosos_json.append(eitem)
+
+    endosos_por_id = {e['id']: e for e in endosos_json}
+
     recibos_json = []
     if poliza_ids:
         recibos = (Recibo.query
@@ -134,9 +187,11 @@ def _polizas_y_recibos_de(cliente_ids, incluir_titular=False):
             'tieneAvisoCobro': bool(r.comprobante),
             'tieneComplementoPdf': bool(r.complemento_pago_pdf),
             'tieneComplementoXml': bool(r.complemento_pago_xml),
+            'endosoId': r.endoso_id,
+            'endosoNumero': endosos_por_id.get(r.endoso_id, {}).get('numero') if r.endoso_id else None,
         } for r in recibos]
 
-    return polizas_json, recibos_json
+    return polizas_json, recibos_json, endosos_json
 
 
 @portal.route('/api/mis-datos', methods=['GET'])
@@ -149,7 +204,7 @@ def mis_datos():
         return jsonify({'error': 'Cliente no encontrado'}), 404
 
     # --- Bloque personal: solo lo que está a nombre de este Cliente ---
-    personal_polizas, personal_recibos = _polizas_y_recibos_de([cliente_id])
+    personal_polizas, personal_recibos, personal_endosos = _polizas_y_recibos_de([cliente_id])
 
     # --- Bloque grupo: el resto de Clientes (típicamente empresas) que
     # comparten el mismo grupo_id, ej. las empresas de un mismo asegurado ---
@@ -165,7 +220,7 @@ def mis_datos():
     else:
         companeros_grupo = []
     companeros_ids = [c.id for c in companeros_grupo]
-    grupo_polizas, grupo_recibos = _polizas_y_recibos_de(
+    grupo_polizas, grupo_recibos, grupo_endosos = _polizas_y_recibos_de(
         companeros_ids, incluir_titular=True)
 
     grupo_obj = Grupo.query.get(cliente.grupo_id)
@@ -175,6 +230,7 @@ def mis_datos():
         'personal': {
             'polizas': personal_polizas,
             'recibos': personal_recibos,
+            'endosos': personal_endosos,
             'siniestros': [],  # pendiente: aún no existe el sistema de siniestros
         },
         'grupo': {
@@ -182,6 +238,7 @@ def mis_datos():
             'empresas': [f'{c.nombre} {c.apellido}' for c in companeros_grupo],
             'polizas': grupo_polizas,
             'recibos': grupo_recibos,
+            'endosos': grupo_endosos,
             'siniestros': [],
         },
     })
@@ -245,6 +302,105 @@ def descargar_pdf(poliza_id):
         filename,
         as_attachment=False,
         download_name=f'poliza_{poliza.poliza}.pdf'
+    )
+
+
+@portal.route('/descargar_endoso_pdf/<int:endoso_id>', methods=['GET'])
+@portal_login_required
+def descargar_endoso_pdf(endoso_id):
+    """
+    Sirve el PDF de un endoso, solo si le pertenece al cliente en sesión
+    o a algún compañero de su mismo grupo (empresas relacionadas) --
+    mismo criterio que descargar_pdf para pólizas.
+    """
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': 'Endoso no encontrado'}), 404
+
+    cliente_sesion = Cliente.query.get(session.get('portal_cliente_id'))
+    if not cliente_sesion:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    es_propio = endoso.cliente_id == cliente_sesion.id
+    es_del_grupo = False
+    if not es_propio:
+        dueño = Cliente.query.get(endoso.cliente_id)
+        es_del_grupo = (bool(dueño) and cliente_sesion.grupo_id is not None
+                         and dueño.grupo_id == cliente_sesion.grupo_id)
+
+    if not (es_propio or es_del_grupo):
+        return jsonify({'error': 'No autorizado'}), 403
+
+    if not endoso.pdf_path:
+        return jsonify({'error': 'No hay PDF asociado a este endoso'}), 404
+
+    poliza_del_endoso = Poliza.query.get(endoso.poliza_id)
+    dueño_doc = Cliente.query.get(endoso.cliente_id)
+    directory = get_carpeta_endoso(dueño_doc, poliza_del_endoso, endoso, 'documento_endoso')
+    filename = endoso.pdf_path
+    pdf_full_path = os.path.join(directory, filename)
+
+    if not os.path.exists(pdf_full_path):
+        return jsonify({'error': 'El archivo PDF no existe'}), 404
+
+    return send_from_directory(
+        directory,
+        filename,
+        as_attachment=False,
+        download_name=f'endoso_{endoso.endoso}_poliza_{poliza_del_endoso.poliza if poliza_del_endoso else ""}.pdf'
+    )
+
+
+@portal.route('/descargar_endoso_doc/<int:endoso_id>/<tipo>', methods=['GET'])
+@portal_login_required
+def descargar_endoso_doc(endoso_id, tipo):
+    """
+    Sirve la factura (PDF/XML) de un endoso, solo si le pertenece al
+    cliente en sesión o a algún compañero de su mismo grupo. Mismo
+    criterio de propiedad que descargar_endoso_pdf / descargar_poliza_doc.
+    """
+    if tipo not in ('factura_pdf', 'factura_xml'):
+        return jsonify({'error': 'Tipo de documento inválido'}), 400
+
+    endoso = Endoso.query.get(endoso_id)
+    if not endoso:
+        return jsonify({'error': 'Endoso no encontrado'}), 404
+
+    cliente_sesion = Cliente.query.get(session.get('portal_cliente_id'))
+    if not cliente_sesion:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    es_propio = endoso.cliente_id == cliente_sesion.id
+    es_del_grupo = False
+    if not es_propio:
+        dueño = Cliente.query.get(endoso.cliente_id)
+        es_del_grupo = (bool(dueño) and cliente_sesion.grupo_id is not None
+                         and dueño.grupo_id == cliente_sesion.grupo_id)
+
+    if not (es_propio or es_del_grupo):
+        return jsonify({'error': 'No autorizado'}), 403
+
+    stored_filename = endoso.factura_pdf if tipo == 'factura_pdf' else endoso.factura_xml
+    if not stored_filename:
+        return jsonify({'error': 'No se ha cargado el documento aun'}), 404
+
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(stored_filename)
+    original_filename = (endoso.factura_pdf_original if tipo == 'factura_pdf'
+                          else endoso.factura_xml_original) or filename
+    poliza_del_endoso = Poliza.query.get(endoso.poliza_id)
+    dueño_doc = Cliente.query.get(endoso.cliente_id)
+    folder = get_carpeta_endoso(dueño_doc, poliza_del_endoso, endoso, 'factura')
+    file_path = os.path.join(folder, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'El archivo no existe'}), 404
+
+    es_descarga_directa = (tipo == 'factura_xml')
+    return send_from_directory(
+        folder,
+        filename,
+        as_attachment=es_descarga_directa,
+        download_name=original_filename,
     )
 
 
