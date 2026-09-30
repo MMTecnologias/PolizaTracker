@@ -2,6 +2,35 @@ $(function () {
   let razonInput = '';
   let receiptSaveInProgress = false;
 
+  // Mensajes de avance mientras se procesa un PDF de endoso con IA (mismo
+  // patrón que polizas.js). Solo aplica al flujo de "Cargar PDF de
+  // Endoso" para crear un endoso nuevo, que sí corre extracción con IA en
+  // el backend; adjuntar/reemplazar el PDF de un endoso ya existente no
+  // usa IA y mantiene su mensaje simple.
+  function iniciarProgresoExtraccionPDF() {
+    const mensajes = [
+      'Cargando el PDF...',
+      'Convirtiendo el PDF a texto...',
+      'Leyendo el contenido con Inteligencia Artificial...',
+      'Extrayendo los datos del endoso...',
+    ];
+    let idx = 0;
+    Swal.fire({
+      title: mensajes[0],
+      text: 'Esto puede tardar unos segundos',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    const intervalId = setInterval(() => {
+      idx = (idx + 1) % mensajes.length;
+      Swal.update({ title: mensajes[idx] });
+    }, 2200);
+    return () => clearInterval(intervalId);
+  }
+
   // ---------------------------------------------------------------------
   // Menú de acciones ("3 puntos") de la tabla — misma lógica que en
   // polizas.js: al abrirse se pega al <body> con position:fixed para que
@@ -233,16 +262,25 @@ $(function () {
 
     const endosoIdInput = document.getElementById('endoso_id');
     const actualEndosoId = endosoIdInput ? endosoIdInput.value : null;
-    if (actualEndosoId && actualEndosoId !== 'New') {
+    const esEndosoExistente = !!(actualEndosoId && actualEndosoId !== 'New');
+    if (esEndosoExistente) {
       formData.append('endoso_id', actualEndosoId);
     }
 
-    Swal.fire({
-      title: 'Procesando PDF...',
-      text: 'Guardando archivo PDF',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
+    // Solo cuando es un endoso nuevo el backend corre extracción con IA
+    // (endoso existente = solo se guarda el archivo), así que el mensaje
+    // rotativo de avance solo aplica en ese caso.
+    let detenerProgreso = null;
+    if (esEndosoExistente) {
+      Swal.fire({
+        title: 'Procesando PDF...',
+        text: 'Guardando archivo PDF',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+    } else {
+      detenerProgreso = iniciarProgresoExtraccionPDF();
+    }
 
     $.ajax({
       type: 'POST',
@@ -251,6 +289,7 @@ $(function () {
       processData: false,
       contentType: false,
       success: function (response) {
+        if (detenerProgreso) detenerProgreso();
         Swal.close();
         uploadLoading.hide();
         uploadContent.show();
@@ -269,6 +308,7 @@ $(function () {
         }
       },
       error: function () {
+        if (detenerProgreso) detenerProgreso();
         Swal.close();
         uploadLoading.hide();
         uploadContent.show();

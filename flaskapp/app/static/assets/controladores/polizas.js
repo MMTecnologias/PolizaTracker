@@ -28,6 +28,37 @@ $(function () {
   // infinito.
   let polizasAutoAdjustAttempts = 0;
   const POLIZAS_MAX_AUTO_ADJUST_ATTEMPTS = 5;
+
+  // Mensajes de avance mientras se procesa un PDF de póliza/endoso con IA.
+  // Es una simulación por tiempo en el front (el backend no reporta
+  // progreso real), solo para que el usuario vea que algo está pasando
+  // durante los segundos que tarda el pipeline OCR + Ollama.
+  function iniciarProgresoExtraccionPDF() {
+    const mensajes = [
+      'Cargando el PDF...',
+      'Convirtiendo el PDF a texto...',
+      'Leyendo el contenido con Inteligencia Artificial...',
+      'Extrayendo los datos de la póliza...',
+    ];
+    let idx = 0;
+    Swal.fire({
+      title: mensajes[0],
+      text: 'Esto puede tardar unos segundos',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    const intervalId = setInterval(() => {
+      idx = (idx + 1) % mensajes.length;
+      Swal.update({ title: mensajes[idx] });
+    }, 2200);
+    // Devuelve una función para detener la rotación de mensajes; quien la
+    // use sigue siendo responsable de cerrar el Swal (Swal.close()) o de
+    // mostrar el de éxito/error, como ya se hacía antes.
+    return () => clearInterval(intervalId);
+  }
   // Página que el usuario está viendo actualmente. Se usa para que el
   // ajuste automático de tamaño (arriba) recargue la MISMA página en
   // vez de regresar siempre a la página 1.
@@ -178,15 +209,7 @@ $(function () {
     uploadContent.hide();
     uploadLoading.show();
 
-    Swal.fire({
-      title: 'Procesando PDF...',
-      text: 'Extrayendo información con IA',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      allowEnterKey: false,
-      showConfirmButton: false,
-      didOpen: () => Swal.showLoading(),
-    });
+    const detenerProgreso = iniciarProgresoExtraccionPDF();
 
     const formData = new FormData();
     formData.append('pdf_file', file);
@@ -209,6 +232,7 @@ $(function () {
       processData: false,
       contentType: false,
       success: function (response) {
+        detenerProgreso();
         Swal.close();
         uploadLoading.hide();
         uploadContent.show();
@@ -237,6 +261,7 @@ $(function () {
         }
       },
       error: function () {
+        detenerProgreso();
         Swal.close();
         uploadLoading.hide();
         uploadContent.show();
@@ -267,12 +292,7 @@ $(function () {
       }
     }
 
-    Swal.fire({
-      title: 'Procesando PDF...',
-      text: 'Extrayendo información con IA',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
+    const detenerProgreso = iniciarProgresoExtraccionPDF();
 
     $.ajax({
       type: 'POST',
@@ -281,6 +301,7 @@ $(function () {
       processData: false,
       contentType: false,
       success: function (response) {
+        detenerProgreso();
         Swal.close();
         if (response.error) {
           alert(response.msg, 'error', 'Error');
@@ -301,6 +322,7 @@ $(function () {
         }
       },
       error: function () {
+        detenerProgreso();
         Swal.close();
         alert('Error al procesar el PDF', 'error', 'Error');
         pdfMode = null;
