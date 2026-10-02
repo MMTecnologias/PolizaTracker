@@ -692,6 +692,11 @@ $(function () {
 
   async function resetForm() {
     try {
+      // Limpiar el derecho_poliza/comisión que haya quedado de un endoso
+      // editado antes en esta misma sesión -- si no, se cuela en el
+      // siguiente endoso NUEVO que se cree (PDF distinto, mismo valor
+      // viejo pegado en el modal de Generar Recibos).
+      endosoEnEdicion = { derecho_poliza: null, comision: null };
       $('#form-polizas')[0].reset();
       $('#btnGuardar').show();
       $('#reset-btn').show();
