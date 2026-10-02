@@ -3592,6 +3592,31 @@ def sanitize_premium_fields(text: str, data: dict) -> dict:
                 value=value
             )
             cleaned[field] = None
+
+    # El derecho de póliza/gastos de expedición es un cargo DISTINTO a la
+    # prima neta o total. Cuando el modelo de IA no encuentra un monto real
+    # para este campo en el documento (p.ej. porque el renglón viene vacío
+    # en el PDF), a veces "alucina" copiando el valor de un campo cercano
+    # en vez de dejarlo vacío -- y como la IA solo entra en juego cuando el
+    # extractor por reglas ya no encontró nada, un derecho_poliza idéntico
+    # a la prima neta/total es casi con certeza esa alucinación, no un
+    # dato real (es extremadamente improbable que ambos montos coincidan
+    # exactamente por coincidencia).
+    for field in ("derecho_poliza", "gastos_expedicion"):
+        value = to_float_amount(cleaned.get(field))
+        if value is None:
+            continue
+        prima_neta = to_float_amount(cleaned.get("prima_neta"))
+        prima_total = to_float_amount(cleaned.get("prima_total"))
+        if (prima_neta is not None and abs(value - prima_neta) < 0.01) or \
+           (prima_total is not None and abs(value - prima_total) < 0.01):
+            log_policy_event(
+                "premium_validation",
+                "derecho de poliza descartado por coincidir exactamente con prima neta/total (probable alucinacion)",
+                field=field,
+                value=cleaned.get(field)
+            )
+            cleaned[field] = None
     return cleaned
 
 
