@@ -3484,7 +3484,14 @@ def extract_amount_near_label(text: str, labels) -> str:
 
 
 def extract_money_amount_near_label(text: str, labels) -> str:
-    money_pattern = r'((?:\$\s*)?(?:\d{1,3}(?:,\d{3})+|\d+\.\d{2}|\d{4,})(?:\.\d{2})?)'
+    # El (?<!-) / (?!-\d) evita que se cuele un número pegado a guiones por
+    # ambos lados -- p.ej. en pólizas Quálitas, la etiqueta "Gastos por
+    # Expedición" queda vacía y justo después (por la linealización de
+    # columnas de pdfplumber) aparece el teléfono de siniestros
+    # "01-800-2888-6700", y sin este guardia el "2888" se colaba como si
+    # fuera el monto del derecho de póliza. Un monto de dinero real nunca
+    # viene pegado a guiones por los dos lados.
+    money_pattern = r'(?<!-)((?:\$\s*)?(?:\d{1,3}(?:,\d{3})+|\d+\.\d{2}|\d{4,})(?:\.\d{2})?)(?!-\d)'
     for label in labels:
         flexible_label = build_flexible_label_pattern(label)
         pattern = rf'{flexible_label}(?:\s*[:|]?\s*|\s*\n\s*){{0,2}}[^\n]{{0,140}}?{money_pattern}'
