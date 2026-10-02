@@ -3799,7 +3799,33 @@ def extract_prima_total_value(text: str, prima_neta: str = None, derecho_poliza:
     return inferred_value
 
 
+def extract_qualitas_poliza_endoso_table(text: str):
+    """
+    Formato Quálitas: encabezado de 3 columnas "PÓLIZA ENDOSO INCISO" seguido
+    de la fila de datos -- pero pdfplumber linealiza el título del documento
+    ("PÓLIZA DE SEGURO DE AUTOMÓVILES") justo ANTES de los 3 números en esa
+    misma línea, así que ningún patrón basado en "la etiqueta seguida de su
+    valor" los reconoce (ninguno de los 3 números sigue inmediatamente a su
+    etiqueta). El nombre real de la aseguradora tampoco aparece en ningún
+    lado del texto (el logo "Quálitas" es una imagen), así que esta tabla es
+    además la señal más confiable de que el documento es de esta aseguradora
+    cuando aparece.
+    Devuelve (poliza, endoso, inciso) o (None, None, None) si no aplica.
+    """
+    match = re.search(
+        r'(?is)P[OÓ]LIZA\s+ENDOSO\s+INCISO\b.{0,120}?(\d{5,12})\s+(\d{3,8})\s+(\d{3,6})\b',
+        text
+    )
+    if not match:
+        return None, None, None
+    return match.group(1), match.group(2), match.group(3)
+
+
 def extract_policy_number_value(text: str) -> str:
+    qualitas_poliza, _qualitas_endoso, _qualitas_inciso = extract_qualitas_poliza_endoso_table(text)
+    if qualitas_poliza:
+        return qualitas_poliza
+
     def normalize_policy_candidate(candidate: str) -> str:
         candidate = sanitize_text_value(candidate)
         if not candidate:
@@ -4017,6 +4043,10 @@ def extract_policy_number_value(text: str) -> str:
 
 
 def extract_endoso_value(text: str) -> str:
+    _qualitas_poliza, qualitas_endoso, _qualitas_inciso = extract_qualitas_poliza_endoso_table(text)
+    if qualitas_endoso:
+        return qualitas_endoso
+
     def normalize_endoso_candidate(candidate: str) -> str:
         candidate = sanitize_text_value(candidate)
         if not candidate:
@@ -5312,6 +5342,11 @@ def build_rule_based_hints(text: str) -> dict:
         "GNP": "GNP",
         "QUALITAS": "Quálitas",
         "QUÁLITAS": "Quálitas",
+        # El logo "Quálitas" es una imagen (no aparece el nombre en el texto
+        # extraíble), pero sus pólizas/endosos siempre traen esta leyenda de
+        # registro regulatorio ("...registrada en el RECAS con el número
+        # CONDUSEF-...") en el pie, que es exclusiva de esta aseguradora.
+        "REGISTRADA EN EL RECAS": "Quálitas",
         "MAPFRE": "Mapfre",
         "HDI": "HDI",
         "METLIFE": "MetLife",
