@@ -673,7 +673,10 @@ $(function () {
 
     resolveFormaPagoSelect(data, 'fillFormWithPdfData_initial');
 
-    // Derecho de póliza (también puede ser "gastos de expedición")
+    // Derecho de póliza (también puede ser "gastos de expedición"). Si el
+    // PDF recién cargado no trae este dato, se limpia explícitamente --
+    // si no, se queda pegado el valor de un PDF anterior cargado antes en
+    // la misma sesión del modal.
     if (data.derecho_poliza) {
       const derechoPoliza = parseFloat(
         String(data.derecho_poliza).replace(/[^0-9.-]/g, ''),
@@ -681,7 +684,11 @@ $(function () {
       console.log('Derecho de Póliza:', derechoPoliza);
       if (!isNaN(derechoPoliza)) {
         $('#derecho_poliza').val(derechoPoliza.toFixed(2));
+      } else {
+        $('#derecho_poliza').val('0.00');
       }
+    } else {
+      $('#derecho_poliza').val('0.00');
     }
 
     // Aseguradora - esperar a que estén cargados los selects y usar ID
@@ -1271,6 +1278,14 @@ $(function () {
       $('#create-recib').modal('hide');
       $('#endoso-type').modal('hide');
       $('#alert_Modal').hide();
+      // #derecho_poliza, #comision e #iva viven dentro del modal
+      // #create-recib, que está FUERA de #form-polizas -- el
+      // $('#form-polizas')[0].reset() de arriba no los toca, así que sin
+      // esto se quedaba pegado el valor de la última póliza/endoso que se
+      // haya cargado antes en la misma sesión.
+      $('#derecho_poliza').val('0.00');
+      $('#comision').val('10');
+      $('#iva').val('16');
       const data = await getFormData();
 
       $('#ramo').append(`<option value=''>Selecciona...</option>`);
