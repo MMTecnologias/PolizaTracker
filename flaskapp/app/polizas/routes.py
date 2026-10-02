@@ -3413,6 +3413,14 @@ def extract_vigencia_values(text: str):
             rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*hrs?\.?\s*del\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*desde\s*las\s*12(?::?00)?\s*horas\s*de\s*[:|]?\s*({date_pattern})',
             rf'Desde\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
+            # Formato Qualitas: "Desde las 12:00 P.M. del 30/SEP/2026" --
+            # usa P.M./A.M. en vez de "horas"/"hrs", así que ninguno de los
+            # patrones de arriba lo reconocía y caía al escaneo genérico
+            # por proximidad, que confundía esta fecha con la de "Fecha
+            # Vencimiento del pago" que aparece justo al lado en la misma
+            # fila (la tabla Desde/Vencimiento queda linealizada en una
+            # sola línea por pdfplumber).
+            rf'Desde\s*las\s*12(?::?00)?\s*(?:p\.?\s*m\.?|a\.?\s*m\.?)\.?\s*del?\s*[:|]?\s*({date_pattern})',
             rf'Inicio\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*inicia\s*[:|]?\s*({date_pattern})',
         ],
@@ -3422,6 +3430,8 @@ def extract_vigencia_values(text: str):
             rf'Vencimiento\s*[:|]?\s*({date_pattern})',
             rf'Hasta\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
             rf'hasta\s*las\s*12(?::?00)?\s*horas?\s*de\s*[:|]?\s*({date_pattern})',
+            # Mismo formato Qualitas que arriba, lado "Hasta".
+            rf'Hasta\s*las\s*12(?::?00)?\s*(?:p\.?\s*m\.?|a\.?\s*m\.?)\.?\s*del?\s*[:|]?\s*({date_pattern})',
             rf'Fin\s*de\s*vigencia\s*[:|]?\s*({date_pattern})',
             rf'Vigencia\s*termina\s*[:|]?\s*({date_pattern})',
         ],
