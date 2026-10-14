@@ -3888,7 +3888,7 @@ def extract_policy_number_value(text: str) -> str:
             return f"{spaced_alnum_match.group(1)}{spaced_alnum_match.group(2)}"
         return candidate
 
-    def is_valid_policy_candidate(candidate: str) -> bool:
+    def is_valid_policy_candidate(candidate: str, skip_rfc_shape_check: bool = False) -> bool:
         raw_candidate = sanitize_text_value(candidate)
         candidate = normalize_policy_candidate(candidate)
         if not candidate:
@@ -3908,7 +3908,13 @@ def extract_policy_number_value(text: str) -> str:
             return False
         if compact in {"MNACIONAL", "NACIONAL"}:
             return False
-        if re.fullmatch(r'[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}', compact):
+        # Patrón de forma de un RFC (persona moral: 3-4 letras + 6 dígitos de
+        # fecha + 3 alfanuméricos de homoclave). Solo se aplica a candidatos
+        # que NO vinieron ya anclados a una etiqueta explícita "Póliza:",
+        # porque algunos formatos (p.ej. AXA flotilla: "YBJ019610000", 3
+        # letras + 9 dígitos) coinciden por coincidencia con esta misma forma
+        # sin ser un RFC -- rechazarlos ahí perdía el número de póliza real.
+        if not skip_rfc_shape_check and re.fullmatch(r'[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}', compact):
             return False
         if re.fullmatch(r'\d{8}', compact) or re.fullmatch(r'\d{10}', compact):
             return False
@@ -3916,11 +3922,11 @@ def extract_policy_number_value(text: str) -> str:
             return False
         return True
 
-    def choose_longest_valid_candidate(candidates) -> str:
+    def choose_longest_valid_candidate(candidates, skip_rfc_shape_check: bool = False) -> str:
         normalized_candidates = []
         for candidate in candidates or []:
             normalized = normalize_policy_candidate(candidate)
-            if normalized and is_valid_policy_candidate(normalized):
+            if normalized and is_valid_policy_candidate(normalized, skip_rfc_shape_check=skip_rfc_shape_check):
                 normalized_candidates.append(normalized)
         if not normalized_candidates:
             return None
@@ -3944,7 +3950,7 @@ def extract_policy_number_value(text: str) -> str:
         r'(?im)\bP[oó]liza\s*:\s*([A-Z]{2,5}\d{6,12}(?:\s+\d{2,6})?[A-Z0-9/-]*)\b',
         text
     )
-    direct_line_candidate = choose_longest_valid_candidate(direct_line_candidates)
+    direct_line_candidate = choose_longest_valid_candidate(direct_line_candidates, skip_rfc_shape_check=True)
     if direct_line_candidate:
         return direct_line_candidate
 
@@ -3958,7 +3964,7 @@ def extract_policy_number_value(text: str) -> str:
         explicit_value or '',
         re.I
     )
-    explicit_candidate = choose_longest_valid_candidate(explicit_compact_matches)
+    explicit_candidate = choose_longest_valid_candidate(explicit_compact_matches, skip_rfc_shape_check=True)
     if explicit_candidate:
         return explicit_candidate
 
@@ -4132,7 +4138,14 @@ def extract_endoso_value(text: str) -> str:
         r'(?im)^\s*Movimiento\s*[:#|.-]?\s*([^\n]{1,80})',
         r'(?im)^\s*(?:P[oó]liza|Certificado)\s*/\s*Endoso\s*[:|]?\s*[A-Z0-9/-]{5,}\s+([^\n]{1,80})',
         r'(?is)\b(?:P[oó]liza|Certificado)\s*/\s*Endoso\b[^\n]*\n\s*[A-Z0-9/-]{5,}\s+([A-Z]?\s*\d{1,10}[A-Z0-9/-]*)\b',
-        r'(?is)\bEndoso\b[^\n]{0,60}\n\s*([A-Z]?\s*\d{1,10}[A-Z0-9/-]*)\b',
+        # Solo cuando "Endoso" queda solo en su línea (nada de contenido real
+        # entre la etiqueta y el salto de línea, aparte de puntuación): el
+        # valor real está en la línea siguiente. Antes permitía hasta 60
+        # caracteres de contenido entre medio, lo que se tragaba un valor que
+        # ya venía en la MISMA línea (p.ej. "Endoso:YBJ01961") y terminaba
+        # devolviendo, por error, el primer número de la línea siguiente
+        # (el código de agente).
+        r'(?is)\bEndoso\b\s*[:#|.-]?\s*\n\s*([A-Z]?\s*\d{1,10}[A-Z0-9/-]*)\b',
     ]
     for pattern in patterns:
         match = re.search(pattern, text)
@@ -4657,8 +4670,11 @@ def clean_vehicle_attribute_value(value: str, field: str = None) -> str:
         # Una etiqueta como "VIN #: License plate and state" no es una serie,
         # aunque aparezca en anexos de póliza en inglés. Conservamos solamente
         # identificadores alfanuméricos/chasis con una longitud razonable.
+        # El mínimo es 5 (no 8) porque algunos formatos de flotilla (p.ej.
+        # AXA Autos "Serie: 001093") usan un folio corto de unidad en vez de
+        # un VIN de 17 caracteres; con mínimo 8 ese folio se perdía por completo.
         serial_candidates = re.findall(
-            r'(?<![A-Z0-9-])([A-Z0-9-]{8,25})(?![A-Z0-9-])',
+            r'(?<![A-Z0-9-])([A-Z0-9-]{5,25})(?![A-Z0-9-])',
             value.upper()
         )
         serial_candidates = [
