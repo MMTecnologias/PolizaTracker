@@ -114,6 +114,29 @@
   .modal-body .destaco { font-weight: 600; color: #2b2b2b; }
   .modal-actions { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 8px; }
   .modal-actions .btn-primary { margin-top: 0; }
+
+  /* Selector tipo de persona */
+  .tipo-persona-selector {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--color-claro); border-radius: 30px; padding: 5px; margin-bottom: 22px;
+    position: relative; user-select: none;
+  }
+  .tipo-persona-selector input[type="radio"] { display: none; }
+  .tipo-persona-selector__opcion {
+    flex: 1; text-align: center; padding: 10px 14px; border-radius: 26px; font-size: 13px;
+    font-weight: 600; color: #6c757d; cursor: pointer; position: relative; z-index: 2;
+    transition: color 0.25s ease;
+  }
+  .tipo-persona-selector__thumb {
+    position: absolute; top: 5px; left: 5px; width: calc(50% - 5px); height: calc(100% - 10px);
+    background: var(--color-primario); border-radius: 26px; z-index: 1;
+    transition: left 0.28s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 8px rgba(201,74,28,0.35);
+  }
+  #tipoPersonaRadioMoral:checked ~ .tipo-persona-selector__thumb { left: calc(50% + 0px); }
+  #tipoPersonaRadioFisica:checked ~ .tipo-persona-selector__opcion--fisica,
+  #tipoPersonaRadioMoral:checked ~ .tipo-persona-selector__opcion--moral {
+    color: white;
+  }
 </style>
 </head>
 <body>
@@ -163,12 +186,23 @@
       <div class="alerta error" id="registroError"></div>
 
       <form id="formRegistro">
-        <div class="field-row">
+        <div class="tipo-persona-selector">
+          <input type="radio" name="tipoPersonaRadio" id="tipoPersonaRadioFisica" checked />
+          <input type="radio" name="tipoPersonaRadio" id="tipoPersonaRadioMoral" />
+          <label for="tipoPersonaRadioFisica" class="tipo-persona-selector__opcion tipo-persona-selector__opcion--fisica">Persona física</label>
+          <label for="tipoPersonaRadioMoral" class="tipo-persona-selector__opcion tipo-persona-selector__opcion--moral">Persona moral</label>
+          <div class="tipo-persona-selector__thumb"></div>
+        </div>
+        <div class="field-row" id="camposPersonaFisica">
           <div class="field"><label>Nombre</label><input type="text" id="regNombre" required placeholder="Juan" /></div>
           <div class="field"><label>Apellido</label><input type="text" id="regApellido" required placeholder="Pérez López" /></div>
         </div>
+        <div class="field" id="campoPersonaMoral" style="display:none;">
+          <label>Razón Social</label>
+          <input type="text" id="regRazonSocial" placeholder="Nombre de la empresa S.A. de C.V." />
+        </div>
         <div class="field-row">
-          <div class="field"><label>RFC</label><input type="text" id="regRfc" required placeholder="PELJ850101ABC" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" /></div>
+          <div class="field"><label>RFC</label><input type="text" id="regRfc" required placeholder="PELJ850101ABC" maxlength="13" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase();" /></div>
           <div class="field"><label>Número de póliza <span class="hint">(opcional)</span></label><input type="text" id="regPoliza" placeholder="Si lo tienes a la mano" /></div>
         </div>
         <div class="field"><label>Correo</label><input type="email" id="regCorreo" required placeholder="tucorreo@ejemplo.com" /></div>
@@ -264,6 +298,19 @@
     function mostrarModal(id) { document.getElementById(id).classList.add('active'); }
     function cerrarModal(id) { document.getElementById(id).classList.remove('active'); }
 
+    // ---- Selector tipo de persona (Registro) ----
+    function actualizarTipoPersonaUI() {
+      const esMoral = document.getElementById('tipoPersonaRadioMoral').checked;
+      document.getElementById('camposPersonaFisica').style.display = esMoral ? 'none' : 'flex';
+      document.getElementById('campoPersonaMoral').style.display = esMoral ? 'block' : 'none';
+      document.getElementById('regNombre').required = !esMoral;
+      document.getElementById('regApellido').required = !esMoral;
+      document.getElementById('regRazonSocial').required = esMoral;
+      document.getElementById('regRfc').placeholder = esMoral ? 'ABC010101XYZ' : 'PELJ850101ABC';
+    }
+    document.getElementById('tipoPersonaRadioFisica').addEventListener('change', actualizarTipoPersonaUI);
+    document.getElementById('tipoPersonaRadioMoral').addEventListener('change', actualizarTipoPersonaUI);
+
     function mostrarError(idAlerta, mensaje) {
       const el = document.getElementById(idAlerta);
       el.textContent = mensaje;
@@ -303,9 +350,15 @@
       const btn = document.getElementById('btnRegistroSubmit');
       btn.disabled = true;
       const correo = document.getElementById('regCorreo').value.trim();
+      const esMoral = document.getElementById('tipoPersonaRadioMoral').checked;
       const params = new URLSearchParams();
-      params.append('nombre', document.getElementById('regNombre').value.trim());
-      params.append('apellido', document.getElementById('regApellido').value.trim());
+      params.append('tipo_persona', esMoral ? 'moral' : 'fisica');
+      if (esMoral) {
+        params.append('razon_social', document.getElementById('regRazonSocial').value.trim());
+      } else {
+        params.append('nombre', document.getElementById('regNombre').value.trim());
+        params.append('apellido', document.getElementById('regApellido').value.trim());
+      }
       params.append('rfc', document.getElementById('regRfc').value.trim());
       params.append('numero_poliza', document.getElementById('regPoliza').value.trim());
       params.append('correo', correo);

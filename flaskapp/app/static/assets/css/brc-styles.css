@@ -18,6 +18,53 @@ body {
    /* overflow: hidden; */
 }
 
+/* Selector tipo de persona (física / moral) */
+.tipo-persona-switch {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   background: var(--color-claro);
+   border-radius: 30px;
+   padding: 4px;
+   position: relative;
+   user-select: none;
+}
+.tipo-persona-switch input[type="radio"] {
+   display: none;
+}
+.tipo-persona-switch__opcion {
+   flex: 1;
+   text-align: center;
+   padding: 8px 10px;
+   border-radius: 26px;
+   font-size: 13px;
+   font-weight: 600;
+   color: #6c757d;
+   cursor: pointer;
+   position: relative;
+   z-index: 2;
+   transition: color 0.25s ease;
+}
+.tipo-persona-switch__thumb {
+   position: absolute;
+   top: 4px;
+   left: 4px;
+   width: calc(50% - 4px);
+   height: calc(100% - 8px);
+   background: var(--color-primario);
+   border-radius: 26px;
+   z-index: 1;
+   transition: left 0.28s cubic-bezier(.4, 0, .2, 1);
+   box-shadow: 0 2px 8px rgba(201, 74, 28, 0.35);
+}
+#tipoPersonaClienteMoral:checked ~ .tipo-persona-switch__thumb {
+   left: calc(50% + 0px);
+}
+#tipoPersonaClienteFisica:checked ~ .tipo-persona-switch__opcion--fisica,
+#tipoPersonaClienteMoral:checked ~ .tipo-persona-switch__opcion--moral {
+   color: white;
+}
+
 label {
    font-size: 0.7rem;
    color: var(--gris-medio);

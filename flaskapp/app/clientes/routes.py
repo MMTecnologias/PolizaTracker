@@ -194,7 +194,7 @@ def create():
             new_client = Cliente(
                 nombre=get_form_value('nombre'),
                 apellido=get_form_value('apellido') if get_form_value(
-                    'sexo') != "Empresa" else "// "+get_form_value('apellido'),
+                    'sexo') != "Empresa" else "",
                 grupo_id=grupo_id,
                 rfc=rfc,
                 # tel_oficina=get_form_value('telefono_oficina'),
@@ -260,7 +260,7 @@ def create():
 
             existing_client.nombre = get_form_value('nombre')
             existing_client.apellido = get_form_value('apellido') if get_form_value(
-                'sexo') != "Empresa" else "// " + get_form_value('apellido')
+                'sexo') != "Empresa" else ""
             existing_client.grupo_id = grupo_id
             # existing_client.tel_oficina = get_form_value('telefono_oficina')
             existing_client.tel_movil = get_form_value('telefono_movil')

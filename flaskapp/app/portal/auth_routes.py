@@ -9,6 +9,7 @@ como Usuario de verdad. La sesión del portal vive en
 session['portal_cliente_id'].
 """
 import re
+import difflib
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -49,6 +50,58 @@ def _normalizar_texto(valor):
 
 def _normalizar_rfc(valor):
     return re.sub(r'[\s\-]', '', (valor or '').strip()).upper()
+
+
+# Términos de tipo de sociedad / puntuación que no aportan nada a la
+# identidad de la empresa y que la gente teclea de formas muy distintas
+# ("SA DE CV", "S.A. DE C.V.", "SAPI DE CV", etc.) -- se quitan antes de
+# comparar para que el match no dependa de acertarle exacto a esto.
+_SUFIJOS_RAZON_SOCIAL = (
+    'SOCIEDAD ANONIMA DE CAPITAL VARIABLE', 'SOCIEDAD ANONIMA PROMOTORA DE INVERSION',
+    'SAPI DE CV', 'SAPI', 'SA DE CV', 'SC DE RL DE CV', 'SC DE RL', 'S DE RL DE CV',
+    'S DE RL', 'SRL DE CV', 'SRL', 'SA', 'SC', 'AC', 'SAS',
+)
+
+
+def _normalizar_razon_social(valor):
+    """
+    Normaliza una razón social para comparación flexible: mayúsculas,
+    sin acentos, sin puntuación y sin los sufijos de tipo de sociedad
+    (S.A. de C.V., SAPI, etc.) que la gente escribe de muchas formas
+    distintas pero que no identifican a la empresa en sí.
+    """
+    limpio = _normalizar_texto(valor)
+    limpio = re.sub(r'[.,]', '', limpio)
+    limpio = re.sub(r'\s+', ' ', limpio).strip()
+    for sufijo in _SUFIJOS_RAZON_SOCIAL:
+        limpio = re.sub(r'\b' + re.escape(sufijo) + r'\b', '', limpio)
+    return re.sub(r'\s+', ' ', limpio).strip()
+
+
+def _razon_social_coincide(a, b):
+    """
+    Compara dos razones sociales de forma flexible: no exige que se
+    escriban idéntico, solo que sean lo bastante parecidas (o que una
+    contenga a la otra) una vez quitados sufijos y puntuación.
+    """
+    a_norm = _normalizar_razon_social(a)
+    b_norm = _normalizar_razon_social(b)
+    if not a_norm or not b_norm:
+        return False
+    if a_norm == b_norm:
+        return True
+    if a_norm in b_norm or b_norm in a_norm:
+        return True
+    # Compara también por conjunto de palabras compartidas -- cubre el
+    # caso de palabras en otro orden ("Comercial Garduño" vs "Garduño
+    # Comercial") que el ratio de secuencia castiga de más.
+    palabras_a = set(a_norm.split())
+    palabras_b = set(b_norm.split())
+    if palabras_a and palabras_b:
+        comunes = palabras_a & palabras_b
+        if len(comunes) / max(len(palabras_a), len(palabras_b)) >= 0.6:
+            return True
+    return difflib.SequenceMatcher(None, a_norm, b_norm).ratio() >= 0.65
 
 
 def _buscar_cliente_por_rfc_y_nombre(nombre, apellido, rfc):
@@ -97,6 +150,53 @@ def _buscar_cliente_por_poliza_y_nombre(numero_poliza, nombre, apellido):
     # solicitante se haya equivocado tecleando el RFC.
     if (_normalizar_texto(cliente.nombre) == nombre_norm
             or _normalizar_texto(cliente.apellido) == apellido_norm):
+        return cliente
+
+    return None
+
+
+def _buscar_cliente_moral_por_rfc_y_razon_social(razon_social, rfc):
+    rfc_norm = _normalizar_rfc(rfc)
+    if not rfc_norm:
+        return None, None
+
+    candidatos = [
+        c for c in Cliente.query.filter(
+            Cliente.status == 'Activo', Cliente.sexo == 'Empresa').all()
+        if _normalizar_rfc(c.rfc) == rfc_norm
+    ]
+    if not candidatos:
+        return None, None
+
+    # El RFC ya es un identificador fuerte por sí solo -- si solo hay un
+    # cliente moral con ese RFC, se da por verificado aunque la razón
+    # social se haya tecleado muy distinto a como está en la BD (con o
+    # sin tipo de sociedad, abreviada, con otro orden de palabras, etc.).
+    if len(candidatos) == 1:
+        return candidatos[0], None
+
+    for c in candidatos:
+        if _razon_social_coincide(c.nombre, razon_social):
+            return c, None
+
+    return None, 'El RFC existe en nuestros registros, pero la razón social no coincide.'
+
+
+def _buscar_cliente_moral_por_poliza_y_razon_social(numero_poliza, razon_social):
+    numero_norm = _normalizar_texto(numero_poliza)
+    if not numero_norm:
+        return None
+
+    poliza = Poliza.query.filter(
+        Poliza.poliza.ilike(numero_norm)).first()
+    if not poliza:
+        return None
+
+    cliente = Cliente.query.get(poliza.cliente_id)
+    if not cliente or cliente.status != 'Activo' or cliente.sexo != 'Empresa':
+        return None
+
+    if _razon_social_coincide(cliente.nombre, razon_social):
         return cliente
 
     return None
@@ -174,8 +274,12 @@ def confirmar_correo(token):
 
 @portal.route('/api/registro', methods=['POST'])
 def api_registro():
+    tipo_persona = (request.form.get('tipo_persona') or 'fisica').strip().lower()
+    es_moral = tipo_persona == 'moral'
+
     nombre = (request.form.get('nombre') or '').strip()
     apellido = (request.form.get('apellido') or '').strip()
+    razon_social = (request.form.get('razon_social') or '').strip()
     rfc = (request.form.get('rfc') or '').strip().upper()
     numero_poliza = (request.form.get('numero_poliza') or '').strip()
     correo = (request.form.get('correo') or '').strip().lower()
@@ -183,8 +287,12 @@ def api_registro():
     password = request.form.get('password') or ''
     confirmar_password = request.form.get('confirmar_password') or ''
 
-    if not all([nombre, apellido, rfc, correo, telefono, password]):
-        return jsonify({'error': True, 'msg': 'Faltan campos requeridos.'}), 400
+    if es_moral:
+        if not all([razon_social, rfc, correo, telefono, password]):
+            return jsonify({'error': True, 'msg': 'Faltan campos requeridos.'}), 400
+    else:
+        if not all([nombre, apellido, rfc, correo, telefono, password]):
+            return jsonify({'error': True, 'msg': 'Faltan campos requeridos.'}), 400
     if password != confirmar_password:
         return jsonify({'error': True, 'msg': 'Las contraseñas no coinciden.'}), 400
     if len(password) < 8:
@@ -197,12 +305,18 @@ def api_registro():
 
     password_hash = generate_password_hash(password)
 
-    cliente, motivo = _buscar_cliente_por_rfc_y_nombre(nombre, apellido, rfc)
-
-    if not cliente and numero_poliza:
-        cliente = _buscar_cliente_por_poliza_y_nombre(numero_poliza, nombre, apellido)
-        if cliente:
-            motivo = None
+    if es_moral:
+        cliente, motivo = _buscar_cliente_moral_por_rfc_y_razon_social(razon_social, rfc)
+        if not cliente and numero_poliza:
+            cliente = _buscar_cliente_moral_por_poliza_y_razon_social(numero_poliza, razon_social)
+            if cliente:
+                motivo = None
+    else:
+        cliente, motivo = _buscar_cliente_por_rfc_y_nombre(nombre, apellido, rfc)
+        if not cliente and numero_poliza:
+            cliente = _buscar_cliente_por_poliza_y_nombre(numero_poliza, nombre, apellido)
+            if cliente:
+                motivo = None
 
     if cliente:
         if PortalUsuario.query.filter_by(cliente_id=cliente.id).first():
@@ -230,14 +344,14 @@ def api_registro():
         token = _crear_token(portal_usuario.id, 'confirmacion_correo',
                               TOKEN_CONFIRMACION_HORAS)
         link = url_for('portal.confirmar_correo', token=token, _external=True)
-        enviar_confirmacion_correo(correo, nombre, link)
+        enviar_confirmacion_correo(correo, razon_social if es_moral else nombre, link)
 
         return jsonify({'status': 'verificado', 'correo': correo})
 
     # No se pudo verificar automáticamente — queda pendiente de revisión manual
     solicitud = PortalSolicitudRegistro(
-        nombre=nombre,
-        apellido=apellido,
+        nombre=razon_social if es_moral else nombre,
+        apellido='' if es_moral else apellido,
         rfc=rfc,
         numero_poliza=numero_poliza or None,
         correo=correo,

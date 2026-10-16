@@ -24,6 +24,32 @@ $(function () {
     });
   }
 
+  // Sincroniza nombre/apellido/sexo con el selector física/moral.
+  function aplicarTipoPersona(esMoral) {
+    if (esMoral) {
+      $('#label_nombre').text('Razón Social');
+      $('#apellido_div').hide();
+      $('#apellido').prop('required', false).val('');
+      $('#sexo').val('Empresa');
+      $('#sexo').closest('.form__input-data').hide();
+    } else {
+      $('#label_nombre').text('Nombre Cliente');
+      $('#apellido_div').show();
+      $('#apellido').prop('required', true);
+      if ($('#sexo').val() === 'Empresa') {
+        $('#sexo').val('');
+      }
+      $('#sexo').closest('.form__input-data').show();
+    }
+  }
+
+  $('#tipoPersonaClienteFisica, #tipoPersonaClienteMoral').on(
+    'change',
+    function () {
+      aplicarTipoPersona($('#tipoPersonaClienteMoral').is(':checked'));
+    }
+  );
+
   function resetForm() {
     $('#cliente-form')[0].reset();
     $('#sexo').html(`
@@ -36,6 +62,8 @@ $(function () {
     $('#cliente-form select').prop('disabled', false);
     $('#cliente_id').val('New');
     $('#nuevo_grupo_div').hide();
+    $('#tipoPersonaClienteFisica').prop('checked', true);
+    aplicarTipoPersona(false);
   }
 
   function editClient(id) {
@@ -69,6 +97,11 @@ $(function () {
             resp.data[0].sexo === 'Indefinido' ? 'selected' : ''
           }>Indefinido</option>
         `);
+        const esMoral = resp.data[0].sexo === 'Empresa';
+        $(
+          esMoral ? '#tipoPersonaClienteMoral' : '#tipoPersonaClienteFisica'
+        ).prop('checked', true);
+        aplicarTipoPersona(esMoral);
         $('#ocupacion').val(resp.data[0].ocupacion);
         $('#giro_actividad').val(resp.data[0].actividad);
         $('#grupo').html(`<option value='${resp.data[0].grupo_id}'> ${

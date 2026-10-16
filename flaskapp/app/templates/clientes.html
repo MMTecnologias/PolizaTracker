@@ -16,7 +16,7 @@
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
    <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
-   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}?v=2" />
    <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/simplePagination.min.css">
 </head>
@@ -46,7 +46,17 @@
                <form id="cliente-form" class="needs-validation form-data" novalidate>
                   <input type="hidden" id="cliente_id" name="cliente_id" value="New" />
                   <div class="form__input-data">
-                     <label for="nombre" class="label-input-data">
+                     <label class="label-input-data">Tipo de Persona</label>
+                     <div class="tipo-persona-switch">
+                        <input type="radio" name="tipoPersonaCliente" id="tipoPersonaClienteFisica" checked />
+                        <input type="radio" name="tipoPersonaCliente" id="tipoPersonaClienteMoral" />
+                        <label for="tipoPersonaClienteFisica" class="tipo-persona-switch__opcion tipo-persona-switch__opcion--fisica">Física</label>
+                        <label for="tipoPersonaClienteMoral" class="tipo-persona-switch__opcion tipo-persona-switch__opcion--moral">Moral</label>
+                        <div class="tipo-persona-switch__thumb"></div>
+                     </div>
+                  </div>
+                  <div class="form__input-data">
+                     <label for="nombre" class="label-input-data" id="label_nombre">
                         Nombre Cliente
                      </label>
                      <div class="input-group">
@@ -55,7 +65,7 @@
                         <p class="invalid-feedback">Ingresa un nombre válido.</p>
                      </div>
                   </div>
-                  <div class="form__input-data">
+                  <div class="form__input-data" id="apellido_div">
                      <label for="apellido" class="label-input-data">Apellido</label>
                      <div class="input-group">
                         <input type="text" class="form-control" id="apellido" name="apellido" placeholder=""
@@ -128,7 +138,7 @@
                   </div>
                   <div class="form__input-data">
                      <label for="grupo" class="label-input-data">Grupo</label>
-                     <select class="custom-select" id="grupo" name="grupo" required>
+                     <select class="custom-select" id="grupo" name="grupo">
                         <option value="">Selecciona...</option>
                         {% for grupo in grupos %}
                         <option value="{{ grupo.id }}">{{ grupo.grupo }}</option>
@@ -230,7 +240,7 @@
       </div>
    </div>
 
-   <script type="module" src="{{ url_for('static', filename='assets/controladores/clientes.js') }}?v=2"></script>
+   <script type="module" src="{{ url_for('static', filename='assets/controladores/clientes.js') }}?v=3"></script>
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
