@@ -25,6 +25,8 @@ from sqlalchemy.orm import aliased
 from app.models import export_to_csv, export_to_pdf
 from app.utils.document_storage import get_carpeta_documento, get_carpeta_endoso
 from app.utils.pdf_extract import extract_real_pdf
+from app.utils.chubb_avisos import (
+    leer_avisos, validar_avisos, resumen_avisos, pdf_de_aviso, AvisoChubbError)
 
 
 @polizas_route.route('/get_receipts', methods=['POST'])
@@ -585,7 +587,39 @@ def create():
     # los manda (compatibilidad hacia atrás), la póliza se crea igual
     # que antes, con recibos='Por generar', para generarse después vía
     # /save_receipts.
-    if flask_request.form.get('netPremium'):
+    pares_avisos = None
+    if _hay_avisos_en_request():
+        # Chubb: recibos exactos a partir de los avisos de cobro.
+        if not _es_chubb(new_poliza.aseguradora_id):
+            db.session.rollback()
+            return jsonify({'error': True, 'msg': 'Los avisos de cobro solo aplican a pólizas de Chubb'})
+        try:
+            db.session.flush()
+            db.session.refresh(new_poliza)
+            avisos = leer_avisos(_archivos_avisos_de_request())
+            pct = _comision_pct_form()
+            if pct is None:
+                raise AvisoChubbError('Indica el % de comisión (0 a 100).')
+            errores, _adv = validar_avisos(
+                avisos,
+                poliza_numero=new_poliza.poliza,
+                n_esperado=_n_esperado_entidad(new_poliza),
+                prima_neta=new_poliza.prima_neta,
+                prima_total=new_poliza.prima_total,
+                fecha_inicio=new_poliza.fecha_inicio,
+                fecha_termino=new_poliza.fecha_termino)
+            if errores:
+                raise AvisoChubbError('Avisos de cobro:\n- ' + '\n- '.join(errores))
+            pares_avisos = _recibos_desde_avisos(
+                new_poliza.id, None, avisos, new_poliza, pct, 1)
+        except AvisoChubbError as error:
+            db.session.rollback()
+            return jsonify({'error': True, 'msg': str(error)})
+        except Exception as error:
+            db.session.rollback()
+            current_app.logger.exception("[CREATE] Error al generar recibos desde avisos")
+            return jsonify({'error': True, 'msg': f'Error al generar los recibos: {error}'})
+    elif flask_request.form.get('netPremium'):
         try:
             response = calcular_recibos()
             response['poliza_id'] = new_poliza.id
@@ -611,6 +645,9 @@ def create():
             "[CREATE] Error al guardar la póliza")
         return jsonify({'error': True, 'msg': f'Error al guardar la póliza: {error}'})
 
+    avisos_sin_guardar = (_guardar_avisos_en_recibos(pares_avisos, new_poliza)
+                          if pares_avisos else [])
+
     # El PDF (si se subió) quedó en la carpeta temporal vieja porque la
     # póliza no existía todavía -- ahora que ya tiene id, se mueve a su
     # carpeta protegida definitiva.
@@ -628,7 +665,8 @@ def create():
         'redirect': url_for('main.polizas'),
         'msg': arg_values,
         'title': 'Poliza registrada exitosamente',
-        'poliza_id': new_poliza.id
+        'poliza_id': new_poliza.id,
+        'avisos_sin_guardar': avisos_sin_guardar
     })
     # else:
     #    return jsonify({
@@ -987,6 +1025,400 @@ def _calcular_montos_recibos(prima_total, prima_neta, iva_pct, derecho_poliza,
     response['comision'] = commission
     response['nopagos'] = nopagos
     return response
+
+
+# ----------------------------------------------------------------------
+# Recibos de Chubb a partir de sus AVISOS DE COBRO
+# ----------------------------------------------------------------------
+# Chubb reparte la prima neta y el financiamiento de forma desigual entre
+# recibos y carga el 100% de los gastos de expedición en el primero, así
+# que en vez de calcularlos se leen los avisos de cobro reales.
+
+MAX_BYTES_AVISO = 25 * 1024 * 1024
+
+
+def _es_chubb(aseguradora_id):
+    if not aseguradora_id:
+        return False
+    aseguradora = Aseguradora.query.get(aseguradora_id)
+    return bool(aseguradora and 'chubb' in (aseguradora.aseguradora or '').lower())
+
+
+def _decimal_form(nombre):
+    """Lee un número del form (acepta comas de miles y '$'). None si no hay."""
+    valor = flask_request.form.get(nombre)
+    if valor is None:
+        return None
+    valor = str(valor).replace('$', '').replace(',', '').strip()
+    if not valor:
+        return None
+    try:
+        return Decimal(valor)
+    except Exception:
+        return None
+
+
+def _fecha_form(nombre):
+    valor = (flask_request.form.get(nombre) or '').strip()
+    if not valor:
+        return None
+    try:
+        return datetime.strptime(valor[:10], '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+def _archivos_avisos_de_request():
+    """Archivos 'avisos_cobro' del request -> [(nombre, bytes)]. Lanza
+    AvisoChubbError si alguno no es PDF o es muy grande."""
+    archivos = []
+    for f in flask_request.files.getlist('avisos_cobro'):
+        if not f or not f.filename:
+            continue
+        if not f.filename.lower().endswith('.pdf'):
+            raise AvisoChubbError(f'"{f.filename}" no es un PDF.')
+        contenido = f.read()
+        if len(contenido) > MAX_BYTES_AVISO:
+            raise AvisoChubbError(f'"{f.filename}" es demasiado grande (máximo 25MB).')
+        archivos.append((f.filename, contenido))
+    return archivos
+
+
+def _hay_avisos_en_request():
+    return any(f and f.filename for f in flask_request.files.getlist('avisos_cobro'))
+
+
+def _recibos_desde_avisos(poliza_id, endoso_id, avisos, entity, comision_pct,
+                          multiplier=1):
+    """Crea los Recibo (db.session.add, SIN commit) con los montos y fechas
+    exactos de los avisos y fija los totales de la póliza/endoso.
+    Regresa [(recibo, aviso)] para guardar después los PDFs."""
+    avisos = sorted(avisos, key=lambda a: a['serie_k'])
+    n = avisos[0]['serie_n']
+    pct = Decimal(str(comision_pct or 0))
+    pares = []
+    for a in avisos:
+        neta = multiplier * abs(a['prima_neta'])
+        total = multiplier * abs(a['total'])
+        recibo = Recibo(
+            fecha_inicio=a['vigencia_desde'],
+            fecha_vencimiento=a['vigencia_hasta'],
+            poliza_id=poliza_id,
+            endoso_id=endoso_id,
+            prima_neta=neta,
+            prima_total=total,
+            comision=(neta * pct / Decimal('100')).quantize(Decimal('0.01')),
+            no_de_recibo=f"{a['serie_k']} / {n}",
+        )
+        db.session.add(recibo)
+        pares.append((recibo, a))
+    _totales_entidad_desde_avisos(entity, avisos, pares)
+    entity.recibos = "Generados"
+    return pares
+
+
+def _totales_entidad_desde_avisos(entity, avisos, pares):
+    entity.derecho_poliza = sum((abs(a['gastos_expedicion']) for a in avisos), Decimal('0'))
+    entity.rec_pago = sum((abs(a['financiamiento']) for a in avisos), Decimal('0'))
+    entity.iva = sum((abs(a['iva']) for a in avisos), Decimal('0')).quantize(Decimal('0.01'))
+    entity.comision = abs(sum((abs(r.comision) for r, _ in pares), Decimal('0')))
+
+
+def _guardar_avisos_en_recibos(pares, poliza):
+    """Después del commit: guarda la página de cada aviso como el Aviso de
+    Cobro de su recibo (sin pisar uno ya existente). Regresa la lista de
+    avisos que no se pudieron guardar (texto)."""
+    fallos = []
+    cliente = _cliente_de_poliza(poliza)
+    for recibo, aviso in pares:
+        if recibo.comprobante:
+            continue
+        try:
+            contenido = pdf_de_aviso(aviso)
+            folder = get_carpeta_documento(cliente, poliza, 'aviso_cobro', recibo=recibo)
+            filename = f"r{recibo.id}_{uuid.uuid4().hex[:8]}.pdf"
+            with open(os.path.join(folder, filename), 'wb') as fh:
+                fh.write(contenido)
+            origen = secure_filename(aviso['archivo']) or 'aviso.pdf'
+            if len(aviso['_fuente']) != len(contenido) or aviso['_fuente'] != contenido:
+                origen = f"{origen} (pág. {aviso['paginas'][0] + 1})"
+            recibo.comprobante = filename
+            recibo.comprobante_original = origen[:255]
+        except Exception as e:
+            current_app.logger.exception(
+                "[AVISOS] No se pudo guardar el aviso del recibo %s", recibo.id)
+            fallos.append(f"{recibo.no_de_recibo}: {e}")
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("[AVISOS] No se pudo registrar los avisos guardados")
+        fallos.append('No se pudo registrar los documentos en la base de datos.')
+    return fallos
+
+
+def _contexto_avisos(poliza_id, endoso_id):
+    """Resuelve póliza/endoso para los endpoints post-hoc.
+    Regresa (error, poliza, endoso, entity, multiplier)."""
+    endoso = None
+    if endoso_id:
+        endoso = Endoso.query.get(endoso_id)
+        if not endoso:
+            return 'Endoso no encontrado', None, None, None, 1
+        poliza = Poliza.query.get(endoso.poliza_id)
+        if endoso.tipo_endoso == 'B':
+            return 'Los endosos tipo B no generan recibos', None, None, None, 1
+        entity = endoso
+        multiplier = -1 if endoso.tipo_endoso == 'D' else 1
+    else:
+        poliza = Poliza.query.get(poliza_id) if poliza_id else None
+        entity = poliza
+        multiplier = 1
+    if not poliza:
+        return 'Póliza no encontrada', None, None, None, 1
+    if not _es_chubb(entity.aseguradora_id):
+        return 'Esta función solo aplica a pólizas de Chubb', None, None, None, 1
+    if entity.status in ("Cancelada", "Finalizada"):
+        return 'La póliza/endoso está cancelada o finalizada', None, None, None, 1
+    return None, poliza, endoso, entity, multiplier
+
+
+def _recibos_del_alcance(poliza, endoso):
+    """Recibos propios: los de la póliza base (sin endoso) o los del endoso."""
+    if endoso:
+        return Recibo.query.filter(Recibo.endoso_id == endoso.id) \
+            .order_by(Recibo.fecha_inicio, Recibo.id).all()
+    return Recibo.query.filter(Recibo.poliza_id == poliza.id,
+                               Recibo.endoso_id.is_(None)) \
+        .order_by(Recibo.fecha_inicio, Recibo.id).all()
+
+
+def _n_esperado_entidad(entity):
+    tipo_pago = TipoPago.query.get(entity.tipo_pago_id) if entity.tipo_pago_id else None
+    if not tipo_pago:
+        return None
+    if tipo_pago.contado == "Si":
+        return 1
+    return int(tipo_pago.pagos_anuales or 0) or None
+
+
+def _comision_pct_derivada(entity):
+    try:
+        if entity.comision and entity.prima_neta and abs(entity.prima_neta) > 0:
+            return round(abs(float(entity.comision)) / abs(float(entity.prima_neta)) * 100, 2)
+    except Exception:
+        pass
+    return None
+
+
+def _validar_avisos_entidad(avisos, poliza, endoso, entity, n_esperado):
+    return validar_avisos(
+        avisos,
+        poliza_numero=poliza.poliza,
+        endoso_numero=entity.endoso,
+        es_endoso=endoso is not None,
+        n_esperado=n_esperado,
+        prima_neta=entity.prima_neta,
+        prima_total=entity.prima_total,
+        fecha_inicio=entity.fecha_inicio,
+        fecha_termino=entity.fecha_termino)
+
+
+@polizas_route.route('/chubb_avisos_preview', methods=['POST'])
+@login_required
+def chubb_avisos_preview():
+    """Lee y valida los avisos SIN guardar nada. Sirve para el alta
+    (datos del formulario) y para generar/regenerar (poliza_id/endoso_id)."""
+    try:
+        archivos = _archivos_avisos_de_request()
+        avisos = leer_avisos(archivos)
+    except AvisoChubbError as e:
+        return jsonify({'error': True, 'msg': str(e)})
+    except Exception as e:
+        current_app.logger.exception("[AVISOS] Error al leer avisos")
+        return jsonify({'error': True, 'msg': f'No se pudieron leer los avisos: {e}'})
+
+    poliza_id = flask_request.form.get('poliza_id')
+    endoso_id = flask_request.form.get('endoso_id')
+    if poliza_id and poliza_id != 'New' and not flask_request.form.get('modo_alta'):
+        error, poliza, endoso, entity, _ = _contexto_avisos(poliza_id, endoso_id)
+        if error:
+            return jsonify({'error': True, 'msg': error})
+        errores, advertencias = _validar_avisos_entidad(
+            avisos, poliza, endoso, entity, _n_esperado_entidad(entity))
+    else:
+        # Alta (póliza nueva, renovación o endoso): se valida contra el formulario.
+        n_esperado = flask_request.form.get('receipts')
+        es_endoso = bool(flask_request.form.get('tipo'))
+        if es_endoso:
+            # En un endoso, 'Poliza' es el número del endoso; el número de
+            # póliza es el de la póliza base.
+            base = Poliza.query.get(poliza_id) if poliza_id else None
+            poliza_numero = base.poliza if base else None
+            endoso_numero = (flask_request.form.get('Poliza')
+                             or flask_request.form.get('endoso') or None)
+        else:
+            poliza_numero = flask_request.form.get('Poliza') or None
+            endoso_numero = None
+        errores, advertencias = validar_avisos(
+            avisos,
+            poliza_numero=poliza_numero,
+            endoso_numero=endoso_numero,
+            es_endoso=es_endoso,
+            n_esperado=int(n_esperado) if n_esperado and n_esperado.isdigit() else None,
+            prima_neta=_decimal_form('prima_neta'),
+            prima_total=_decimal_form('prima_total'),
+            fecha_inicio=_fecha_form('VigenciaI'),
+            fecha_termino=_fecha_form('VigenciaF'))
+    return jsonify({'error': False, 'ok': not errores, 'errores': errores,
+                    'advertencias': advertencias, 'resumen': resumen_avisos(avisos)})
+
+
+@polizas_route.route('/chubb_recibos_info', methods=['POST'])
+@login_required
+def chubb_recibos_info():
+    """Dice si la póliza/endoso es de Chubb y qué acciones de avisos aplican
+    (generar si 'Por generar', regenerar si 'Generados')."""
+    poliza_id = flask_request.form.get('poliza_id')
+    endoso_id = flask_request.form.get('endoso_id')
+    error, poliza, endoso, entity, _ = _contexto_avisos(poliza_id, endoso_id)
+    if error:
+        return jsonify({'error': False, 'chubb': False})
+    return jsonify({
+        'error': False,
+        'chubb': True,
+        'recibos': entity.recibos,
+        'comision_pct': _comision_pct_derivada(entity),
+        'n_esperado': _n_esperado_entidad(entity),
+    })
+
+
+def _comision_pct_form():
+    pct = _decimal_form('commission')
+    if pct is None or pct < 0 or pct > 100:
+        return None
+    return pct
+
+
+@polizas_route.route('/save_receipts_avisos', methods=['POST'])
+@login_required
+def save_receipts_avisos():
+    """Genera los recibos de una póliza/endoso Chubb 'Por generar' desde sus avisos."""
+    poliza_id = flask_request.form.get('poliza_id')
+    endoso_id = flask_request.form.get('endoso_id')
+    error, poliza, endoso, entity, multiplier = _contexto_avisos(poliza_id, endoso_id)
+    if error:
+        return jsonify({'error': True, 'msg': error})
+    if entity.recibos == "Generados":
+        return jsonify({'error': True, 'msg': 'Ya tiene recibos generados. Usa "Regenerar desde avisos".'})
+    if _recibos_del_alcance(poliza, endoso):
+        return jsonify({'error': True, 'msg': 'Ya existen recibos para esta póliza/endoso.'})
+    pct = _comision_pct_form()
+    if pct is None:
+        return jsonify({'error': True, 'msg': 'Indica el % de comisión (0 a 100).'})
+    try:
+        avisos = leer_avisos(_archivos_avisos_de_request())
+    except AvisoChubbError as e:
+        return jsonify({'error': True, 'msg': str(e)})
+    errores, _adv = _validar_avisos_entidad(
+        avisos, poliza, endoso, entity, _n_esperado_entidad(entity))
+    if errores:
+        return jsonify({'error': True, 'msg': 'No se generaron los recibos:\n- ' + '\n- '.join(errores)})
+
+    try:
+        pares = _recibos_desde_avisos(poliza.id, endoso.id if endoso else None,
+                                      avisos, entity, pct, multiplier)
+        db.session.flush()
+        db.session.add(Request(
+            usuario_id=current_user.id,
+            description=f"Generar recibos desde avisos de cobro ({len(pares)}) de "
+                        f"{'endoso ' + str(endoso.endoso) if endoso else 'póliza ' + str(poliza.poliza)}",
+            status="Aceptada",
+            table_name='Endoso' if endoso else 'Poliza',
+            row_id=endoso.id if endoso else poliza.id))
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception("[AVISOS] Error al generar recibos")
+        return jsonify({'error': True, 'msg': f'Error al generar los recibos: {e}'})
+
+    fallos = _guardar_avisos_en_recibos(pares, poliza)
+    return jsonify({'error': False, 'msg': 'Recibos generados con éxito desde los avisos de cobro',
+                    'avisos_sin_guardar': fallos})
+
+
+@polizas_route.route('/regenerar_recibos_avisos', methods=['POST'])
+@login_required
+def regenerar_recibos_avisos():
+    """Actualiza EN SITIO los recibos ya generados de una póliza/endoso Chubb con
+    los montos y fechas de sus avisos (no borra ni recrea recibos)."""
+    poliza_id = flask_request.form.get('poliza_id')
+    endoso_id = flask_request.form.get('endoso_id')
+    error, poliza, endoso, entity, multiplier = _contexto_avisos(poliza_id, endoso_id)
+    if error:
+        return jsonify({'error': True, 'msg': error})
+    if entity.recibos != "Generados":
+        return jsonify({'error': True, 'msg': 'Aún no tiene recibos generados. Usa "Generar recibos".'})
+    recibos = _recibos_del_alcance(poliza, endoso)
+    if not recibos:
+        return jsonify({'error': True, 'msg': 'No se encontraron recibos para actualizar.'})
+    bloqueados = [r.no_de_recibo for r in recibos if r.status in ("Liquidado", "Cancelado")]
+    if bloqueados:
+        return jsonify({'error': True, 'msg': 'No se pueden regenerar: hay recibos liquidados o cancelados ('
+                        + ', '.join(bloqueados) + ').'})
+    pct = _comision_pct_form()
+    if pct is None:
+        return jsonify({'error': True, 'msg': 'Indica el % de comisión (0 a 100).'})
+    try:
+        avisos = leer_avisos(_archivos_avisos_de_request())
+    except AvisoChubbError as e:
+        return jsonify({'error': True, 'msg': str(e)})
+
+    errores, _adv = _validar_avisos_entidad(avisos, poliza, endoso, entity, len(recibos))
+    if errores:
+        return jsonify({'error': True, 'msg': 'No se actualizó nada:\n- ' + '\n- '.join(errores)})
+
+    # Emparejar por "k / N"; si no coincide, por orden de fecha.
+    por_numero = {(r.no_de_recibo or '').replace(' ', ''): r for r in recibos}
+    avisos = sorted(avisos, key=lambda a: a['serie_k'])
+    pares = []
+    usados = set()
+    for a in avisos:
+        clave = f"{a['serie_k']}/{a['serie_n']}"
+        r = por_numero.get(clave)
+        if r is None or r.id in usados:
+            pares = None
+            break
+        usados.add(r.id)
+        pares.append((r, a))
+    if pares is None:
+        pares = list(zip(recibos, avisos))
+    try:
+        for recibo, a in pares:
+            neta = multiplier * abs(a['prima_neta'])
+            recibo.prima_neta = neta
+            recibo.prima_total = multiplier * abs(a['total'])
+            recibo.comision = (neta * pct / Decimal('100')).quantize(Decimal('0.01'))
+            recibo.fecha_inicio = a['vigencia_desde']
+            recibo.fecha_vencimiento = a['vigencia_hasta']
+        _totales_entidad_desde_avisos(entity, avisos, pares)
+        db.session.add(Request(
+            usuario_id=current_user.id,
+            description=f"Regenerar recibos desde avisos de cobro ({len(pares)}) de "
+                        f"{'endoso ' + str(endoso.endoso) if endoso else 'póliza ' + str(poliza.poliza)}",
+            status="Aceptada",
+            table_name='Endoso' if endoso else 'Poliza',
+            row_id=endoso.id if endoso else poliza.id))
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception("[AVISOS] Error al regenerar recibos")
+        return jsonify({'error': True, 'msg': f'Error al actualizar los recibos: {e}'})
+
+    fallos = _guardar_avisos_en_recibos(pares, poliza)
+    return jsonify({'error': False, 'msg': f'{len(pares)} recibo(s) actualizados desde los avisos de cobro',
+                    'avisos_sin_guardar': fallos})
+
 
 
 def calcular_recibos():
@@ -1382,7 +1814,41 @@ def create_endoso():
     # Los endosos tipo B nunca generan recibos (regla de negocio ya
     # existente). Para A y D, si el form incluye los datos de recibos,
     # se generan aquí mismo, en la misma transacción que el endoso.
-    if tipo != "B" and flask_request.form.get('netPremium'):
+    pares_avisos = None
+    if tipo != "B" and _hay_avisos_en_request():
+        if not _es_chubb(endoso.aseguradora_id):
+            db.session.rollback()
+            return jsonify({'error': True, 'msg': 'Los avisos de cobro solo aplican a endosos de Chubb'})
+        try:
+            db.session.flush()
+            db.session.refresh(endoso)
+            avisos = leer_avisos(_archivos_avisos_de_request())
+            pct = _comision_pct_form()
+            if pct is None:
+                raise AvisoChubbError('Indica el % de comisión (0 a 100).')
+            errores, _adv = validar_avisos(
+                avisos,
+                poliza_numero=poliza.poliza,
+                endoso_numero=endoso.endoso,
+                es_endoso=True,
+                n_esperado=_n_esperado_entidad(endoso),
+                prima_neta=endoso.prima_neta,
+                prima_total=endoso.prima_total,
+                fecha_inicio=endoso.fecha_inicio,
+                fecha_termino=endoso.fecha_termino)
+            if errores:
+                raise AvisoChubbError('Avisos de cobro:\n- ' + '\n- '.join(errores))
+            pares_avisos = _recibos_desde_avisos(
+                poliza.id, endoso.id, avisos, endoso, pct,
+                -1 if tipo == "D" else 1)
+        except AvisoChubbError as error:
+            db.session.rollback()
+            return jsonify({'error': True, 'msg': str(error)})
+        except Exception as error:
+            db.session.rollback()
+            current_app.logger.exception("[CREATE_ENDOSO] Error al generar recibos desde avisos")
+            return jsonify({'error': True, 'msg': f'Error al generar los recibos: {error}'})
+    elif tipo != "B" and flask_request.form.get('netPremium'):
         try:
             response = calcular_recibos()
             response['poliza_id'] = poliza.id
@@ -1408,6 +1874,9 @@ def create_endoso():
         current_app.logger.exception("[CREATE_ENDOSO] Error al guardar el endoso")
         return jsonify({'error': True, 'msg': f'Error al guardar el endoso: {error}'})
 
+    avisos_sin_guardar = (_guardar_avisos_en_recibos(pares_avisos, poliza)
+                          if pares_avisos else [])
+
     # Igual que con la póliza: el PDF del endoso (si se subió) quedó en la
     # carpeta temporal vieja porque el endoso no existía todavía.
     if endoso.pdf_path:
@@ -1422,7 +1891,8 @@ def create_endoso():
     return jsonify({
         'error': False,
         'msg': 'Endoso creado exitosamente',
-        'endoso_id': endoso.id
+        'endoso_id': endoso.id,
+        'avisos_sin_guardar': avisos_sin_guardar
     })
 
 

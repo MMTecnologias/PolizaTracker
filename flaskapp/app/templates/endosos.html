@@ -614,6 +614,7 @@
           <div class="row pb-4">
             <div class="col-12">
               <h4 class="header-title" id="titulo-recibos-endoso">Lista de Recibos</h4>
+              <div id="chubb-acciones-recibos"></div>
               <div class="table-responsive">
                 <table class="table table-sm" id="tablaRecibosCompacta">
                   <thead class="tableHeader">
@@ -835,8 +836,10 @@
     </div>
   </div>
 
+  {% include '_chubb_avisos_modal.html' %}
+
   <!-- main content area end -->
-  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}?v=7"></script>
+  <script type="module" src="{{ url_for('static', filename='assets/controladores/endosos.js') }}?v=8"></script>
   <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
@@ -848,6 +851,7 @@
   <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
   <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+  <script src="{{ url_for('static', filename='assets/controladores/chubb_avisos.js') }}?v=1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
   <!-- Librerías para exportar Excel (.xlsx) y PDF, mismas que en pólizas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

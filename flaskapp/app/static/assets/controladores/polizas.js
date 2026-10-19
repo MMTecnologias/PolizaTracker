@@ -12,6 +12,7 @@ $(function () {
   let totalPolizas = 0;
   let pdfMode = null; // 'renew', 'endoso', or null
   let receiptSaveRequested = false;
+  let saveWithoutReceipts = false;
 
   // Cantidad de filas por página de la tabla de pólizas. Ya no es un
   // número fijo: se recalcula según cuántas filas caben realmente en el
@@ -3214,6 +3215,25 @@ $(function () {
     if (endoso_id && !poliza_id) {
       sendObj = { start, length, order: true, endoso_id };
     }
+    // Chubb: botones "Generar recibos / Regenerar desde avisos" (solo al
+    // cargar la primera página; no en cada cambio de página).
+    if (pageNumber === 1 && window.ChubbAvisos) {
+      if (endoso_id) {
+        window.ChubbAvisos.refreshActions(
+          $('#chubb-acciones-recibos-endoso'),
+          null,
+          endoso_id,
+          () => getRecibos(null, endoso_id),
+        );
+      } else {
+        window.ChubbAvisos.refreshActions(
+          $('#chubb-acciones-recibos'),
+          poliza_id,
+          null,
+          () => getRecibos(poliza_id),
+        );
+      }
+    }
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get_receipts',
@@ -3518,31 +3538,66 @@ $(function () {
     });
   });
 
-  $('#form-recibo').submit(function (e) {
+  $('#form-recibo').submit(async function (e) {
     e.preventDefault();
     if (!receiptSaveRequested) {
       console.warn('Submit de recibos cancelado: falta clic explícito en Guardar');
       return;
     }
     receiptSaveRequested = false;
+    // "Guardar sin recibos" (solo Chubb): se guarda la póliza/endoso con
+    // recibos 'Por generar', sin mandar datos de recibos.
+    const sinRecibos = saveWithoutReceipts;
+    saveWithoutReceipts = false;
 
-    if (!this.checkValidity()) {
+    if (!sinRecibos && !this.checkValidity()) {
       $(this).addClass('was-validated');
       return;
     }
+
+    // Chubb: con avisos de cobro los recibos salen exactos; sin avisos se
+    // calculan montos estimados (se avisa).
+    const chubbGate = window.ChubbAvisos
+      ? window.ChubbAvisos.createGate()
+      : { active: false, hasFiles: false, ok: false };
+    let avisosListos = false;
+    if (chubbGate.active && !sinRecibos) {
+      if (chubbGate.hasFiles && !chubbGate.ok) {
+        alert(
+          'Pulsa "Leer avisos" y corrige lo que se indique antes de guardar (o quita los archivos).',
+          'warning',
+        );
+        return;
+      }
+      if (!chubbGate.hasFiles) {
+        const r = await alertConfirm(
+          'No cargaste avisos de cobro: los recibos se calcularán con montos ESTIMADOS (Chubb reparte distinto la prima y los gastos). ' +
+            'Puedes cancelar para cargar los avisos, o usar "Guardar sin recibos" y generarlos después. ¿Guardar con montos estimados?',
+        );
+        if (!r.isConfirmed) return;
+      } else {
+        avisosListos = true;
+      }
+    }
+    const datosRecibos = sinRecibos ? '' : `&${$.param(datosRecibosDelModal())}`;
     const formDataPoliza = serializePolizaFormWithRawCurrencyValues();
     if ($('#tipo').val()) {
-      const paramsEndoso = `${formDataPoliza}&${$.param(datosRecibosDelModal())}`;
+      const paramsEndoso = `${formDataPoliza}${datosRecibos}`;
+      const optsAvisos = avisosListos
+        ? window.ChubbAvisos.requestOptions(paramsEndoso)
+        : null;
       $.ajax({
         type: 'POST',
         url: '/polizas/create_endoso',
         data: paramsEndoso,
+        ...(optsAvisos || {}),
         success: function (resp) {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
             $('#receipts_created').val('si');
             alert(resp.msg, 'success');
+            if (window.ChubbAvisos) window.ChubbAvisos.avisarFallos(resp);
             getPolizas();
             resetForm();
             $('#create-recib').modal('hide');
@@ -3591,21 +3646,28 @@ $(function () {
       // antes; resetearlo aquí borraba ese vínculo justo antes de mandar
       // la petición, y el backend nunca se enteraba de que era una
       // renovación (por eso dejaba renovar la misma póliza varias veces).
-      const newParams = `${serializePolizaFormWithRawCurrencyValues()}&${$.param(datosRecibosDelModal())}`;
+      const newParams = `${serializePolizaFormWithRawCurrencyValues()}${datosRecibos}`;
+      const optsAvisos = avisosListos
+        ? window.ChubbAvisos.requestOptions(newParams)
+        : null;
       $.ajax({
         type: 'POST',
         url: '/polizas/create',
         data: newParams,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: optsAvisos
+          ? {}
+          : {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
         dataType: 'json',
+        ...(optsAvisos || {}),
         success: function (resp) {
           if (resp.error) {
             alert(resp.msg, 'error', resp.title);
           } else {
             $('#receipts_created').val('si');
             alert(resp.title, 'success');
+            if (window.ChubbAvisos) window.ChubbAvisos.avisarFallos(resp);
             getPolizas();
             resetForm();
             $('#create-recib').modal('hide');
@@ -3632,6 +3694,27 @@ $(function () {
   $('#btnGuardar-recibos').click(() => {
     receiptSaveRequested = true;
   });
+
+  // Chubb: guardar la póliza/endoso SIN recibos; se generan después desde
+  // la lista de recibos con sus avisos de cobro.
+  $('#btnGuardar-sin-recibos').click(async () => {
+    const r = await alertConfirm(
+      'Se guardará sin recibos. Después podrás generarlos desde la tabla: abre los recibos de la póliza/endoso y pulsa "Generar recibos desde avisos". ¿Continuar?',
+    );
+    if (!r.isConfirmed) return;
+    saveWithoutReceipts = true;
+    receiptSaveRequested = true;
+    $('#form-recibo').submit();
+  });
+
+  if (window.ChubbAvisos) {
+    window.ChubbAvisos.bindCreatePanel({
+      getParams: serializePolizaFormWithRawCurrencyValues,
+      getRecibos: datosRecibosDelModal,
+      esEdicion: () => String($('#title_poliza').text() || '').includes('Editar'),
+    });
+    $('#create-recib').on('shown.bs.modal', () => window.ChubbAvisos.showCreatePanel());
+  }
 
   $('#closeModalCreateRecibos, #reset-btn-recibos').click(async (e) => {
     e.preventDefault();

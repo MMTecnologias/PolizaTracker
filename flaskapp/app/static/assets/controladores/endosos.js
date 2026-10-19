@@ -1878,6 +1878,17 @@ if (idealCount === endososItemsOnPage) return;
 
   function getRecibos(endoso_id, poliza_id, pageNumber = 1, start = 0) {
     const length = 10;
+    // Chubb: botones "Generar recibos / Regenerar desde avisos" (solo en la
+    // primera página).
+    if (pageNumber === 1 && window.ChubbAvisos) {
+      window.ChubbAvisos.refreshActions(
+        $('#chubb-acciones-recibos'),
+        null,
+        endoso_id,
+        () => getRecibos(endoso_id, poliza_id),
+        recibosContexto.titulo,
+      );
+    }
     $.ajax({
       ...ajaxConfig,
       url: '/polizas/get_receipts',

@@ -556,6 +556,7 @@
                <div class="row pb-4">
                   <div class="col-12">
                      <h4 class="header-title">Lista de Recibos</h4>
+                     <div id="chubb-acciones-recibos"></div>
                      <div class="table-responsive">
                      <table class="table table-sm" id="tablaRecibosCompacta">
                         <thead class="tableHeader">
@@ -640,6 +641,19 @@
                   <div class="col-12">
                      <form id="form-recibo" class="needs-validation form-data" novalidate>
                         <input type="text" id="receipts_created" name="receipts_created" value="no" hidden />
+                        <!-- Chubb: recibos exactos desde los avisos de cobro (lo maneja chubb_avisos.js) -->
+                        <div id="chubb-panel" class="mb-3 p-3" style="display: none; border: 1px solid #d9dee5; border-radius: 6px;">
+                           <h6 class="mb-1">Avisos de cobro de Chubb</h6>
+                           <p class="text-muted mb-2" style="font-size: 13px;">
+                              Chubb reparte la prima y los gastos de forma desigual entre recibos, por eso es mejor leerlos de sus avisos de cobro.
+                              Sube un PDF con todos los avisos, un PDF por aviso, o el PDF de la póliza si trae todos los avisos.
+                              Cada aviso se guardará automáticamente como el Aviso de Cobro de su recibo.
+                              Si no los tienes ahora, usa <strong>Guardar sin recibos</strong> y genéralos después desde la lista de recibos.
+                           </p>
+                           <input type="file" class="form-control-file mb-2" id="chubb-files" accept="application/pdf,.pdf" multiple />
+                           <button type="button" class="btn btn-sm" id="btn-chubb-leer">Leer avisos</button>
+                           <div id="chubb-preview" class="mt-2"></div>
+                        </div>
                         <div class="input-sibling">
                            <div class="form__input-data input-sibling-child">
                               <label class="label-input-data">Prima neta</label>
@@ -767,6 +781,9 @@
                            <button class="btn" type="submit" id="btnGuardar-recibos" name="btnGuardar-recibos">
                               Guardar
                            </button>
+                           <button class="btn" type="button" id="btnGuardar-sin-recibos" style="display: none;">
+                              Guardar sin recibos
+                           </button>
                            <button class="btn" type="button" value="Cancelar" id="reset-btn-recibos">
                               Cancelar
                            </button>
@@ -843,6 +860,7 @@
                   <div class="row pb-4" id="div-recibos-endosos" style="position: relative;">
                      <div class="col-12">
                         <h4 class="header-title">Recibos de endosos</h4>
+                        <div id="chubb-acciones-recibos-endoso"></div>
                         <table class="table">
                            <thead class="tableHeader">
                               <tr>
@@ -875,8 +893,10 @@
       </div>
    </div>
 
+   {% include '_chubb_avisos_modal.html' %}
+
    <!-- main content area end -->
-   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=32"></script>
+   <script type="module" src="{{ url_for('static', filename='assets/controladores/polizas.js') }}?v=33"></script>
    <script src="{{ url_for('static',filename='assets/js/vendor/modernizr-2.8.3.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
@@ -888,6 +908,7 @@
    <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/controladores/chubb_avisos.js') }}?v=1"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplePagination.js/1.6/jquery.simplePagination.min.js"></script>
    <!-- Librerías para exportar Excel (.xlsx) y PDF reales, mismo diseño que el dashboard gerencial -->
    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
