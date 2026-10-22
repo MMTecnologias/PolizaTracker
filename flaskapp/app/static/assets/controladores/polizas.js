@@ -13,6 +13,30 @@ $(function () {
   let pdfMode = null; // 'renew', 'endoso', or null
   let receiptSaveRequested = false;
   let saveWithoutReceipts = false;
+  // Evita guardar dos veces (doble clic / reintento mientras procesa).
+  let guardandoRecibos = false;
+  function mostrarGuardando() {
+    Swal.fire({
+      title: 'Guardando…',
+      text: 'Se está guardando la póliza y sus recibos. Espera un momento, no cierres esta ventana ni vuelvas a dar clic.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+  }
+  function iniciarGuardadoRecibos() {
+    guardandoRecibos = true;
+    $('#btnGuardar-recibos, #btnGuardar-sin-recibos').prop('disabled', true);
+    mostrarGuardando();
+  }
+  function finGuardadoRecibos() {
+    guardandoRecibos = false;
+    $('#btnGuardar-recibos, #btnGuardar-sin-recibos').prop('disabled', false);
+    // Si todavía está el aviso "Guardando…" (no lo reemplazó un mensaje de
+    // éxito o error), se cierra.
+    if (Swal.isVisible() && Swal.isLoading()) Swal.close();
+  }
 
   // Cantidad de filas por página de la tabla de pólizas. Ya no es un
   // número fijo: se recalcula según cuántas filas caben realmente en el
@@ -3546,6 +3570,10 @@ $(function () {
 
   $('#form-recibo').submit(async function (e) {
     e.preventDefault();
+    if (guardandoRecibos) {
+      mostrarGuardando();
+      return;
+    }
     if (!receiptSaveRequested) {
       console.warn('Submit de recibos cancelado: falta clic explícito en Guardar');
       return;
@@ -3585,6 +3613,7 @@ $(function () {
         avisosListos = true;
       }
     }
+    iniciarGuardadoRecibos();
     const datosRecibos = sinRecibos ? '' : `&${$.param(datosRecibosDelModal())}`;
     const formDataPoliza = serializePolizaFormWithRawCurrencyValues();
     if ($('#tipo').val()) {
@@ -3595,6 +3624,7 @@ $(function () {
       $.ajax({
         type: 'POST',
         url: '/polizas/create_endoso',
+        complete: finGuardadoRecibos,
         data: paramsEndoso,
         ...(optsAvisos || {}),
         success: function (resp) {
@@ -3623,6 +3653,7 @@ $(function () {
       newParams = `${newParams}&poliza_id=${poliza_id}&${$.param(datosRecibosDelModal())}`;
       $.ajax({
         url: 'polizas/edit',
+        complete: finGuardadoRecibos,
         method: 'POST',
         dataType: 'json',
         data: newParams,
@@ -3659,6 +3690,7 @@ $(function () {
       $.ajax({
         type: 'POST',
         url: '/polizas/create',
+        complete: finGuardadoRecibos,
         data: newParams,
         headers: optsAvisos
           ? {}

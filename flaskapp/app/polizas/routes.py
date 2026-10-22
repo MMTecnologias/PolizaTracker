@@ -4,12 +4,13 @@ import pikepdf
 from pdfminer.high_level import extract_text as pdfminer_extract_text
 import json
 import re
+import threading
 import os
 import shutil
 import uuid
 import unicodedata
 import requests
-from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory, has_app_context
+from flask import render_template, redirect, url_for, flash, request, current_app, jsonify, abort, Flask, Response, send_from_directory, has_app_context, g
 from flask import request as flask_request
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -358,9 +359,36 @@ def check_renovada():
     return jsonify({'error': False, 'yaRenovada': False})
 
 
+# Candados por número de póliza: evitan que dos peticiones simultáneas de
+# alta (doble clic, reintento mientras la primera aún procesa) pasen las dos
+# la validación de "póliza duplicada" antes de que alguna guarde, y creen
+# la misma póliza varias veces.
+_LOCKS_ALTA = {}
+_LOCKS_ALTA_GUARD = threading.Lock()
+
+
+def _candado_alta(clave):
+    with _LOCKS_ALTA_GUARD:
+        return _LOCKS_ALTA.setdefault(clave, threading.Lock())
+
+
 @polizas_route.route('/create', methods=['POST'])
 @login_required
 def create():
+    numero = re.sub(r'\s+', '', flask_request.form.get('Poliza') or '').upper()
+    candado = _candado_alta(f'poliza:{numero}')
+    # Si el candado ya estaba tomado, otra petición está guardando esta
+    # misma póliza en este momento (p. ej. doble clic).
+    g.alta_en_paralelo = not candado.acquire(blocking=False)
+    if g.alta_en_paralelo and not candado.acquire(timeout=180):
+        return jsonify({'error': True, 'msg': 'Esta póliza se está guardando. Espera un momento y revisa la tabla antes de intentarlo de nuevo.', 'title': 'Guardando póliza'})
+    try:
+        return _create_impl()
+    finally:
+        candado.release()
+
+
+def _create_impl():
     poliza_id = flask_request.form.get('poliza_id')
     poliza_old = None
     if not (poliza_id == "New"):
@@ -530,6 +558,10 @@ def create():
         query_duplicado = query_duplicado.filter(Poliza.id != int(old_poliza_id))
 
     poliza = query_duplicado.first()
+    if poliza and getattr(g, 'alta_en_paralelo', False):
+        # Se guardó hace un instante por otra petición del mismo guardado
+        # (doble clic): no es un error del usuario.
+        return jsonify({'error': True, 'msg': f'La póliza {poliza.poliza} ya se estaba guardando y quedó registrada. No hace falta volver a guardarla; revisa la tabla.', 'title': 'La póliza ya se guardó'})
     if poliza:
         return jsonify({'error': True, 'msg': f'Ya existe una póliza vigente con el mismo número {poliza.poliza}', 'title': 'Ya existe una póliza vigente con el mismo número'})
     # check for pending cancelation request of the same poliza
