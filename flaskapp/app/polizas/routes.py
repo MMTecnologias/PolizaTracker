@@ -477,6 +477,12 @@ def create():
     # ("Data too long..."). Lo validamos antes, con un mensaje que el
     # usuario sí pueda entender y corregir.
     MAX_LEN_POLIZA = 30
+    if len(str(arg_values.get('notas') or '')) > MAX_LEN_NOTAS:
+        return jsonify({
+            'error': True,
+            'msg': f'Las observaciones no pueden tener más de {MAX_LEN_NOTAS} caracteres (tienen {len(str(arg_values.get("notas")))}). Acórtalas e intenta de nuevo.',
+            'title': 'Observaciones demasiado largas',
+        })
     valor_poliza = str(arg_values.get('poliza') or '')
     if len(valor_poliza) > MAX_LEN_POLIZA:
         return jsonify({
@@ -727,6 +733,12 @@ def edit():
     # Misma validación que en create(): el campo 'poliza' tiene máximo
     # 30 caracteres en la base de datos.
     MAX_LEN_POLIZA = 30
+    if len(str(arg_values.get('notas') or '')) > MAX_LEN_NOTAS:
+        return jsonify({
+            'error': True,
+            'msg': f'Las observaciones no pueden tener más de {MAX_LEN_NOTAS} caracteres (tienen {len(str(arg_values.get("notas")))}). Acórtalas e intenta de nuevo.',
+            'title': 'Observaciones demasiado largas',
+        })
     valor_poliza = str(form_value_mapping.get('Poliza') or '')
     if len(valor_poliza) > MAX_LEN_POLIZA:
         return jsonify({
@@ -1035,6 +1047,8 @@ def _calcular_montos_recibos(prima_total, prima_neta, iva_pct, derecho_poliza,
 # que en vez de calcularlos se leen los avisos de cobro reales.
 
 MAX_BYTES_AVISO = 25 * 1024 * 1024
+# Largo máximo de las observaciones (columna notas de polizas/endosos)
+MAX_LEN_NOTAS = 2000
 
 
 def _es_chubb(aseguradora_id):
@@ -1775,6 +1789,12 @@ def create_endoso():
     # Misma validación que en create(): el campo 'poliza' tiene máximo
     # 30 caracteres en la base de datos.
     MAX_LEN_POLIZA = 30
+    if len(str(arg_values.get('notas') or '')) > MAX_LEN_NOTAS:
+        return jsonify({
+            'error': True,
+            'msg': f'Las observaciones no pueden tener más de {MAX_LEN_NOTAS} caracteres (tienen {len(str(arg_values.get("notas")))}). Acórtalas e intenta de nuevo.',
+            'title': 'Observaciones demasiado largas',
+        })
     valor_poliza = str(arg_values.get('poliza') or '')
     if len(valor_poliza) > MAX_LEN_POLIZA:
         return jsonify({

@@ -567,14 +567,20 @@ $(function () {
     }
 
     // Cliente
-    if (data.nombre_cliente) {
+    // En una renovación o un endoso el cliente ya viene de la póliza
+    // original: si el PDF no trae un cliente reconocido NO se borra
+    // (antes quedaba en 'None' y el guardado fallaba con "Cliente requerido").
+    const clienteActual = String($('#selected-client-id').val() || '');
+    const conservarCliente =
+      (isRenewMode || isEndosoMode) && clienteActual && clienteActual !== 'None';
+    if (data.nombre_cliente && !conservarCliente) {
       console.log('Cliente:', data.nombre_cliente);
       $('#buscar-cliente').val(data.nombre_cliente);
     }
     if (data.cliente_id) {
       console.log('Cliente ID:', data.cliente_id);
       $('#selected-client-id').val(data.cliente_id);
-    } else {
+    } else if (!conservarCliente) {
       $('#selected-client-id').val('None');
     }
 
