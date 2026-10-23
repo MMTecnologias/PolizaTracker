@@ -98,7 +98,7 @@ class Poliza(db.Model):
     aseguradora_id = Column(Integer, ForeignKey(
         'aseguradoras.id'), nullable=False)
     serie = Column(String(30), nullable=False)
-    notas = Column(String(2000))
+    notas = Column(String(400))
     poliza_anterior = Column(String(30))
     renovacion = Column(String(30))
     prima_neta = Column(DECIMAL(12, 2), nullable=False)
@@ -145,7 +145,7 @@ class Endoso(db.Model):
         'aseguradoras.id'), nullable=False)
     serie = Column(String(30))
     conducto_pago = Column(String(45))
-    notas = Column(String(2000))
+    notas = Column(String(400))
     poliza_anterior = Column(String(30))
     renovacion = Column(String(30))
     prima_neta = Column(DECIMAL(12, 2), nullable=False)
@@ -640,3 +640,134 @@ def export_to_pdf2(headers, jsondic, filename, real_headers=None, to_multiline=N
     response.headers.set("Content-Disposition",
                          "attachment", filename=filename)
     return response
+
+
+class SiniestroProceso(db.Model):
+    __tablename__ = 'siniestro_procesos'
+    id = Column(Integer, primary_key=True)
+    clave = Column(String(5), nullable=False, unique=True)
+    nombre = Column(String(40), nullable=False)
+    grupo = Column(Enum('GMM', 'AUTOS', 'VIDA'), nullable=False)
+
+
+class SiniestroEstatus(db.Model):
+    __tablename__ = 'siniestro_estatus'
+    id = Column(Integer, primary_key=True)
+    proceso_id = Column(Integer, ForeignKey('siniestro_procesos.id'), nullable=False)
+    orden = Column(Integer, nullable=False)
+    nombre = Column(String(40), nullable=False)
+    descripcion = Column(String(120))
+    tipo = Column(Enum('aseguradora', 'pendiente', 'otro'), nullable=False, default='otro')
+    es_final = Column(Boolean, nullable=False, default=False)
+    activo = Column(Boolean, nullable=False, default=True)
+
+
+class Siniestro(db.Model):
+    __tablename__ = 'siniestros'
+    id = Column(Integer, primary_key=True)
+    folio = Column(String(20), nullable=False, unique=True)
+    proceso_id = Column(Integer, ForeignKey('siniestro_procesos.id'), nullable=False)
+    poliza_id = Column(Integer, ForeignKey('polizas.id'), nullable=False)
+    aseguradora_id = Column(Integer, ForeignKey('aseguradoras.id'), nullable=False)
+    estatus_id = Column(Integer, ForeignKey('siniestro_estatus.id'), nullable=False)
+    origen_id = Column(Integer, ForeignKey('siniestros.id'), nullable=True)
+    fecha_apertura = Column(DateTime, nullable=False)
+    fecha_limite = Column(DateTime, nullable=True)
+    ultima_actualizacion = Column(DateTime, nullable=False)
+    estado = Column(Enum('Activo', 'Cerrado'), nullable=False, default='Activo')
+    fecha_cierre = Column(DateTime, nullable=True)
+    creado_por = Column(Integer, ForeignKey('usuarios.id'), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    tipo_id = Column(Integer, nullable=True)
+    resultado = Column(Enum('Procedente', 'Rechazado', 'Cerrado'), nullable=True)
+
+
+class SiniestroTipo(db.Model):
+    __tablename__ = 'siniestro_tipos'
+    id = Column(Integer, primary_key=True)
+    proceso_id = Column(Integer, ForeignKey('siniestro_procesos.id'), nullable=False)
+    nombre = Column(String(60), nullable=False)
+    activo = Column(Boolean, nullable=False, default=True)
+
+
+class SiniestroCampo(db.Model):
+    __tablename__ = 'siniestro_campos'
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(80), nullable=False, unique=True)
+    tipo_dato = Column(String(20), nullable=False, default='Texto')
+    opciones = Column(String(255))
+    obligatorio = Column(Boolean, nullable=False, default=False)
+    activo = Column(Boolean, nullable=False, default=True)
+
+
+class SiniestroCampoProceso(db.Model):
+    __tablename__ = 'siniestro_campo_procesos'
+    campo_id = Column(Integer, ForeignKey('siniestro_campos.id', ondelete='CASCADE'), primary_key=True)
+    proceso_id = Column(Integer, ForeignKey('siniestro_procesos.id'), primary_key=True)
+
+
+class SiniestroCampoTipo(db.Model):
+    __tablename__ = 'siniestro_campo_tipos'
+    campo_id = Column(Integer, ForeignKey('siniestro_campos.id', ondelete='CASCADE'), primary_key=True)
+    tipo_id = Column(Integer, ForeignKey('siniestro_tipos.id', ondelete='CASCADE'), primary_key=True)
+
+
+class SiniestroRequisitoCat(db.Model):
+    __tablename__ = 'siniestro_requisitos_cat'
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(120), nullable=False, unique=True)
+
+
+class SiniestroPlantillaReq(db.Model):
+    __tablename__ = 'siniestro_plantillas_req'
+    id = Column(Integer, primary_key=True)
+    proceso_id = Column(Integer, ForeignKey('siniestro_procesos.id'), nullable=False)
+    aseguradora_id = Column(Integer, ForeignKey('aseguradoras.id'), nullable=False)
+    tipo_id = Column(Integer, ForeignKey('siniestro_tipos.id'), nullable=False)
+    activo = Column(Boolean, nullable=False, default=True)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+class SiniestroPlantillaItem(db.Model):
+    __tablename__ = 'siniestro_plantilla_items'
+    id = Column(Integer, primary_key=True)
+    plantilla_id = Column(Integer, ForeignKey('siniestro_plantillas_req.id', ondelete='CASCADE'), nullable=False)
+    nombre = Column(String(120), nullable=False)
+    obligatorio = Column(Boolean, nullable=False, default=True)
+    orden = Column(Integer, nullable=False, default=0)
+
+
+class SiniestroMensaje(db.Model):
+    __tablename__ = 'siniestro_mensajes'
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(80), nullable=False)
+    uso = Column(String(100))
+    procesos = Column(String(40), nullable=False, default='TODOS')
+    canal = Column(String(30), nullable=False, default='WhatsApp / Correo')
+    texto = Column(db.Text, nullable=False)
+    activo = Column(Boolean, nullable=False, default=True)
+
+
+class SiniestroPago(db.Model):
+    __tablename__ = 'siniestro_pagos'
+    id = Column(Integer, primary_key=True)
+    siniestro_id = Column(Integer, ForeignKey('siniestros.id'), nullable=False)
+    fecha_pago = Column(Date, nullable=False)
+    concepto = Column(String(60), nullable=False)
+    monto = Column(DECIMAL(14, 2), nullable=False)
+    beneficiario = Column(String(120))
+    estado = Column(Enum('Vigente', 'Cancelado'), nullable=False, default='Vigente')
+    motivo_cancelacion = Column(String(255))
+    comprobante = Column(String(255))
+    registrado_por = Column(Integer, ForeignKey('usuarios.id'), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class SiniestroBitacora(db.Model):
+    __tablename__ = 'siniestro_bitacora'
+    id = Column(Integer, primary_key=True)
+    siniestro_id = Column(Integer, ForeignKey('siniestros.id', ondelete='CASCADE'), nullable=False)
+    fecha = Column(TIMESTAMP, server_default=func.now())
+    usuario_id = Column(Integer, ForeignKey('usuarios.id'), nullable=True)
+    accion = Column(String(40), nullable=False)
+    detalle = Column(String(500))

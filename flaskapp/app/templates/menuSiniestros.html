@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html class="no-js" lang="es">
+
+<head>
+   <meta charset="utf-8" />
+   <meta http-equiv="x-ua-compatible" content="ie=edge" />
+   <title>Menú</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <link rel="shortcut icon" type="image/png"
+      href="{{ url_for('static',filename='assets/images/GGGC.png') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+   <style>
+      .contenedor-menu { max-width: 1200px; margin: 0 auto; padding: 32px; }
+      .layout-menu { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: stretch; }
+      .col-menu { display: flex; flex-direction: column; gap: 12px; }
+      .seccion-titulo-menu { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gris-medio); font-weight: 700; }
+      .tiles-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; }
+      .panels-menu { display: flex; flex-direction: column; gap: 20px; flex: 1; }
+      .tile-menu, .panel-card-menu { display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; text-decoration: none; }
+      .tile-menu {
+         background: white; border-radius: 8px; padding: 16px 10px; text-align: center;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio); cursor: pointer; transition: all 0.15s ease;
+      }
+      .tile-menu:hover { outline: 3px solid var(--color-primario); box-shadow: 5px 10px 32px -9px var(--gris-medio); text-decoration: none; }
+      .tile-menu img.card-img-top { width: 100%; max-width: 140px; height: auto; margin: 0 auto; display: block; }
+      .tile-menu h3 { color: var(--gris-medio); font-size: 1.6rem; margin: auto; padding: 8px 4px; text-align: center; }
+      .panel-card-menu {
+         flex: 1; background: white; border-radius: 10px; padding: 14px 18px;
+         box-shadow: 5px 2px 14px -9px var(--gris-medio); border-top: 4px solid var(--color-primario);
+         cursor: pointer; transition: transform 0.15s ease;
+      }
+      .panel-card-menu.rojo { border-top-color: #c0392b; }
+      .panel-card-menu.rojo .numero { color: #c0392b; }
+      .panel-card-menu:hover { transform: translateY(-2px); }
+      .panel-card-menu .titulo { font-size: 12px; color: var(--gris-medio); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+      .panel-card-menu .numero { font-size: 26px; font-weight: 700; color: var(--color-primario); line-height: 1.1; }
+      .panel-card-menu .subtexto { font-size: 12px; color: #777; margin-top: 2px; }
+      .panel-card-menu .detalle { font-size: 12px; color: #1cb3c9; margin-top: 4px; }
+
+      /* En pantallas angostas el responsive.css heredado saca el bloque
+         del usuario de la barra y lo encima en el contenido; aquí se
+         mantiene en la barra, pegado a la derecha. */
+      @media (max-width: 767px) {
+         .navbar { padding-left: 12px; flex-wrap: nowrap; }
+         .app-section { min-width: 0; overflow: hidden; }
+         .name-app { font-size: 1.3rem; white-space: nowrap; }
+         .user-profile { margin: 0 0 0 auto !important; padding: 0 14px !important; flex-wrap: nowrap; flex-shrink: 0; }
+         .user-profile .dropdown-menu { width: auto !important; min-width: 220px; right: 0 !important; }
+      }
+
+      @media (max-width: 1024px) {
+         .layout-menu { grid-template-columns: 1fr; }
+         .contenedor-menu { padding: 20px 16px; }
+         .panels-menu { display: grid; grid-template-columns: 1fr 1fr; }
+      }
+      @media (max-width: 560px) {
+         .tiles-menu { gap: 12px; }
+         .tile-menu h3 { font-size: 1.2rem; }
+         .panels-menu { grid-template-columns: 1fr; }
+      }
+
+      /* ---- Modales (mismo estilo que los del menú del rol Usuario) ---- */
+      .modal-gerencial {
+         display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+         background: rgba(0, 0, 0, 0.5); z-index: 1100; align-items: center; justify-content: center;
+      }
+      .modal-gerencial.active { display: flex; }
+      .modal-gerencial-content {
+         background: white; border-radius: 10px; width: 90%; max-width: 1100px;
+         max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+      }
+      .modal-gerencial-header {
+         background: var(--color-primario); color: white; padding: 16px 24px;
+         display: flex; justify-content: space-between; align-items: center;
+      }
+      .modal-gerencial-header h4 { margin: 0; font-size: 1.1rem; font-weight: 600; color: white; }
+      .modal-gerencial-close { background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer; }
+      .modal-gerencial-body { padding: 20px 24px; overflow: auto; }
+      .modal-gerencial-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      .modal-gerencial-table th { text-align: left; background: var(--color-claro); padding: 8px 10px; font-weight: 600; color: #333; white-space: nowrap; }
+      .modal-gerencial-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-claro); }
+      .col-numero { width: 24px; padding-left: 4px !important; padding-right: 4px !important; text-align: center !important; color: var(--gris-medio); }
+      .modal-total-footer { margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--color-primario); text-align: right; font-weight: 700; font-size: 0.95rem; color: var(--color-primario); }
+      .folio-link { color: var(--primario-complementario); font-weight: 600; white-space: nowrap; }
+      .plazo-vencido { color: #c0392b; font-weight: 600; }
+      .plazo-por-vencer { color: #b9770e; font-weight: 600; }
+      .solicitud-btn-aceptar { background-color: var(--color-primario); color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+      .modal-gerencial-acciones { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+      .modal-gerencial-acciones button {
+         background-color: var(--primario-complementario); color: white; border: none;
+         border-radius: 6px; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      }
+      .print-header { display: none; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--color-primario); }
+      .print-header img { height: 50px; width: auto; }
+      .print-header h3 { margin: 0; color: var(--color-primario); }
+
+      @media print {
+         body * { visibility: hidden; }
+         .modal-gerencial.active .modal-gerencial-body,
+         .modal-gerencial.active .modal-gerencial-body * { visibility: visible; }
+         .modal-gerencial.active .modal-gerencial-acciones { display: none !important; }
+         .modal-gerencial.active .modal-gerencial-body {
+            position: absolute !important; top: 0; left: 0;
+            max-height: none !important; overflow: visible !important; width: 100%;
+         }
+         .modal-gerencial.active .modal-gerencial-content {
+            position: static !important; max-height: none !important; overflow: visible !important;
+            width: 100% !important; box-shadow: none !important;
+         }
+         .modal-gerencial.active {
+            position: static !important; display: block !important; height: auto !important;
+            background: none !important; overflow: visible !important;
+         }
+         .modal-gerencial.active .print-header { display: flex !important; }
+         .modal-gerencial.active .col-accion { display: none !important; }
+      }
+   </style>
+</head>
+
+<body>
+   <nav class="navbar">
+      <div class="app-section">
+         <h2 class="name-app">Póliza Tracker</h2>
+         <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" class="logo-ggc" />
+      </div>
+      <div class="user-profile pull-right">
+         <h6 class="user-name dropdown-toggle" data-toggle="dropdown">
+            {{ current_user.username }}<i class="fa fa-angle-down"></i>
+         </h6>
+         <div class="dropdown-menu">
+            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
+            <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
+         </div>
+      </div>
+   </nav>
+   <div class="contenedor-menu">
+      <div class="layout-menu">
+         <div class="col-menu">
+            <div class="seccion-titulo-menu">Tus módulos</div>
+            <div class="tiles-menu">
+               <a href="{{ url_for('siniestros.index') }}" class="tile-menu"><img class="card-img-top" src="{{ url_for('static',filename='assets/images/siniestros.png') }}" /><h3 class="text-card">Siniestros</h3></a>
+               <a href="{{ url_for('main.polizas') }}" class="tile-menu"><img class="card-img-top" src="{{ url_for('static',filename='assets/images/documentos.png') }}" /><h3 class="text-card">Pólizas</h3></a>
+               <a href="{{ url_for('main.cliente') }}" class="tile-menu"><img class="card-img-top" src="{{ url_for('static',filename='assets/images/clientes.png') }}" /><h3 class="text-card">Clientes</h3></a>
+               <a href="{{ url_for('main.endosos') }}" class="tile-menu"><img class="card-img-top" src="{{ url_for('static',filename='assets/images/documentos.png') }}" /><h3 class="text-card">Endosos</h3></a>
+            </div>
+         </div>
+         <div class="col-menu">
+            <div class="seccion-titulo-menu">Resumen de siniestros</div>
+            <div class="panels-menu">
+               <div class="panel-card-menu rojo" onclick="abrirListado('plazos')">
+                  <div class="titulo">Plazos vencidos</div>
+                  <div class="numero" id="valPlazosVencidos">—</div>
+                  <div class="subtexto" id="subPlazosVencidos">&nbsp;</div>
+                  <div class="detalle">Ver listado →</div>
+               </div>
+               <div class="panel-card-menu" onclick="abrirListado('sin_movimiento')">
+                  <div class="titulo">Sin movimiento</div>
+                  <div class="numero" id="valSinMovimiento">—</div>
+                  <div class="subtexto">Más de 5 días sin actualizar</div>
+                  <div class="detalle">Ver listado →</div>
+               </div>
+               <div class="panel-card-menu" onclick="abrirListado('pagos')">
+                  <div class="titulo">Pagos por confirmar</div>
+                  <div class="numero" id="valPagosPorConfirmar">—</div>
+                  <div class="subtexto">Falta confirmación del asegurado</div>
+                  <div class="detalle">Ver listado →</div>
+               </div>
+               <div class="panel-card-menu" onclick="abrirListado('aseguradora')">
+                  <div class="titulo">En espera de la aseguradora</div>
+                  <div class="numero" id="valEnEsperaAseguradora">—</div>
+                  <div class="subtexto">Dictamen o respuesta pendiente</div>
+                  <div class="detalle">Ver listado →</div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- MODAL: listado de la tarjeta seleccionada -->
+   <div class="modal-gerencial" id="modalListado">
+      <div class="modal-gerencial-content">
+         <div class="modal-gerencial-header">
+            <h4 id="modalListadoTitulo"></h4>
+            <button class="modal-gerencial-close" onclick="cerrarListado()">✕</button>
+         </div>
+         <div class="modal-gerencial-body">
+            <div class="print-header">
+               <img src="{{ url_for('static', filename='assets/images/GGcorp_logo_for_Repor.png') }}" alt="GGcorp">
+               <h3 id="modalListadoPrintTitulo"></h3>
+            </div>
+            <div class="modal-gerencial-acciones">
+               <button onclick="exportarExcel()">Exportar Excel</button>
+               <button onclick="exportarPDF()">Exportar PDF</button>
+               <button onclick="window.print()">Imprimir</button>
+            </div>
+            <table class="modal-gerencial-table">
+               <thead id="modalListadoHead"></thead>
+               <tbody id="modalListadoBody"></tbody>
+            </table>
+            <div class="modal-total-footer" id="modalListadoTotal"></div>
+         </div>
+      </div>
+   </div>
+
+   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/owl.carousel.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/metisMenu.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/jquery.slimscroll.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/jquery.slicknav.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/plugins.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/scripts.js') }}"></script>
+   <script>
+      // Configuración de cada tarjeta: título del modal, columnas y botón de acción.
+      // Las claves de las columnas son las que regresa /siniestros/api/listado/<tarjeta>.
+      const LISTADOS = {
+         plazos: {
+            titulo: 'Plazos vencidos y por vencer', archivo: 'siniestros_plazos', accion: 'Ver detalle',
+            columnas: [
+               { key: 'folio', label: 'Folio' }, { key: 'cliente', label: 'Cliente' },
+               { key: 'aseguradora', label: 'Aseguradora' }, { key: 'estatus', label: 'Estatus' },
+               { key: 'plazo', label: 'Plazo' },
+            ],
+         },
+         sin_movimiento: {
+            titulo: 'Siniestros sin movimiento', archivo: 'siniestros_sin_movimiento', accion: 'Actualizar estatus',
+            columnas: [
+               { key: 'folio', label: 'Folio' }, { key: 'cliente', label: 'Cliente' },
+               { key: 'aseguradora', label: 'Aseguradora' }, { key: 'estatus', label: 'Estatus' },
+               { key: 'ultima_actualizacion', label: 'Última actualización' },
+               { key: 'dias_sin_movimiento', label: 'Días sin movimiento' },
+            ],
+         },
+         pagos: {
+            titulo: 'Pagos por confirmar con el asegurado', archivo: 'siniestros_pagos_por_confirmar', accion: 'Registrar contacto',
+            columnas: [
+               { key: 'folio', label: 'Folio' }, { key: 'cliente', label: 'Cliente' },
+               { key: 'aseguradora', label: 'Aseguradora' }, { key: 'monto_pagado', label: 'Monto pagado' },
+               { key: 'fecha_pago', label: 'Fecha de pago' }, { key: 'contactos', label: 'Contactos registrados' },
+            ],
+         },
+         aseguradora: {
+            titulo: 'En espera de la aseguradora', archivo: 'siniestros_en_espera_aseguradora', accion: 'Ver detalle',
+            columnas: [
+               { key: 'folio', label: 'Folio' }, { key: 'cliente', label: 'Cliente' },
+               { key: 'aseguradora', label: 'Aseguradora' }, { key: 'estatus', label: 'Estatus' },
+               { key: 'enviado_el', label: 'Enviado el' }, { key: 'dias_en_espera', label: 'Días en espera' },
+            ],
+         },
+      };
+
+      let listadoActual = null;   // clave de la tarjeta abierta
+      let itemsActuales = [];     // filas del modal abierto (para exportar)
+
+      function esc(v) {
+         return String(v === null || v === undefined ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function cargarResumen() {
+         fetch('/siniestros/api/resumen')
+            .then(r => r.json())
+            .then(d => {
+               document.getElementById('valPlazosVencidos').textContent = d.plazos_vencidos;
+               document.getElementById('subPlazosVencidos').textContent =
+                  d.plazos_por_vencer === 1 ? '1 más vence esta semana' : `${d.plazos_por_vencer} más vencen esta semana`;
+               document.getElementById('valSinMovimiento').textContent = d.sin_movimiento;
+               document.getElementById('valPagosPorConfirmar').textContent = d.pagos_por_confirmar;
+               document.getElementById('valEnEsperaAseguradora').textContent = d.en_espera_aseguradora;
+            })
+            .catch(() => {});
+      }
+
+      function celda(cfg, col, it) {
+         const valor = esc(it[col.key]);
+         if (col.key === 'folio') return `<span class="folio-link">${valor}</span>`;
+         if (col.key === 'plazo') {
+            const clase = it.plazo_nivel === 'vencido' ? 'plazo-vencido' : 'plazo-por-vencer';
+            return `<span class="${clase}">${valor}</span>`;
+         }
+         return valor;
+      }
+
+      function abrirListado(tarjeta) {
+         const cfg = LISTADOS[tarjeta];
+         fetch('/siniestros/api/listado/' + tarjeta)
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(data => {
+               listadoActual = tarjeta;
+               itemsActuales = data.items;
+               document.getElementById('modalListadoTitulo').textContent = cfg.titulo;
+               document.getElementById('modalListadoPrintTitulo').textContent = cfg.titulo;
+               document.getElementById('modalListadoHead').innerHTML =
+                  '<tr><th class="col-numero">#</th>' + cfg.columnas.map(c => `<th>${c.label}</th>`).join('') +
+                  '<th class="col-accion">Acción</th></tr>';
+               document.getElementById('modalListadoBody').innerHTML = data.items.map((it, i) =>
+                  `<tr><td class="col-numero">${i + 1}</td>` +
+                  cfg.columnas.map(c => `<td>${celda(cfg, c, it)}</td>`).join('') +
+                  `<td class="col-accion"><button class="solicitud-btn-aceptar" onclick="accionSiniestro('${tarjeta}', ${Number(it.id)})">${cfg.accion}</button></td></tr>`
+               ).join('') || `<tr><td colspan="${cfg.columnas.length + 2}">Sin resultados</td></tr>`;
+               document.getElementById('modalListadoTotal').textContent =
+                  `Total: ${data.total} ${data.total === 1 ? 'siniestro' : 'siniestros'}`;
+               document.getElementById('modalListado').classList.add('active');
+            })
+            .catch(() => alert('No se pudo cargar el listado.'));
+      }
+
+      function cerrarListado() {
+         document.getElementById('modalListado').classList.remove('active');
+      }
+
+      function accionSiniestro(tarjeta, id) {
+         // Se conecta al detalle y a los modales de acción en las siguientes pantallas.
+         alert('Esta acción se habilitará junto con el detalle del siniestro.');
+      }
+
+      function exportarExcel() {
+         if (!itemsActuales.length) return;
+         const cfg = LISTADOS[listadoActual];
+         const filas = itemsActuales.map(it => {
+            const fila = {};
+            cfg.columnas.forEach(c => { fila[c.label] = it[c.key]; });
+            return fila;
+         });
+         const ws = XLSX.utils.json_to_sheet(filas);
+         const wb = XLSX.utils.book_new();
+         XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+         XLSX.writeFile(wb, `${cfg.archivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      }
+
+      async function logoBase64() {
+         const resp = await fetch(document.querySelector('.print-header img').src);
+         const blob = await resp.blob();
+         return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+         });
+      }
+
+      async function exportarPDF() {
+         if (!itemsActuales.length) return;
+         const cfg = LISTADOS[listadoActual];
+         const { jsPDF } = window.jspdf;
+         const doc = new jsPDF({ orientation: 'landscape' });
+         let x = 14;
+         try {
+            const logo = await logoBase64();
+            doc.addImage(logo, 'PNG', 14, 8, 12, 12 * (1024 / 615));
+            x = 32;
+         } catch (e) { /* sin logo */ }
+         doc.setFontSize(14);
+         doc.text(cfg.titulo, x, 18);
+         doc.setFontSize(9);
+         doc.setTextColor(120);
+         doc.text(`Generado: ${new Date().toLocaleString('es-MX')}`, x, 24);
+         doc.setTextColor(0);
+         doc.autoTable({
+            startY: 34,
+            head: [cfg.columnas.map(c => c.label)],
+            body: itemsActuales.map(it => cfg.columnas.map(c => String(it[c.key] ?? ''))),
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [201, 74, 28] },
+         });
+         doc.save(`${cfg.archivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
+      }
+
+      document.getElementById('modalListado').addEventListener('click', e => {
+         if (e.target.id === 'modalListado') cerrarListado();
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarListado(); });
+      cargarResumen();
+   </script>
+</body>
+
+</html>

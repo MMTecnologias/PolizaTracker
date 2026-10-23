@@ -406,6 +406,13 @@
                <h3 class="text-card">Reportes</h3>
             </div>
          </a>
+         <a href="{{ url_for('siniestros.index') }}" class="card" id="siniestros" style="display:none;">
+            <div name="siniestros">
+               <img class="card-img-top tamanoIcaja"
+                  src="{{ url_for('static',filename='assets/images/siniestros.png') }}" />
+               <h3 class="text-card">Siniestros</h3>
+            </div>
+         </a>
          <a href="{{ url_for('main.usuario') }}" class="card" id="usuarios" style="display:none;">
             <div name="cardUser">
                <img class="card-img-top tamanoIcaja"
