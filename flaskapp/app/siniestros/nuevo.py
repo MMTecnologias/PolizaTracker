@@ -239,3 +239,60 @@ def crear_siniestro():
                                      detalle=(f'Siniestro {s.folio} registrado.' + (f' {nota}' if nota else ''))[:500]))
     db.session.commit()
     return jsonify({'ok': True, 'id': s.id, 'folio': s.folio})
+
+
+# --------------------------------------------------------------------------- editar datos capturados
+def _campos_editables(s):
+    """Campos que aplican al proceso/tipo del siniestro más los que ya tienen valor (aunque el campo se haya desactivado)."""
+    lista = {c.id: c for c in _campos_aplicables(s.proceso_id, s.tipo_id)}
+    for v in SiniestroValor.query.filter_by(siniestro_id=s.id):
+        if v.campo_id not in lista:
+            c = SiniestroCampo.query.get(v.campo_id)
+            if c:
+                lista[c.id] = c
+    return sorted(lista.values(), key=lambda c: c.id)
+
+
+@api('siniestros/<int:sid>/datos')
+def datos_editables(sid):
+    s = Siniestro.query.get(sid)
+    if not s:
+        raise ValueError('El siniestro no existe.')
+    actuales = {v.campo_id: v.valor for v in SiniestroValor.query.filter_by(siniestro_id=s.id)}
+    return jsonify({'campos': [{'id': c.id, 'nombre': c.nombre, 'tipo_dato': c.tipo_dato, 'opciones': [o.strip() for o in (c.opciones or '').split(',') if o.strip()],
+                                'obligatorio': bool(c.obligatorio), 'valor': actuales.get(c.id) or ''} for c in _campos_editables(s)]})
+
+
+@api('siniestros/<int:sid>/datos', methods=['PUT'])
+def guardar_datos(sid):
+    s = Siniestro.query.get(sid)
+    if not s:
+        raise ValueError('El siniestro no existe.')
+    if s.estado != 'Activo':
+        raise ValueError('El siniestro está cerrado. Reábrelo desde el Historial para modificarlo.')
+    vals = (_j().get('campos') or {})
+    existentes = {v.campo_id: v for v in SiniestroValor.query.filter_by(siniestro_id=s.id)}
+    cambios = []
+    for c in _campos_editables(s):
+        if str(c.id) not in vals:
+            continue
+        nuevo = _valida_valor(c, vals[str(c.id)])
+        v = existentes.get(c.id)
+        viejo = v.valor if v else None
+        if (viejo or None) == (nuevo or None):
+            continue
+        if v is None:
+            if nuevo is not None:
+                db.session.add(SiniestroValor(siniestro_id=s.id, campo_id=c.id, etiqueta=c.nombre, valor=nuevo))
+        else:
+            v.valor = nuevo
+        if c.nombre == 'Monto reclamado':
+            s.monto_reclamado = Decimal(nuevo).quantize(Decimal('0.01')) if nuevo else None
+        cambios.append(f'{c.nombre}: «{viejo or "—"}» → «{nuevo or "—"}»')
+    if not cambios:
+        raise ValueError('No hay cambios que guardar.')
+    detalle = '; '.join(cambios)
+    db.session.add(SiniestroBitacora(siniestro_id=s.id, usuario_id=current_user.id, accion='Datos editados', detalle=detalle[:497] + ('…' if len(detalle) > 497 else '')))
+    s.ultima_actualizacion = datetime.now()
+    db.session.commit()
+    return jsonify({'ok': True, 'cambios': len(cambios)})

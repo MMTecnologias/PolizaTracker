@@ -217,6 +217,9 @@ def guardar_montos(sid):
             setattr(s, k, v)
     if cambios:
         _log(s, 'Montos', '; '.join(cambios))
+    v = SiniestroValor.query.filter_by(siniestro_id=s.id, etiqueta='Monto reclamado').first()
+    if v is not None and s.monto_reclamado is not None:
+        v.valor = str(s.monto_reclamado)
     db.session.commit()
     return jsonify({'ok': True})
 
