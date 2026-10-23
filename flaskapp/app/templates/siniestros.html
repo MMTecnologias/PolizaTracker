@@ -226,6 +226,8 @@
    <div class="polizas-total" id="h-total"></div>
    <div class="polizas-filtros" id="h-panel" style="display:none">
      <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="h-fProceso"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Tipo de siniestro</label><select class="custom-select" id="h-fTipo"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Cerrado por</label><select class="custom-select" id="h-fCierra"><option value="">Todos</option></select></div>
      <div class="polizas-filtros__campo"><label>Resultado</label><select class="custom-select" id="h-fRes"><option value="">Todos</option><option>Procedente</option><option>Rechazado</option><option>Cerrado</option></select></div>
      <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="h-fAseg"><option value="">Todas</option></select></div>
      <div class="polizas-filtros__campo"><label>Cumplió plazo</label><select class="custom-select" id="h-fPlazo"><option value="">Todos</option><option value="si">Sí</option><option value="no">No</option></select></div>
@@ -234,7 +236,7 @@
      <div class="polizas-filtros__acciones"><button class="btn px-3 py-2" id="h-aplicar">Aplicar</button><button class="btn" id="h-limpiar">Limpiar</button></div>
    </div>
    <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
-     <th>Folio</th><th>Proceso</th><th>Cliente</th><th>Póliza</th><th>Aseguradora</th><th>Resultado</th><th>Apertura</th><th>Cierre</th><th>Tiempo total</th><th>Plazo</th><th>Acciones</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
+     <th>Folio</th><th>Proceso</th><th>Tipo de siniestro</th><th>Cliente</th><th>Póliza</th><th>Aseguradora</th><th>Resultado</th><th>Apertura</th><th>Cierre</th><th>Cerrado por</th><th>Tiempo total</th><th>Plazo</th><th>Monto total pagado</th><th>Acciones</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
    <div class="w-100 d-flex justify-content-center table-polizas__pagination"><div id="h-pag" class="paginationList"></div></div>
   </div>
 
@@ -331,10 +333,15 @@
       </div>
    </div>
    <div class="toast-sin" id="toast"></div>
+<!-- Modal: reaperturas -->
+<div class="mq-back" id="m-reaps"><div class="mq-modal"><header><h5>Reaperturas de <span id="rp-folio" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
+ <div class="cuerpo"><div id="rp-cuerpo"></div></div>
+ <footer><button class="btn" data-cerrar>Cerrar</button></footer></div></div>
+<style>.reap-link{font-size:11px;color:#c0392b;text-decoration:underline}.rp-item{border-bottom:1px solid #eee;padding:8px 0;font-size:13px}.rp-mot{color:#555;margin-top:2px;white-space:pre-wrap}</style>
 <!-- Modal: reabrir -->
 <div class="mq-back" id="m-reabrir"><div class="mq-modal"><header><h5>Reabrir siniestro <span id="rb-folio" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
  <div class="cuerpo">
-  <p style="font-size:13px;color:#555;margin:0">Se reabre directamente, sin aprobación del gerente. Todo el historial del cierre anterior se conserva; la reapertura queda en la bitácora.</p>
+  <p style="font-size:13px;color:#555;margin:0">Se reabre directamente, sin aprobación del gerente. Todo el historial del cierre anterior se conserva; la reapertura queda en la bitácora. El plazo se reinicia: se mide de nuevo como un siniestro nuevo, desde hoy y con el estatus que elijas.</p>
   <label>Estatus al que regresa el siniestro *</label><select class="custom-select" id="rb-est"></select>
   <label>Motivo de la reapertura *</label><textarea class="form-control" id="rb-motivo" rows="3" placeholder="Explica qué se necesita corregir o por qué se reabre"></textarea>
   <div class="aviso-val" id="rb-av"></div>
@@ -372,10 +379,10 @@
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=10"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=10"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=10"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=10"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=11"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=11"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=11"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=11"></script>
 </body>
 
 </html>

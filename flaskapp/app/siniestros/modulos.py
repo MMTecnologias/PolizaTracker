@@ -3,6 +3,7 @@ Módulo de Siniestros · Etapa 3: Historial, Pagos, Plantillas (requisitos,
 campos, tipos, estatus, mensajes) y Reportes.  Todo es JSON: la pantalla
 (siniestros_modulos.js) filtra y pagina en el navegador igual que la tabla de activos.
 """
+import re
 from datetime import date, datetime, timedelta
 from functools import wraps
 
@@ -90,15 +91,73 @@ def catalogos():
 
 
 # ---------------------------------------------------------------------------
+# Días hábiles (sin sábados, domingos ni feriados oficiales de México) y plazos
+# ---------------------------------------------------------------------------
+def _nth_weekday(y, m, wd, n):
+    d = date(y, m, 1)
+    d += timedelta(days=(wd - d.weekday()) % 7)
+    return d + timedelta(weeks=n - 1)
+
+
+def feriados_mx(y):
+    """Feriados oficiales (LFT art. 74): 1 ene, 1.er lunes de feb, 3.er lunes de mar, 1 may,
+    16 sep, 3.er lunes de nov, 1 oct cada 6 años (cambio de Poder Ejecutivo) y 25 dic."""
+    f = {date(y, 1, 1), _nth_weekday(y, 2, 0, 1), _nth_weekday(y, 3, 0, 3), date(y, 5, 1),
+         date(y, 9, 16), _nth_weekday(y, 11, 0, 3), date(y, 12, 25)}
+    if y >= 2024 and (y - 2024) % 6 == 0:
+        f.add(date(y, 10, 1))
+    return f
+
+
+def es_habil(d):
+    d = d.date() if isinstance(d, datetime) else d
+    return d.weekday() < 5 and d not in feriados_mx(d.year)
+
+
+def sumar_dias_habiles(dt, n):
+    d = dt
+    while n > 0:
+        d += timedelta(days=1)
+        if es_habil(d):
+            n -= 1
+    return d
+
+
+def dias_habiles_entre(a, b):
+    """Días hábiles transcurridos después de la fecha de `a` hasta la fecha de `b` (mismo día = 0)."""
+    n, d, fin = 0, a.date(), b.date()
+    while d < fin:
+        d += timedelta(days=1)
+        if es_habil(d):
+            n += 1
+    return n
+
+
+def plazo_desde(clave, desde, estatus_nombre=''):
+    """Fecha límite de un siniestro que empieza a medirse en `desde` (apertura o reapertura).
+    REM corre desde «Documentación completa»; SI no tiene meta."""
+    m = METAS.get(clave)
+    if not m:
+        return None
+    if clave == 'REM' and 'documentación completa' not in (estatus_nombre or '').lower():
+        return None
+    return desde + timedelta(hours=m['meta']) if m['unidad'] == 'horas' else sumar_dias_habiles(desde, m['meta'])
+
+
+# ---------------------------------------------------------------------------
 # Historial
 # ---------------------------------------------------------------------------
-def _tiempo_total(s, clave):
-    seg = (s.fecha_cierre - s.fecha_apertura).total_seconds()
+def _tiempo_total(ini, fin, clave):
+    """Tiempo del ciclo vigente (desde la apertura o la última reapertura hasta el cierre)."""
     if clave == 'PD':
-        h = max(1, round(seg / 3600))
-        return f'{h} h'
-    d = max(0, round(seg / 86400))
-    return f'{d} {"día" if d == 1 else "días"}'
+        mins = max(0, int((fin - ini).total_seconds() // 60))
+        return f'{mins // 60} h {mins % 60:02d} min'
+    d = dias_habiles_entre(ini, fin)
+    return f'{d} {"día hábil" if d == 1 else "días hábiles"}'
+
+
+def _dtf(dt):
+    return dt.strftime('%d/%m/%Y %H:%M') if dt else ''
 
 
 @api('historial')
@@ -109,15 +168,48 @@ def historial():
              .join(Cliente, Cliente.id == Poliza.cliente_id)
              .join(Aseguradora, Aseguradora.id == Siniestro.aseguradora_id)
              .filter(Siniestro.estado == 'Cerrado').order_by(Siniestro.fecha_cierre.desc()).all())
+    ids = [f[0].id for f in filas]
+    nombres = {u.id: f'{u.nombre} {u.apellido}'.strip() for u in Usuario.query.all()}
+    tipos = {t.id: t.nombre for t in SiniestroTipo.query.all()}
+    pagado, reaps, cierre_por = {}, {}, {}
+    if ids:
+        for sid, tot in (db.session.query(SiniestroPago.siniestro_id, func.sum(SiniestroPago.monto))
+                         .filter(SiniestroPago.siniestro_id.in_(ids), SiniestroPago.estado == 'Vigente')
+                         .group_by(SiniestroPago.siniestro_id).all()):
+            pagado[sid] = float(tot or 0)
+        bit = (SiniestroBitacora.query.filter(SiniestroBitacora.siniestro_id.in_(ids),
+                                              SiniestroBitacora.accion.in_(['Reapertura', 'Cierre']))
+               .order_by(SiniestroBitacora.fecha, SiniestroBitacora.id).all())
+        for b in bit:
+            if b.accion == 'Cierre':
+                cierre_por[b.siniestro_id] = b.usuario_id          # el último cierre es el vigente
+            else:
+                m = re.match(r'Reabierto en «(.*?)»\.(?: Nuevo plazo: (.*?)\.)? Motivo: (.*)', b.detalle or '', re.S)
+                reaps.setdefault(b.siniestro_id, []).append({
+                    'fecha': _dtf(b.fecha), 'usuario': nombres.get(b.usuario_id, '—'),
+                    'estatus': m.group(1) if m else '', 'plazo': (m.group(2) or '') if m else '',
+                    'motivo': m.group(3) if m else (b.detalle or '')})
     out = []
     for s, pr, po, cl, ase in filas:
         cumple = None if s.fecha_limite is None or s.fecha_cierre is None else s.fecha_cierre <= s.fecha_limite
+        rs = reaps.get(s.id, [])
+        ini = s.fecha_apertura
+        if rs:
+            ult = [b for b in bit if b.siniestro_id == s.id and b.accion == 'Reapertura'][-1]
+            ini = ult.fecha or ini
+        uid = cierre_por.get(s.id)
         out.append({'id': s.id, 'folio': s.folio, 'proceso': pr.nombre, 'proceso_clave': pr.clave,
-                    'cliente': f'{cl.nombre} {cl.apellido}'.strip(), 'poliza': po.poliza, 'aseguradora': ase.aseguradora,
-                    'resultado': s.resultado or 'Cerrado', 'apertura': _fmt(s.fecha_apertura), 'cierre': _fmt(s.fecha_cierre),
+                    'tipo': tipos.get(s.tipo_id, '—'), 'cliente': f'{cl.nombre} {cl.apellido}'.strip(), 'poliza': po.poliza,
+                    'aseguradora': ase.aseguradora, 'resultado': s.resultado or 'Cerrado',
+                    'apertura': _fmt(s.fecha_apertura), 'cierre': _fmt(s.fecha_cierre),
                     'cierre_iso': s.fecha_cierre.strftime('%Y-%m-%d') if s.fecha_cierre else '',
-                    'tiempo': _tiempo_total(s, pr.clave) if s.fecha_cierre else '', 'cumple': cumple})
-    return jsonify({'items': out, 'total': len(out)})
+                    'tiempo': _tiempo_total(ini, s.fecha_cierre, pr.clave) if s.fecha_cierre else '', 'cumple': cumple,
+                    'inicio_ciclo': _dtf(ini), 'plazo': _dtf(s.fecha_limite), 'pagado': pagado.get(s.id, 0.0),
+                    'cerrado_por': nombres.get(uid, '—') if uid else '—', 'cerrado_por_id': uid or 0,
+                    'reaperturas': rs, 'n_reap': len(rs)})
+    cierran = sorted({(o['cerrado_por_id'], o['cerrado_por']) for o in out if o['cerrado_por_id']}, key=lambda x: x[1])
+    return jsonify({'items': out, 'total': len(out), 'cierran': [{'id': i, 'nombre': n} for i, n in cierran],
+                    'tipos': sorted({o['tipo'] for o in out if o['tipo'] != '—'})})
 
 
 @api('siniestros/<int:sid>/reabrir', methods=['POST'])
@@ -132,12 +224,17 @@ def reabrir(sid):
     es = SiniestroEstatus.query.get(int(d['estatus_id']))
     if not es or es.proceso_id != s.proceso_id or es.es_final:
         raise ValueError('Elige un estatus válido del proceso.')
+    ahora = datetime.now()
+    clave = SiniestroProceso.query.get(s.proceso_id).clave
+    # Reapertura = el siniestro vuelve a medirse como nuevo, desde el estatus elegido.
     s.estado, s.estatus_id, s.resultado = 'Activo', es.id, None
-    s.fecha_cierre, s.fecha_limite, s.ultima_actualizacion = None, None, datetime.now()
+    s.fecha_cierre, s.ultima_actualizacion = None, ahora
+    s.fecha_limite = plazo_desde(clave, ahora, es.nombre)
+    plazo = f' Nuevo plazo: {_dtf(s.fecha_limite)}.' if s.fecha_limite else ''
     db.session.add(SiniestroBitacora(siniestro_id=s.id, usuario_id=current_user.id, accion='Reapertura',
-                                     detalle=f'Reabierto en «{es.nombre}». Motivo: {d["motivo"].strip()}'[:500]))
+                                     detalle=f'Reabierto en «{es.nombre}».{plazo} Motivo: {d["motivo"].strip()}'[:500]))
     db.session.commit()
-    return jsonify({'ok': True, 'folio': s.folio, 'estatus': es.nombre})
+    return jsonify({'ok': True, 'folio': s.folio, 'estatus': es.nombre, 'plazo': _dtf(s.fecha_limite)})
 
 
 # ---------------------------------------------------------------------------

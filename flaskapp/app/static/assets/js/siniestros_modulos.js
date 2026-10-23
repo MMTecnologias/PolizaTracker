@@ -127,11 +127,11 @@
    const plazoChip = c => c === null ? chip('chip-gris', 'Sin meta') : c ? chip('chip-ok', '✓ Dentro') : chip('chip-bad', '✕ Fuera');
    const tH = Tabla({
       tbody: '#h-tbody', pag: '#h-pag', total: '#h-total', unidad: 'siniestros cerrados', buscarId: '#h-buscar', panel: '#h-panel', btnF: '#h-filtros', aplicar: '#h-aplicar', limpiar: '#h-limpiar',
-      ids: { pr: '#h-fProceso', rs: '#h-fRes', as: '#h-fAseg', pl: '#h-fPlazo', d: '#h-fDesde', h: '#h-fHasta' }, titulo: 'Historial de Siniestros', archivo: 'historial_siniestros',
+      ids: { pr: '#h-fProceso', tp: '#h-fTipo', rs: '#h-fRes', as: '#h-fAseg', cp: '#h-fCierra', pl: '#h-fPlazo', d: '#h-fDesde', h: '#h-fHasta' }, titulo: 'Historial de Siniestros', archivo: 'historial_siniestros',
       buscar: r => r.folio + ' ' + r.cliente + ' ' + r.poliza,
-      filtros: { pr: (r, v) => r.proceso_clave === v, rs: (r, v) => r.resultado === v, as: (r, v) => r.aseguradora === v, pl: (r, v) => v === 'si' ? r.cumple === true : r.cumple === false, d: (r, v) => r.cierre_iso >= v, h: (r, v) => r.cierre_iso <= v },
-      cols: [['Folio', r => r.folio], ['Proceso', r => r.proceso], ['Cliente', r => r.cliente], ['Póliza', r => r.poliza], ['Aseguradora', r => r.aseguradora], ['Resultado', r => r.resultado], ['Apertura', r => r.apertura], ['Cierre', r => r.cierre], ['Tiempo total', r => r.tiempo], ['Plazo', r => r.cumple === null ? 'Sin meta' : r.cumple ? 'Dentro' : 'Fuera']],
-      fila: r => '<tr><td><b>' + esc(r.folio) + '</b></td><td>' + esc(r.proceso) + '</td><td>' + esc(r.cliente) + '</td><td>' + esc(r.poliza) + '</td><td>' + esc(r.aseguradora) + '</td><td>' + chip(r.resultado === 'Procedente' ? 'chip-ok' : r.resultado === 'Rechazado' ? 'chip-bad' : 'chip-gris', r.resultado) + '</td><td class="mono">' + esc(r.apertura) + '</td><td class="mono">' + esc(r.cierre) + '</td><td class="mono">' + esc(r.tiempo) + '</td><td>' + plazoChip(r.cumple) + '</td><td>' + ACC([['Ver', r.id], ['Reabrir', r.id]]) + '</td></tr>'
+      filtros: { pr: (r, v) => r.proceso_clave === v, tp: (r, v) => r.tipo === v, rs: (r, v) => r.resultado === v, as: (r, v) => r.aseguradora === v, cp: (r, v) => String(r.cerrado_por_id) === v, pl: (r, v) => v === 'si' ? r.cumple === true : r.cumple === false, d: (r, v) => r.cierre_iso >= v, h: (r, v) => r.cierre_iso <= v },
+      cols: [['Folio', r => r.folio], ['Reaperturas', r => r.n_reap], ['Proceso', r => r.proceso], ['Tipo de siniestro', r => r.tipo], ['Cliente', r => r.cliente], ['Póliza', r => r.poliza], ['Aseguradora', r => r.aseguradora], ['Resultado', r => r.resultado], ['Apertura', r => r.apertura], ['Cierre', r => r.cierre], ['Cerrado por', r => r.cerrado_por], ['Tiempo total', r => r.tiempo], ['Plazo', r => r.cumple === null ? 'Sin meta' : r.cumple ? 'Dentro' : 'Fuera'], ['Monto total pagado', r => money(r.pagado)]],
+      fila: r => '<tr><td><b>' + esc(r.folio) + '</b>' + (r.n_reap ? '<br><a href="#" class="reap-link" data-reap="' + r.id + '">Reabierto ' + r.n_reap + (r.n_reap === 1 ? ' vez' : ' veces') + '</a>' : '') + '</td><td>' + esc(r.proceso) + '</td><td>' + esc(r.tipo) + '</td><td>' + esc(r.cliente) + '</td><td>' + esc(r.poliza) + '</td><td>' + esc(r.aseguradora) + '</td><td>' + chip(r.resultado === 'Procedente' ? 'chip-ok' : r.resultado === 'Rechazado' ? 'chip-bad' : 'chip-gris', r.resultado) + '</td><td class="mono">' + esc(r.apertura) + '</td><td class="mono">' + esc(r.cierre) + '</td><td>' + esc(r.cerrado_por) + '</td><td class="mono">' + esc(r.tiempo) + '</td><td>' + plazoChip(r.cumple) + '</td><td class="mono" style="text-align:right">' + money(r.pagado) + '</td><td>' + ACC([['Ver', r.id], ['Reabrir', r.id]]) + '</td></tr>'
    });
    const tP = Tabla({
       tbody: '#p-tbody', pag: '#p-pag', total: '#p-total', unidad: 'pagos', buscarId: '#p-buscar', panel: '#p-panel', btnF: '#p-filtros', aplicar: '#p-aplicar', limpiar: '#p-limpiar',
@@ -183,7 +183,7 @@
 
    /* ---------------- carga de datos ---------------- */
    const LOAD = {
-      hist: () => http('GET', 'historial').then(j => { D.hist = j.items; tH.set(D.hist); }),
+      hist: () => http('GET', 'historial').then(j => { D.hist = j.items; $('#h-fTipo').innerHTML = '<option value="">Todos</option>' + j.tipos.map(x => '<option>' + esc(x) + '</option>').join(''); $('#h-fCierra').innerHTML = '<option value="">Todos</option>' + j.cierran.map(x => '<option value="' + x.id + '">' + esc(x.nombre) + '</option>').join(''); tH.set(D.hist); }),
       pagos: () => http('GET', 'pagos').then(j => { D.pagos = j.items; tP.set(D.pagos); }),
       tipos: () => http('GET', 'tipos').then(j => { D.tipos = j.items; tT.set(D.tipos); }),
       campos: () => http('GET', 'campos').then(j => { D.campos = j.items; tC.set(D.campos); }),
@@ -316,6 +316,16 @@
       else toggle(ent, r);
    });
 
+   /* ---------------- historial: detalle de reaperturas ---------------- */
+   document.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('[data-reap]'); if (!a) return; e.preventDefault();
+      const r = D.hist.find(x => x.id === +a.dataset.reap); if (!r) return;
+      $('#rp-folio').textContent = r.folio;
+      $('#rp-cuerpo').innerHTML = r.reaperturas.map((x, i) => '<div class="rp-item"><b>Reapertura ' + (i + 1) + '</b> · <span class="mono">' + esc(x.fecha) + '</span> · ' + esc(x.usuario) +
+         '<div>Regresó a: <b>' + esc(x.estatus || '—') + '</b>' + (x.plazo ? ' · nuevo plazo: <span class="mono">' + esc(x.plazo) + '</span>' : '') + '</div><div class="rp-mot">' + esc(x.motivo) + '</div></div>').join('');
+      abrir('#m-reaps');
+   });
+   window.addEventListener('siniestros:reabrir', e => reabrir(e.detail));
    /* ---------------- historial: reabrir ---------------- */
    let rbSin = null;
    async function reabrir(r) {
@@ -327,7 +337,7 @@
    }
    $('#rb-ok').addEventListener('click', async () => {
       if ($('#rb-motivo').value.trim().length < 5) { $('#rb-av').textContent = 'El motivo es obligatorio.'; return; }
-      try { await http('POST', 'siniestros/' + rbSin.id + '/reabrir', { estatus_id: +$('#rb-est').value, motivo: $('#rb-motivo').value }); cerrar(); toast('Siniestro ' + rbSin.folio + ' reabierto. Ya está en Activos y quedó en bitácora.'); LOAD.hist(); window.dispatchEvent(new Event('siniestros:recargar')); }
+      try { await http('POST', 'siniestros/' + rbSin.id + '/reabrir', { estatus_id: +$('#rb-est').value, motivo: $('#rb-motivo').value }); cerrar(); toast('Siniestro ' + rbSin.folio + ' reabierto. Ya está en Activos; el plazo se mide de nuevo desde hoy.'); LOAD.hist(); window.dispatchEvent(new Event('siniestros:recargar')); }
       catch (e) { $('#rb-av').textContent = e.message; }
    });
    function cancelarPago(p) {

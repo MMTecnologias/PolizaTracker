@@ -15,7 +15,7 @@ from app.models import (Aseguradora, Cliente, Poliza, Ramo, Siniestro, Siniestro
                         SiniestroCampoProceso, SiniestroCampoTipo, SiniestroEstatus, SiniestroPlantillaItem,
                         SiniestroPlantillaReq, SiniestroProceso, SiniestroTipo, SiniestroValor, Subramo, NivelAcceso)
 from app.siniestros.activos import _nuevo_folio, _validar_poliza_para
-from app.siniestros.modulos import METAS, api, _j, _req
+from app.siniestros.modulos import METAS, api, _j, _req, plazo_desde, sumar_dias_habiles
 from app.siniestros.routes import _fmt
 
 # Niveles que pueden crear siniestros (Gerente y Siniestros; Desarollador para pruebas).
@@ -46,21 +46,9 @@ def _grupo(ramo):
     return 'AUTOS'
 
 
-def sumar_dias_habiles(dt, n):
-    d = dt
-    while n > 0:
-        d += timedelta(days=1)
-        if d.weekday() < 5:
-            n -= 1
-    return d
-
-
 def plazo_estimado(clave, desde):
-    """Plazo provisional según las metas del proceso (REM corre desde «documentación completa»; SI sin meta)."""
-    m = METAS.get(clave)
-    if not m or clave == 'REM':
-        return None
-    return desde + timedelta(hours=m['meta']) if m['unidad'] == 'horas' else sumar_dias_habiles(desde, m['meta'])
+    """Plazo según las metas del proceso (días hábiles sin feriados MX; REM corre desde «Documentación completa»; SI sin meta)."""
+    return plazo_desde(clave, desde)
 
 
 def _fila_poliza(po, cl, ase, ra, sr):

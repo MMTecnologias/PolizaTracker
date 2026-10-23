@@ -71,7 +71,7 @@
    panel.addEventListener('click', e => { if (e.target.hasAttribute('data-sa-p') || e.target.closest('[data-sa-cp]')) cerrarPanel(); });
    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !mq.classList.contains('on') && panel.classList.contains('on')) cerrarPanel(); });
 
-   const AC = { estatus: 'Actualizar estatus', nota: 'Agregar a bitácora', pago: 'Registrar pago', derivado: 'Crear derivado', comunicacion: 'Enviar comunicación', cerrar: 'Cerrar siniestro' };
+   const AC = { estatus: 'Actualizar estatus', nota: 'Agregar a bitácora', pago: 'Registrar pago', derivado: 'Crear derivado', comunicacion: 'Enviar comunicación', cerrar: 'Cerrar siniestro', reabrir: 'Reabrir siniestro' };
    function cabecera() {
       const e = D.estatus, c = e.tipo === 'aseguradora' ? 'chip-aseg' : e.tipo === 'pendiente' ? 'chip-pend' : 'chip-otro';
       const est = D.estado === 'Cerrado' ? chip(D.resultado === 'Procedente' ? 'chip-ok' : D.resultado === 'Rechazado' ? 'chip-bad' : 'chip-gris', 'Cerrado · ' + D.resultado) : chip(c, e.nombre);
@@ -79,7 +79,7 @@
          (D.origen ? ' ' + chip('chip-der', 'Derivado de ' + D.origen.folio) : '') + '</div></div><button class="sa-x" data-sa-cp title="Cerrar">&times;</button>';
       const abierto = D.estado === 'Activo';
       const btn = (k, off, tt) => '<button class="sa-btn sa-b' + (off ? ' off' : '') + '" data-ac="' + k + '"' + (tt ? ' title="' + esc(tt) + '"' : '') + '>' + AC[k] + '</button>';
-      $('#sa-acc').innerHTML = (abierto ? btn('estatus') + btn('pago') + btn('derivado', D.proceso.grupo === 'VIDA', 'VIDA no genera derivados') : '') + btn('nota') + btn('comunicacion') +
+      $('#sa-acc').innerHTML = (abierto ? btn('estatus') + btn('pago') + btn('derivado', D.proceso.grupo === 'VIDA', 'VIDA no genera derivados') : '') + btn('nota') + btn('comunicacion') + (abierto ? '' : btn('reabrir')) +
          (abierto ? btn('cerrar', D.derivados_abiertos > 0, D.derivados_abiertos ? 'Tiene ' + D.derivados_abiertos + ' derivado(s) abierto(s)' : '') : '');
       const tabs = [['info', 'Información'], ['pagos', 'Pagos (' + D.pagos.length + ')'], ['familia', 'Familia (' + D.familia.length + ')'], ['bit', 'Bitácora (' + D.bitacora.length + ')']];
       $('#sa-tabs').innerHTML = tabs.map(t => '<a data-t="' + t[0] + '" class="' + (t[0] === TAB ? 'activa' : '') + '">' + t[1] + '</a>').join('');
@@ -145,6 +145,7 @@
             { k: 'fecha_limite', l: 'Nuevo plazo (opcional)', t: 'datetime-local', hint: 'Déjalo vacío para conservar el plazo actual.' }
          ], 'Actualizar', async o => { await http('POST', 'siniestros/' + D.id + '/estatus', { estatus_id: +o.estatus_id, comentario: o.comentario, fecha_limite: o.fecha_limite || null }); toast('Estatus actualizado y registrado en bitácora.'); await refrescar('bit'); });
       },
+      reabrir() { const r = { id: D.id, folio: D.folio, proceso_clave: D.proceso.clave }; cerrarPanel(); window.dispatchEvent(new CustomEvent('siniestros:reabrir', { detail: r })); },
       nota() {
          form('Agregar a bitácora · ' + D.folio, [{ k: 'texto', l: 'Nota', t: 'area', rows: 4, req: 1, ph: 'Llamada, acuerdo, documento recibido…' }], 'Guardar nota',
             async o => { await http('POST', 'siniestros/' + D.id + '/nota', o); toast('Nota agregada a la bitácora.'); await refrescar('bit'); });
