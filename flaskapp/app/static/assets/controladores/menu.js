@@ -10,6 +10,7 @@ $(function () {
     $('#reportesG').show();
     $('#utilerias').show();
     $('#solicitudes').show();
+    $('#siniestros').show();
     // $('#acerca').show();
   } else if (nivelUsuario === 'Administrador') {
     $('#utilerias').show();

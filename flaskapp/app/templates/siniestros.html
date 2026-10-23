@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html class="no-js" lang="es">
+
+<head>
+   <meta charset="utf-8" />
+   <meta http-equiv="x-ua-compatible" content="ie=edge" />
+   <title>Siniestros</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <link rel="shortcut icon" type="image/png"
+      href="{{ url_for('static',filename='assets/images/GGGC.png') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/bootstrap.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/font-awesome.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/themify-icons.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/metisMenu.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/owl.carousel.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/slicknav.min.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/export.css') }}" type="text/css" media="all" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/typography.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/default-css.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/styles.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/responsive.css') }}" />
+   <link rel="stylesheet" href="{{ url_for('static',filename='assets/css/brc-styles.css') }}" />
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+   <style>
+      /* En pantallas angostas el responsive.css heredado saca el bloque del usuario
+         de la barra; aquí se mantiene en la barra, pegado a la derecha. */
+      @media (max-width: 767px) {
+         .navbar { padding-left: 12px; flex-wrap: nowrap; }
+         .app-section { min-width: 0; overflow: hidden; }
+         .name-app { font-size: 1.3rem; white-space: nowrap; }
+         .user-profile { margin: 0 0 0 auto !important; padding: 0 14px !important; flex-wrap: nowrap; flex-shrink: 0; }
+         .user-profile .dropdown-menu { width: auto !important; min-width: 220px; right: 0 !important; }
+      }
+      .app-section { cursor: pointer; }
+
+      /* Pestañas del módulo */
+      .tabs-mod { display: flex; gap: 8px; margin: 10px 0 14px; flex-wrap: wrap; border-bottom: 2px solid var(--color-claro); padding-bottom: 12px; }
+      .tabs-mod a { padding: 9px 24px; font-size: 16px; font-weight: 700; color: #333; background: var(--color-claro); border-radius: 8px; cursor: pointer; text-decoration: none; letter-spacing: .2px; transition: background .15s, color .15s; }
+      .tabs-mod a:hover { background: #e4e4e4; color: var(--color-primario); text-decoration: none; }
+      .tabs-mod a.activa { background: var(--color-primario); color: #fff !important; box-shadow: 0 2px 6px rgba(201, 74, 28, .35); }
+
+      @media (max-width: 575px) { .tabs-mod { gap: 6px; } .tabs-mod a { padding: 7px 13px; font-size: 14px; } }
+      .folio-link { color: #333; text-decoration: underline; font-weight: 500; white-space: nowrap; cursor: pointer; }
+      .chip { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+      .chip-aseg { background: #e0f5f8; color: #0e7f90; } .chip-pend { background: #fff3d6; color: #9a6a00; } .chip-otro { background: #eceff1; color: #555; }
+      .chip-der { background: #f1eefc; color: #5b43b5; font-size: 11.5px; } .chip-orig { background: #e6f4ea; color: #23783d; font-size: 11.5px; }
+      .plazo { white-space: nowrap; font-weight: 500; } .plazo i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+      .p-vencido { color: #c0392b; } .p-vencido i { background: #c0392b; }
+      .p-por_vencer { color: #b9770e; } .p-por_vencer i { background: #e5a50a; }
+      .p-en_tiempo { color: #23783d; } .p-en_tiempo i { background: #2e9e4f; } .p-none { color: #999; }
+      .acciones-full { padding: 0; margin: 0; } .acciones-full li { list-style: none; }
+      .acciones-full a, .acciones-toggle { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; color: #111; }
+      .acciones-full a:hover { background: rgba(0, 0, 0, .07); }
+      .acciones-full a.off { opacity: .25; cursor: not-allowed; }
+      .acciones-full svg, .acciones-menu svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .acciones-menu { position: fixed; z-index: 1050; }
+      .toast-sin { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; z-index: 3000; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; text-align: center; }
+      .toast-sin.on { opacity: 1; }
+      .sin-res { text-align: center; color: #888; padding: 28px; }
+
+      /* Historial, Pagos, Plantillas y Reportes */
+
+.sub-tabs{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+.sub-tabs a{padding:6px 16px;border-radius:20px;border:1px solid #d5d5d5;font-size:13.5px;font-weight:600;color:#555;cursor:pointer}
+.sub-tabs a.activa{background:#333;border-color:#333;color:#fff !important}
+.vista{display:none}.vista.on{display:block}
+.chip-ok{background:#e6f4ea;color:#23783d}.chip-bad{background:#fdeaea;color:#b03a2e}.chip-gris{background:#eceff1;color:#555}
+.mono{font-variant-numeric:tabular-nums;white-space:nowrap}
+.resumen-fila{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
+.res-card{flex:1 1 170px;border:1px solid #ececec;border-radius:10px;padding:10px 14px;background:#fff}
+.res-card small{display:block;color:#777;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.res-card b{font-size:20px;color:#222}
+.res-card.pend b{color:#c0392b}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:10px 0 16px}
+.kpi{border:1px solid #ececec;border-radius:12px;padding:14px 16px;background:#fff;border-top:4px solid var(--color-primario)}
+.kpi h6{margin:0 0 4px;font-size:12px;color:#777;text-transform:uppercase;letter-spacing:.4px}
+.kpi .v{font-size:32px;font-weight:700;line-height:1.1;color:#222}
+.kpi .m{font-size:12.5px;color:#666;margin:2px 0 8px}
+.kpi .st{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px}
+.kpi.cumple{border-top-color:#2e9e4f}.kpi.cumple .st{background:#e6f4ea;color:#23783d}
+.kpi.falla{border-top-color:#c0392b}.kpi.falla .st{background:#fdeaea;color:#b03a2e}
+.kpi .d{font-size:12px;color:#888;margin-left:8px}
+.grafica{border:1px solid #ececec;border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:14px;position:relative}
+.grafica h6{margin:0 0 6px;font-size:14px;font-weight:700}
+.grafica svg{width:100%;max-width:760px;height:auto;display:block}
+.tip{position:absolute;pointer-events:none;background:#222;color:#fff;font-size:12px;padding:6px 10px;border-radius:6px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5}
+.nota-sin-kpi{background:#fff8e6;border:1px solid #f1dca0;color:#7a5a00;border-radius:8px;padding:8px 12px;font-size:12.5px;margin:0 0 12px}
+.mq-back{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
+.mq-back.on{display:flex}
+.mq-modal{background:#fff;border-radius:12px;width:min(640px,100%);max-height:92vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.mq-modal header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #eee}
+.mq-modal header h5{margin:0;font-size:17px;font-weight:700}
+.mq-modal header span{cursor:pointer;font-size:22px;color:#888;line-height:1}
+.mq-modal .cuerpo{padding:16px 20px}
+.mq-modal footer{padding:12px 20px;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end}
+.mq-modal label{font-size:12.5px;font-weight:600;color:#555;margin:10px 0 3px;display:block}
+.req-fila{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid #eee;border-radius:8px;margin-bottom:6px;background:#fafafa}
+.req-fila span.n{flex:1;font-size:13.5px}
+.req-fila .sw{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:12px;cursor:pointer;border:0}
+.sw.ob{background:#fdeaea;color:#b03a2e}.sw.op{background:#eceff1;color:#555}
+.req-fila .x{cursor:pointer;color:#999;font-size:18px;line-height:1}
+.var-chip{display:inline-block;background:#f1eefc;color:#5b43b5;border-radius:10px;padding:1px 8px;font-size:12px;margin:2px 3px 2px 0;cursor:pointer}
+.preview{background:#e9f7ef;border:1px solid #cdebd9;border-radius:10px;padding:10px 12px;font-size:13px;white-space:pre-wrap}
+.aviso-val{font-size:12.5px;color:#b03a2e;margin-top:6px;min-height:16px}
+.chk-g{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}.chk-g label{font-weight:400;margin:0;display:flex;gap:5px;align-items:center}.grp{font-size:11.5px;font-weight:700;color:#777;text-transform:uppercase;margin:8px 0 2px;width:100%}.btn-sm-mq{padding:4px 12px;font-size:12.5px}
+
+.oculto{display:none !important}
+.acc-btns{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#555;margin-top:4px}.leyenda span{display:inline-flex;align-items:center;gap:6px}.leyenda svg{width:22px;display:inline-block}
+.rango-rep{font-size:12.5px;color:#777;margin:8px 0 0}
+.chip-ok{background:#e6f4ea;color:#23783d}.chip-bad{background:#fdeaea;color:#b03a2e}.chip-gris{background:#eceff1;color:#555}
+   
+/* Panel de detalle y acciones de Activos */
+.sa-panel{position:fixed;inset:0;z-index:1900;display:none}.sa-panel.on{display:block}
+.sa-fondo{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.sa-cuerpo{position:absolute;top:0;right:0;bottom:0;width:min(780px,100%);background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.25);display:flex;flex-direction:column}
+.sa-cab{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px 10px;border-bottom:1px solid #eee}
+.sa-folio{font-size:22px;font-weight:700}.sa-sub{color:#666;font-size:13.5px}
+.sa-x{border:0;background:none;font-size:30px;line-height:1;color:#888;cursor:pointer}
+.sa-acc{display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px;border-bottom:1px solid #eee}
+.sa-btn{display:inline-block;width:auto;padding:6px 12px;border:1px solid #cfcfcf;background:#fff;color:#333 !important;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;line-height:1.3}.sa-btn:hover{background:#f4f4f4}.sa-btn.pri{background:var(--color-primario);border-color:var(--color-primario);color:#fff !important}.sa-btn.off{opacity:.45;cursor:not-allowed}
+.sa-tabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid #eee;overflow-x:auto}
+.sa-tabs a{padding:9px 14px;font-size:13.5px;font-weight:600;color:#666;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.sa-tabs a.activa{color:#222;border-bottom-color:var(--color-primario)}
+.sa-cont{padding:16px 20px;overflow:auto;flex:1}
+.sa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 18px}
+.sa-f small{display:block;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}.sa-f span{font-size:14px}
+.sa-sec{display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px}.sa-sec h6{margin:0;font-weight:700}
+.sa-montos{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
+.sa-montos>div{border:1px solid #ececec;border-radius:10px;padding:8px 12px}.sa-montos small{display:block;color:#777;font-size:11px;text-transform:uppercase;font-weight:600}.sa-montos b{font-size:17px}.sa-montos .pend b{color:#c0392b}
+.sa-tb{width:100%;font-size:13px;border-collapse:collapse}.sa-tb th{color:#777;font-size:11.5px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}.sa-tb td{padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}.sa-tb tr.actual{background:#f6f9ff}
+.sa-vacio,.sa-nota{color:#888;font-size:13px}
+.sa-bit{display:flex;flex-direction:column;gap:8px}.sa-b-i{border-left:3px solid var(--color-primario);background:#fafafa;padding:7px 12px;font-size:13px;border-radius:0 8px 8px 0}.sa-b-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.sa-b-h span{color:#888;font-size:12px}
+.sa-info{background:#f3f6fb;border-radius:8px;padding:8px 12px;font-size:13px;margin:4px 0}.sa-warn{background:#fff8e6;color:#7a5a00}.sa-err{background:#fdeaea;color:#b03a2e}
+.mq-modal textarea.form-control{height:auto !important;min-height:70px;resize:vertical}
+#sa-body textarea[rows="9"]{min-height:210px}
+.sa-envio{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+
+/* Nuevo siniestro */
+.sn-modal{width:min(820px,100%)}
+.sn-paso{font-weight:700;margin:6px 0 8px}.sn-paso b{display:inline-block;background:var(--color-primario);color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:12px;margin-right:6px}
+.sn-res{max-height:210px;overflow:auto;margin-top:4px}.sn-r{padding:8px 10px;border:1px solid #eee;border-radius:8px;margin-top:4px;cursor:pointer;font-size:13.5px}.sn-r:hover{background:#f6f9ff}.sn-r small{display:block;color:#777}
+.sn-no{background:#fafafa}.sn-no b{color:#999}.sn-tag{display:inline-block;margin-top:3px;margin-right:6px;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:10px}.sn-tag.ok{background:#e6f4ea;color:#23783d}.sn-tag.bad{background:#fdeaea;color:#b03a2e}.sn-tag.warn{background:#fff8e6;color:#7a5a00}
+.sn-dup{background:#fff8e6;border:1px solid #f1dca0;border-radius:8px;padding:8px 12px;font-size:13px;margin:8px 0}.sn-dup table{width:100%;font-size:12.5px;margin-top:4px}.sn-dup td{padding:2px 6px}
+.sn-vacio{color:#888;font-size:13px;padding:6px}
+.sn-st{font-weight:700}.sn-Vigente{color:#23783d}.sn-PorVencer{color:#b9770e}.sn-Cancelada,.sn-Finalizada{color:#b03a2e}
+.sn-card{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 16px;background:#f7f8fa;border-radius:10px;padding:10px 14px;margin:10px 0 6px}
+.sn-card small{display:block;color:#888;font-size:11px;text-transform:uppercase;font-weight:600}.sn-card b{font-size:13.5px}
+.sn-val{border-radius:8px;padding:8px 12px;font-size:13.5px;margin:6px 0}.sn-val.ok{background:#e6f4ea;color:#23783d}.sn-val.bad{background:#fdeaea;color:#b03a2e}.sn-val.warn{background:#fff8e6;color:#7a5a00}
+.sn-nota{color:#888;font-size:12.5px;margin:4px 0}
+.sn-g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px 16px}
+.sn-req{background:#f3f6fb;border-radius:8px;padding:8px 14px;margin:10px 0;font-size:13px}.sn-req ul{margin:4px 0 0 18px;padding:0;list-style:disc}.sn-req li{list-style:disc}
+#sn-form{margin-top:14px}
+#sa-body{max-height:70vh;overflow:auto}
+</style>
+</head>
+
+<body>
+   <nav class="navbar">
+      <div class="app-section" onclick="location.href='{{ url_for('main.index') }}'" title="Volver al menú">
+         <h2 class="name-app">Póliza Tracker</h2>
+         <img src="{{ url_for('static',filename='assets/images/GGGC.png') }}" class="logo-ggc" />
+      </div>
+      <div class="user-profile pull-right">
+         <h6 class="user-name dropdown-toggle" data-toggle="dropdown">
+            {{ current_user.username }}<i class="fa fa-angle-down"></i>
+         </h6>
+         <div class="dropdown-menu">
+            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a>
+            <a class="dropdown-item" href="{{ url_for('auth.cambiar_contrasena') }}">Cambiar Contraseña</a>
+         </div>
+      </div>
+   </nav>
+
+   <div class="container-fluid">
+      <div class="row mt-3">
+         <div class="col-12 p-3 col-tabla-flex">
+            <div class="w-100 card__shadow p-3 card-tabla-polizas" id="card">
+               <div class="table-polizas table-polizas--flex" id="table-polizas">
+                  <h4 class="header-title" id="tituloVista">Tabla de Siniestros</h4>
+                  <div class="tabs-mod" id="tabsMod">
+                     <a data-v="activos" class="activa">Activos</a><a data-v="historial">Historial</a><a data-v="pagos">Pagos</a><a data-v="plantillas">Plantillas</a><a data-v="reportes">Reportes</a>
+                  </div>
+                  <div class="vista on" id="v-activos">
+                  <div class="polizas-toolbar">
+                     <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar por folio, cliente o póliza" id="buscar">
+                     {% if puede_crear %}<button class="btn px-4 py-2 btn-primary" type="button" id="btnNuevo">+ Nuevo siniestro</button>{% endif %}
+                     <button class="btn px-4 py-2" type="button" id="btnToggleFiltros">Filtros</button>
+                     <button class="btn px-4 py-2" type="button" id="btnExcel">Exportar a Excel</button>
+                     <button class="btn px-4 py-2" type="button" id="btnPdf">Exportar PDF</button>
+                     <button class="btn px-4 py-2" type="button" id="btnImprimir">Imprimir</button>
+                  </div>
+                  <div class="polizas-total" id="total"></div>
+                  <div class="polizas-filtros" id="panelFiltros" style="display:none">
+                     <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="fProceso"><option value="">Todos</option></select></div>
+                     <div class="polizas-filtros__campo"><label>Estatus</label><select class="custom-select" id="fEstatus"><option value="">Todos</option></select></div>
+                     <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="fAseg"><option value="">Todas</option></select></div>
+                     <div class="polizas-filtros__campo"><label>Plazo</label><select class="custom-select" id="fPlazo"><option value="">Todos</option><option value="vencido">Vencidos</option><option value="por_vencer">Por vencer</option><option value="en_tiempo">En tiempo</option><option value="none">Sin plazo</option></select></div>
+                     <div class="polizas-filtros__campo"><label>Relación</label><select class="custom-select" id="fRel"><option value="">Todos</option><option value="origen">Con derivados</option><option value="derivado">Derivados</option><option value="indep">Independientes</option></select></div>
+                     <div class="polizas-filtros__campo"><label>Cliente</label><input class="form-control" id="fCliente" placeholder="Escribe para buscar"></div>
+                     <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Apertura desde</label><input type="date" class="form-control" id="fDesde"></div>
+                     <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Apertura hasta</label><input type="date" class="form-control" id="fHasta"></div>
+                     <div class="polizas-filtros__acciones"><button class="btn px-3 py-2" type="button" id="btnAplicar">Aplicar</button><button class="btn" type="button" id="btnLimpiar">Limpiar</button></div>
+                  </div>
+                  <div class="table-polizas__scroll">
+                     <table class="table">
+                        <thead class="tableHeader"><tr>
+                           <th scope="col">Folio</th><th scope="col">Proceso</th><th scope="col">Cliente</th><th scope="col">Póliza</th><th scope="col">Aseguradora</th>
+                           <th scope="col">Estatus</th><th scope="col">Plazo</th><th scope="col">Apertura</th><th scope="col">Relación</th><th scope="col">Acciones</th>
+                        </tr></thead>
+                        <tbody id="tbody"><tr><td colspan="10" class="sin-res">Cargando…</td></tr></tbody>
+                     </table>
+                  </div>
+                  </div>
+  <!-- HISTORIAL -->
+  <div class="vista" id="v-historial">
+   <div class="polizas-toolbar">
+     <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar por folio, cliente o póliza" id="h-buscar">
+     <button class="btn px-4 py-2" id="h-filtros">Filtros</button>
+     <button class="btn px-4 py-2" data-x="Exportar a Excel">Exportar a Excel</button>
+     <button class="btn px-4 py-2" data-x="Exportar PDF">Exportar PDF</button>
+     <button class="btn px-4 py-2" data-x="Imprimir">Imprimir</button>
+   </div>
+   <div class="polizas-total" id="h-total"></div>
+   <div class="polizas-filtros" id="h-panel" style="display:none">
+     <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="h-fProceso"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Tipo de siniestro</label><select class="custom-select" id="h-fTipo"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Cerrado por</label><select class="custom-select" id="h-fCierra"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Resultado</label><select class="custom-select" id="h-fRes"><option value="">Todos</option><option>Procedente</option><option>Rechazado</option><option>Cerrado</option></select></div>
+     <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="h-fAseg"><option value="">Todas</option></select></div>
+     <div class="polizas-filtros__campo"><label>Cumplió plazo</label><select class="custom-select" id="h-fPlazo"><option value="">Todos</option><option value="si">Sí</option><option value="no">No</option></select></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Cierre desde</label><input type="date" class="form-control" id="h-fDesde"></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Cierre hasta</label><input type="date" class="form-control" id="h-fHasta"></div>
+     <div class="polizas-filtros__acciones"><button class="btn px-3 py-2" id="h-aplicar">Aplicar</button><button class="btn" id="h-limpiar">Limpiar</button></div>
+   </div>
+   <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
+     <th>Folio</th><th>Proceso</th><th>Tipo de siniestro</th><th>Cliente</th><th>Póliza</th><th>Aseguradora</th><th>Resultado</th><th>Apertura</th><th>Cierre</th><th>Cerrado por</th><th>Tiempo total</th><th>Plazo</th><th>Monto total pagado</th><th>Acciones</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
+   <div class="w-100 d-flex justify-content-center table-polizas__pagination"><div id="h-pag" class="paginationList"></div></div>
+  </div>
+
+  <!-- PAGOS -->
+  <div class="vista" id="v-pagos">
+   <div class="resumen-fila" id="p-resumen"></div>
+   <details class="rs-det" id="p-det"><summary>Resumen por concepto y aseguradora</summary><div class="rs-cuerpo" id="p-rs"></div></details>
+   <div class="polizas-toolbar">
+     <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar por folio, cliente o beneficiario" id="p-buscar">
+     <button class="btn px-4 py-2" id="p-filtros">Filtros</button>
+     <button class="btn px-4 py-2" data-x="Exportar a Excel">Exportar a Excel</button>
+     <button class="btn px-4 py-2" data-x="Exportar PDF">Exportar PDF</button>
+     <button class="btn px-4 py-2" data-x="Imprimir">Imprimir</button>
+   </div>
+   <div class="polizas-total" id="p-total"></div>
+   <div class="polizas-filtros" id="p-panel" style="display:none">
+     <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="p-fProceso"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Tipo de siniestro</label><select class="custom-select" id="p-fTipo"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="p-fAseg"><option value="">Todas</option></select></div>
+     <div class="polizas-filtros__campo"><label>Registró</label><select class="custom-select" id="p-fReg"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Concepto</label><select class="custom-select" id="p-fConc"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Estado del pago</label><select class="custom-select" id="p-fEst"><option value="">Todos</option><option value="Pagado">Pagado</option><option value="Pendiente">Pendiente de pago</option><option value="Cancelado">Cancelado</option></select></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Fecha de pago desde</label><input type="date" class="form-control" id="p-fDesde"></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Fecha de pago hasta</label><input type="date" class="form-control" id="p-fHasta"></div>
+     <div class="polizas-filtros__acciones"><button class="btn px-3 py-2" id="p-aplicar">Aplicar</button><button class="btn" id="p-limpiar">Limpiar</button></div>
+   </div>
+   <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
+     <th>Fecha de pago</th><th>Folio</th><th>Proceso</th><th>Tipo de siniestro</th><th>Cliente</th><th>Beneficiario</th><th>Aseguradora</th><th>Concepto</th><th style="text-align:right">Monto</th><th>Estado</th><th>Comprobante</th><th>Registró</th><th>Acciones</th></tr></thead><tbody id="p-tbody"></tbody></table></div>
+   <div class="w-100 d-flex justify-content-center table-polizas__pagination"><div id="p-pag" class="paginationList"></div></div>
+  </div>
+
+  <!-- PLANTILLAS -->
+  <div class="vista" id="v-plantillas">
+   <div class="sub-tabs" id="subTabs"><a class="activa" data-s="req">Requisitos</a><a data-s="camp">Campos</a><a data-s="tipo">Tipos de siniestro</a><a data-s="est">Estatus</a><a data-s="msg">Mensajes</a></div>
+   <div id="s-req">
+    <div class="polizas-toolbar">
+      <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar por aseguradora o tipo" id="r-buscar">
+      <button class="btn px-4 py-2 btn-primary" id="r-nuevo">+ Nueva plantilla</button>
+      <button class="btn px-4 py-2" id="r-filtros">Filtros</button>
+      <button class="btn px-4 py-2" data-x="Exportar a Excel">Exportar a Excel</button>
+      <button class="btn px-4 py-2" data-x="Exportar PDF">Exportar PDF</button>
+      <button class="btn px-4 py-2" data-x="Imprimir">Imprimir</button>
+    </div>
+    <div class="polizas-total" id="r-total"></div>
+    <div class="polizas-filtros" id="r-panel" style="display:none">
+      <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="r-fProceso"><option value="">Todos</option></select></div>
+      <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="r-fAseg"><option value="">Todas</option></select></div>
+      <div class="polizas-filtros__campo"><label>Estado</label><select class="custom-select" id="r-fEst"><option value="">Todos</option><option>Activa</option><option>Inactiva</option></select></div>
+      <div class="polizas-filtros__acciones"><button class="btn px-3 py-2" id="r-aplicar">Aplicar</button><button class="btn" id="r-limpiar">Limpiar</button></div>
+    </div>
+    <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
+      <th>Proceso</th><th>Aseguradora</th><th>Tipo de siniestro / reembolso</th><th>Requisitos</th><th>Estado</th><th>Última modificación</th><th>Acciones</th></tr></thead><tbody id="r-tbody"></tbody></table></div>
+    <div class="w-100 d-flex justify-content-center table-polizas__pagination"><div id="r-pag" class="paginationList"></div></div>
+   </div>
+   <div id="s-camp" style="display:none"></div><div id="s-tipo" style="display:none"></div><div id="s-est" style="display:none"></div>
+   <div id="s-msg" style="display:none">
+    <div class="polizas-toolbar">
+      <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar mensaje" id="m-buscar">
+      <button class="btn px-4 py-2 btn-primary" id="m-nuevo">+ Nuevo mensaje</button>
+      <button class="btn px-4 py-2" data-x="Exportar a Excel">Exportar a Excel</button>
+      <button class="btn px-4 py-2" data-x="Exportar PDF">Exportar PDF</button>
+      <button class="btn px-4 py-2" data-x="Imprimir">Imprimir</button>
+    </div>
+    <div class="polizas-total" id="m-total"></div>
+    <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
+      <th>Mensaje</th><th>Se usa en</th><th>Procesos</th><th>Canal</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="m-tbody"></tbody></table></div>
+    <div class="w-100 d-flex justify-content-center table-polizas__pagination"><div id="m-pag" class="paginationList"></div></div>
+   </div>
+  </div>
+
+  <!-- REPORTES -->
+  <div class="vista" id="v-reportes">
+   <div class="polizas-toolbar">
+     <button class="btn px-4 py-2" data-x="Exportar a Excel">Exportar a Excel</button>
+     <button class="btn px-4 py-2" data-x="Exportar PDF">Exportar PDF</button>
+     <button class="btn px-4 py-2" data-x="Imprimir">Imprimir</button>
+     <select class="custom-select" id="x-exp" style="width:auto;margin-left:8px" title="Qué tabla se exporta o imprime"><option value="ind">Salida: indicadores</option><option value="rea">Salida: reaperturas</option><option value="pco">Salida: pagos por concepto</option><option value="pas">Salida: pagos por aseguradora</option></select>
+   </div>
+   <div class="polizas-filtros" style="display:flex;margin-top:6px">
+     <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="x-proc"></select></div>
+     <div class="polizas-filtros__campo"><label>Periodo</label><select class="custom-select" id="x-per"><option value="mes">Este mes</option><option value="tri">Este trimestre</option><option value="anio">Este año</option><option value="mes_sel">Elegir mes</option><option value="rango">Rango libre</option></select></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha" id="x-mes" style="display:none"><label>Mes</label><input type="month" class="form-control"></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha" id="x-d1" style="display:none"><label>Desde</label><input type="date" class="form-control"></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha" id="x-d2" style="display:none"><label>Hasta</label><input type="date" class="form-control"></div>
+     <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="x-aseg"><option value="">Todas</option></select></div>
+   </div>
+   <p class="rango-rep" id="x-rango"></p>
+   <div class="nota-sin-kpi" id="x-nota" style="display:none"></div>
+   <div class="kpi-grid" id="x-kpis"></div>
+   <div class="grafica"><h6 id="x-gtit"></h6><div id="x-graf"></div><div class="tip" id="x-tip"></div></div>
+   <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
+     <th>Proceso</th><th>Casos cerrados</th><th>Meta de tiempo</th><th>% dentro de plazo</th><th>% procedente</th><th>Incidencias</th><th>Cumple</th><th>Reaperturas</th><th>Pagado</th></tr></thead><tbody id="x-tbody"></tbody></table></div>
+   <h6 style="margin:18px 0 6px">Siniestros reabiertos en el periodo</h6>
+   <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr><th>Folio</th><th>Fecha</th><th>Aseguradora</th><th>Reapertura #</th><th>Reabierto en</th><th>Usuario</th><th>Motivo</th><th>Estado actual</th></tr></thead><tbody id="x-reaps"></tbody></table></div>
+   <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:18px">
+    <div style="flex:1;min-width:300px"><h6 style="margin:0 0 6px">Pagado por concepto</h6><div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr><th>Concepto</th><th>Pagos</th><th>Monto</th></tr></thead><tbody id="x-pc"></tbody></table></div></div>
+    <div style="flex:1;min-width:300px"><h6 style="margin:0 0 6px">Pagado por aseguradora</h6><div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr><th>Aseguradora</th><th>Pagos</th><th>Monto</th></tr></thead><tbody id="x-pa"></tbody></table></div></div>
+   </div>
+  </div>
+
+               </div>
+               <div class="w-100 d-flex justify-content-center table-polizas__pagination" id="pagActivos"><div id="pagination" class="paginationList"></div></div>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="toast-sin" id="toast"></div>
+<!-- Modal: vista previa de mensaje -->
+<div class="mq-back" id="m-vp"><div class="mq-modal"><header><h5>Vista previa · <span id="vp-tit" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
+ <div class="cuerpo"><p style="font-size:12.5px;color:#777;margin:0" id="vp-can"></p><p style="font-size:12.5px;color:#777;margin:0">Así lo vería el asegurado, con datos de ejemplo.</p><div class="preview" id="vp-txt" style="white-space:pre-wrap"></div></div>
+ <footer><button class="btn" data-cerrar>Cerrar</button><button class="btn btn-primary" id="vp-copiar">Copiar texto</button></footer></div></div>
+<!-- Modal: reaperturas -->
+<div class="mq-back" id="m-reaps"><div class="mq-modal"><header><h5>Reaperturas de <span id="rp-folio" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
+ <div class="cuerpo"><div id="rp-cuerpo"></div></div>
+ <footer><button class="btn" data-cerrar>Cerrar</button></footer></div></div>
+<style>.rs-det{margin:4px 0 8px;font-size:13px}.rs-det summary{cursor:pointer;color:#c0392b;font-weight:600}.rs-cuerpo{display:flex;gap:24px;flex-wrap:wrap;padding:8px 0}.rs-bloque table{font-size:12.5px;min-width:230px}.rs-bloque td{padding:1px 8px 1px 0}.res-card .mono{display:block;font-size:12px;color:#666}.reap-link{font-size:11px;color:#c0392b;text-decoration:underline}.rp-item{border-bottom:1px solid #eee;padding:8px 0;font-size:13px}.rp-mot{color:#555;margin-top:2px;white-space:pre-wrap}</style>
+<!-- Modal: reabrir -->
+<div class="mq-back" id="m-reabrir"><div class="mq-modal"><header><h5>Reabrir siniestro <span id="rb-folio" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
+ <div class="cuerpo">
+  <p style="font-size:13px;color:#555;margin:0">Se reabre directamente, sin aprobación del gerente. Todo el historial del cierre anterior se conserva; la reapertura queda en la bitácora. El plazo se reinicia: se mide de nuevo como un siniestro nuevo, desde hoy y con el estatus que elijas.</p>
+  <label>Estatus al que regresa el siniestro *</label><select class="custom-select" id="rb-est"></select>
+  <label>Motivo de la reapertura *</label><textarea class="form-control" id="rb-motivo" rows="3" placeholder="Explica qué se necesita corregir o por qué se reabre"></textarea>
+  <div class="aviso-val" id="rb-av"></div>
+ </div>
+ <footer><button class="btn" data-cerrar>Cancelar</button><button class="btn btn-primary" id="rb-ok">Reabrir siniestro</button></footer></div></div>
+
+<!-- Modal: plantilla de requisitos -->
+<div class="mq-back" id="m-plant"><div class="mq-modal"><header><h5 id="pl-tit">Nueva plantilla de requisitos</h5><span data-cerrar>&times;</span></header>
+ <div class="cuerpo">
+  <div class="row"><div class="col-sm-6"><label>Proceso *</label><select class="custom-select" id="pl-proc"></select></div>
+  <div class="col-sm-6"><label>Aseguradora *</label><select class="custom-select" id="pl-aseg"></select></div></div>
+  <div id="pl-tipoWrap"><label id="pl-tipoLbl">Tipo de siniestro *</label><div style="display:flex;gap:6px"><select class="custom-select" id="pl-tipo"></select><input class="form-control" id="pl-tipoNuevo" placeholder="¿No existe? escríbelo" style="max-width:210px"><button class="btn btn-sm-mq" id="pl-tipoAdd">Agregar</button></div></div>
+  <label>Requisitos * <small style="font-weight:400;color:#888">(clic en Obligatorio/Opcional para cambiar)</small></label>
+  <div id="pl-reqs"></div>
+  <div style="display:flex;gap:6px;margin-top:6px"><select class="custom-select" id="pl-cat"></select><button class="btn btn-sm-mq" id="pl-addCat">Agregar del catálogo</button></div>
+  <div style="display:flex;gap:6px;margin-top:6px"><input class="form-control" id="pl-custom" placeholder="O escribe un requisito personalizado"><button class="btn btn-sm-mq" id="pl-addCustom">Agregar</button></div>
+  <div class="aviso-val" id="pl-av"></div>
+ </div>
+ <footer><button class="btn" data-cerrar>Cancelar</button><button class="btn btn-primary" id="pl-ok">Guardar plantilla</button></footer></div></div>
+
+<!-- Modal: mensaje -->
+<div class="mq-back" id="m-msg"><div class="mq-modal"><header><h5 id="ms-tit">Mensaje</h5><span data-cerrar>&times;</span></header>
+ <div class="cuerpo">
+  <div class="row"><div class="col-sm-6"><label>Nombre *</label><input class="form-control" id="ms-nom"></div><div class="col-sm-6"><label>Canal</label><select class="custom-select" id="ms-can"><option>WhatsApp / Correo</option><option>WhatsApp</option><option>Correo</option></select></div></div><label>Se usa en</label><input class="form-control" id="ms-uso" placeholder="Ej. Actualizar estatus"><label>Procesos</label><div id="ms-procs"></div><label>Texto del mensaje *</label><textarea class="form-control" id="ms-txt" rows="7"></textarea>
+  <label>Variables (clic para insertar)</label><div id="ms-vars"></div>
+  <label>Vista previa con datos de ejemplo</label><div class="preview" id="ms-prev"></div>
+  <p style="font-size:12px;color:#888;margin:8px 0 0">Al usarlo en un siniestro, se abre el modal con este texto ya llenado para copiarlo y enviarlo manualmente por correo o WhatsApp.</p>
+ </div>
+ <footer><button class="btn" data-cerrar>Cerrar</button><button class="btn btn-primary" id="ms-ok">Guardar cambios</button></footer></div></div>
+
+<div class="mq-back" id="m-gen"><div class="mq-modal"><header><h5 id="g-tit"></h5><span data-cerrar>&times;</span></header><div class="cuerpo" id="g-body"></div><div class="aviso-val" id="g-av" style="padding:0 20px"></div><footer><button class="btn" data-cerrar>Cancelar</button><button class="btn btn-primary" id="g-ok">Guardar</button></footer></div></div>
+<div class="mq-back" id="m-conf"><div class="mq-modal" style="width:min(460px,100%)"><header><h5 id="c-tit">Eliminar</h5><span data-cerrar>&times;</span></header><div class="cuerpo" id="c-msg"></div><footer><button class="btn" data-cerrar>Cancelar</button><button class="btn btn-primary" id="c-ok" style="background:#b03a2e;border-color:#b03a2e">Eliminar</button></footer></div></div>
+
+
+   <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=15"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=15"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=15"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=15"></script>
+</body>
+
+</html>

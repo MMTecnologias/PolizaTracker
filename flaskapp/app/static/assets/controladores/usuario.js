@@ -64,6 +64,7 @@ $(function () {
           '<option value="3">Desarrollador</option>'
         }
         ${resp.data[0].nivel_id !== 4 && '<option value="4">Gerente</option>'}
+        ${resp.data[0].nivel_id !== 5 && '<option value="5">Siniestros</option>'}
         `);
       },
       error: (xhr, status, error) => console.error(error),
