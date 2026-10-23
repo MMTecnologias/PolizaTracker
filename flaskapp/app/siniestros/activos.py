@@ -19,7 +19,7 @@ from app.models import (Aseguradora, Cliente, Poliza, Recibo, Siniestro, Siniest
                         SiniestroEstatus, SiniestroMensaje, SiniestroPago,
                         SiniestroPlantillaItem, SiniestroPlantillaReq, SiniestroProceso,
                         SiniestroTipo, SiniestroValor, Usuario)
-from app.siniestros.modulos import api, _j, _req, CONCEPTOS
+from app.siniestros.modulos import api, _j, _req, CONCEPTOS, METAS, plazo_desde
 from app.siniestros.routes import _fmt, _plazo
 from app.utils.document_storage import get_documentos_base
 
@@ -195,6 +195,16 @@ def actualizar_estatus(sid):
             raise ValueError('La fecha límite no es válida.')
         extra = f' Nuevo plazo: {_dt(s.fecha_limite)}.'
     s.estatus_id = es.id
+    # Plazo del proceso: empieza al llegar a su estatus de inicio y se detiene al llegar a uno de fin.
+    clave = SiniestroProceso.query.get(s.proceso_id).clave
+    meta = METAS.get(clave)
+    if meta and not d.get('fecha_limite'):
+        if meta['inicia'] and es.nombre == meta['inicia'] and s.fecha_limite is None:
+            s.fecha_limite = plazo_desde(clave, datetime.now())
+            extra = f' Plazo iniciado, vence {_dt(s.fecha_limite)}.'
+        elif es.nombre in meta['fin'] and s.fecha_limite is not None:
+            s.fecha_limite = None
+            extra = ' Plazo detenido.'
     _log(s, 'Cambio de estatus', f'{ant.nombre} → {es.nombre}.{extra} {d["comentario"].strip()}')
     db.session.commit()
     return jsonify({'ok': True, 'estatus': es.nombre})

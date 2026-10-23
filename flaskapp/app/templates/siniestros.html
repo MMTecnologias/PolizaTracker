@@ -313,10 +313,12 @@
      <button class="btn px-4 py-2" data-x="Exportar a Excel">Exportar a Excel</button>
      <button class="btn px-4 py-2" data-x="Exportar PDF">Exportar PDF</button>
      <button class="btn px-4 py-2" data-x="Imprimir">Imprimir</button>
+     <select class="custom-select" id="x-exp" style="width:auto;margin-left:8px" title="Qué tabla se exporta o imprime"><option value="ind">Salida: indicadores</option><option value="rea">Salida: reaperturas</option><option value="pco">Salida: pagos por concepto</option><option value="pas">Salida: pagos por aseguradora</option></select>
    </div>
    <div class="polizas-filtros" style="display:flex;margin-top:6px">
      <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="x-proc"></select></div>
-     <div class="polizas-filtros__campo"><label>Periodo</label><select class="custom-select" id="x-per"><option value="mes">Este mes</option><option value="tri">Este trimestre</option><option value="anio">Este año</option><option value="rango">Rango libre</option></select></div>
+     <div class="polizas-filtros__campo"><label>Periodo</label><select class="custom-select" id="x-per"><option value="mes">Este mes</option><option value="tri">Este trimestre</option><option value="anio">Este año</option><option value="mes_sel">Elegir mes</option><option value="rango">Rango libre</option></select></div>
+     <div class="polizas-filtros__campo polizas-filtros__campo--fecha" id="x-mes" style="display:none"><label>Mes</label><input type="month" class="form-control"></div>
      <div class="polizas-filtros__campo polizas-filtros__campo--fecha" id="x-d1" style="display:none"><label>Desde</label><input type="date" class="form-control"></div>
      <div class="polizas-filtros__campo polizas-filtros__campo--fecha" id="x-d2" style="display:none"><label>Hasta</label><input type="date" class="form-control"></div>
      <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="x-aseg"><option value="">Todas</option></select></div>
@@ -326,7 +328,13 @@
    <div class="kpi-grid" id="x-kpis"></div>
    <div class="grafica"><h6 id="x-gtit"></h6><div id="x-graf"></div><div class="tip" id="x-tip"></div></div>
    <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
-     <th>Proceso</th><th>Casos cerrados</th><th>Meta de tiempo</th><th>% dentro de plazo</th><th>% procedente</th><th>Incidencias</th><th>Cumple</th></tr></thead><tbody id="x-tbody"></tbody></table></div>
+     <th>Proceso</th><th>Casos cerrados</th><th>Meta de tiempo</th><th>% dentro de plazo</th><th>% procedente</th><th>Incidencias</th><th>Cumple</th><th>Reaperturas</th><th>Pagado</th></tr></thead><tbody id="x-tbody"></tbody></table></div>
+   <h6 style="margin:18px 0 6px">Siniestros reabiertos en el periodo</h6>
+   <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr><th>Folio</th><th>Fecha</th><th>Aseguradora</th><th>Reapertura #</th><th>Reabierto en</th><th>Usuario</th><th>Motivo</th><th>Estado actual</th></tr></thead><tbody id="x-reaps"></tbody></table></div>
+   <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:18px">
+    <div style="flex:1;min-width:300px"><h6 style="margin:0 0 6px">Pagado por concepto</h6><div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr><th>Concepto</th><th>Pagos</th><th>Monto</th></tr></thead><tbody id="x-pc"></tbody></table></div></div>
+    <div style="flex:1;min-width:300px"><h6 style="margin:0 0 6px">Pagado por aseguradora</h6><div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr><th>Aseguradora</th><th>Pagos</th><th>Monto</th></tr></thead><tbody id="x-pa"></tbody></table></div></div>
+   </div>
   </div>
 
                </div>
@@ -336,6 +344,10 @@
       </div>
    </div>
    <div class="toast-sin" id="toast"></div>
+<!-- Modal: vista previa de mensaje -->
+<div class="mq-back" id="m-vp"><div class="mq-modal"><header><h5>Vista previa · <span id="vp-tit" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
+ <div class="cuerpo"><p style="font-size:12.5px;color:#777;margin:0" id="vp-can"></p><p style="font-size:12.5px;color:#777;margin:0">Así lo vería el asegurado, con datos de ejemplo.</p><div class="preview" id="vp-txt" style="white-space:pre-wrap"></div></div>
+ <footer><button class="btn" data-cerrar>Cerrar</button><button class="btn btn-primary" id="vp-copiar">Copiar texto</button></footer></div></div>
 <!-- Modal: reaperturas -->
 <div class="mq-back" id="m-reaps"><div class="mq-modal"><header><h5>Reaperturas de <span id="rp-folio" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
  <div class="cuerpo"><div id="rp-cuerpo"></div></div>
@@ -382,10 +394,10 @@
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=12"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=12"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=12"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=12"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=13"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=13"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=13"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=13"></script>
 </body>
 
 </html>

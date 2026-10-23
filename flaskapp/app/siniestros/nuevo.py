@@ -15,7 +15,7 @@ from app.models import (Aseguradora, Cliente, Poliza, Ramo, Siniestro, Siniestro
                         SiniestroCampoProceso, SiniestroCampoTipo, SiniestroEstatus, SiniestroPlantillaItem,
                         SiniestroPlantillaReq, SiniestroProceso, SiniestroTipo, SiniestroValor, Subramo, NivelAcceso)
 from app.siniestros.activos import _nuevo_folio, _validar_poliza_para
-from app.siniestros.modulos import METAS, api, _j, _req, plazo_desde, sumar_dias_habiles
+from app.siniestros.modulos import METAS, api, _j, _req, plazo_al_crear
 from app.siniestros.routes import _fmt
 
 # Niveles que pueden crear siniestros (Gerente y Siniestros; Desarollador para pruebas).
@@ -47,8 +47,8 @@ def _grupo(ramo):
 
 
 def plazo_estimado(clave, desde):
-    """Plazo según las metas del proceso (días hábiles sin feriados MX; REM corre desde «Documentación completa»; SI sin meta)."""
-    return plazo_desde(clave, desde)
+    """Plazo al registrar: sólo si el proceso cuenta desde el registro (RA); en los demás empieza en su estatus de inicio."""
+    return plazo_al_crear(clave, desde)
 
 
 def _fila_poliza(po, cl, ase, ra, sr):
@@ -141,7 +141,7 @@ def nuevo_campos():
     meta = METAS.get(pr.clave)
     return jsonify({'campos': campos, 'requisitos': reqs, 'plazo': pe.strftime('%Y-%m-%dT%H:%M') if pe else '',
                     'plazo_texto': meta['texto'] if meta else 'Sin plazo definido para este proceso',
-                    'plazo_nota': 'El plazo corre desde «Documentación completa».' if pr.clave == 'REM' else ''})
+                    'plazo_nota': (f'El plazo empieza a correr cuando el siniestro llegue a «{meta["inicia"]}».' if meta and meta['inicia'] else '')})
 
 
 def _valida_valor(c, v):

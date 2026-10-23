@@ -183,7 +183,7 @@
    const tM = Tabla({
       tbody: '#m-tbody', pag: '#m-pag', total: '#m-total', unidad: 'mensajes', buscarId: '#m-buscar', filtros: {}, titulo: 'Mensajes', archivo: 'mensajes_siniestros',
       buscar: r => r.nombre + ' ' + r.uso, cols: [['Mensaje', r => r.nombre], ['Se usa en', r => r.uso], ['Procesos', r => r.procesos], ['Canal', r => r.canal], ['Estado', r => act(r.activo)], ['Texto', r => r.texto]],
-      fila: r => '<tr><td><b>' + esc(r.nombre) + '</b></td><td>' + esc(r.uso) + '</td><td>' + esc(r.procesos === 'TODOS' ? 'Todos' : r.procesos) + '</td><td>' + esc(r.canal) + '</td><td>' + EA(r.activo) + '</td><td>' + ACC([['Editar', r.id], [r.activo ? 'Desactivar' : 'Activar', r.id], ['Eliminar', r.id]]) + '</td></tr>'
+      fila: r => '<tr><td><b>' + esc(r.nombre) + '</b></td><td>' + esc(r.uso) + '</td><td>' + esc(r.procesos === 'TODOS' ? 'Todos' : r.procesos) + '</td><td>' + esc(r.canal) + '</td><td>' + EA(r.activo) + '</td><td>' + ACC([['Vista previa', r.id], ['Editar', r.id], [r.activo ? 'Desactivar' : 'Activar', r.id], ['Eliminar', r.id]]) + '</td></tr>'
    });
    const TABLAS = { req: tR, camp: tC, tipo: tT, est: tE, msg: tM };
 
@@ -316,7 +316,8 @@
       if (tb === 'p-tbody') { e.preventDefault(); if (a === 'Cancelar') cancelarPago(D.pagos.find(x => x.id === id)); else if (a === 'Marcar pagado') { const r = D.pagos.find(x => x.id === id); window.dispatchEvent(new CustomEvent('siniestros:accion', { detail: { a: 'pagar', id: r.siniestro_id, pid: r.id, monto: r.monto } })); } else if (a === 'Comprobante') window.open('/siniestros/api/pagos/' + id + '/comprobante', '_blank'); else verDetalle(D.pagos.find(x => x.id === id).siniestro_id); return; }
       const ent = MAPA[tb]; if (!ent) return; e.preventDefault();
       const r = ENT[ent].list().find(x => x.id === id); if (!r) return;
-      if (a === 'Editar') { if (ent === 'plant') abrirPl(r); else if (ent === 'msgs') abrirMs(r); else FORMS[ent](r); }
+      if (a === 'Vista previa') vistaMs(r);
+      else if (a === 'Editar') { if (ent === 'plant') abrirPl(r); else if (ent === 'msgs') abrirMs(r); else FORMS[ent](r); }
       else if (a === 'Duplicar') abrirPl(Object.assign({}, r, { id: null, modificada: '' }), true);
       else if (a === 'Eliminar') eliminar(ent, r);
       else toggle(ent, r);
@@ -389,6 +390,13 @@
    const VARS = ['{cliente}', '{folio}', '{aseguradora}', '{poliza}', '{requisitos}', '{fecha_limite}', '{monto}', '{asegurado}'];
    const EJ = { '{cliente}': 'María Fernanda López', '{folio}': 'REM-2026-10-925', '{aseguradora}': 'GNP', '{poliza}': 'POL-48210', '{requisitos}': '• Informe médico\n• Facturas originales', '{fecha_limite}': '30/10/2026', '{monto}': '$18,450.00', '{asegurado}': 'Juan Carlos Méndez' };
    let cm = null;
+   function vistaMs(m) {
+      let x = m.texto; const clave = m.procesos === 'TODOS' ? 'REM' : m.procesos.split(',')[0];
+      const ej = Object.assign({}, EJ, { '{folio}': clave + '-2026-10-925' });
+      VARS.forEach(v => { x = x.split(v).join(ej[v]); });
+      $('#vp-tit').textContent = m.nombre; $('#vp-can').textContent = m.canal + ' · ' + (m.procesos === 'TODOS' ? 'todos los procesos' : m.procesos); $('#vp-txt').textContent = x; abrir('#m-vp');
+   }
+   $('#vp-copiar').addEventListener('click', () => { navigator.clipboard.writeText($('#vp-txt').textContent).then(() => toast('Texto copiado'), () => toast('No se pudo copiar')); });
    const prev = () => { let t = $('#ms-txt').value; VARS.forEach(v => { t = t.split(v).join(EJ[v]); }); $('#ms-prev').textContent = t; };
    function abrirMs(m) {
       cm = m; const x = m || { nombre: '', uso: '', procesos: 'TODOS', canal: D.cat.canales[0], texto: '' };
@@ -408,30 +416,57 @@
 
    /* ---------------- reportes ---------------- */
    let REP = null;
-   $('#x-per').addEventListener('change', function () { const r = this.value === 'rango'; $('#x-d1').style.display = $('#x-d2').style.display = r ? '' : 'none'; if (!r) rep(); });
+   const mesHoy = () => new Date().toISOString().slice(0, 7);
+   $('#x-mes input').value = mesHoy();
+   $('#x-per').addEventListener('change', function () {
+      const r = this.value === 'rango', m = this.value === 'mes_sel';
+      $('#x-d1').style.display = $('#x-d2').style.display = r ? '' : 'none'; $('#x-mes').style.display = m ? '' : 'none';
+      if (!r) rep();
+   });
    ['#x-proc', '#x-aseg'].forEach(s => $(s).addEventListener('change', rep));
-   $('#x-d1 input').addEventListener('change', rep); $('#x-d2 input').addEventListener('change', rep);
+   $('#x-d1 input').addEventListener('change', rep); $('#x-d2 input').addEventListener('change', rep); $('#x-mes input').addEventListener('change', rep);
+   const dmy = f => f ? f.split('-').reverse().join('/') : '';
    async function rep() {
       if (!D.cat) return;
-      const q = new URLSearchParams({ proceso: $('#x-proc').value, periodo: $('#x-per').value });
+      const per = $('#x-per').value, q = new URLSearchParams({ proceso: $('#x-proc').value, periodo: per });
       if ($('#x-aseg').value) q.set('aseguradora_id', $('#x-aseg').value);
-      if ($('#x-per').value === 'rango') { if (!$('#x-d1 input').value || !$('#x-d2 input').value) return; q.set('desde', $('#x-d1 input').value); q.set('hasta', $('#x-d2 input').value); }
+      if (per === 'rango') { if (!$('#x-d1 input').value || !$('#x-d2 input').value) return; q.set('desde', $('#x-d1 input').value); q.set('hasta', $('#x-d2 input').value); }
+      if (per === 'mes_sel') { if (!$('#x-mes input').value) return; q.set('mes', $('#x-mes input').value); }
       try { REP = await http('GET', 'reportes?' + q.toString()); } catch (e) { toast(e.message); return; }
       const k = REP.proceso, mt = REP.meta, a = REP.actual, p = REP.previo, cont = $('#x-kpis'), nota = $('#x-nota');
-      $('#x-rango').textContent = 'Periodo: ' + REP.desde.split('-').reverse().join('/') + ' al ' + REP.hasta.split('-').reverse().join('/') + ' · solo siniestros cerrados';
-      if (!mt) {
-         nota.style.display = ''; nota.textContent = 'Siniestro Inicial no tiene indicador de tiempo en el contrato: solo se reporta el volumen de cerrados.';
-         cont.innerHTML = '<div class="kpi"><h6>Siniestros cerrados</h6><div class="v">' + a.cerrados + '</div><div class="m">en el periodo</div></div>';
-         $('#x-gtit').textContent = ''; $('#x-graf').innerHTML = '<p style="color:#888;padding:20px;text-align:center">Sin indicador de plazo para este proceso</p>'; tablaRep(); return;
-      }
-      nota.style.display = 'none';
-      const delta = (x, y, u) => (x == null || y == null) ? 'sin periodo anterior para comparar' : x === y ? 'sin cambio vs. periodo anterior' : (x > y ? '▲ +' : '▼ ') + (x - y) + ' ' + u + ' vs. periodo anterior';
+      $('#x-rango').textContent = 'Periodo: ' + dmy(REP.desde) + ' al ' + dmy(REP.hasta) + ' · indicadores de tiempo sobre siniestros cerrados; reaperturas y pagos por fecha de registro';
+      const delta = (x, y, u) => (x == null || y == null) ? 'sin periodo anterior para comparar' : x === y ? 'sin cambio vs. periodo anterior' : (x > y ? '▲ +' : '▼ ') + Math.round((x - y) * 100) / 100 + ' ' + u + ' vs. periodo anterior';
       const kpi = (t, v, m, ok, dl) => '<div class="kpi ' + (ok === null ? '' : ok ? 'cumple' : 'falla') + '"><h6>' + t + '</h6><div class="v">' + v + '</div><div class="m">' + m + '</div>' + (ok === null ? '<span class="st" style="background:#eceff1;color:#555">Sin casos</span>' : '<span class="st">' + (ok ? '✓ Cumple' : '✕ No cumple') + '</span>') + '<span class="d">' + dl + '</span></div>';
-      cont.innerHTML = kpi('% dentro de plazo', a.pct_plazo == null ? '—' : a.pct_plazo + '%', 'Meta: ' + esc(mt.texto) + ' en ≥ ' + mt.pct + '% de los casos', a.pct_plazo == null ? null : a.pct_plazo >= mt.pct, delta(a.pct_plazo, p.pct_plazo, 'pts'))
-         + kpi('% procedente', a.pct_procedente == null ? '—' : a.pct_procedente + '%', 'Meta: ≥ ' + REP.meta_procedente + '%', a.pct_procedente == null ? null : a.pct_procedente >= REP.meta_procedente, delta(a.pct_procedente, p.pct_procedente, 'pts'))
-         + kpi(k === 'VI' ? 'Incidencias (dictamen rechazado)' : 'Incidencias (fuera de plazo)', a.incidencias, 'Meta: 0 · total del periodo · ' + a.cerrados + ' casos cerrados', a.cerrados ? a.incidencias === 0 : null, p.incidencias === a.incidencias ? 'sin cambio' : (a.incidencias > p.incidencias ? '▲ +' : '▼ ') + Math.abs(a.incidencias - p.incidencias) + ' vs. periodo anterior');
-      grafica(REP.tendencia, mt.pct); tablaRep();
+      const kn = (t, v, m, dl) => '<div class="kpi" style="border-top-color:#8a94a6"><h6>' + t + '</h6><div class="v">' + v + '</div><div class="m">' + m + '</div>' + (dl ? '<span class="d" style="margin-left:0">' + dl + '</span>' : '') + '</div>';
+      let h = '';
+      if (!mt) {
+         nota.style.display = ''; nota.textContent = 'Siniestro Inicial aún no tiene indicador de tiempo definido: se reporta el volumen de cerrados, reaperturas y pagos.';
+         h += kn('Siniestros cerrados', a.cerrados, 'en el periodo', delta(a.cerrados, p.cerrados, 'casos'));
+         $('#x-gtit').textContent = ''; $('#x-graf').innerHTML = '<p style="color:#888;padding:20px;text-align:center">Sin indicador de plazo para este proceso</p>';
+      } else {
+         nota.style.display = 'none';
+         h += kpi('% dentro de plazo', a.pct_plazo == null ? '—' : a.pct_plazo + '%', 'Meta: ' + esc(mt.texto) + ' en ≥ ' + mt.pct + '% de los casos', a.pct_plazo == null ? null : a.pct_plazo >= mt.pct, delta(a.pct_plazo, p.pct_plazo, 'pts'));
+         h += kpi('% procedente', a.pct_procedente == null ? '—' : a.pct_procedente + '%', 'Meta: ≥ ' + REP.meta_procedente + '%', a.pct_procedente == null ? null : a.pct_procedente >= REP.meta_procedente, delta(a.pct_procedente, p.pct_procedente, 'pts'));
+         if (mt.incid) h += kpi(k === 'VI' ? 'Dictámenes negativos / rechazos' : 'Ciclos de corrección', a.incidencias, 'Meta: 0 · ' + a.cerrados + ' casos cerrados · ' + (k === 'VI' ? 'dictamen negativo o rechazo' : esc(mt.incid.join(' / ').toLowerCase())), a.cerrados ? a.incidencias === 0 : null, a.incidencias === p.incidencias ? 'sin cambio' : (a.incidencias > p.incidencias ? '▲ +' : '▼ ') + Math.abs(a.incidencias - p.incidencias) + ' vs. periodo anterior');
+         else h += kn('Incidencias', '—', 'Este proceso no tiene incidencias definidas en el contrato');
+         if (mt.dictamen_dias) h += kpi('Dictamen en ≤ ' + mt.dictamen_dias + ' días naturales', a.pct_dictamen == null ? '—' : a.pct_dictamen + '%', 'Del folio registrado al dictamen · ' + a.n_dictamen + ' dictámenes · Meta ≥ ' + mt.pct + '%', a.pct_dictamen == null ? null : a.pct_dictamen >= mt.pct, delta(a.pct_dictamen, p.pct_dictamen, 'pts'));
+         grafica(REP.tendencia, mt.pct);
+      }
+      const R = REP.reaperturas.length, Rp = REP.reaperturas_previo, pg = REP.pagos, pp = REP.pagos_previo;
+      h += kn('Siniestros reabiertos', R, 'reaperturas en el periodo' + (R ? ' · ver tabla abajo' : ''), delta(R, Rp, 'reaperturas'));
+      h += kn('Pagado', money(pg.pagado), pg.n_pagado + ' pagos en ' + pg.siniestros + ' siniestros' + (pg.promedio != null ? ' · promedio ' + money(pg.promedio) : ''), pg.pagado === pp.pagado ? 'sin cambio vs. periodo anterior' : (pg.pagado > pp.pagado ? '▲ +' : '▼ -') + money(Math.abs(pg.pagado - pp.pagado)) + ' vs. periodo anterior');
+      h += kn('Pendiente de pago', money(pg.pendiente), pg.n_pendiente + ' pagos pendientes registrados en el periodo');
+      h += kn('Pagos cancelados', money(pg.cancelado), pg.n_cancelado + ' pagos cancelados en el periodo');
+      cont.innerHTML = h;
+      tablaRep(); extras();
    }
+   function extras() {
+      const pg = REP.pagos;
+      $('#x-reaps').innerHTML = REP.reaperturas.length ? REP.reaperturas.map(r => '<tr><td><a href="#" class="x-ver" data-id="' + r.siniestro_id + '">' + esc(r.folio) + '</a></td><td>' + esc(r.fecha) + '</td><td>' + esc(r.aseguradora) + '</td><td>#' + r.numero + '</td><td>' + esc(r.estatus) + '</td><td>' + esc(r.usuario) + '</td><td>' + esc(r.motivo) + '</td><td>' + esc(r.estado_actual) + '</td></tr>').join('') : '<tr><td colspan="8" style="color:#888;text-align:center">Sin reaperturas en el periodo</td></tr>';
+      $('#x-pc').innerHTML = pg.por_concepto.length ? pg.por_concepto.map(r => '<tr><td>' + esc(r.concepto) + '</td><td>' + r.n + '</td><td class="mono">' + money(r.monto) + '</td></tr>').join('') : '<tr><td colspan="3" style="color:#888;text-align:center">Sin pagos</td></tr>';
+      $('#x-pa').innerHTML = pg.por_aseguradora.length ? pg.por_aseguradora.map(r => '<tr><td>' + esc(r.aseguradora) + '</td><td>' + r.n + '</td><td class="mono">' + money(r.monto) + '</td></tr>').join('') : '<tr><td colspan="3" style="color:#888;text-align:center">Sin pagos</td></tr>';
+   }
+   $('#v-reportes').addEventListener('click', e => { const a = e.target.closest('.x-ver'); if (a) { e.preventDefault(); verDetalle(+a.dataset.id); } });
    function grafica(d, meta) {
       $('#x-gtit').textContent = '% de casos dentro de plazo, últimos 5 meses';
       const W = 720, H = 260, L = 44, R = 16, T = 30, B = 34, iw = W - L - R, ih = H - T - B, X = i => L + iw * i / (d.length - 1), Y = v => T + ih * (1 - v / 100);
@@ -457,14 +492,35 @@
    const pc = v => v == null ? '—' : v + '%';
    function tablaRep() {
       $('#x-tbody').innerHTML = REP.tabla.map(r => {
-         if (!r.meta) return '<tr><td>' + esc(r.proceso_nombre) + '</td><td>' + r.cerrados + '</td><td colspan="5" style="color:#888">Sin indicador de tiempo</td></tr>';
+         const base = '<td>' + esc(r.proceso_nombre) + '</td><td>' + r.cerrados + '</td>', fin = '<td>' + r.reaperturas + '</td><td class="mono">' + money(r.pagado) + '</td>';
+         if (!r.meta) return '<tr>' + base + '<td colspan="5" style="color:#888">Sin indicador de tiempo</td>' + fin + '</tr>';
          const ok = r.pct_plazo == null ? null : r.pct_plazo >= r.meta.pct;
-         return '<tr><td>' + esc(r.proceso_nombre) + '</td><td>' + r.cerrados + '</td><td>' + esc(r.meta.texto) + '</td><td class="mono">' + pc(r.pct_plazo) + '</td><td class="mono">' + pc(r.pct_procedente) + '</td><td class="mono">' + r.incidencias + '</td><td>' + (ok === null ? chip('chip-gris', 'Sin casos') : ok ? chip('chip-ok', '✓ Cumple') : chip('chip-bad', '✕ No cumple')) + '</td></tr>';
+         return '<tr>' + base + '<td>' + esc(r.meta.texto) + '</td><td class="mono">' + pc(r.pct_plazo) + '</td><td class="mono">' + pc(r.pct_procedente) + '</td><td class="mono">' + (r.meta.incid ? r.incidencias : '—') + '</td><td>' + (ok === null ? chip('chip-gris', 'Sin casos') : ok ? chip('chip-ok', '✓ Cumple') : chip('chip-bad', '✕ No cumple')) + '</td>' + fin + '</tr>';
       }).join('');
    }
-   bindExport([...$('#v-reportes .polizas-toolbar').querySelectorAll('[data-x]')], () => ({
-      titulo: 'Reporte de indicadores de siniestros', archivo: 'reporte_siniestros', hoja: 'Indicadores', sub: REP ? 'Periodo ' + REP.desde + ' a ' + REP.hasta : '',
-      cols: [['Proceso', r => r.proceso_nombre], ['Casos cerrados', r => r.cerrados], ['Meta de tiempo', r => r.meta ? r.meta.texto : 'Sin indicador'], ['% dentro de plazo', r => pc(r.pct_plazo)], ['% procedente', r => pc(r.pct_procedente)], ['Incidencias', r => r.incidencias], ['Cumple', r => !r.meta || r.pct_plazo == null ? '—' : r.pct_plazo >= r.meta.pct ? 'Sí' : 'No']],
-      rows: () => REP ? REP.tabla : []
-   }));
+   /* Exportar / imprimir: mismo motor que Pólizas; el selector elige qué tabla sale */
+   const sub = () => REP ? 'Periodo ' + dmy(REP.desde) + ' al ' + dmy(REP.hasta) : '';
+   const EXP = {
+      ind: () => ({
+         titulo: 'Reporte de indicadores de siniestros', archivo: 'reporte_siniestros', hoja: 'Indicadores', sub: sub(),
+         cols: [['Proceso', r => r.proceso_nombre], ['Casos cerrados', r => r.cerrados], ['Meta de tiempo', r => r.meta ? r.meta.texto : 'Sin indicador'], ['% dentro de plazo', r => pc(r.pct_plazo)], ['% procedente', r => pc(r.pct_procedente)], ['Incidencias', r => r.meta && r.meta.incid ? r.incidencias : '—'], ['Cumple', r => !r.meta || r.pct_plazo == null ? '—' : r.pct_plazo >= r.meta.pct ? 'Sí' : 'No'], ['Reaperturas', r => r.reaperturas], ['Pagado', r => money(r.pagado)]],
+         rows: () => REP ? REP.tabla : []
+      }),
+      rea: () => ({
+         titulo: 'Siniestros reabiertos', archivo: 'reaperturas_siniestros', hoja: 'Reaperturas', sub: sub(),
+         cols: [['Folio', r => r.folio], ['Fecha', r => r.fecha], ['Aseguradora', r => r.aseguradora], ['Reapertura #', r => r.numero], ['Reabierto en', r => r.estatus], ['Usuario', r => r.usuario], ['Motivo', r => r.motivo], ['Estado actual', r => r.estado_actual]],
+         rows: () => REP ? REP.reaperturas : []
+      }),
+      pco: () => ({
+         titulo: 'Pagos por concepto', archivo: 'pagos_por_concepto', hoja: 'Pagos por concepto', sub: sub(),
+         cols: [['Concepto', r => r.concepto], ['Pagos', r => r.n], ['Monto pagado', r => money(r.monto)]],
+         rows: () => REP ? REP.pagos.por_concepto : []
+      }),
+      pas: () => ({
+         titulo: 'Pagos por aseguradora', archivo: 'pagos_por_aseguradora', hoja: 'Pagos por aseguradora', sub: sub(),
+         cols: [['Aseguradora', r => r.aseguradora], ['Pagos', r => r.n], ['Monto pagado', r => money(r.monto)]],
+         rows: () => REP ? REP.pagos.por_aseguradora : []
+      })
+   };
+   bindExport([...$('#v-reportes .polizas-toolbar').querySelectorAll('[data-x]')], () => EXP[$('#x-exp').value]());
 })();

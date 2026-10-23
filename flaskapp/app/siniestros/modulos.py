@@ -25,17 +25,29 @@ TIPOS_DATO = ['Texto', 'Texto largo', 'Número', 'Monto', 'Fecha', 'Fecha y hora
 TIPOS_ESTATUS = ['Aseguradora', 'Pendiente', 'Otro', 'Final']
 CANALES = ['WhatsApp / Correo', 'WhatsApp', 'Correo']
 
-# Metas de los indicadores (PROVISIONAL, a confirmar con el cliente).
-#   unidad: horas | dias_habiles ; meta: tope de tiempo ; pct: % de casos que debe cumplirlo
+# Metas de los indicadores según los chats de cada proceso.
+#   meta/unidad: tope de tiempo · pct: % de casos que debe cumplirlo · pct_proc: % procedente esperado
+#   inicia: estatus en el que empieza a correr el conteo (None = desde el registro o la reapertura)
+#   fin: estatus que detienen el conteo (vacío = el cierre del siniestro)
+#   incid: estatus que cuentan como incidencia (ciclos de corrección o rechazo)
 METAS = {
-    'CIR': {'meta': 9, 'unidad': 'días hábiles', 'pct': 95, 'texto': '≤ 9 días hábiles'},
-    'PD': {'meta': 3, 'unidad': 'horas', 'pct': 95, 'texto': '≤ 3 horas'},
-    'REM': {'meta': 10, 'unidad': 'días hábiles', 'pct': 95, 'texto': '≤ 10 días hábiles desde «Documentación completa»'},
-    'RA': {'meta': 10, 'unidad': 'días hábiles', 'pct': 95, 'texto': '≤ 10 días hábiles'},
-    'VI': {'meta': 15, 'unidad': 'días hábiles', 'pct': 95, 'texto': '≤ 15 días hábiles (+ dictamen ≤ 30 días naturales)'},
+    'CIR': {'meta': 9, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 95, 'inicia': 'Folio registrado',
+            'fin': ['Autorizado', 'Rechazado, cerrado'], 'incid': ['Documentación incompleta'],
+            'texto': '≤ 9 días hábiles, de «Folio registrado» a la respuesta de la aseguradora'},
+    'PD': {'meta': 3, 'unidad': 'horas', 'pct': 95, 'pct_proc': 95, 'inicia': 'Alta registrada',
+           'fin': ['Dictamen autorizado', 'Rechazado, cerrado'], 'incid': ['Documentación incompleta', 'Corrección tras rechazo'],
+           'texto': '≤ 3 horas, de «Alta registrada» al dictamen de la aseguradora'},
+    'REM': {'meta': 10, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 95, 'inicia': 'Documentación completa',
+            'fin': ['Notificado', 'Cerrado, procedente'], 'incid': ['Documentación incompleta', 'Corrección de aseguradora'],
+            'texto': '≤ 10 días hábiles, de «Documentación completa» a la notificación del finiquito'},
+    'RA': {'meta': 10, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 98, 'inicia': None, 'fin': [], 'incid': None,
+           'texto': '≤ 10 días hábiles, del registro al cierre'},
+    'VI': {'meta': 15, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 95, 'inicia': 'Documentación completa', 'fin': [],
+           'incid': ['Dictamen negativo'], 'dictamen_dias': 30,
+           'texto': '≤ 15 días hábiles, de «Documentación completa» al cierre'},
     'SI': None,
 }
-META_PROCEDENTE = 95
+META_PROCEDENTE = 95   # valor por omisión; cada proceso trae su 'pct_proc'
 
 
 def api(path, **kw):
@@ -133,27 +145,105 @@ def dias_habiles_entre(a, b):
     return n
 
 
-def plazo_desde(clave, desde, estatus_nombre=''):
-    """Fecha límite de un siniestro que empieza a medirse en `desde` (apertura o reapertura).
-    REM corre desde «Documentación completa»; SI no tiene meta."""
+def plazo_desde(clave, desde):
+    """Fecha límite de un conteo que empieza en `desde` (None si el proceso no tiene meta)."""
     m = METAS.get(clave)
     if not m:
         return None
-    if clave == 'REM' and 'documentación completa' not in (estatus_nombre or '').lower():
-        return None
     return desde + timedelta(hours=m['meta']) if m['unidad'] == 'horas' else sumar_dias_habiles(desde, m['meta'])
+
+
+def plazo_al_crear(clave, ahora):
+    """Al registrar: sólo corre de inmediato si el proceso cuenta desde el registro."""
+    m = METAS.get(clave)
+    return plazo_desde(clave, ahora) if m and not m['inicia'] else None
+
+
+def plazo_al_reabrir(clave, ahora, estatus):
+    """Reapertura: se mide de nuevo desde el estatus elegido; si ya está en o después del estatus de inicio, corre ya."""
+    m = METAS.get(clave)
+    if not m:
+        return None
+    if not m['inicia']:
+        return plazo_desde(clave, ahora)
+    ini = SiniestroEstatus.query.filter_by(proceso_id=estatus.proceso_id, nombre=m['inicia']).first()
+    return plazo_desde(clave, ahora) if ini and estatus.orden >= ini.orden else None
 
 
 # ---------------------------------------------------------------------------
 # Historial
 # ---------------------------------------------------------------------------
-def _tiempo_total(ini, fin, clave):
-    """Tiempo del ciclo vigente (desde la apertura o la última reapertura hasta el cierre)."""
+_RX_CAMBIO = re.compile(r'→ ([^.]+)\.')
+_RX_CIERRE = re.compile(r'· ([^.]+)\.')
+_RX_REAP = re.compile(r'Reabierto en «(.*?)»\.')
+
+
+def _etapa(b):
+    """(fecha, estatus, acción) que describe una entrada de bitácora, o None si no mueve de estatus."""
+    rx = {'Cambio de estatus': _RX_CAMBIO, 'Cierre': _RX_CIERRE, 'Reapertura': _RX_REAP}.get(b.accion)
+    m = rx.search(b.detalle or '') if rx else None
+    return (b.fecha, m.group(1).strip(), b.accion) if m and b.fecha else None
+
+
+def _bitacoras(ids):
+    out = {}
+    if ids:
+        for b in (SiniestroBitacora.query.filter(SiniestroBitacora.siniestro_id.in_(ids),
+                                                 SiniestroBitacora.accion.in_(['Cambio de estatus', 'Cierre', 'Reapertura']))
+                  .order_by(SiniestroBitacora.fecha, SiniestroBitacora.id).all()):
+            out.setdefault(b.siniestro_id, []).append(b)
+    return out
+
+
+def _ordenes():
+    o = {}
+    for e in SiniestroEstatus.query.all():
+        o.setdefault(e.proceso_id, {})[e.nombre] = e.orden
+    return o
+
+
+def _tiempo_txt(ini, fin, clave):
     if clave == 'PD':
         mins = max(0, int((fin - ini).total_seconds() // 60))
         return f'{mins // 60} h {mins % 60:02d} min'
     d = dias_habiles_entre(ini, fin)
     return f'{d} {"día hábil" if d == 1 else "días hábiles"}'
+
+
+def _medir(s, clave, ordenes, bit):
+    """Mide el ciclo vigente de un siniestro cerrado según la regla de su proceso.
+    Devuelve inicio, fin, tiempo, cumple (None = sin medición), reaperturas, incidencias y, en VIDA, el dictamen a 30 días."""
+    m = METAS.get(clave)
+    reaps = [b for b in bit if b.accion == 'Reapertura']
+    ini_ciclo = reaps[-1].fecha if reaps else s.fecha_apertura
+    etapas = [e for e in map(_etapa, bit) if e]
+    res = {'n_reap': len(reaps), 'inicio': None, 'fin': s.fecha_cierre, 'tiempo': '', 'cumple': None, 'incid': None, 'dict_ok': None}
+    if m and m.get('incid') is not None:
+        res['incid'] = sum(1 for f, n, a in etapas if a == 'Cambio de estatus' and n in m['incid']) + (1 if clave == 'VI' and s.resultado == 'Rechazado' else 0)
+    if not m or s.fecha_cierre is None:
+        return res
+    ciclo = [e for e in etapas if e[0] >= ini_ciclo]
+    ord_p = ordenes.get(s.proceso_id, {})
+    inicio = ini_ciclo if not m['inicia'] else None
+    if m['inicia']:
+        for f, n, a in ciclo:
+            if n == m['inicia'] or (a == 'Reapertura' and ord_p.get(n, 0) > ord_p.get(m['inicia'], 99)):
+                inicio = f
+                break
+    if inicio is None:
+        if s.fecha_limite is None:
+            return res                                   # nunca empezó a correr el conteo: sin medición
+        inicio = ini_ciclo                               # datos anteriores a esta regla: se respeta el plazo guardado
+        res.update(inicio=inicio, tiempo=_tiempo_txt(inicio, s.fecha_cierre, clave), cumple=s.fecha_cierre <= s.fecha_limite)
+        return res
+    fin = next((f for f, n, a in ciclo if f >= inicio and n in m['fin']), None) or s.fecha_cierre
+    res.update(inicio=inicio, fin=fin, tiempo=_tiempo_txt(inicio, fin, clave), cumple=fin <= plazo_desde(clave, inicio))
+    if clave == 'VI':
+        f0 = next((f for f, n, a in etapas if n == 'Folio registrado'), None)
+        if f0:
+            f1 = next((f for f, n, a in etapas if f >= f0 and n in ('Dictamen procedente', 'Dictamen negativo')), None) or s.fecha_cierre
+            res['dict_ok'] = (f1 - f0).days <= m['dictamen_dias']
+    return res
 
 
 def _dtf(dt):
@@ -171,40 +261,33 @@ def historial():
     ids = [f[0].id for f in filas]
     nombres = {u.id: f'{u.nombre} {u.apellido}'.strip() for u in Usuario.query.all()}
     tipos = {t.id: t.nombre for t in SiniestroTipo.query.all()}
-    pagado, reaps, cierre_por = {}, {}, {}
+    ordenes, bits, pagado, cierre_por = _ordenes(), _bitacoras(ids), {}, {}
     if ids:
         for sid, tot in (db.session.query(SiniestroPago.siniestro_id, func.sum(SiniestroPago.monto))
                          .filter(SiniestroPago.siniestro_id.in_(ids), SiniestroPago.estado == 'Pagado')
                          .group_by(SiniestroPago.siniestro_id).all()):
             pagado[sid] = float(tot or 0)
-        bit = (SiniestroBitacora.query.filter(SiniestroBitacora.siniestro_id.in_(ids),
-                                              SiniestroBitacora.accion.in_(['Reapertura', 'Cierre']))
-               .order_by(SiniestroBitacora.fecha, SiniestroBitacora.id).all())
-        for b in bit:
-            if b.accion == 'Cierre':
-                cierre_por[b.siniestro_id] = b.usuario_id          # el último cierre es el vigente
-            else:
-                m = re.match(r'Reabierto en «(.*?)»\.(?: Nuevo plazo: (.*?)\.)? Motivo: (.*)', b.detalle or '', re.S)
-                reaps.setdefault(b.siniestro_id, []).append({
-                    'fecha': _dtf(b.fecha), 'usuario': nombres.get(b.usuario_id, '—'),
-                    'estatus': m.group(1) if m else '', 'plazo': (m.group(2) or '') if m else '',
-                    'motivo': m.group(3) if m else (b.detalle or '')})
+        for b in SiniestroBitacora.query.filter(SiniestroBitacora.siniestro_id.in_(ids), SiniestroBitacora.accion == 'Cierre').order_by(SiniestroBitacora.fecha, SiniestroBitacora.id):
+            cierre_por[b.siniestro_id] = b.usuario_id        # el último cierre es el vigente
     out = []
     for s, pr, po, cl, ase in filas:
-        cumple = None if s.fecha_limite is None or s.fecha_cierre is None else s.fecha_cierre <= s.fecha_limite
-        rs = reaps.get(s.id, [])
-        ini = s.fecha_apertura
-        if rs:
-            ult = [b for b in bit if b.siniestro_id == s.id and b.accion == 'Reapertura'][-1]
-            ini = ult.fecha or ini
+        bit = bits.get(s.id, [])
+        md = _medir(s, pr.clave, ordenes, bit)
+        rs = []
+        for b in bit:
+            if b.accion != 'Reapertura':
+                continue
+            mm = re.match(r'Reabierto en «(.*?)»\.(?: Nuevo plazo: (.*?)\.)? Motivo: (.*)', b.detalle or '', re.S)
+            rs.append({'fecha': _dtf(b.fecha), 'usuario': nombres.get(b.usuario_id, '—'), 'estatus': mm.group(1) if mm else '',
+                       'plazo': (mm.group(2) or '') if mm else '', 'motivo': mm.group(3) if mm else (b.detalle or '')})
         uid = cierre_por.get(s.id)
         out.append({'id': s.id, 'folio': s.folio, 'proceso': pr.nombre, 'proceso_clave': pr.clave,
                     'tipo': tipos.get(s.tipo_id, '—'), 'cliente': f'{cl.nombre} {cl.apellido}'.strip(), 'poliza': po.poliza,
                     'aseguradora': ase.aseguradora, 'resultado': s.resultado or 'Cerrado',
                     'apertura': _fmt(s.fecha_apertura), 'cierre': _fmt(s.fecha_cierre),
                     'cierre_iso': s.fecha_cierre.strftime('%Y-%m-%d') if s.fecha_cierre else '',
-                    'tiempo': _tiempo_total(ini, s.fecha_cierre, pr.clave) if s.fecha_cierre else '', 'cumple': cumple,
-                    'inicio_ciclo': _dtf(ini), 'plazo': _dtf(s.fecha_limite), 'pagado': pagado.get(s.id, 0.0),
+                    'tiempo': md['tiempo'], 'cumple': md['cumple'],
+                    'inicio_ciclo': _dtf(md['inicio']), 'pagado': pagado.get(s.id, 0.0),
                     'cerrado_por': nombres.get(uid, '—') if uid else '—', 'cerrado_por_id': uid or 0,
                     'reaperturas': rs, 'n_reap': len(rs)})
     cierran = sorted({(o['cerrado_por_id'], o['cerrado_por']) for o in out if o['cerrado_por_id']}, key=lambda x: x[1])
@@ -229,7 +312,7 @@ def reabrir(sid):
     # Reapertura = el siniestro vuelve a medirse como nuevo, desde el estatus elegido.
     s.estado, s.estatus_id, s.resultado = 'Activo', es.id, None
     s.fecha_cierre, s.ultima_actualizacion = None, ahora
-    s.fecha_limite = plazo_desde(clave, ahora, es.nombre)
+    s.fecha_limite = plazo_al_reabrir(clave, ahora, es)
     plazo = f' Nuevo plazo: {_dtf(s.fecha_limite)}.' if s.fecha_limite else ''
     db.session.add(SiniestroBitacora(siniestro_id=s.id, usuario_id=current_user.id, accion='Reapertura',
                                      detalle=f'Reabierto en «{es.nombre}».{plazo} Motivo: {d["motivo"].strip()}'[:500]))
@@ -659,8 +742,15 @@ def mensajes_borrar(i):
 # ---------------------------------------------------------------------------
 # Reportes (solo siniestros cerrados)
 # ---------------------------------------------------------------------------
-def _rango(periodo, desde, hasta):
+def _rango(periodo, desde, hasta, mes=None):
     hoy = date.today()
+    if periodo == 'mes_sel':
+        try:
+            y, m = (int(x) for x in (mes or '').split('-'))
+            ini = date(y, m, 1)
+        except (ValueError, TypeError):
+            raise ValueError('Elige el mes.')
+        return ini, _suma_meses(ini, 1) - timedelta(days=1)
     if periodo == 'tri':
         ini = date(hoy.year, 3 * ((hoy.month - 1) // 3) + 1, 1)
     elif periodo == 'anio':
@@ -691,20 +781,79 @@ def _cerrados(clave, ini, fin, aseg_id):
 def _metricas(clave, ini, fin, aseg_id):
     lista = _cerrados(clave, ini, fin, aseg_id)
     n = len(lista)
-    con_meta = [s for s in lista if s.fecha_limite is not None]
-    dentro = sum(1 for s in con_meta if s.fecha_cierre <= s.fecha_limite)
+    m = METAS.get(clave)
+    ordenes, bits = _ordenes(), _bitacoras([s.id for s in lista])
+    meds = [_medir(s, clave, ordenes, bits.get(s.id, [])) for s in lista]
+    con_meta = [x for x in meds if x['cumple'] is not None]
+    dentro = sum(1 for x in con_meta if x['cumple'])
     proced = sum(1 for s in lista if s.resultado == 'Procedente')
-    rech = sum(1 for s in lista if s.resultado == 'Rechazado')
-    fuera = len(con_meta) - dentro
-    # Incidencias (PROVISIONAL): VIDA = dictámenes rechazados; resto = casos fuera de plazo.
-    inc = rech if clave == 'VI' else fuera
     pct = lambda a, b: round(100 * a / b) if b else None   # noqa: E731
-    return {'cerrados': n, 'pct_plazo': pct(dentro, len(con_meta)), 'pct_procedente': pct(proced, n), 'incidencias': inc}
+    inc = None if not m or m.get('incid') is None else sum(x['incid'] or 0 for x in meds)
+    dic = [x['dict_ok'] for x in meds if x['dict_ok'] is not None]
+    return {'cerrados': n, 'medidos': len(con_meta), 'pct_plazo': pct(dentro, len(con_meta)), 'pct_procedente': pct(proced, n),
+            'incidencias': inc, 'pct_dictamen': pct(sum(dic), len(dic)) if dic else None, 'n_dictamen': len(dic)}
 
 
 def _suma_meses(d, k):
     m = d.month - 1 + k
     return date(d.year + m // 12, m % 12 + 1, 1)
+
+
+def _reaperturas(clave, ini, fin, aseg_id):
+    """Reaperturas registradas en el periodo (bitácora), con su detalle."""
+    q = (db.session.query(SiniestroBitacora, Siniestro, Aseguradora)
+         .join(Siniestro, Siniestro.id == SiniestroBitacora.siniestro_id)
+         .join(SiniestroProceso, SiniestroProceso.id == Siniestro.proceso_id)
+         .join(Aseguradora, Aseguradora.id == Siniestro.aseguradora_id)
+         .filter(SiniestroBitacora.accion == 'Reapertura', SiniestroProceso.clave == clave,
+                 SiniestroBitacora.fecha >= datetime.combine(ini, datetime.min.time()),
+                 SiniestroBitacora.fecha < datetime.combine(fin + timedelta(days=1), datetime.min.time()))
+         .order_by(SiniestroBitacora.fecha.desc()))
+    if aseg_id:
+        q = q.filter(Siniestro.aseguradora_id == aseg_id)
+    nombres = {u.id: f'{u.nombre} {u.apellido}'.strip() for u in Usuario.query.all()}
+    out = []
+    for b, s, ase in q.all():
+        mm = re.match(r'Reabierto en «(.*?)»\.(?: Nuevo plazo: (.*?)\.)? Motivo: (.*)', b.detalle or '', re.S)
+        n = SiniestroBitacora.query.filter(SiniestroBitacora.siniestro_id == s.id, SiniestroBitacora.accion == 'Reapertura', SiniestroBitacora.fecha <= b.fecha).count()
+        out.append({'siniestro_id': s.id, 'folio': s.folio, 'fecha': _dtf(b.fecha), 'usuario': nombres.get(b.usuario_id, '—'),
+                    'aseguradora': ase.aseguradora, 'estatus': mm.group(1) if mm else '', 'motivo': mm.group(3) if mm else (b.detalle or ''),
+                    'numero': n, 'estado_actual': s.estado})
+    return out
+
+
+def _pagos_rep(clave, ini, fin, aseg_id):
+    """Pagos del proceso: pagados por fecha de pago; pendientes y cancelados por fecha de registro."""
+    d0, d1 = datetime.combine(ini, datetime.min.time()), datetime.combine(fin + timedelta(days=1), datetime.min.time())
+    q = (db.session.query(SiniestroPago, Aseguradora).join(Siniestro, Siniestro.id == SiniestroPago.siniestro_id)
+         .join(SiniestroProceso, SiniestroProceso.id == Siniestro.proceso_id)
+         .join(Aseguradora, Aseguradora.id == Siniestro.aseguradora_id).filter(SiniestroProceso.clave == clave))
+    if aseg_id:
+        q = q.filter(Siniestro.aseguradora_id == aseg_id)
+    r = {'pagado': 0.0, 'n_pagado': 0, 'pendiente': 0.0, 'n_pendiente': 0, 'cancelado': 0.0, 'n_cancelado': 0, 'siniestros': set()}
+    conc, aseg = {}, {}
+    for p, a in q.all():
+        monto = float(p.monto)
+        if p.estado == 'Pagado' and p.fecha_pago and ini <= p.fecha_pago <= fin:
+            r['pagado'] += monto
+            r['n_pagado'] += 1
+            r['siniestros'].add(p.siniestro_id)
+            c = conc.setdefault(p.concepto, [0.0, 0])
+            c[0] += monto
+            c[1] += 1
+            x = aseg.setdefault(a.aseguradora, [0.0, 0])
+            x[0] += monto
+            x[1] += 1
+        elif p.estado in ('Pendiente', 'Cancelado') and p.created_at and d0 <= p.created_at < d1:
+            k = 'pendiente' if p.estado == 'Pendiente' else 'cancelado'
+            r[k] += monto
+            r['n_' + k] += 1
+    r['siniestros'] = len(r['siniestros'])
+    r['promedio'] = round(r['pagado'] / r['n_pagado'], 2) if r['n_pagado'] else None
+    r['por_concepto'] = [{'concepto': k, 'monto': round(v[0], 2), 'n': v[1]} for k, v in sorted(conc.items(), key=lambda x: -x[1][0])]
+    r['por_aseguradora'] = [{'aseguradora': k, 'monto': round(v[0], 2), 'n': v[1]} for k, v in sorted(aseg.items(), key=lambda x: -x[1][0])]
+    r['pagado'], r['pendiente'], r['cancelado'] = round(r['pagado'], 2), round(r['pendiente'], 2), round(r['cancelado'], 2)
+    return r
 
 
 @api('reportes')
@@ -714,10 +863,12 @@ def reportes():
     if clave not in METAS:
         raise ValueError('Proceso no válido.')
     aseg_id = int(a['aseguradora_id']) if a.get('aseguradora_id') else None
-    ini, fin = _rango(a.get('periodo', 'mes'), a.get('desde'), a.get('hasta'))
+    ini, fin = _rango(a.get('periodo', 'mes'), a.get('desde'), a.get('hasta'), a.get('mes'))
     dias = (fin - ini).days + 1
     pini, pfin = ini - timedelta(days=dias), ini - timedelta(days=1)
     actual, previo = _metricas(clave, ini, fin, aseg_id), _metricas(clave, pini, pfin, aseg_id)
+    reaps, reaps_prev = _reaperturas(clave, ini, fin, aseg_id), _reaperturas(clave, pini, pfin, aseg_id)
+    pagos, pagos_prev = _pagos_rep(clave, ini, fin, aseg_id), _pagos_rep(clave, pini, pfin, aseg_id)
     hoy = date.today()
     tendencia = []
     for k in range(-4, 1):
@@ -729,6 +880,10 @@ def reportes():
     tabla = []
     for k in ['CIR', 'PD', 'REM', 'RA', 'SI', 'VI']:
         m = _metricas(k, ini, fin, aseg_id)
-        tabla.append(dict(m, proceso=k, proceso_nombre=SiniestroProceso.query.filter_by(clave=k).first().nombre, meta=METAS[k]))
-    return jsonify({'proceso': clave, 'meta': METAS[clave], 'meta_procedente': META_PROCEDENTE, 'desde': ini.isoformat(), 'hasta': fin.isoformat(),
-                    'actual': actual, 'previo': previo, 'tendencia': tendencia, 'tabla': tabla})
+        tabla.append(dict(m, proceso=k, proceso_nombre=SiniestroProceso.query.filter_by(clave=k).first().nombre, meta=METAS[k],
+                          reaperturas=len(_reaperturas(k, ini, fin, aseg_id)), pagado=_pagos_rep(k, ini, fin, aseg_id)['pagado']))
+    meta = METAS[clave]
+    return jsonify({'proceso': clave, 'meta': meta, 'meta_procedente': meta['pct_proc'] if meta else META_PROCEDENTE,
+                    'desde': ini.isoformat(), 'hasta': fin.isoformat(), 'actual': actual, 'previo': previo,
+                    'reaperturas': reaps, 'reaperturas_previo': len(reaps_prev), 'pagos': pagos, 'pagos_previo': pagos_prev,
+                    'tendencia': tendencia, 'tabla': tabla})
