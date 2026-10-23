@@ -178,7 +178,8 @@ def _listado(tarjeta):
 def index():
     if not tiene_acceso_siniestros():
         return redirect(url_for('main.index'))
-    return render_template('siniestros.html', user=current_user)
+    from app.siniestros.nuevo import puede_crear
+    return render_template('siniestros.html', user=current_user, puede_crear=puede_crear())
 
 
 @siniestros_route.route('/api/resumen')

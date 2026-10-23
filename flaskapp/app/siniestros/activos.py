@@ -398,9 +398,10 @@ def comunicacion(sid):
         if not _aplica(m, pr.clave):
             continue
         txt = m.texto
+        usa_req = '{requisitos}' in txt
         for k, v in vars_.items():
             txt = txt.replace('{' + k + '}', str(v))
-        items.append({'id': m.id, 'nombre': m.nombre, 'uso': m.uso or '', 'texto': txt})
+        items.append({'id': m.id, 'nombre': m.nombre, 'uso': m.uso or '', 'texto': txt, 'requisitos': usa_req})
     return jsonify({'mensajes': items, 'telefono': cl.tel_movil if cl else '', 'correo': cl.correo if cl else '',
                     'cliente': _nombre_cliente(cl), 'folio': s.folio})
 

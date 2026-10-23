@@ -187,12 +187,14 @@
             toast('Derivado ' + r.folio + ' creado. Ya está en Activos.'); await refrescar('familia');
          }, { onChange: el => { if (el.dataset.k !== 'proceso_id') return; $('#sa-body [data-k="tipo_id"]').innerHTML = '<option value="">Sin tipo</option>' + tiposDe(el.value).map(t => '<option value="' + t.id + '">' + esc(t.nombre) + '</option>').join(''); } });
       },
-      async comunicacion() {
+      async comunicacion(pref) {
          const j = await http('GET', 'siniestros/' + D.id + '/comunicacion');
          if (!j.mensajes.length) { toast('No hay mensajes activos para este proceso. Agrégalos en Plantillas › Mensajes.'); return; }
+         const ini = (pref === 'req' && j.mensajes.find(m => m.requisitos)) || j.mensajes[0];
          form('Enviar comunicación · ' + D.folio, [
-            { k: 'msg', l: 'Mensaje', t: 'select', o: j.mensajes.map(m => ({ v: m.id, t: m.nombre })), req: 1 },
-            { k: 'texto', l: 'Texto (puedes editarlo antes de enviar)', t: 'area', rows: 9, v: j.mensajes[0].texto },
+            ...(pref === 'req' ? [{ t: 'info', h: '✔ Siniestro creado. Envía ahora al cliente la lista de documentos que debe entregar.' }] : []),
+            { k: 'msg', l: 'Mensaje', t: 'select', v: ini.id, o: j.mensajes.map(m => ({ v: m.id, t: m.nombre })), req: 1 },
+            { k: 'texto', l: 'Texto (puedes editarlo antes de enviar)', t: 'area', rows: 9, v: ini.texto },
             { t: 'info', h: '<div class="sa-envio"><button type="button" class="sa-btn" id="sa-cop">Copiar</button> <button type="button" class="sa-btn" id="sa-wa">WhatsApp' + (j.telefono ? '' : ' (sin teléfono)') + '</button> <button type="button" class="sa-btn" id="sa-mail">Correo' + (j.correo ? '' : ' (sin correo)') + '</button></div><small>Cada envío queda registrado en la bitácora.</small>' }
          ], 'Cerrar', async () => { }, {
             onChange: el => { if (el.dataset.k === 'msg') $('#sa-body [data-k="texto"]').value = j.mensajes.find(m => m.id === +el.value).texto; }
@@ -219,15 +221,15 @@
       form('Cancelar pago por ' + money(monto), [{ k: 'motivo', l: 'Motivo de la cancelación', t: 'area', req: 1 }], 'Cancelar pago',
          async o => { await http('POST', 'pagos/' + pid + '/cancelar', o); toast('Pago cancelado. El registro se conserva.'); await refrescar('pagos'); }, { peligro: true });
    }
-   Object.keys(ACCIONES).forEach(k => { const f = ACCIONES[k]; ACCIONES[k] = () => Promise.resolve(f()).catch(e => toast(e.message)); });
+   Object.keys(ACCIONES).forEach(k => { const f = ACCIONES[k]; ACCIONES[k] = (...a) => Promise.resolve(f(...a)).catch(e => toast(e.message)); });
 
    /* ---------- entrada desde las tablas ---------- */
    window.addEventListener('siniestros:accion', async e => {
-      const { a, id } = e.detail;
+      const { a, id, pref } = e.detail;
       if (a === 'ver') { abrirDetalle(id, 'info'); return; }
       await abrirDetalle(id, a === 'pago' ? 'pagos' : a === 'bitacora' ? 'bit' : 'info');
       if (!D) return;
       const k = { estatus: 'estatus', bitacora: 'nota', pago: 'pago', derivado: 'derivado', comunicacion: 'comunicacion', cerrar: 'cerrar' }[a];
-      if (k) { if (k === 'cerrar' && D.derivados_abiertos) { toast('No se puede cerrar: tiene ' + D.derivados_abiertos + ' derivado(s) abierto(s).'); return; } ACCIONES[k](); }
+      if (k) { if (k === 'cerrar' && D.derivados_abiertos) { toast('No se puede cerrar: tiene ' + D.derivados_abiertos + ' derivado(s) abierto(s).'); return; } ACCIONES[k](pref); }
    });
 })();

@@ -55,3 +55,11 @@ JOIN siniestro_campos c ON c.id = cp.campo_id AND c.nombre = 'Fecha del evento'
 JOIN siniestro_procesos p ON p.id = cp.proceso_id AND p.clave IN ('RA','SI');
 
 SELECT COUNT(*) AS campos FROM siniestro_campos;
+
+-- Mensaje para enviar al crear el siniestro: apertura + lista de documentos (checklist de la plantilla)
+INSERT INTO siniestro_mensajes (nombre, uso, procesos, canal, texto, activo)
+SELECT 'Apertura y lista de documentos', 'Al crear el siniestro: envía el checklist de documentos', 'TODOS', 'WhatsApp / Correo',
+ 'Hola {cliente}, abrimos tu siniestro con folio {folio} ante {aseguradora} (póliza {poliza}). Para continuar necesitamos los siguientes documentos:
+{requisitos}
+Fecha límite de atención: {fecha_limite}. Quedamos al pendiente.', 1
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM siniestro_mensajes WHERE nombre = 'Apertura y lista de documentos');

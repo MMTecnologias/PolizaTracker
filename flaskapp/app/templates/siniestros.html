@@ -143,6 +143,7 @@
 .sn-paso{font-weight:700;margin:6px 0 8px}.sn-paso b{display:inline-block;background:var(--color-primario);color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:12px;margin-right:6px}
 .sn-res{max-height:210px;overflow:auto;margin-top:4px}.sn-r{padding:8px 10px;border:1px solid #eee;border-radius:8px;margin-top:4px;cursor:pointer;font-size:13.5px}.sn-r:hover{background:#f6f9ff}.sn-r small{display:block;color:#777}
 .sn-no{background:#fafafa}.sn-no b{color:#999}.sn-tag{display:inline-block;margin-top:3px;margin-right:6px;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:10px}.sn-tag.ok{background:#e6f4ea;color:#23783d}.sn-tag.bad{background:#fdeaea;color:#b03a2e}.sn-tag.warn{background:#fff8e6;color:#7a5a00}
+.sn-dup{background:#fff8e6;border:1px solid #f1dca0;border-radius:8px;padding:8px 12px;font-size:13px;margin:8px 0}.sn-dup table{width:100%;font-size:12.5px;margin-top:4px}.sn-dup td{padding:2px 6px}
 .sn-vacio{color:#888;font-size:13px;padding:6px}
 .sn-st{font-weight:700}.sn-Vigente{color:#23783d}.sn-PorVencer{color:#b9770e}.sn-Cancelada,.sn-Finalizada{color:#b03a2e}
 .sn-card{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 16px;background:#f7f8fa;border-radius:10px;padding:10px 14px;margin:10px 0 6px}
@@ -184,7 +185,7 @@
                   <div class="vista on" id="v-activos">
                   <div class="polizas-toolbar">
                      <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar por folio, cliente o póliza" id="buscar">
-                     <button class="btn px-4 py-2 btn-primary" type="button" id="btnNuevo">+ Nuevo siniestro</button>
+                     {% if puede_crear %}<button class="btn px-4 py-2 btn-primary" type="button" id="btnNuevo">+ Nuevo siniestro</button>{% endif %}
                      <button class="btn px-4 py-2" type="button" id="btnToggleFiltros">Filtros</button>
                      <button class="btn px-4 py-2" type="button" id="btnExcel">Exportar a Excel</button>
                      <button class="btn px-4 py-2" type="button" id="btnPdf">Exportar PDF</button>
@@ -370,10 +371,10 @@
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=8"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=8"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=8"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=8"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=9"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=9"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=9"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=9"></script>
 </body>
 
 </html>

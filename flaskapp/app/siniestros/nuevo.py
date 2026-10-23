@@ -13,10 +13,19 @@ from sqlalchemy import or_
 from app import db
 from app.models import (Aseguradora, Cliente, Poliza, Ramo, Siniestro, SiniestroBitacora, SiniestroCampo,
                         SiniestroCampoProceso, SiniestroCampoTipo, SiniestroEstatus, SiniestroPlantillaItem,
-                        SiniestroPlantillaReq, SiniestroProceso, SiniestroTipo, SiniestroValor, Subramo)
+                        SiniestroPlantillaReq, SiniestroProceso, SiniestroTipo, SiniestroValor, Subramo, NivelAcceso)
 from app.siniestros.activos import _nuevo_folio, _validar_poliza_para
 from app.siniestros.modulos import METAS, api, _j, _req
 from app.siniestros.routes import _fmt
+
+# Niveles que pueden crear siniestros (Gerente y Siniestros; Desarollador para pruebas).
+NIVELES_CREAN = ('Gerente', 'Siniestros', 'Desarollador')
+
+
+def puede_crear():
+    n = NivelAcceso.query.get(current_user.nivel_id)
+    return bool(n and n.nombre in NIVELES_CREAN)
+
 
 # Ramo de la póliza → grupo de procesos de siniestros (otros ramos aún no tienen proceso).
 GRUPO_POR_RAMO = {'GASTOS MEDICOS': 'GMM', 'AUTOS': 'AUTOS', 'AUTOMOVILES RESIDENTES': 'AUTOS', 'VIDA': 'VIDA'}
@@ -97,8 +106,19 @@ def validar_poliza(pid):
         for p in SiniestroProceso.query.filter_by(grupo=info['grupo']).order_by(SiniestroProceso.id):
             tipos = SiniestroTipo.query.filter_by(proceso_id=p.id, activo=True).order_by(SiniestroTipo.nombre).all()
             procesos.append({'id': p.id, 'clave': p.clave, 'nombre': p.nombre, 'tipos': [{'id': t.id, 'nombre': t.nombre} for t in tipos]})
-    activos = Siniestro.query.filter_by(poliza_id=po.id, estado='Activo').count()
-    return jsonify({'poliza': info, 'bloqueo': bloqueo, 'aviso': aviso, 'procesos': procesos, 'activos': activos,
+    lista = []
+    for x in Siniestro.query.filter_by(poliza_id=po.id, estado='Activo').order_by(Siniestro.fecha_apertura.desc()).all():
+        pr = SiniestroProceso.query.get(x.proceso_id)
+        t = SiniestroTipo.query.get(x.tipo_id) if x.tipo_id else None
+        es = SiniestroEstatus.query.get(x.estatus_id)
+        quien = ''
+        for v in SiniestroValor.query.filter_by(siniestro_id=x.id):
+            if v.etiqueta in ('Nombre del paciente / afectado', 'Beneficiario') and v.valor:
+                quien = v.valor
+                break
+        lista.append({'id': x.id, 'folio': x.folio, 'proceso_id': x.proceso_id, 'proceso': pr.nombre, 'tipo_id': x.tipo_id, 'tipo': t.nombre if t else '',
+                      'estatus': es.nombre, 'afectado': quien, 'apertura': _fmt(x.fecha_apertura)})
+    return jsonify({'poliza': info, 'bloqueo': bloqueo, 'aviso': aviso, 'procesos': procesos, 'activos': len(lista), 'lista_activos': lista,
                     'asegurado': info['cliente']})
 
 
@@ -164,6 +184,8 @@ def _valida_valor(c, v):
 
 @api('siniestros', methods=['POST'])
 def crear_siniestro():
+    if not puede_crear():
+        raise ValueError('Tu nivel no puede crear siniestros. Solo Gerente y Siniestros.')
     d = _j()
     _req(d, 'poliza_id', 'proceso_id')
     po = Poliza.query.get(int(d['poliza_id']))

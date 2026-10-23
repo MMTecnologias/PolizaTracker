@@ -28,7 +28,7 @@
    mq.addEventListener('click', e => { if (e.target === mq || e.target.hasAttribute('data-sn-x')) cerrar(); });
 
    function abrir() {
-      P = V = F = null; $('#sn-q').value = ''; $('#sn-res').innerHTML = ''; $('#sn-poliza').innerHTML = ''; $('#sn-form').innerHTML = ''; $('#sn-av').textContent = '';
+      P = V = F = null; $('#sn-ok').textContent = 'Crear siniestro'; $('#sn-q').value = ''; $('#sn-res').innerHTML = ''; $('#sn-poliza').innerHTML = ''; $('#sn-form').innerHTML = ''; $('#sn-av').textContent = '';
       $('#sn-ok').disabled = true; mq.classList.add('on'); setTimeout(() => $('#sn-q').focus(), 60);
    }
    window.addEventListener('siniestros:nuevo', abrir);
@@ -48,7 +48,7 @@
       const r = e.target.closest('.sn-r'); if (!r) return;
       $('#sn-res').innerHTML = ''; $('#sn-form').innerHTML = ''; $('#sn-ok').disabled = true; $('#sn-av').textContent = '';
       try { V = await http('GET', 'polizas/' + r.dataset.id + '/validar'); } catch (er) { $('#sn-av').textContent = er.message; return; }
-      P = V.poliza; $('#sn-q').value = P.poliza + ' · ' + P.cliente;
+      F = null; P = V.poliza; $('#sn-q').value = P.poliza + ' · ' + P.cliente;
       tarjeta();
       if (!V.bloqueo) formulario();
    });
@@ -59,11 +59,21 @@
          : '<div class="sn-val ok">✔ Póliza ' + esc(p.status.toLowerCase()) + ' y recibo del periodo al corriente.</div>' + (V.aviso ? '<div class="sn-val warn">⚠ ' + esc(V.aviso) + ' Puedes continuar.</div>' : '');
       $('#sn-poliza').innerHTML = '<div class="sn-card"><div><small>Cliente / empresa</small><b>' + esc(p.cliente) + '</b></div><div><small>Póliza</small><b>' + esc(p.poliza) + '</b></div><div><small>Aseguradora</small><b>' + esc(p.aseguradora) + '</b></div>' +
          '<div><small>Ramo</small><b>' + esc(p.ramo) + ' · ' + esc(p.subramo) + '</b></div><div><small>Vigencia</small><b>' + esc(p.inicio) + ' – ' + esc(p.fin) + '</b></div><div><small>Siniestros activos</small><b>' + V.activos + '</b></div></div>' + val +
-         '<p class="sn-nota">Estos datos vienen de la póliza; no se vuelven a capturar.</p>';
+         '<p class="sn-nota">Estos datos vienen de la póliza; no se vuelven a capturar.</p>' + activosHTML();
    }
 
+   function activosHTML() {
+      if (!V.lista_activos.length) return '';
+      return '<div class="sn-dup"><b>Esta póliza ya tiene ' + V.lista_activos.length + ' siniestro(s) activo(s)</b> (puede haber varios, de distinto afectado):<table>' +
+         V.lista_activos.map(x => '<tr><td><b>' + esc(x.folio) + '</b></td><td>' + esc(x.proceso) + (x.tipo ? ' · ' + esc(x.tipo) : '') + '</td><td>' + esc(x.afectado || '—') + '</td><td>' + esc(x.estatus) + '</td><td>' + esc(x.apertura) + '</td></tr>').join('') + '</table></div>';
+   }
+   const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+   function posibleDuplicado(campos) {
+      const nombre = F.cfg.campos.filter(c => c.nombre === 'Nombre del paciente / afectado' || c.nombre === 'Beneficiario').map(c => norm(campos[c.id])).find(v => v);
+      return V.lista_activos.filter(x => x.proceso_id === F.proceso.id && (x.tipo_id || null) === (F.tipo || null) && norm(x.afectado) && norm(x.afectado) === nombre);
+   }
    function formulario() {
-      F = { proceso: V.procesos[0], tipo: null };
+      F = { proceso: V.procesos[0], tipo: null, confirmaDup: false };
       $('#sn-form').innerHTML = '<div class="sn-paso"><b>2</b> Datos del siniestro</div><div class="sn-g2"><div><label>Proceso *</label><select class="custom-select" id="sn-proc">' + V.procesos.map(p => '<option value="' + p.id + '">' + esc(p.nombre) + '</option>').join('') + '</select></div>' +
          '<div id="sn-tipo-w"><label>Tipo de siniestro *</label><select class="custom-select" id="sn-tipo"></select></div></div><div id="sn-campos"></div><div id="sn-extra"></div>';
       $('#sn-proc').onchange = () => { F.proceso = V.procesos.find(p => p.id === +$('#sn-proc').value); tiposYCampos(); };
@@ -103,15 +113,21 @@
    }
    const aseId = () => P.aseguradora_id || 0;
 
+   $('#sn-form').addEventListener('input', () => { if (F) { F.confirmaDup = false; $('#sn-ok').textContent = 'Crear siniestro'; } });
    $('#sn-ok').onclick = async () => {
       const campos = {}; document.querySelectorAll('#sn-campos [data-c]').forEach(el => { campos[el.dataset.c] = el.value.trim(); });
       for (const c of F.cfg.campos) if (c.obligatorio && !campos[c.id]) { $('#sn-av').textContent = '«' + c.nombre + '» es obligatorio.'; return; }
+      const dup = posibleDuplicado(campos);
+      if (dup.length && !F.confirmaDup) {
+         $('#sn-av').innerHTML = '⚠ <b>Posible duplicado:</b> ya existe ' + dup.map(x => esc(x.folio)).join(', ') + ' activo con el mismo proceso, tipo y afectado. Si es un trámite distinto, vuelve a pulsar «Crear siniestro» para confirmar.';
+         F.confirmaDup = true; $('#sn-ok').textContent = 'Crear de todos modos'; return;
+      }
       $('#sn-ok').disabled = true; $('#sn-av').textContent = '';
       try {
          const r = await http('POST', 'siniestros', { poliza_id: P.id, proceso_id: F.proceso.id, tipo_id: F.tipo, campos, fecha_limite: $('#sn-plazo').value || null, comentario: $('#sn-com').value });
          cerrar(); toast('Siniestro ' + r.folio + ' creado. Ya está en Activos.');
          window.dispatchEvent(new Event('siniestros:recargar'));
-         window.dispatchEvent(new CustomEvent('siniestros:accion', { detail: { a: 'ver', id: r.id } }));
+         window.dispatchEvent(new CustomEvent('siniestros:accion', { detail: { a: 'comunicacion', id: r.id, pref: 'req' } }));
       } catch (e) { $('#sn-av').textContent = e.message; $('#sn-ok').disabled = false; }
    };
 })();
