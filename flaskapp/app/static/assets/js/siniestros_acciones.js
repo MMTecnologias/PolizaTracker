@@ -15,6 +15,13 @@
       if (!r.ok) throw new Error(j.error || ('Error ' + r.status));
       return j;
    }
+   function fmtDato(x) {
+      const v = x.valor; if (!v) return '';
+      if (x.tipo === 'Fecha') { const m = v.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : v; }
+      if (x.tipo === 'Fecha y hora') { const m = v.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}:\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] : v; }
+      if (x.tipo === 'Monto') return money(v);
+      return v;
+   }
    const chip = (c, t) => '<span class="chip ' + c + '">' + esc(t) + '</span>';
    const avisar = () => window.dispatchEvent(new Event('siniestros:recargar'));
 
@@ -86,6 +93,7 @@
             fila('Aseguradora', esc(D.aseguradora)) + fila('Póliza', esc(D.poliza.numero) + ' ' + chip(D.poliza.status === 'Vigente' ? 'chip-ok' : 'chip-gris', D.poliza.status)) + fila('Vigencia', esc(D.poliza.inicio) + ' – ' + esc(D.poliza.fin)) +
             fila('Apertura', esc(D.apertura)) + fila('Fecha límite', esc(D.limite)) + fila('Plazo', ab ? '<span class="plazo p-' + D.plazo_nivel + '">' + (D.plazo_nivel !== 'none' ? '<i></i>' : '') + esc(D.plazo) + '</span>' : '—') +
             fila('Última actualización', esc(D.ultima)) + fila(D.estado === 'Cerrado' ? 'Cierre' : 'Estado', D.estado === 'Cerrado' ? esc(D.cierre) : 'Activo') + '</div>' +
+            (D.datos.length ? '<div class="sa-sec"><h6>Datos del siniestro</h6></div><div class="sa-grid">' + D.datos.map(x => fila(esc(x.campo), esc(fmtDato(x)))).join('') + '</div>' : '') +
             '<div class="sa-sec"><h6>Montos</h6>' + (ab ? '<button class="sa-btn" data-ac="montos">Editar montos</button>' : '') + '</div>' +
             '<div class="sa-montos">' + [['Reclamado', m.reclamado], ['Aprobado', m.aprobado], ['Deducible', m.deducible], ['Coaseguro', m.coaseguro], ['Pagado', m.pagado], ['Pendiente por pagar', m.pendiente]].map(x => '<div class="' + (x[0].startsWith('Pend') && x[1] > 0 ? 'pend' : '') + '"><small>' + x[0] + '</small><b>' + money(x[1]) + '</b></div>').join('') + '</div>' +
             (m.aprobado == null ? '<p class="sa-nota">Captura el monto aprobado para calcular el pendiente por pagar.</p>' : '');

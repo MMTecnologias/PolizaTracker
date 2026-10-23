@@ -20,7 +20,7 @@ from app.siniestros import siniestros_route
 from app.siniestros.routes import _fmt, tiene_acceso_siniestros
 
 CONCEPTOS = ['Pago a hospital', 'Reembolso al asegurado', 'Indemnización', 'Pago a beneficiario', 'Honorarios médicos']
-TIPOS_DATO = ['Texto', 'Texto largo', 'Número', 'Monto', 'Fecha', 'Sí / No', 'Lista']
+TIPOS_DATO = ['Texto', 'Texto largo', 'Número', 'Monto', 'Fecha', 'Fecha y hora', 'Sí / No', 'Lista']
 TIPOS_ESTATUS = ['Aseguradora', 'Pendiente', 'Otro', 'Final']
 CANALES = ['WhatsApp / Correo', 'WhatsApp', 'Correo']
 

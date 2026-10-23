@@ -137,6 +137,21 @@
 .mq-modal textarea.form-control{height:auto !important;min-height:70px;resize:vertical}
 #sa-body textarea[rows="9"]{min-height:210px}
 .sa-envio{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+
+/* Nuevo siniestro */
+.sn-modal{width:min(820px,100%)}
+.sn-paso{font-weight:700;margin:6px 0 8px}.sn-paso b{display:inline-block;background:var(--color-primario);color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:12px;margin-right:6px}
+.sn-res{max-height:210px;overflow:auto;margin-top:4px}.sn-r{padding:8px 10px;border:1px solid #eee;border-radius:8px;margin-top:4px;cursor:pointer;font-size:13.5px}.sn-r:hover{background:#f6f9ff}.sn-r small{display:block;color:#777}
+.sn-no{background:#fafafa}.sn-no b{color:#999}.sn-tag{display:inline-block;margin-top:3px;margin-right:6px;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:10px}.sn-tag.ok{background:#e6f4ea;color:#23783d}.sn-tag.bad{background:#fdeaea;color:#b03a2e}.sn-tag.warn{background:#fff8e6;color:#7a5a00}
+.sn-vacio{color:#888;font-size:13px;padding:6px}
+.sn-st{font-weight:700}.sn-Vigente{color:#23783d}.sn-PorVencer{color:#b9770e}.sn-Cancelada,.sn-Finalizada{color:#b03a2e}
+.sn-card{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 16px;background:#f7f8fa;border-radius:10px;padding:10px 14px;margin:10px 0 6px}
+.sn-card small{display:block;color:#888;font-size:11px;text-transform:uppercase;font-weight:600}.sn-card b{font-size:13.5px}
+.sn-val{border-radius:8px;padding:8px 12px;font-size:13.5px;margin:6px 0}.sn-val.ok{background:#e6f4ea;color:#23783d}.sn-val.bad{background:#fdeaea;color:#b03a2e}.sn-val.warn{background:#fff8e6;color:#7a5a00}
+.sn-nota{color:#888;font-size:12.5px;margin:4px 0}
+.sn-g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px 16px}
+.sn-req{background:#f3f6fb;border-radius:8px;padding:8px 14px;margin:10px 0;font-size:13px}.sn-req ul{margin:4px 0 0 18px;padding:0;list-style:disc}.sn-req li{list-style:disc}
+#sn-form{margin-top:14px}
 </style>
 </head>
 
@@ -355,9 +370,10 @@
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=6"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=6"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=6"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=8"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=8"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=8"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=8"></script>
 </body>
 
 </html>

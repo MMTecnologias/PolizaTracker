@@ -15,10 +15,10 @@ from flask_login import current_user
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.models import (Aseguradora, Cliente, Poliza, Recibo, Siniestro, SiniestroBitacora,
+from app.models import (Aseguradora, Cliente, Poliza, Recibo, Siniestro, SiniestroBitacora, SiniestroCampo,
                         SiniestroEstatus, SiniestroMensaje, SiniestroPago,
                         SiniestroPlantillaItem, SiniestroPlantillaReq, SiniestroProceso,
-                        SiniestroTipo, Usuario)
+                        SiniestroTipo, SiniestroValor, Usuario)
 from app.siniestros.modulos import api, _j, _req, CONCEPTOS
 from app.siniestros.routes import _fmt, _plazo
 from app.utils.document_storage import get_documentos_base
@@ -150,6 +150,7 @@ def detalle(sid):
         'derivados_abiertos': abiertos,
         'montos': {'reclamado': _f(s.monto_reclamado), 'aprobado': _f(aprobado), 'deducible': _f(s.deducible), 'coaseguro': _f(s.coaseguro),
                    'pagado': float(pagado), 'pendiente': float(aprobado - pagado) if aprobado is not None else None},
+        'datos': [{'campo': v.etiqueta, 'valor': v.valor or '', 'tipo': (SiniestroCampo.query.get(v.campo_id).tipo_dato if v.campo_id else 'Texto')} for v in SiniestroValor.query.filter_by(siniestro_id=s.id).order_by(SiniestroValor.id)],
         'pagos': [_pago_json(p) for p in pagos],
         'familia': familia,
         'familia_totales': {'reclamado': float(fam_rec), 'aprobado': float(fam_apr), 'pagado': float(fam_pag),

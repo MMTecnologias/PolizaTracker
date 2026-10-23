@@ -233,7 +233,7 @@
    $id('btnAplicar').onclick = aplicar;
    $id('btnLimpiar').onclick = () => { document.querySelectorAll('#panelFiltros select,#panelFiltros input').forEach(e => e.value = ''); aplicar(); };
    $id('btnToggleFiltros').onclick = () => { const p = $id('panelFiltros'); p.style.display = p.style.display === 'none' ? 'flex' : 'none'; ajustarFilas(); };
-   $id('btnNuevo').onclick = () => toast('Nuevo siniestro: se habilita en la siguiente pantalla');
+   $id('btnNuevo').onclick = () => window.dispatchEvent(new Event('siniestros:nuevo'));
    $id('pagination').addEventListener('click', e => {
       const p = +e.target.dataset.p;
       if (!p || e.target.classList.contains('noClickable')) return;

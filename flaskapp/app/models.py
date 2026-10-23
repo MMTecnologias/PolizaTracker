@@ -775,3 +775,12 @@ class SiniestroBitacora(db.Model):
     usuario_id = Column(Integer, ForeignKey('usuarios.id'), nullable=True)
     accion = Column(String(40), nullable=False)
     detalle = Column(String(500))
+
+
+class SiniestroValor(db.Model):
+    __tablename__ = 'siniestro_valores'
+    id = Column(Integer, primary_key=True)
+    siniestro_id = Column(Integer, ForeignKey('siniestros.id', ondelete='CASCADE'), nullable=False)
+    campo_id = Column(Integer, ForeignKey('siniestro_campos.id'), nullable=False)
+    etiqueta = Column(String(80), nullable=False)
+    valor = Column(db.Text)
