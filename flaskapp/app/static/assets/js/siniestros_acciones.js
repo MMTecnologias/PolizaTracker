@@ -208,7 +208,7 @@
             ...(pref === 'req' ? [{ t: 'info', h: '✔ Siniestro creado. Envía ahora al cliente la lista de documentos que debe entregar.' }] : []),
             { k: 'msg', l: 'Mensaje', t: 'select', v: ini.id, o: j.mensajes.map(m => ({ v: m.id, t: m.nombre })), req: 1 },
             { k: 'texto', l: 'Texto (puedes editarlo antes de enviar)', t: 'area', rows: 9, v: ini.texto },
-            { t: 'info', h: '<div class="sa-envio"><button type="button" class="sa-btn" id="sa-cop">Copiar</button> <button type="button" class="sa-btn" id="sa-wa">WhatsApp' + (j.telefono ? '' : ' (sin teléfono)') + '</button> <button type="button" class="sa-btn" id="sa-mail">Correo' + (j.correo ? '' : ' (sin correo)') + '</button></div><small>Cada envío queda registrado en la bitácora.</small>' }
+            { t: 'info', h: '<div class="sa-envio"><button type="button" class="sa-btn" id="sa-cop">Copiar</button> <button type="button" class="sa-btn" id="sa-wa">WhatsApp' + (j.telefono ? '' : ' (sin teléfono)') + '</button> <button type="button" class="sa-btn" id="sa-mail">Correo' + (j.correo ? '' : ' (sin correo)') + '</button></div><small>El correo sale a nombre de ' + esc(j.remitente || 'tu usuario') + '. Cada envío queda registrado en la bitácora.</small>' }
          ], 'Cerrar', async () => { }, {
             onChange: el => { if (el.dataset.k === 'msg') $('#sa-body [data-k="texto"]').value = j.mensajes.find(m => m.id === +el.value).texto; }
          });
@@ -216,7 +216,18 @@
          const txt = () => $('#sa-body [data-k="texto"]').value;
          $('#sa-cop').onclick = () => { const f = () => { toast('Texto copiado.'); reg('Copiado'); }; if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt()).then(f).catch(() => { $('#sa-body [data-k="texto"]').select(); document.execCommand('copy'); f(); }); else { $('#sa-body [data-k="texto"]').select(); document.execCommand('copy'); f(); } };
          $('#sa-wa').onclick = () => { if (!j.telefono) { toast('El cliente no tiene teléfono móvil registrado.'); return; } let t = String(j.telefono).replace(/\D/g, ''); if (t.length === 10) t = '52' + t; window.open('https://wa.me/' + t + '?text=' + encodeURIComponent(txt()), '_blank'); reg('WhatsApp'); };
-         $('#sa-mail').onclick = () => { if (!j.correo) { toast('El cliente no tiene correo registrado.'); return; } window.location.href = 'mailto:' + j.correo + '?subject=' + encodeURIComponent('Siniestro ' + D.folio) + '&body=' + encodeURIComponent(txt()); reg('Correo'); };
+         $('#sa-mail').onclick = async () => {
+            if (!j.correo) { toast('El cliente no tiene correo registrado.'); return; }
+            if (!j.remitente) { toast('Tu usuario no tiene correo registrado.'); return; }
+            const m = j.mensajes.find(x => x.id === +$('#sa-body [data-k="msg"]').value), b = $('#sa-mail');
+            b.disabled = true; b.textContent = 'Enviando…';
+            try {
+               const r = await http('POST', 'siniestros/' + D.id + '/comunicacion/correo', { mensaje: m.nombre, texto: txt(), asunto: 'Siniestro ' + D.folio + ' · ' + m.nombre });
+               toast(r.simulado ? 'Modo prueba: el servidor no tiene correo configurado, no se envió.' : 'Correo enviado a ' + r.para + (r.copia ? ' (copia a ' + j.remitente + ')' : ''));
+               await refrescar();
+            } catch (e) { toast(e.message); }
+            b.disabled = false; b.textContent = 'Correo';
+         };
       },
       async cerrar() {
          const j = await http('GET', 'siniestros/' + D.id + '/cerrar-opciones');

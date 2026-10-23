@@ -20,6 +20,7 @@ from app.models import (Aseguradora, Cliente, Poliza, Recibo, Siniestro, Siniest
                         SiniestroPlantillaItem, SiniestroPlantillaReq, SiniestroProceso,
                         SiniestroTipo, SiniestroValor, Usuario)
 from app.siniestros.modulos import api, _j, _req, CONCEPTOS, METAS, plazo_desde
+from app.siniestros.correo import enviar_correo_siniestro, remitente_de
 from app.siniestros.routes import _fmt, _plazo
 from app.utils.document_storage import get_documentos_base
 
@@ -449,7 +450,35 @@ def comunicacion(sid):
             txt = txt.replace('{' + k + '}', str(v))
         items.append({'id': m.id, 'nombre': m.nombre, 'uso': m.uso or '', 'texto': txt, 'requisitos': usa_req})
     return jsonify({'mensajes': items, 'telefono': cl.tel_movil if cl else '', 'correo': cl.correo if cl else '',
-                    'cliente': _nombre_cliente(cl), 'folio': s.folio})
+                    'cliente': _nombre_cliente(cl), 'folio': s.folio, 'remitente': (current_user.correo or '')})
+
+
+@api('siniestros/<int:sid>/comunicacion/correo', methods=['POST'])
+def comunicacion_correo(sid):
+    """Envía el mensaje por correo desde el servidor, a nombre del usuario que lo manda."""
+    s = _siniestro(sid)
+    d = _j()
+    _req(d, 'mensaje', 'texto')
+    pr, po, cl, ase, es = _contexto(s)
+    para = (cl.correo or '').strip() if cl else ''
+    if not para or '@' not in para:
+        raise ValueError('El cliente no tiene un correo válido registrado.')
+    asunto = (d.get('asunto') or '').strip() or f'Siniestro {s.folio} · {ase.aseguradora}'
+    try:
+        r = enviar_correo_siniestro(current_user, para, asunto[:200], d['texto'])
+    except ValueError:
+        raise
+    except Exception as e:  # SMTP caído, credenciales, etc.
+        current_app_log(e)
+        raise ValueError('No se pudo enviar el correo. Revisa la configuración de correo del servidor o inténtalo de nuevo.')
+    _log(s, 'Comunicación', f'{d["mensaje"]} · Correo enviado a {para}' + (' (modo prueba, no se envió)' if r['simulado'] else ''))
+    db.session.commit()
+    return jsonify({'ok': True, 'para': para, 'de': r['de'], 'copia': r['copia'], 'simulado': r['simulado']})
+
+
+def current_app_log(e):
+    from flask import current_app
+    current_app.logger.error('Error enviando correo de siniestro: %s', e)
 
 
 @api('siniestros/<int:sid>/comunicacion/registrar', methods=['POST'])
