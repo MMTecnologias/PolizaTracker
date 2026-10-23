@@ -259,9 +259,9 @@
          abierto = { wrap, menu, t: Date.now() }; return;
       }
       const a = e.target.closest('[data-a]');
-      if (a) {
+      if (a && ACC.some(x => x[0] === a.dataset.a) && (a.closest('#tbody') || a.closest('.acciones-menu'))) {
          if (a.classList.contains('off') || a.classList.contains('disabled')) toast('No se puede cerrar: el siniestro tiene derivados abiertos');
-         else { const lbl = (ACC.find(x => x[0] === a.dataset.a) || [0, 'Ver detalle'])[1]; toast(`${lbl} · ${a.dataset.f}: se habilita en la siguiente pantalla`); }
+         else window.dispatchEvent(new CustomEvent('siniestros:accion', { detail: { a: a.dataset.a, id: +a.dataset.id, f: a.dataset.f } }));
       }
       cerrarMenu();
    });
@@ -279,5 +279,6 @@
    // Las fuentes web cambian el alto de las filas: se vuelve a medir cuando terminan de cargar.
    if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarFilas);
    window.addEventListener('load', ajustarFilas);
+   window.addEventListener('siniestros:recargar', cargar);
    cargar();
 })();

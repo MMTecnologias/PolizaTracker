@@ -214,7 +214,7 @@
       $$('.vista').forEach(d => d.classList.toggle('on', d.id === 'v-' + v));
       $('#pagActivos').classList.toggle('oculto', v !== 'activos');
       $('#tituloVista').textContent = TIT[v];
-      if (v === 'activos') { window.dispatchEvent(new Event('resize')); return; }
+      if (v === 'activos') { window.dispatchEvent(new Event('siniestros:recargar')); window.dispatchEvent(new Event('resize')); return; }
       try {
          if (!D.cat) { D.cat = await http('GET', 'catalogos'); llenarCombos(); }
          if (v === 'historial') await LOAD.hist(); else if (v === 'pagos') await LOAD.pagos(); else if (v === 'plantillas') cargarSub(); else if (v === 'reportes') rep();
@@ -300,13 +300,14 @@
       try { const j = await http('POST', ENT[ent].path + '/' + r.id + '/toggle'); toast(j.activo ? 'Activado' : 'Desactivado: ya no se ofrece en nuevos siniestros'); recargar(ent); } catch (e) { toast(e.message); }
    }
 
+   const verDetalle = id => window.dispatchEvent(new CustomEvent('siniestros:accion', { detail: { a: 'ver', id: id } }));
    /* ---------------- delegación de acciones de fila ---------------- */
    const MAPA = { 'c-tbody': 'campos', 't-tbody': 'tipos', 'e-tbody': 'estatus', 'r-tbody': 'plant', 'm-tbody': 'msgs' };
    document.addEventListener('click', e => {
       const b = e.target.closest && e.target.closest('tbody [data-a]'); if (!b) return;
       const tb = b.closest('tbody').id, a = b.dataset.a, id = +b.dataset.id;
-      if (tb === 'h-tbody') { e.preventDefault(); const r = D.hist.find(x => x.id === id); if (a === 'Reabrir') reabrir(r); else toast('Detalle de ' + r.folio + ': se habilita en la siguiente pantalla'); return; }
-      if (tb === 'p-tbody') { e.preventDefault(); if (a === 'Cancelar') cancelarPago(D.pagos.find(x => x.id === id)); else toast(a === 'Comprobante' ? 'El almacenamiento de comprobantes se habilita con la pantalla de registrar pago' : 'Detalle del siniestro: se habilita en la siguiente pantalla'); return; }
+      if (tb === 'h-tbody') { e.preventDefault(); const r = D.hist.find(x => x.id === id); if (a === 'Reabrir') reabrir(r); else verDetalle(r.id); return; }
+      if (tb === 'p-tbody') { e.preventDefault(); if (a === 'Cancelar') cancelarPago(D.pagos.find(x => x.id === id)); else if (a === 'Comprobante') window.open('/siniestros/api/pagos/' + id + '/comprobante', '_blank'); else verDetalle(D.pagos.find(x => x.id === id).siniestro_id); return; }
       const ent = MAPA[tb]; if (!ent) return; e.preventDefault();
       const r = ENT[ent].list().find(x => x.id === id); if (!r) return;
       if (a === 'Editar') { if (ent === 'plant') abrirPl(r); else if (ent === 'msgs') abrirMs(r); else FORMS[ent](r); }
@@ -326,7 +327,7 @@
    }
    $('#rb-ok').addEventListener('click', async () => {
       if ($('#rb-motivo').value.trim().length < 5) { $('#rb-av').textContent = 'El motivo es obligatorio.'; return; }
-      try { await http('POST', 'siniestros/' + rbSin.id + '/reabrir', { estatus_id: +$('#rb-est').value, motivo: $('#rb-motivo').value }); cerrar(); toast('Siniestro ' + rbSin.folio + ' reabierto. Ya está en Activos y quedó en bitácora.'); LOAD.hist(); }
+      try { await http('POST', 'siniestros/' + rbSin.id + '/reabrir', { estatus_id: +$('#rb-est').value, motivo: $('#rb-motivo').value }); cerrar(); toast('Siniestro ' + rbSin.folio + ' reabierto. Ya está en Activos y quedó en bitácora.'); LOAD.hist(); window.dispatchEvent(new Event('siniestros:recargar')); }
       catch (e) { $('#rb-av').textContent = e.message; }
    });
    function cancelarPago(p) {

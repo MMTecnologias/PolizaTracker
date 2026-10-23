@@ -680,6 +680,10 @@ class Siniestro(db.Model):
     created_at = Column(TIMESTAMP, server_default=func.now())
     tipo_id = Column(Integer, nullable=True)
     resultado = Column(Enum('Procedente', 'Rechazado', 'Cerrado'), nullable=True)
+    monto_reclamado = Column(DECIMAL(14, 2), nullable=True)
+    monto_aprobado = Column(DECIMAL(14, 2), nullable=True)
+    deducible = Column(DECIMAL(14, 2), nullable=True)
+    coaseguro = Column(DECIMAL(14, 2), nullable=True)
 
 
 class SiniestroTipo(db.Model):

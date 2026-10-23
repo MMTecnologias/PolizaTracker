@@ -111,7 +111,33 @@
 .leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#555;margin-top:4px}.leyenda span{display:inline-flex;align-items:center;gap:6px}.leyenda svg{width:22px;display:inline-block}
 .rango-rep{font-size:12.5px;color:#777;margin:8px 0 0}
 .chip-ok{background:#e6f4ea;color:#23783d}.chip-bad{background:#fdeaea;color:#b03a2e}.chip-gris{background:#eceff1;color:#555}
-   </style>
+   
+/* Panel de detalle y acciones de Activos */
+.sa-panel{position:fixed;inset:0;z-index:1900;display:none}.sa-panel.on{display:block}
+.sa-fondo{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.sa-cuerpo{position:absolute;top:0;right:0;bottom:0;width:min(780px,100%);background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.25);display:flex;flex-direction:column}
+.sa-cab{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px 10px;border-bottom:1px solid #eee}
+.sa-folio{font-size:22px;font-weight:700}.sa-sub{color:#666;font-size:13.5px}
+.sa-x{border:0;background:none;font-size:30px;line-height:1;color:#888;cursor:pointer}
+.sa-acc{display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px;border-bottom:1px solid #eee}
+.sa-btn{display:inline-block;width:auto;padding:6px 12px;border:1px solid #cfcfcf;background:#fff;color:#333 !important;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;line-height:1.3}.sa-btn:hover{background:#f4f4f4}.sa-btn.pri{background:var(--color-primario);border-color:var(--color-primario);color:#fff !important}.sa-btn.off{opacity:.45;cursor:not-allowed}
+.sa-tabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid #eee;overflow-x:auto}
+.sa-tabs a{padding:9px 14px;font-size:13.5px;font-weight:600;color:#666;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.sa-tabs a.activa{color:#222;border-bottom-color:var(--color-primario)}
+.sa-cont{padding:16px 20px;overflow:auto;flex:1}
+.sa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 18px}
+.sa-f small{display:block;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}.sa-f span{font-size:14px}
+.sa-sec{display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px}.sa-sec h6{margin:0;font-weight:700}
+.sa-montos{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
+.sa-montos>div{border:1px solid #ececec;border-radius:10px;padding:8px 12px}.sa-montos small{display:block;color:#777;font-size:11px;text-transform:uppercase;font-weight:600}.sa-montos b{font-size:17px}.sa-montos .pend b{color:#c0392b}
+.sa-tb{width:100%;font-size:13px;border-collapse:collapse}.sa-tb th{color:#777;font-size:11.5px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}.sa-tb td{padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}.sa-tb tr.actual{background:#f6f9ff}
+.sa-vacio,.sa-nota{color:#888;font-size:13px}
+.sa-bit{display:flex;flex-direction:column;gap:8px}.sa-b-i{border-left:3px solid var(--color-primario);background:#fafafa;padding:7px 12px;font-size:13px;border-radius:0 8px 8px 0}.sa-b-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.sa-b-h span{color:#888;font-size:12px}
+.sa-info{background:#f3f6fb;border-radius:8px;padding:8px 12px;font-size:13px;margin:4px 0}.sa-warn{background:#fff8e6;color:#7a5a00}.sa-err{background:#fdeaea;color:#b03a2e}
+.mq-modal textarea.form-control{height:auto !important;min-height:70px;resize:vertical}
+#sa-body textarea[rows="9"]{min-height:210px}
+.sa-envio{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+</style>
 </head>
 
 <body>
@@ -329,8 +355,9 @@
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=5"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=5"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=6"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=6"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=6"></script>
 </body>
 
 </html>
