@@ -84,7 +84,12 @@ def _contexto(s):
 
 
 def _pagado(sid):
-    rows = SiniestroPago.query.filter_by(siniestro_id=sid, estado='Vigente').all()
+    rows = SiniestroPago.query.filter_by(siniestro_id=sid, estado='Pagado').all()
+    return sum((r.monto for r in rows), Decimal('0'))
+
+
+def _por_pagar(sid):
+    rows = SiniestroPago.query.filter_by(siniestro_id=sid, estado='Pendiente').all()
     return sum((r.monto for r in rows), Decimal('0'))
 
 
@@ -149,7 +154,8 @@ def detalle(sid):
         'origen': {'id': origen.id, 'folio': origen.folio} if origen else None,
         'derivados_abiertos': abiertos,
         'montos': {'reclamado': _f(s.monto_reclamado), 'aprobado': _f(aprobado), 'deducible': _f(s.deducible), 'coaseguro': _f(s.coaseguro),
-                   'pagado': float(pagado), 'pendiente': float(aprobado - pagado) if aprobado is not None else None},
+                   'pagado': float(pagado), 'pendiente': float(aprobado - pagado) if aprobado is not None else None,
+                   'por_pagar': float(_por_pagar(s.id))},
         'datos': [{'campo': v.etiqueta, 'valor': v.valor or '', 'tipo': (SiniestroCampo.query.get(v.campo_id).tipo_dato if v.campo_id else 'Texto')} for v in SiniestroValor.query.filter_by(siniestro_id=s.id).order_by(SiniestroValor.id)],
         'pagos': [_pago_json(p) for p in pagos],
         'familia': familia,
@@ -230,6 +236,31 @@ def _carpeta_pagos(folio):
     return ruta
 
 
+def _guardar_comprobante(s, archivo):
+    if not (archivo and archivo.filename):
+        return None
+    ext = os.path.splitext(archivo.filename)[1].lower()
+    if ext not in EXT_COMPROBANTE:
+        raise ValueError('El comprobante debe ser PDF, JPG o PNG.')
+    datos = archivo.read()
+    if len(datos) > MAX_COMPROBANTE:
+        raise ValueError('El comprobante es demasiado grande (máximo 10 MB).')
+    nombre = f'p{uuid.uuid4().hex[:10]}{ext}'
+    with open(os.path.join(_carpeta_pagos(s.folio), nombre), 'wb') as out:
+        out.write(datos)
+    return nombre
+
+
+def _fecha_pago(valor):
+    try:
+        fecha = date.fromisoformat(valor or '')
+    except ValueError:
+        raise ValueError('La fecha de pago no es válida.')
+    if fecha > date.today():
+        raise ValueError('La fecha de pago no puede ser futura.')
+    return fecha
+
+
 @api('siniestros/<int:sid>/pagos', methods=['POST'])
 def registrar_pago(sid):
     s = _activo(sid)
@@ -241,35 +272,37 @@ def registrar_pago(sid):
     monto = _dinero(f.get('monto'), 'Monto', True)
     if monto <= 0:
         raise ValueError('El monto debe ser mayor a cero.')
-    try:
-        fecha = date.fromisoformat(f.get('fecha_pago') or '')
-    except ValueError:
-        raise ValueError('La fecha de pago no es válida.')
-    if fecha > date.today():
-        raise ValueError('La fecha de pago no puede ser futura.')
+    estado = (f.get('estado') or 'Pagado').strip()
+    if estado not in ('Pagado', 'Pendiente'):
+        raise ValueError('Indica si el pago ya está pagado o pendiente de pago.')
+    fecha = _fecha_pago(f.get('fecha_pago')) if estado == 'Pagado' else None
     benef = (f.get('beneficiario') or '').strip()[:120]
     if pr.clave == 'VI' and not benef:
         raise ValueError('En VIDA el beneficiario es obligatorio.')
-    archivo = request.files.get('comprobante')
-    nombre_arch = None
-    if archivo and archivo.filename:
-        ext = os.path.splitext(archivo.filename)[1].lower()
-        if ext not in EXT_COMPROBANTE:
-            raise ValueError('El comprobante debe ser PDF, JPG o PNG.')
-        datos = archivo.read()
-        if len(datos) > MAX_COMPROBANTE:
-            raise ValueError('El comprobante es demasiado grande (máximo 10 MB).')
-        nombre_arch = f'p{uuid.uuid4().hex[:10]}{ext}'
-        with open(os.path.join(_carpeta_pagos(s.folio), nombre_arch), 'wb') as out:
-            out.write(datos)
+    nombre_arch = _guardar_comprobante(s, request.files.get('comprobante'))
     p = SiniestroPago(siniestro_id=s.id, fecha_pago=fecha, concepto=concepto, monto=monto, beneficiario=benef or None,
-                      estado='Vigente', comprobante=nombre_arch, registrado_por=current_user.id)
+                      estado=estado, comprobante=nombre_arch, registrado_por=current_user.id)
     db.session.add(p)
-    _log(s, 'Pago registrado', f'{concepto} por ${float(monto):,.2f}' + (f' a {benef}' if benef else '') + (' (con comprobante)' if nombre_arch else ''))
+    _log(s, 'Pago registrado' if estado == 'Pagado' else 'Pago pendiente registrado',
+         f'{concepto} por ${float(monto):,.2f}' + (f' a {benef}' if benef else '') + (' (pendiente de pago)' if estado == 'Pendiente' else '') + (' (con comprobante)' if nombre_arch else ''))
     db.session.commit()
     return jsonify({'ok': True, 'id': p.id})
 
 
+@api('pagos/<int:pid>/pagar', methods=['POST'])
+def marcar_pagado(pid):
+    p = SiniestroPago.query.get_or_404(pid)
+    if p.estado != 'Pendiente':
+        raise ValueError('Sólo se puede marcar como pagado un pago pendiente.')
+    s = _activo(p.siniestro_id)
+    fecha = _fecha_pago(request.form.get('fecha_pago'))
+    nombre = _guardar_comprobante(s, request.files.get('comprobante'))
+    p.estado, p.fecha_pago = 'Pagado', fecha
+    if nombre:
+        p.comprobante = nombre
+    _log(s, 'Pago marcado como pagado', f'Pago #{p.id} por ${float(p.monto):,.2f} · {p.concepto}. Fecha de pago {_fmt(fecha)}' + (' (con comprobante)' if nombre else ''))
+    db.session.commit()
+    return jsonify({'ok': True})
 
 
 @api('pagos/<int:pid>/comprobante')
@@ -447,6 +480,9 @@ def cerrar(sid):
     ab = Siniestro.query.filter_by(origen_id=s.id, estado='Activo').count()
     if ab:
         raise ValueError(f'No se puede cerrar: tiene {ab} siniestro(s) derivado(s) abierto(s). Ciérralos primero.')
+    pend = SiniestroPago.query.filter_by(siniestro_id=s.id, estado='Pendiente').count()
+    if pend:
+        raise ValueError(f'No se puede cerrar: tiene {pend} pago(s) pendiente(s) de pago. Márcalos como pagados o cancélalos.')
     s.estatus_id = es.id
     s.estado = 'Cerrado'
     s.resultado = d['resultado']

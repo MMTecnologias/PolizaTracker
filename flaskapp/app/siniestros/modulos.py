@@ -174,7 +174,7 @@ def historial():
     pagado, reaps, cierre_por = {}, {}, {}
     if ids:
         for sid, tot in (db.session.query(SiniestroPago.siniestro_id, func.sum(SiniestroPago.monto))
-                         .filter(SiniestroPago.siniestro_id.in_(ids), SiniestroPago.estado == 'Vigente')
+                         .filter(SiniestroPago.siniestro_id.in_(ids), SiniestroPago.estado == 'Pagado')
                          .group_by(SiniestroPago.siniestro_id).all()):
             pagado[sid] = float(tot or 0)
         bit = (SiniestroBitacora.query.filter(SiniestroBitacora.siniestro_id.in_(ids),
@@ -248,15 +248,20 @@ def pagos():
              .join(Poliza, Poliza.id == Siniestro.poliza_id)
              .join(Cliente, Cliente.id == Poliza.cliente_id)
              .join(Aseguradora, Aseguradora.id == Siniestro.aseguradora_id)
-             .order_by(SiniestroPago.fecha_pago.desc(), SiniestroPago.id.desc()).all())
+             .order_by(SiniestroPago.fecha_pago.is_(None).desc(), SiniestroPago.fecha_pago.desc(), SiniestroPago.id.desc()).all())
     nombres = {u.id: u.username for u in Usuario.query.all()}
-    out = [{'id': p.id, 'siniestro_id': s.id, 'fecha': _fmt(p.fecha_pago), 'fecha_iso': p.fecha_pago.strftime('%Y-%m-%d'),
-            'folio': s.folio, 'proceso': pr.nombre, 'proceso_clave': pr.clave,
-            'cliente': (f'Beneficiario: {p.beneficiario}' if p.beneficiario else f'{cl.nombre} {cl.apellido}'.strip()),
+    tipos = {t.id: t.nombre for t in SiniestroTipo.query.all()}
+    out = [{'id': p.id, 'siniestro_id': s.id, 'fecha': _fmt(p.fecha_pago) if p.fecha_pago else 'Sin fecha',
+            'fecha_iso': p.fecha_pago.strftime('%Y-%m-%d') if p.fecha_pago else '',
+            'folio': s.folio, 'proceso': pr.nombre, 'proceso_clave': pr.clave, 'tipo': tipos.get(s.tipo_id, '—'),
+            'cliente': f'{cl.nombre} {cl.apellido}'.strip(), 'beneficiario': p.beneficiario or '—',
             'aseguradora': ase.aseguradora, 'concepto': p.concepto, 'monto': float(p.monto), 'estado': p.estado,
             'motivo': p.motivo_cancelacion, 'comprobante': bool(p.comprobante),
-            'registro': nombres.get(p.registrado_por, '—')} for p, s, pr, po, cl, ase in filas]
-    return jsonify({'items': out, 'total': len(out)})
+            'registro': nombres.get(p.registrado_por, '—'), 'registro_id': p.registrado_por or 0,
+            'activo': s.estado == 'Activo'} for p, s, pr, po, cl, ase in filas]
+    reg = sorted({(o['registro_id'], o['registro']) for o in out if o['registro_id']}, key=lambda x: x[1])
+    return jsonify({'items': out, 'total': len(out), 'registran': [{'id': i, 'nombre': n} for i, n in reg],
+                    'tipos': sorted({o['tipo'] for o in out if o['tipo'] != '—'})})
 
 
 @api('pagos/<int:pid>/cancelar', methods=['POST'])

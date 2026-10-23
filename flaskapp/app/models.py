@@ -756,11 +756,11 @@ class SiniestroPago(db.Model):
     __tablename__ = 'siniestro_pagos'
     id = Column(Integer, primary_key=True)
     siniestro_id = Column(Integer, ForeignKey('siniestros.id'), nullable=False)
-    fecha_pago = Column(Date, nullable=False)
+    fecha_pago = Column(Date, nullable=True)   # vacía mientras el pago está Pendiente
     concepto = Column(String(60), nullable=False)
     monto = Column(DECIMAL(14, 2), nullable=False)
     beneficiario = Column(String(120))
-    estado = Column(Enum('Vigente', 'Cancelado'), nullable=False, default='Vigente')
+    estado = Column(Enum('Pendiente', 'Pagado', 'Cancelado'), nullable=False, default='Pagado')
     motivo_cancelacion = Column(String(255))
     comprobante = Column(String(255))
     registrado_por = Column(Integer, ForeignKey('usuarios.id'), nullable=True)

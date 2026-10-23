@@ -243,6 +243,7 @@
   <!-- PAGOS -->
   <div class="vista" id="v-pagos">
    <div class="resumen-fila" id="p-resumen"></div>
+   <details class="rs-det" id="p-det"><summary>Resumen por concepto y aseguradora</summary><div class="rs-cuerpo" id="p-rs"></div></details>
    <div class="polizas-toolbar">
      <input class="form-control my-2 polizas-toolbar__search" type="search" placeholder="Buscar por folio, cliente o beneficiario" id="p-buscar">
      <button class="btn px-4 py-2" id="p-filtros">Filtros</button>
@@ -253,15 +254,17 @@
    <div class="polizas-total" id="p-total"></div>
    <div class="polizas-filtros" id="p-panel" style="display:none">
      <div class="polizas-filtros__campo"><label>Proceso</label><select class="custom-select" id="p-fProceso"><option value="">Todos</option></select></div>
+     <div class="polizas-filtros__campo"><label>Tipo de siniestro</label><select class="custom-select" id="p-fTipo"><option value="">Todos</option></select></div>
      <div class="polizas-filtros__campo"><label>Aseguradora</label><select class="custom-select" id="p-fAseg"><option value="">Todas</option></select></div>
+     <div class="polizas-filtros__campo"><label>Registró</label><select class="custom-select" id="p-fReg"><option value="">Todos</option></select></div>
      <div class="polizas-filtros__campo"><label>Concepto</label><select class="custom-select" id="p-fConc"><option value="">Todos</option></select></div>
-     <div class="polizas-filtros__campo"><label>Estado del pago</label><select class="custom-select" id="p-fEst"><option value="">Todos</option><option>Vigente</option><option>Cancelado</option></select></div>
+     <div class="polizas-filtros__campo"><label>Estado del pago</label><select class="custom-select" id="p-fEst"><option value="">Todos</option><option value="Pagado">Pagado</option><option value="Pendiente">Pendiente de pago</option><option value="Cancelado">Cancelado</option></select></div>
      <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Fecha de pago desde</label><input type="date" class="form-control" id="p-fDesde"></div>
      <div class="polizas-filtros__campo polizas-filtros__campo--fecha"><label>Fecha de pago hasta</label><input type="date" class="form-control" id="p-fHasta"></div>
      <div class="polizas-filtros__acciones"><button class="btn px-3 py-2" id="p-aplicar">Aplicar</button><button class="btn" id="p-limpiar">Limpiar</button></div>
    </div>
    <div class="table-polizas__scroll"><table class="table"><thead class="tableHeader"><tr>
-     <th>Fecha de pago</th><th>Folio</th><th>Proceso</th><th>Cliente / Beneficiario</th><th>Aseguradora</th><th>Concepto</th><th style="text-align:right">Monto</th><th>Estado</th><th>Comprobante</th><th>Registró</th><th>Acciones</th></tr></thead><tbody id="p-tbody"></tbody></table></div>
+     <th>Fecha de pago</th><th>Folio</th><th>Proceso</th><th>Tipo de siniestro</th><th>Cliente</th><th>Beneficiario</th><th>Aseguradora</th><th>Concepto</th><th style="text-align:right">Monto</th><th>Estado</th><th>Comprobante</th><th>Registró</th><th>Acciones</th></tr></thead><tbody id="p-tbody"></tbody></table></div>
    <div class="w-100 d-flex justify-content-center table-polizas__pagination"><div id="p-pag" class="paginationList"></div></div>
   </div>
 
@@ -337,7 +340,7 @@
 <div class="mq-back" id="m-reaps"><div class="mq-modal"><header><h5>Reaperturas de <span id="rp-folio" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
  <div class="cuerpo"><div id="rp-cuerpo"></div></div>
  <footer><button class="btn" data-cerrar>Cerrar</button></footer></div></div>
-<style>.reap-link{font-size:11px;color:#c0392b;text-decoration:underline}.rp-item{border-bottom:1px solid #eee;padding:8px 0;font-size:13px}.rp-mot{color:#555;margin-top:2px;white-space:pre-wrap}</style>
+<style>.rs-det{margin:4px 0 8px;font-size:13px}.rs-det summary{cursor:pointer;color:#c0392b;font-weight:600}.rs-cuerpo{display:flex;gap:24px;flex-wrap:wrap;padding:8px 0}.rs-bloque table{font-size:12.5px;min-width:230px}.rs-bloque td{padding:1px 8px 1px 0}.res-card .mono{display:block;font-size:12px;color:#666}.reap-link{font-size:11px;color:#c0392b;text-decoration:underline}.rp-item{border-bottom:1px solid #eee;padding:8px 0;font-size:13px}.rp-mot{color:#555;margin-top:2px;white-space:pre-wrap}</style>
 <!-- Modal: reabrir -->
 <div class="mq-back" id="m-reabrir"><div class="mq-modal"><header><h5>Reabrir siniestro <span id="rb-folio" style="font-weight:600"></span></h5><span data-cerrar>&times;</span></header>
  <div class="cuerpo">
@@ -379,10 +382,10 @@
    <script src="{{ url_for('static', filename='assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/popper.min.js') }}"></script>
    <script src="{{ url_for('static', filename='assets/js/bootstrap.min.js') }}"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=11"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=11"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=11"></script>
-   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=11"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_tabla.js') }}?v=12"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_modulos.js') }}?v=12"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_acciones.js') }}?v=12"></script>
+   <script src="{{ url_for('static', filename='assets/js/siniestros_nuevo.js') }}?v=12"></script>
 </body>
 
 </html>

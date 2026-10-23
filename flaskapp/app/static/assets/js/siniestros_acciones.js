@@ -100,9 +100,9 @@
       } else if (TAB === 'pagos') {
          h = '<div class="sa-sec"><h6>Pagos del siniestro</h6>' + (ab ? '<button class="sa-btn pri" data-ac="pago">Registrar pago</button>' : '') + '</div>';
          h += D.pagos.length ? '<table class="sa-tb"><thead><tr><th>Fecha</th><th>Concepto</th><th>Beneficiario</th><th style="text-align:right">Monto</th><th>Estado</th><th></th></tr></thead><tbody>' +
-            D.pagos.map(p => '<tr' + (p.estado === 'Cancelado' ? ' style="opacity:.55"' : '') + '><td class="mono">' + esc(p.fecha) + '</td><td>' + esc(p.concepto) + '</td><td>' + esc(p.beneficiario) + '</td><td class="mono" style="text-align:right">' + money(p.monto) + '</td><td>' + chip(p.estado === 'Vigente' ? 'chip-ok' : 'chip-bad', p.estado) + (p.motivo ? '<br><small>' + esc(p.motivo) + '</small>' : '') + '</td><td>' +
-               (p.comprobante ? '<a href="/siniestros/api/pagos/' + p.id + '/comprobante" target="_blank">Comprobante</a> ' : '') + (ab && p.estado === 'Vigente' ? '<a href="#" data-cp="' + p.id + '" data-m="' + p.monto + '">Cancelar</a>' : '') + '</td></tr>').join('') + '</tbody></table>' : '<p class="sa-vacio">Todavía no hay pagos registrados.</p>';
-         h += '<div class="sa-montos" style="margin-top:12px"><div><small>Aprobado</small><b>' + money(m.aprobado) + '</b></div><div><small>Pagado</small><b>' + money(m.pagado) + '</b></div><div class="' + (m.pendiente > 0 ? 'pend' : '') + '"><small>Pendiente</small><b>' + money(m.pendiente) + '</b></div></div>';
+            D.pagos.map(p => '<tr' + (p.estado === 'Cancelado' ? ' style="opacity:.55"' : '') + '><td class="mono">' + (p.fecha ? esc(p.fecha) : '<span style="color:#999">Sin fecha</span>') + '</td><td>' + esc(p.concepto) + '</td><td>' + esc(p.beneficiario) + '</td><td class="mono" style="text-align:right">' + money(p.monto) + '</td><td>' + chip(p.estado === 'Pagado' ? 'chip-ok' : p.estado === 'Pendiente' ? 'chip-gris' : 'chip-bad', p.estado === 'Pendiente' ? 'Pendiente de pago' : p.estado) + (p.motivo ? '<br><small>' + esc(p.motivo) + '</small>' : '') + '</td><td>' +
+               (p.comprobante ? '<a href="/siniestros/api/pagos/' + p.id + '/comprobante" target="_blank">Comprobante</a> ' : '') + (ab && p.estado === 'Pendiente' ? '<a href="#" data-mp="' + p.id + '" data-m="' + p.monto + '">Marcar pagado</a> ' : '') + (ab && p.estado !== 'Cancelado' ? '<a href="#" data-cp="' + p.id + '" data-m="' + p.monto + '">Cancelar</a>' : '') + '</td></tr>').join('') + '</tbody></table>' : '<p class="sa-vacio">Todavía no hay pagos registrados.</p>';
+         h += '<div class="sa-montos" style="margin-top:12px"><div><small>Aprobado</small><b>' + money(m.aprobado) + '</b></div><div><small>Pagado</small><b>' + money(m.pagado) + '</b></div><div><small>Pagos pendientes de pago</small><b>' + money(m.por_pagar) + '</b></div><div class="' + (m.pendiente > 0 ? 'pend' : '') + '"><small>Pendiente</small><b>' + money(m.pendiente) + '</b></div></div>';
       } else if (TAB === 'familia') {
          const t = D.familia_totales;
          h = D.familia.length > 1 ? '<table class="sa-tb"><thead><tr><th>Siniestro</th><th>Proceso</th><th>Estatus</th><th style="text-align:right">Pagado</th></tr></thead><tbody>' +
@@ -126,6 +126,8 @@
       const a = e.target.closest('[data-ac]');
       if (a && !a.classList.contains('off')) { ACCIONES[a.dataset.ac](); return; }
       if (a) { toast(a.title || 'Acción no disponible'); return; }
+      const mp = e.target.closest('[data-mp]');
+      if (mp) { e.preventDefault(); marcarPagado(+mp.dataset.mp, +mp.dataset.m); return; }
       const cp = e.target.closest('[data-cp]');
       if (cp) { e.preventDefault(); cancelarPago(+cp.dataset.cp, +cp.dataset.m); return; }
       const v = e.target.closest('[data-ver]');
@@ -155,12 +157,13 @@
             { t: 'info', h: 'Los pagos <b>no se editan</b>: si te equivocas, se cancela con motivo y se registra otro.' },
             { k: 'concepto', l: 'Concepto', t: 'select', o: D.conceptos.map(c => ({ v: c, t: c })), req: 1 },
             { k: 'monto', l: 'Monto', t: 'number', req: 1 },
-            { k: 'fecha_pago', l: 'Fecha de pago', t: 'date', v: hoy(), max: hoy(), req: 1 },
+            { k: 'estado', l: 'Estado del pago', t: 'select', o: [{ v: 'Pagado', t: 'Pagado' }, { v: 'Pendiente', t: 'Pendiente de pago' }], req: 1, hint: 'Si queda pendiente, después lo marcas como pagado desde aquí o desde la pestaña Pagos.' },
+            { k: 'fecha_pago', l: 'Fecha de pago (sólo si ya está pagado)', t: 'date', v: hoy(), max: hoy() },
             { k: 'beneficiario', l: 'Beneficiario' + (D.proceso.clave === 'VI' ? '' : ' (opcional)'), t: 'text', req: D.proceso.clave === 'VI', hint: D.proceso.clave === 'VI' ? 'En VIDA se registra un pago por beneficiario.' : '' },
             { k: 'comprobante', l: 'Comprobante (opcional)', t: 'file', accept: '.pdf,.jpg,.jpeg,.png', hint: 'PDF, JPG o PNG · máximo 10 MB' }
          ], 'Registrar pago', async o => {
-            const fd = new FormData(); ['concepto', 'monto', 'fecha_pago', 'beneficiario'].forEach(k => fd.append(k, o[k] || '')); if (o.comprobante) fd.append('comprobante', o.comprobante);
-            await http('POST', 'siniestros/' + D.id + '/pagos', fd); toast('Pago registrado.'); await refrescar('pagos');
+            const fd = new FormData(); ['concepto', 'monto', 'estado', 'fecha_pago', 'beneficiario'].forEach(k => fd.append(k, o[k] || '')); if (o.comprobante) fd.append('comprobante', o.comprobante);
+            await http('POST', 'siniestros/' + D.id + '/pagos', fd); toast(o.estado === 'Pendiente' ? 'Pago registrado como pendiente de pago.' : 'Pago registrado.'); await refrescar('pagos');
          });
       },
       async datos() {
@@ -227,6 +230,15 @@
          ], 'Cerrar siniestro', async o => { await http('POST', 'siniestros/' + D.id + '/cerrar', { resultado: o.resultado, estatus_id: +o.estatus_id, comentario: o.comentario }); toast('Siniestro cerrado. Quedó en el Historial.'); cerrarPanel(); avisar(); }, { peligro: true });
       }
    };
+   function marcarPagado(pid, monto) {
+      form('Marcar como pagado · ' + money(monto), [
+         { k: 'fecha_pago', l: 'Fecha en que se pagó', t: 'date', v: hoy(), max: hoy(), req: 1 },
+         { k: 'comprobante', l: 'Comprobante (opcional)', t: 'file', accept: '.pdf,.jpg,.jpeg,.png', hint: 'PDF, JPG o PNG · máximo 10 MB' }
+      ], 'Marcar como pagado', async o => {
+         const fd = new FormData(); fd.append('fecha_pago', o.fecha_pago || ''); if (o.comprobante) fd.append('comprobante', o.comprobante);
+         await http('POST', 'pagos/' + pid + '/pagar', fd); toast('Pago marcado como pagado. Quedó en bitácora.'); await refrescar('pagos');
+      });
+   }
    function cancelarPago(pid, monto) {
       form('Cancelar pago por ' + money(monto), [{ k: 'motivo', l: 'Motivo de la cancelación', t: 'area', req: 1 }], 'Cancelar pago',
          async o => { await http('POST', 'pagos/' + pid + '/cancelar', o); toast('Pago cancelado. El registro se conserva.'); await refrescar('pagos'); }, { peligro: true });
@@ -237,8 +249,9 @@
    window.addEventListener('siniestros:accion', async e => {
       const { a, id, pref } = e.detail;
       if (a === 'ver') { abrirDetalle(id, 'info'); return; }
-      await abrirDetalle(id, a === 'pago' ? 'pagos' : a === 'bitacora' ? 'bit' : 'info');
+      await abrirDetalle(id, a === 'pago' || a === 'pagar' ? 'pagos' : a === 'bitacora' ? 'bit' : 'info');
       if (!D) return;
+      if (a === 'pagar') { marcarPagado(e.detail.pid, e.detail.monto); return; }
       const k = { estatus: 'estatus', bitacora: 'nota', pago: 'pago', derivado: 'derivado', comunicacion: 'comunicacion', cerrar: 'cerrar' }[a];
       if (k) { if (k === 'cerrar' && D.derivados_abiertos) { toast('No se puede cerrar: tiene ' + D.derivados_abiertos + ' derivado(s) abierto(s).'); return; } ACCIONES[k](pref); }
    });
