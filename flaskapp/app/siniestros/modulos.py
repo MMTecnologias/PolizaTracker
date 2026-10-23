@@ -29,6 +29,7 @@ CANALES = ['WhatsApp / Correo', 'WhatsApp', 'Correo']
 #   meta/unidad: tope de tiempo · pct: % de casos que debe cumplirlo · pct_proc: % procedente esperado
 #   inicia: estatus en el que empieza a correr el conteo (None = desde el registro o la reapertura)
 #   fin: estatus que detienen el conteo (vacío = el cierre del siniestro)
+#   pct_proc None = el proceso no mide % procedente (Siniestro Inicial)
 #   incid: estatus que cuentan como incidencia (ciclos de corrección o rechazo)
 METAS = {
     'CIR': {'meta': 9, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 95, 'inicia': 'Folio registrado',
@@ -40,12 +41,13 @@ METAS = {
     'REM': {'meta': 10, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 95, 'inicia': 'Documentación completa',
             'fin': ['Notificado', 'Cerrado, procedente'], 'incid': ['Documentación incompleta', 'Corrección de aseguradora'],
             'texto': '≤ 10 días hábiles, de «Documentación completa» a la notificación del finiquito'},
-    'RA': {'meta': 10, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 98, 'inicia': None, 'fin': [], 'incid': None,
+    'RA': {'meta': 10, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 98, 'inicia': None, 'fin': [], 'incid': ['Pago rechazado'],
            'texto': '≤ 10 días hábiles, del registro al cierre'},
     'VI': {'meta': 15, 'unidad': 'días hábiles', 'pct': 95, 'pct_proc': 95, 'inicia': 'Documentación completa', 'fin': [],
            'incid': ['Dictamen negativo'], 'dictamen_dias': 30,
            'texto': '≤ 15 días hábiles, de «Documentación completa» al cierre'},
-    'SI': None,
+    'SI': {'meta': 12, 'unidad': 'horas', 'pct': 90, 'pct_proc': None, 'inicia': 'Ajustador asignado', 'fin': ['Ajustador en sitio'],
+           'incid': ['Incidencia abierta'], 'texto': '≤ 12 horas, de «Ajustador asignado» a la llegada del ajustador («Ajustador en sitio»)'},
 }
 META_PROCEDENTE = 95   # valor por omisión; cada proceso trae su 'pct_proc'
 
@@ -203,7 +205,7 @@ def _ordenes():
 
 
 def _tiempo_txt(ini, fin, clave):
-    if clave == 'PD':
+    if (METAS.get(clave) or {}).get('unidad') == 'horas':
         mins = max(0, int((fin - ini).total_seconds() // 60))
         return f'{mins // 60} h {mins % 60:02d} min'
     d = dias_habiles_entre(ini, fin)
@@ -219,7 +221,9 @@ def _medir(s, clave, ordenes, bit):
     etapas = [e for e in map(_etapa, bit) if e]
     res = {'n_reap': len(reaps), 'inicio': None, 'fin': s.fecha_cierre, 'tiempo': '', 'cumple': None, 'incid': None, 'dict_ok': None}
     if m and m.get('incid') is not None:
-        res['incid'] = sum(1 for f, n, a in etapas if a == 'Cambio de estatus' and n in m['incid']) + (1 if clave == 'VI' and s.resultado == 'Rechazado' else 0)
+        res['incid'] = sum(1 for f, n, a in etapas if a == 'Cambio de estatus' and n in m['incid'])
+        if clave in ('VI', 'RA') and s.resultado == 'Rechazado' and not res['incid']:
+            res['incid'] = 1                              # cerrado como rechazado sin pasar por el estatus de rechazo
     if not m or s.fecha_cierre is None:
         return res
     ciclo = [e for e in etapas if e[0] >= ini_ciclo]
@@ -790,7 +794,7 @@ def _metricas(clave, ini, fin, aseg_id):
     pct = lambda a, b: round(100 * a / b) if b else None   # noqa: E731
     inc = None if not m or m.get('incid') is None else sum(x['incid'] or 0 for x in meds)
     dic = [x['dict_ok'] for x in meds if x['dict_ok'] is not None]
-    return {'cerrados': n, 'medidos': len(con_meta), 'pct_plazo': pct(dentro, len(con_meta)), 'pct_procedente': pct(proced, n),
+    return {'cerrados': n, 'medidos': len(con_meta), 'pct_plazo': pct(dentro, len(con_meta)), 'pct_procedente': pct(proced, n) if m and m.get('pct_proc') is not None else None,
             'incidencias': inc, 'pct_dictamen': pct(sum(dic), len(dic)) if dic else None, 'n_dictamen': len(dic)}
 
 
@@ -883,7 +887,7 @@ def reportes():
         tabla.append(dict(m, proceso=k, proceso_nombre=SiniestroProceso.query.filter_by(clave=k).first().nombre, meta=METAS[k],
                           reaperturas=len(_reaperturas(k, ini, fin, aseg_id)), pagado=_pagos_rep(k, ini, fin, aseg_id)['pagado']))
     meta = METAS[clave]
-    return jsonify({'proceso': clave, 'meta': meta, 'meta_procedente': meta['pct_proc'] if meta else META_PROCEDENTE,
+    return jsonify({'proceso': clave, 'meta': meta, 'meta_procedente': meta['pct_proc'] if meta else None,
                     'desde': ini.isoformat(), 'hasta': fin.isoformat(), 'actual': actual, 'previo': previo,
                     'reaperturas': reaps, 'reaperturas_previo': len(reaps_prev), 'pagos': pagos, 'pagos_previo': pagos_prev,
                     'tendencia': tendencia, 'tabla': tabla})

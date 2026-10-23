@@ -17,7 +17,8 @@ INSERT IGNORE INTO siniestro_estatus (proceso_id,orden,nombre,descripcion,tipo,e
   SELECT 107,'Finiquito enviado al asegurado','Finiquito enviado al asegurado, en espera de firma','pendiente' UNION ALL
   SELECT 108,'Finiquito firmado recibido','Finiquito firmado recibido, listo para enviar a aseguradora','otro' UNION ALL
   SELECT 110,'Comprobante de pago recibido','Comprobante de pago recibido, pendiente de confirmar con asegurado','pendiente' UNION ALL
-  SELECT 111,'Pago confirmado','Pago confirmado con asegurado, listo para cierre','otro') x WHERE p.clave='RA';
+  SELECT 111,'Pago confirmado','Pago confirmado con asegurado, listo para cierre','otro' UNION ALL
+  SELECT 104,'Pago rechazado','La aseguradora rechazó el pago; se insiste para que se apruebe (cuenta como incidencia)','aseguradora') x WHERE p.clave='RA';
 UPDATE siniestro_estatus SET es_final=1 WHERE proceso_id=(SELECT id FROM siniestro_procesos WHERE clave='RA') AND nombre='Cerrado';
 
 -- ============ Reclamación VIDA (VI) ============
@@ -52,8 +53,12 @@ INSERT IGNORE INTO siniestro_estatus (proceso_id,orden,nombre,descripcion,tipo,e
   SELECT id,8,'Alta registrada','Alta hospitalaria registrada, en espera de dictamen (arranca el conteo de 3 horas)','aseguradora',0 FROM siniestro_procesos WHERE clave='PD';
 
 -- ============ Orden final consecutivo en los procesos tocados ============
+-- «Pago rechazado» (RA) queda justo después de «Documentación enviada»; el resto conserva su orden.
 UPDATE siniestro_estatus e
-  JOIN (SELECT id, ROW_NUMBER() OVER (PARTITION BY proceso_id ORDER BY orden, id) rn FROM siniestro_estatus) r ON r.id = e.id
+  JOIN (SELECT s.id, ROW_NUMBER() OVER (PARTITION BY s.proceso_id ORDER BY
+          CASE WHEN s.nombre = 'Pago rechazado' AND d.orden IS NOT NULL THEN d.orden + 0.5 ELSE s.orden END, s.id) rn
+        FROM siniestro_estatus s
+        LEFT JOIN siniestro_estatus d ON d.proceso_id = s.proceso_id AND d.nombre = 'Documentación enviada') r ON r.id = e.id
   JOIN siniestro_procesos p ON p.id = e.proceso_id
 SET e.orden = r.rn WHERE p.clave IN ('RA','VI','SI','PD');
 

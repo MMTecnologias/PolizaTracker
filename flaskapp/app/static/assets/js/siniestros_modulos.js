@@ -440,14 +440,14 @@
       const kn = (t, v, m, dl) => '<div class="kpi" style="border-top-color:#8a94a6"><h6>' + t + '</h6><div class="v">' + v + '</div><div class="m">' + m + '</div>' + (dl ? '<span class="d" style="margin-left:0">' + dl + '</span>' : '') + '</div>';
       let h = '';
       if (!mt) {
-         nota.style.display = ''; nota.textContent = 'Siniestro Inicial aún no tiene indicador de tiempo definido: se reporta el volumen de cerrados, reaperturas y pagos.';
+         nota.style.display = ''; nota.textContent = 'Este proceso no tiene indicador de tiempo definido: se reporta el volumen de cerrados, reaperturas y pagos.';
          h += kn('Siniestros cerrados', a.cerrados, 'en el periodo', delta(a.cerrados, p.cerrados, 'casos'));
          $('#x-gtit').textContent = ''; $('#x-graf').innerHTML = '<p style="color:#888;padding:20px;text-align:center">Sin indicador de plazo para este proceso</p>';
       } else {
          nota.style.display = 'none';
          h += kpi('% dentro de plazo', a.pct_plazo == null ? '—' : a.pct_plazo + '%', 'Meta: ' + esc(mt.texto) + ' en ≥ ' + mt.pct + '% de los casos', a.pct_plazo == null ? null : a.pct_plazo >= mt.pct, delta(a.pct_plazo, p.pct_plazo, 'pts'));
-         h += kpi('% procedente', a.pct_procedente == null ? '—' : a.pct_procedente + '%', 'Meta: ≥ ' + REP.meta_procedente + '%', a.pct_procedente == null ? null : a.pct_procedente >= REP.meta_procedente, delta(a.pct_procedente, p.pct_procedente, 'pts'));
-         if (mt.incid) h += kpi(k === 'VI' ? 'Dictámenes negativos / rechazos' : 'Ciclos de corrección', a.incidencias, 'Meta: 0 · ' + a.cerrados + ' casos cerrados · ' + (k === 'VI' ? 'dictamen negativo o rechazo' : esc(mt.incid.join(' / ').toLowerCase())), a.cerrados ? a.incidencias === 0 : null, a.incidencias === p.incidencias ? 'sin cambio' : (a.incidencias > p.incidencias ? '▲ +' : '▼ ') + Math.abs(a.incidencias - p.incidencias) + ' vs. periodo anterior');
+         if (REP.meta_procedente != null) h += kpi('% procedente', a.pct_procedente == null ? '—' : a.pct_procedente + '%', 'Meta: ≥ ' + REP.meta_procedente + '%', a.pct_procedente == null ? null : a.pct_procedente >= REP.meta_procedente, delta(a.pct_procedente, p.pct_procedente, 'pts'));
+         if (mt.incid) h += kpi(k === 'VI' ? 'Dictámenes negativos / rechazos' : k === 'RA' ? 'Pagos rechazados' : k === 'SI' ? 'Incidencias reportadas' : 'Ciclos de corrección', a.incidencias, 'Meta: 0 · ' + a.cerrados + ' casos cerrados · ' + (k === 'VI' ? 'dictamen negativo o rechazo' : k === 'RA' ? 'pago rechazado por la aseguradora' : esc(mt.incid.join(' / ').toLowerCase())), a.cerrados ? a.incidencias === 0 : null, a.incidencias === p.incidencias ? 'sin cambio' : (a.incidencias > p.incidencias ? '▲ +' : '▼ ') + Math.abs(a.incidencias - p.incidencias) + ' vs. periodo anterior');
          else h += kn('Incidencias', '—', 'Este proceso no tiene incidencias definidas en el contrato');
          if (mt.dictamen_dias) h += kpi('Dictamen en ≤ ' + mt.dictamen_dias + ' días naturales', a.pct_dictamen == null ? '—' : a.pct_dictamen + '%', 'Del folio registrado al dictamen · ' + a.n_dictamen + ' dictámenes · Meta ≥ ' + mt.pct + '%', a.pct_dictamen == null ? null : a.pct_dictamen >= mt.pct, delta(a.pct_dictamen, p.pct_dictamen, 'pts'));
          grafica(REP.tendencia, mt.pct);
