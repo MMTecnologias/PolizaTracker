@@ -190,6 +190,19 @@ class Recibo(db.Model):
     no_de_recibo = Column(String(30), default="1 / 1")
 
 
+
+class RecordatorioCobro(db.Model):
+    """Registro de cada recordatorio de aviso de cobro enviado.
+    UNIQUE(recibo_id, tipo) garantiza que no se mande dos veces el mismo."""
+    __tablename__ = 'recordatorios_cobro'
+    __table_args__ = (db.UniqueConstraint('recibo_id', 'tipo', name='uq_recordatorio_recibo_tipo'),)
+    id = Column(Integer, primary_key=True)
+    recibo_id = Column(Integer, ForeignKey('recibos.id'), nullable=False)
+    tipo = Column(Enum('previo', 'vencido'), nullable=False)
+    destinatario = Column(String(120))
+    enviado_en = Column(DateTime, server_default=func.now())
+    resultado = Column(String(255))
+
 class Servicio(db.Model):
     __tablename__ = 'servicios'
     id = Column(Integer, primary_key=True)

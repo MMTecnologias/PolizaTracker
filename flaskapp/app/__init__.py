@@ -108,6 +108,10 @@ if not app.debug or _os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
 
         _scheduler = BackgroundScheduler()
         _scheduler.add_job(_respaldo_automatico, 'cron', hour=3, minute=0)
+        from app.utils.recordatorios_cobro import tarea_diaria as _recordatorios_cobro
+        _scheduler.add_job(lambda: _recordatorios_cobro(app), 'cron',
+                           hour=int(app.config.get('RECORDATORIOS_COBRO_HORA', 8)), minute=0,
+                           misfire_grace_time=3600, coalesce=True)
         _scheduler.start()
     except ImportError:
         app.logger.warning(
