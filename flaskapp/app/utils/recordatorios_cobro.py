@@ -91,7 +91,7 @@ def _ruta_aviso(cliente, poliza, recibo):
     return ruta if os.path.isfile(ruta) else None
 
 
-def enviar_recordatorios(hoy=None, dry_run=False, log=None):
+def enviar_recordatorios(hoy=None, dry_run=False, log=None, limite=None):
     """Devuelve dict con contadores y lista 'detalle'. Requiere app context."""
     log = log or current_app.logger.info
     hoy = hoy or date.today()
@@ -109,6 +109,8 @@ def enviar_recordatorios(hoy=None, dry_run=False, log=None):
                .order_by(Recibo.fecha_vencimiento, Recibo.id).all())
 
     for r in recibos:
+        if limite is not None and res['enviados'] >= limite:
+            break
         tipo = _tipo_que_toca(r, hoy)
         if not tipo:
             continue
