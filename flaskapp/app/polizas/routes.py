@@ -765,10 +765,11 @@ def edit():
     # Misma validación que en create(): el campo 'poliza' tiene máximo
     # 30 caracteres en la base de datos.
     MAX_LEN_POLIZA = 30
-    if len(str(arg_values.get('notas') or '')) > MAX_LEN_NOTAS:
+    notas_edit = str(form_value_mapping.get('notas') or '')
+    if len(notas_edit) > MAX_LEN_NOTAS:
         return jsonify({
             'error': True,
-            'msg': f'Las observaciones no pueden tener más de {MAX_LEN_NOTAS} caracteres (tienen {len(str(arg_values.get("notas")))}). Acórtalas e intenta de nuevo.',
+            'msg': f'Las observaciones no pueden tener más de {MAX_LEN_NOTAS} caracteres (tienen {len(notas_edit)}). Acórtalas e intenta de nuevo.',
             'title': 'Observaciones demasiado largas',
         })
     valor_poliza = str(form_value_mapping.get('Poliza') or '')
