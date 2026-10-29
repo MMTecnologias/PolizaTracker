@@ -2024,9 +2024,11 @@ $(function () {
                 }
             </p>
           </td>
-          <td style="color: ${getTextColor(poliza.status)}">${
+          <td style="color: ${getTextColor(poliza.status)}"><a href="#" class="cliente-link" data-cliente-id="${
+            poliza.cliente_id
+          }" title="Ver datos del cliente" style="color: inherit; text-decoration: underline; cursor: pointer;">${
             poliza.cliente
-          }</td>
+          }</a></td>
           <td style="color: ${getTextColor(poliza.status)}">${
             poliza.serie || ''
           }</td>

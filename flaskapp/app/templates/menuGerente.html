@@ -1023,7 +1023,7 @@
       </div>
    </div>
 
-   <!-- PESTAÑA: MÓDULOS (las 6 cards que el Gerente sí puede ver) -->
+   <!-- PESTAÑA: MÓDULOS (cards que el Gerente puede ver) -->
    <div class="gerente-tab-content" id="tab-modulos">
       <div class="general-card-container">
          <div class="tarjeta-container">
@@ -1072,6 +1072,20 @@
                   <img class="card-img-top tamanoIcaja"
                      src="{{ url_for('static',filename='assets/images/reportes.png') }}" />
                   <h3 class="text-card">Solicitudes</h3>
+               </div>
+            </a>
+            <a href="{{ url_for('main.cliente') }}" class="card" id="clientes">
+               <div name="clientes">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/clientes.png') }}" />
+                  <h3 class="text-card">Clientes</h3>
+               </div>
+            </a>
+            <a href="{{ url_for('main.usuario') }}" class="card" id="usuarios">
+               <div name="usuarios">
+                  <img class="card-img-top tamanoIcaja"
+                     src="{{ url_for('static',filename='assets/images/clientes.png') }}" />
+                  <h3 class="text-card">Usuarios</h3>
                </div>
             </a>
             <a href="{{ url_for('siniestros.index') }}" class="card" id="siniestros">

@@ -1,0 +1,35 @@
+<!-- Modal: datos del cliente al dar clic en su nombre en la tabla de pólizas.
+     Lo maneja static/assets/controladores/cliente_info.js -->
+<div class="modal fade" id="cliente-info-modal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1055;">
+   <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 560px;">
+      <div class="modal-content">
+         <div class="modal-header">
+            <h5 class="modal-title" id="cliente-info-titulo">Datos del cliente</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+            </button>
+         </div>
+         <div class="modal-body">
+            <div id="cliente-info-cargando" class="text-muted">Cargando…</div>
+            <div id="cliente-info-error" class="text-danger" style="display:none;"></div>
+            <table class="table table-sm mb-0" id="cliente-info-tabla" style="display:none;">
+               <tbody>
+                  <tr><th style="width:38%">Nombre</th><td data-campo="fullname"></td></tr>
+                  <tr><th>Grupo</th><td data-campo="grupo"></td></tr>
+                  <tr><th>RFC</th><td data-campo="rfc"></td></tr>
+                  <tr><th>Teléfono móvil</th><td data-campo="tel_movil"></td></tr>
+                  <tr><th>Correo</th><td data-campo="correo"></td></tr>
+                  <tr><th>Dirección</th><td data-campo="direccion"></td></tr>
+                  <tr><th>Fecha de nacimiento</th><td data-campo="fecha_nacimiento"></td></tr>
+                  <tr><th>Sexo</th><td data-campo="sexo"></td></tr>
+                  <tr><th>Ocupación</th><td data-campo="ocupacion"></td></tr>
+                  <tr><th>Actividad</th><td data-campo="actividad"></td></tr>
+               </tbody>
+            </table>
+         </div>
+         <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+         </div>
+      </div>
+   </div>
+</div>
