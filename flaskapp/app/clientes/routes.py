@@ -134,7 +134,9 @@ def get():
             'actividad': client.actividad,
             'apellido': client.apellido,
             'fullname': f"{client.nombre} {client.apellido}",
-            'cuenta': client.info_pago
+            'cuenta': client.info_pago,
+            'notas': client.notas,
+            'vencimiento_tarjeta': client.fecha_vencimiento
 
         })
 
