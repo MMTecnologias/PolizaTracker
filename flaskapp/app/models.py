@@ -226,13 +226,13 @@ class Acceso(db.Model):
 class Usuario(db.Model, UserMixin):
     __tablename__ = 'usuarios'
     id = Column(Integer, primary_key=True)
-    username = Column(String(10), nullable=False, unique=True)
+    username = Column(String(30), nullable=False, unique=True)
     password = Column(String(520), nullable=False)
     nivel_id = Column(Integer, ForeignKey('niveles_acceso.id'), nullable=False)
     nombre = Column(String(50), nullable=False)
     apellido = Column(String(50), nullable=False)
-    correo = Column(String(50), nullable=False)
-    telefono = Column(String(10), nullable=False)
+    correo = Column(String(50), nullable=True)
+    telefono = Column(String(10), nullable=True)
     status = Column(Enum('Activo', 'Eliminado'),
                     nullable=False, default='Activo')
 

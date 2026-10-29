@@ -47,8 +47,8 @@ $(function () {
         $('#usuario_id').val(resp.data[0].id);
         $('#nombre').val(resp.data[0].nombre);
         $('#apellido').val(resp.data[0].apellido);
-        $('#email').val(resp.data[0].correo);
-        $('#cel').val(resp.data[0].telefono);
+        $('#email').val(resp.data[0].correo || '');
+        $('#cel').val(resp.data[0].telefono || '');
         $('#username').val(resp.data[0].username);
         $('#password').prop('disabled', true);
         $('#acceso').html(`<option value='${resp.data[0].nivel_id}'>
@@ -106,8 +106,8 @@ $(function () {
       table.append(
         `<tr class="tableOption">
           <td>${usuario.fullname}</td>
-          <td>${usuario.correo}</td>
-          <td>${usuario.telefono}</td>
+          <td>${usuario.correo || ''}</td>
+          <td>${usuario.telefono || ''}</td>
           <td>${usuario.acceso}</td>
           <td>
             <ul class="btn_table_options">

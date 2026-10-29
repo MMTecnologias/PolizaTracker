@@ -79,6 +79,15 @@ def get():
 
     return jsonify(response)
 
+MAX_LEN_USERNAME = 30
+
+
+def _opcional(valor):
+    """Texto vacío -> None (correo y teléfono son opcionales)."""
+    valor = (valor or '').strip()
+    return valor or None
+
+
 #modify log
 @usuarios_route.route('/create', methods=['POST'])
 @login_required
@@ -89,7 +98,10 @@ def create():
                             'msg':"Hace falta enviar usuario_id"})
     # Si user_id es "New", entonces es una creación de usuario
     if user_id == "New":
-        username = request.form.get('username')
+        username = (request.form.get('username') or '').strip()
+        if len(username) > MAX_LEN_USERNAME:
+            return jsonify({'error': True,
+                            'msg': f"El username no puede tener más de {MAX_LEN_USERNAME} caracteres (tiene {len(username)})."})
         # Verificar si el nombre de usuario ya existe
         existing_user = Usuario.query.filter_by(username=username).first()
         if existing_user:
@@ -102,13 +114,19 @@ def create():
                 password=generate_password_hash(request.form.get('password')),
                 nombre=request.form.get('nombre'),
                 apellido=request.form.get('apellido'),
-                correo=request.form.get('email'),
-                telefono=request.form.get('cel'),
+                correo=_opcional(request.form.get('email')),
+                telefono=_opcional(request.form.get('cel')),
                 nivel_id=int(request.form.get('acceso'))
             )
             # Guardar el nuevo usuario en la base de datos
-            db.session.add(new_user)
-            db.session.commit()
+            try:
+                db.session.add(new_user)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception('Error al crear usuario')
+                return jsonify({'error': True,
+                                'msg': 'No se pudo guardar el usuario. Revisa que los datos no excedan el largo permitido e intenta de nuevo.'})
             request_entry = Request(usuario_id=current_user.id,
                                     description=f"Crear Usuario {new_user.nombre} {new_user.apellido}",
                                     status="Aceptada",
@@ -118,7 +136,7 @@ def create():
             db.session.commit()
 
             # Mensaje para el usuario
-            msg = f"{request.form.get('email')}\n"
+            msg = (f"{request.form.get('email')}\n" if request.form.get('email') else "")
             msg += f"{request.form.get('nombre')}, ¡bienvenido al equipo!\n"
             msg += "Usa las siguientes credenciales para entrar a nuestro sistema:\n"
             msg += f"Usuario: {username}\n Contraseña: {request.form.get('password')}\n"
@@ -134,11 +152,15 @@ def create():
 
             old_dict={column.name : getattr(existing_user, column.name) for column in Usuario.__table__.columns}
 
-            existing_user.username = request.form.get('username')
+            nuevo_username = (request.form.get('username') or '').strip()
+            if len(nuevo_username) > MAX_LEN_USERNAME:
+                return jsonify({'error': True,
+                                'msg': f"El username no puede tener más de {MAX_LEN_USERNAME} caracteres (tiene {len(nuevo_username)})."})
+            existing_user.username = nuevo_username
             existing_user.nombre = request.form.get('nombre')
             existing_user.apellido = request.form.get('apellido')
-            existing_user.correo = request.form.get('email')
-            existing_user.telefono = request.form.get('cel')
+            existing_user.correo = _opcional(request.form.get('email'))
+            existing_user.telefono = _opcional(request.form.get('cel'))
             #existing_user.nivel_id = request.form.get('acceso')
             db.session.commit()
 

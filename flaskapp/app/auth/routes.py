@@ -91,8 +91,8 @@ def edit_cuser():
 
         existing_user.nombre = request.form.get('nombre')
         existing_user.apellido = request.form.get('apellido')
-        existing_user.correo = request.form.get('email')
-        existing_user.telefono = request.form.get('cel')
+        existing_user.correo = (request.form.get('email') or '').strip() or None
+        existing_user.telefono = (request.form.get('cel') or '').strip() or None
         existing_user.password=generate_password_hash(newpass)
 
         db.session.commit()
